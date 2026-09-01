@@ -1,0 +1,12 @@
+{
+  "name": "foodie-admin-frontend",
+  "private": true,
+  "packageManager": "pnpm@11.24.0",
+  "scripts": {
+    "dev": "pnpm --filter foodie-admin dev",
+    "build": "pnpm --filter foodie-admin build",
+    "typecheck": "pnpm --filter foodie-admin typecheck",
+    "lint": "pnpm --filter foodie-admin lint",
+    "test": "pnpm --filter foodie-admin test"
+  }
+}

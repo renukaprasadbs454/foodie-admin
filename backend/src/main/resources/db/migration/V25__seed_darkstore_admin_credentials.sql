@@ -1,0 +1,34 @@
+-- V25: Seed Darkstore Admin Role & Login Credentials
+-- Local / Dev credentials for Darkstore Admin
+
+ALTER TABLE role DROP CONSTRAINT IF EXISTS chk_role_name;
+ALTER TABLE role ADD CONSTRAINT chk_role_name CHECK (
+    name IN (
+        'SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'RESTAURANT_MANAGER',
+        'SUPPORT_AGENT', 'AUDITOR', 'OPS', 'FINANCE', 'SUPPORT', 'DARKSTORE_ADMIN'
+    )
+);
+
+-- Insert DARKSTORE_ADMIN role if not existing
+INSERT INTO role (id, name) VALUES
+    ('11111111-1111-1111-1111-111111111010', 'DARKSTORE_ADMIN')
+ON CONFLICT (name) DO NOTHING;
+
+-- Seed DARKSTORE_ADMIN permissions
+INSERT INTO permission (id, role_id, resource, action) VALUES
+    ('22222222-2222-2222-2222-222222223501', '11111111-1111-1111-1111-111111111010', 'DARKSTORE', 'VIEW'),
+    ('22222222-2222-2222-2222-222222223502', '11111111-1111-1111-1111-111111111010', 'DARKSTORE', 'MANAGE'),
+    ('22222222-2222-2222-2222-222222223503', '11111111-1111-1111-1111-111111111010', 'INVENTORY', 'VIEW'),
+    ('22222222-2222-2222-2222-222222223504', '11111111-1111-1111-1111-111111111010', 'INVENTORY', 'UPDATE'),
+    ('22222222-2222-2222-2222-222222223505', '11111111-1111-1111-1111-111111111010', 'ORDER', 'VIEW'),
+    ('22222222-2222-2222-2222-222222223506', '11111111-1111-1111-1111-111111111010', 'ORDER', 'UPDATE')
+ON CONFLICT DO NOTHING;
+
+-- Darkstore Admin: darkstore@foodie.local / DarkstoreOps@123 (BCrypt hash)
+INSERT INTO user_credential (id, phone_number, email, password_hash, user_type, active, created_at, updated_at) VALUES
+    ('33333333-3333-3333-3333-333333333010', '+919999999992', 'darkstore@foodie.local', '$2a$10$UAwCF/QkMLt.caFqCRE7yu3V4Yg3upmgTKSxT9N7PMEI2GcAqtfFy', 'ADMIN', TRUE, now(), now())
+ON CONFLICT (email) DO UPDATE SET password_hash = '$2a$10$UAwCF/QkMLt.caFqCRE7yu3V4Yg3upmgTKSxT9N7PMEI2GcAqtfFy', updated_at = now();
+
+INSERT INTO admin_user (id, user_credential_id, role_id, full_name, created_at, updated_at) VALUES
+    ('44444444-4444-4444-4444-444444444010', '33333333-3333-3333-3333-333333333010', '11111111-1111-1111-1111-111111111010', 'Darkstore Admin', now(), now())
+ON CONFLICT (user_credential_id) DO NOTHING;

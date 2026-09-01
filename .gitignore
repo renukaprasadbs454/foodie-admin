@@ -1,0 +1,26 @@
+# Node / Frontend
+node_modules/
+.pnpm-store/
+.next/
+out/
+dist/
+.turbo/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Java / Maven Backend
+backend/target/
+backend/.mvn/timing.properties
+backend/.local-object-storage/
+backend/dump.rdb
+*.class
+*.jar
+*.war
+
+# OS & IDE
+.DS_Store
+.idea/
+.vscode/
+*.log
