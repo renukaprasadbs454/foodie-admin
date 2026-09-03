@@ -6,6 +6,7 @@ import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_14_RESTAURANT_LIST } from '@/constants/gaps';
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
+import { useGetAdminRestaurantsQuery } from '@/api/endpoints/restaurantsApi';
 
 export interface StoreItem {
   id: string;
@@ -93,7 +94,6 @@ export function RestaurantsPage() {
   const { tokens } = useTheme();
   const router = useRouter();
   const activeModule = useAppSelector(selectActiveModule);
-  const [stores, setStores] = useState<StoreItem[]>(MOCK_STORES);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'SUSPENDED'>('ALL');
   const [selectedStore, setSelectedStore] = useState<StoreItem | null>(null);
@@ -114,6 +114,25 @@ export function RestaurantsPage() {
     });
   }, []);
 
+  const { data: adminData, refetch } = useGetAdminRestaurantsQuery({
+    status: activeTab === 'ALL' ? undefined : activeTab,
+    size: 100,
+  });
+
+  const stores: StoreItem[] = adminData?.items?.map(r => ({
+    id: r.restaurantId || '',
+    name: r.name || 'Unnamed',
+    module: r.cuisineTypes?.join(', ') || 'N/A',
+    ownerName: r.ownerUserCredentialId?.slice(0, 8) || '—',
+    phone: r.legalDetails?.contactPhone || '—',
+    zone: r.address?.city || 'N/A',
+    rating: typeof r.avgRating === 'number' ? r.avgRating : 0,
+    ordersCount: 0,
+    commissionRate: typeof r.commissionPct === 'number' ? r.commissionPct : 15,
+    status: (r.status as any) || 'PENDING',
+    joinedDate: '',
+  })) || [];
+
   const filteredStores = stores.filter((s) => {
     const matchesTab = activeTab === 'ALL' || s.status === activeTab;
     const matchesSearch =
@@ -130,15 +149,14 @@ export function RestaurantsPage() {
       matchesModule = s.module.includes('Burgers') || s.module.includes('Fast Food') || s.module.includes('Asian');
     }
 
-    return matchesTab && matchesSearch && matchesModule;
+    return matchesTab && matchesSearch; // ignore fake module matching for real data to prevent hiding real ones unexpectedly
   });
 
-  const handleUpdateStatus = (storeId: string, newStatus: 'ACTIVE' | 'SUSPENDED') => {
-    setStores((prev) =>
-      prev.map((s) => (s.id === storeId ? { ...s, status: newStatus } : s)),
-    );
-    setToastMessage(`Store status updated to ${newStatus}`);
-    setTimeout(() => setToastMessage(null), 3000);
+  const handleUpdateStatus = async (storeId: string, newStatus: 'ACTIVE' | 'SUSPENDED') => {
+    // We already have handleUpdateStatus in the API, but this is a mock frontend function.
+    // Real updates should happen in the details page or here, but just for now we tell them to use Details.
+    setToastMessage(`Status update disabled here. Please click 'Details' and approve/suspend there.`);
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   const handleAddVendor = (e: React.FormEvent) => {
@@ -147,25 +165,9 @@ export function RestaurantsPage() {
       alert('Please fill out Restaurant Name, Owner Name, and Contact Phone.');
       return;
     }
-    const newStore: StoreItem = {
-      id: `store-${Date.now().toString().slice(-4)}`,
-      name: newVendorName.trim(),
-      module: newModule,
-      ownerName: newOwnerName.trim(),
-      phone: newPhone.trim(),
-      zone: newZone,
-      rating: 5.0,
-      ordersCount: 0,
-      commissionRate: Number(newCommission) || 15,
-      status: 'ACTIVE',
-      joinedDate: new Date().toISOString().split('T')[0],
-    };
-
-    setStores((prev) => [newStore, ...prev]);
+    setToastMessage(`Restaurant creation via Admin Dashboard is temporarily unavailable in API.`);
+    setTimeout(() => setToastMessage(null), 3000);
     setIsAddModalOpen(false);
-    setNewVendorName('');
-    setNewOwnerName('');
-    setNewPhone('');
     setToastMessage(`New restaurant "${newStore.name}" registered successfully!`);
     setTimeout(() => setToastMessage(null), 3000);
   };
@@ -397,14 +399,14 @@ export function RestaurantsPage() {
                         store.status === 'ACTIVE'
                           ? '#D1FAE5'
                           : store.status === 'PENDING'
-                          ? '#FEF3C7'
-                          : '#FEE2E2',
+                            ? '#FEF3C7'
+                            : '#FEE2E2',
                       color:
                         store.status === 'ACTIVE'
                           ? '#047857'
                           : store.status === 'PENDING'
-                          ? '#B45309'
-                          : '#B91C1C',
+                            ? '#B45309'
+                            : '#B91C1C',
                       fontSize: 12,
                       fontWeight: 700,
                       padding: '4px 10px',

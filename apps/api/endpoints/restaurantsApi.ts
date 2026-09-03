@@ -31,6 +31,18 @@ export const restaurantsApi = baseApi.injectEndpoints({
       ],
       keepUnusedDataFor: 60,
     }),
+    getAdminRestaurants: builder.query<{ items: RestaurantDetail[]; pagination: any }, { status?: string; page?: number; size?: number; sort?: string }>({
+      query: ({ status, page = 0, size = 20, sort }) => ({
+        url: `/api/bff/admin/restaurants`,
+        params: {
+          ...(status ? { status } : {}),
+          page,
+          size,
+          ...(sort ? { sort } : {}),
+        },
+      }),
+      providesTags: ['Admin', 'Restaurant'],
+    }),
     getRestaurantReviews: builder.query<
       RestaurantReview[],
       { restaurantId: string; page?: number; size?: number; sort?: string }
@@ -78,6 +90,7 @@ export const restaurantsApi = baseApi.injectEndpoints({
 
 export const {
   useGetRestaurantQuery,
+  useGetAdminRestaurantsQuery,
   useGetRestaurantReviewsQuery,
   useApproveRestaurantMutation,
   useSuspendRestaurantMutation,
