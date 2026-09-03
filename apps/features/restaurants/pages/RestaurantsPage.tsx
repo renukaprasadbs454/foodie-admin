@@ -6,7 +6,7 @@ import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_14_RESTAURANT_LIST } from '@/constants/gaps';
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
-import { useGetAdminRestaurantsQuery } from '@/api/endpoints/restaurantsApi';
+import { useGetAdminRestaurantsQuery, useApproveRestaurantMutation, useSuspendRestaurantMutation } from '@/api/endpoints/restaurantsApi';
 
 export interface StoreItem {
   id: string;
@@ -18,7 +18,7 @@ export interface StoreItem {
   rating: number;
   ordersCount: number;
   commissionRate: number;
-  status: 'ACTIVE' | 'PENDING' | 'SUSPENDED';
+  status: 'APPROVED' | 'PENDING' | 'SUSPENDED';
   joinedDate: string;
 }
 
@@ -33,7 +33,7 @@ const MOCK_STORES: StoreItem[] = [
     rating: 4.8,
     ordersCount: 1420,
     commissionRate: 15,
-    status: 'ACTIVE',
+    status: 'APPROVED',
     joinedDate: '2025-01-15',
   },
   {
@@ -46,7 +46,7 @@ const MOCK_STORES: StoreItem[] = [
     rating: 4.6,
     ordersCount: 890,
     commissionRate: 12,
-    status: 'ACTIVE',
+    status: 'APPROVED',
     joinedDate: '2025-02-01',
   },
   {
@@ -85,7 +85,7 @@ const MOCK_STORES: StoreItem[] = [
     rating: 4.7,
     ordersCount: 540,
     commissionRate: 12,
-    status: 'ACTIVE',
+    status: 'APPROVED',
     joinedDate: '2025-02-18',
   },
 ];
@@ -95,7 +95,7 @@ export function RestaurantsPage() {
   const router = useRouter();
   const activeModule = useAppSelector(selectActiveModule);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'ALL' | 'ACTIVE' | 'PENDING' | 'SUSPENDED'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'SUSPENDED'>('ALL');
   const [selectedStore, setSelectedStore] = useState<StoreItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -152,11 +152,23 @@ export function RestaurantsPage() {
     return matchesTab && matchesSearch; // ignore fake module matching for real data to prevent hiding real ones unexpectedly
   });
 
-  const handleUpdateStatus = async (storeId: string, newStatus: 'ACTIVE' | 'SUSPENDED') => {
-    // We already have handleUpdateStatus in the API, but this is a mock frontend function.
-    // Real updates should happen in the details page or here, but just for now we tell them to use Details.
-    setToastMessage(`Status update disabled here. Please click 'Details' and approve/suspend there.`);
-    setTimeout(() => setToastMessage(null), 4000);
+  const [approve] = useApproveRestaurantMutation();
+  const [suspend] = useSuspendRestaurantMutation();
+
+  const handleUpdateStatus = async (storeId: string, newStatus: 'APPROVED' | 'SUSPENDED') => {
+    try {
+      if (newStatus === 'APPROVED') {
+        await approve(storeId).unwrap();
+        setToastMessage('Restaurant approved successfully.');
+      } else {
+        await suspend({ restaurantId: storeId, body: { reason: 'Suspended from Dashboard list' } }).unwrap();
+        setToastMessage('Restaurant suspended successfully.');
+      }
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch (e: any) {
+      setToastMessage('Error updating status: ' + (e?.data?.message || 'Unknown error'));
+      setTimeout(() => setToastMessage(null), 4000);
+    }
   };
 
   const handleAddVendor = (e: React.FormEvent) => {
@@ -241,7 +253,7 @@ export function RestaurantsPage() {
             Active Vendors
           </Text>
           <Text as="h2" variant="heading1" color="#059669" style={{ marginTop: 4 }}>
-            {stores.filter((s) => s.status === 'ACTIVE').length}
+            {stores.filter((s) => s.status === 'APPROVED').length}
           </Text>
         </div>
         <div
@@ -296,7 +308,7 @@ export function RestaurantsPage() {
       >
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 8 }}>
-          {(['ALL', 'ACTIVE', 'PENDING', 'SUSPENDED'] as const).map((tab) => (
+          {(['ALL', 'APPROVED', 'PENDING', 'SUSPENDED'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -396,13 +408,13 @@ export function RestaurantsPage() {
                   <span
                     style={{
                       backgroundColor:
-                        store.status === 'ACTIVE'
+                        store.status === 'APPROVED'
                           ? '#D1FAE5'
                           : store.status === 'PENDING'
                             ? '#FEF3C7'
                             : '#FEE2E2',
                       color:
-                        store.status === 'ACTIVE'
+                        store.status === 'APPROVED'
                           ? '#047857'
                           : store.status === 'PENDING'
                             ? '#B45309'
@@ -418,10 +430,10 @@ export function RestaurantsPage() {
                 </td>
                 <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                    {store.status !== 'ACTIVE' ? (
+                    {store.status !== 'APPROVED' ? (
                       <button
                         type="button"
-                        onClick={() => handleUpdateStatus(store.id, 'ACTIVE')}
+                        onClick={() => handleUpdateStatus(store.id, 'APPROVED')}
                         style={{
                           padding: '6px 12px',
                           backgroundColor: '#14532D',
