@@ -89,6 +89,18 @@ export const restaurantsApi = baseApi.injectEndpoints({
         'Admin',
       ],
     }),
+    deleteRestaurant: builder.mutation<void, string>({
+      query: (restaurantId) => ({
+        url: `/api/bff/admin/restaurants/${restaurantId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'Restaurant', id },
+        { type: 'Admin', id: 'RESTAURANT' },
+        { type: 'Admin', id: 'LIST' },
+        'Admin',
+      ],
+    }),
   }),
 });
 
@@ -98,4 +110,5 @@ export const {
   useGetRestaurantReviewsQuery,
   useApproveRestaurantMutation,
   useSuspendRestaurantMutation,
+  useDeleteRestaurantMutation,
 } = restaurantsApi;

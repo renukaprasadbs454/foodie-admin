@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Button,
   DataTableShell,
@@ -17,6 +18,7 @@ import {
   useGetRestaurantQuery,
   useGetRestaurantReviewsQuery,
   useSuspendRestaurantMutation,
+  useDeleteRestaurantMutation,
 } from '@/api/endpoints/restaurantsApi';
 import { selectAdminRole } from '@/features/auth/authSlice';
 import { useAppSelector } from '@/store/hooks';
@@ -50,6 +52,9 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
   );
   const [approve, approveState] = useApproveRestaurantMutation();
   const [suspend, suspendState] = useSuspendRestaurantMutation();
+  const [deleteRest, deleteState] = useDeleteRestaurantMutation();
+
+  const router = useRouter();
 
   const [suspendOpen, setSuspendOpen] = useState(false);
   const [toast, setToast] = useState<{
@@ -106,6 +111,28 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
       trackAnalyticsEvent('restaurant_suspended', { restaurantId });
       setSuspendOpen(false);
       setToast({ message: 'Restaurant suspended.', variant: 'success' });
+    } catch (error) {
+      handleError(toUnwrappedApiError(error));
+    }
+  };
+
+  const onDelete = async () => {
+    if (!canManage) return;
+    if (!isConnected) {
+      setToast({
+        message: 'Connect to the internet to delete.',
+        variant: 'warning',
+      });
+      return;
+    }
+    const confirmed = window.confirm("Are you sure you want to permanently delete this restaurant? This cannot be undone.");
+    if (!confirmed) return;
+
+    trackAnalyticsEvent('delete_tapped', { restaurantId });
+    try {
+      await deleteRest(restaurantId).unwrap();
+      trackAnalyticsEvent('restaurant_deleted', { restaurantId });
+      router.push('/restaurants');
     } catch (error) {
       handleError(toUnwrappedApiError(error));
     }
@@ -259,6 +286,17 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
                   variant="danger"
                   disabled={!isConnected || suspendState.isLoading}
                   onClick={() => setSuspendOpen(true)}
+                />
+              )}
+              {data.status === 'SUSPENDED' && (
+                <Button
+                  label="Delete Permanently"
+                  aria-label="Delete restaurant"
+                  variant="danger"
+                  disabled={!isConnected || deleteState.isLoading}
+                  onClick={() => {
+                    void onDelete();
+                  }}
                 />
               )}
             </div>
