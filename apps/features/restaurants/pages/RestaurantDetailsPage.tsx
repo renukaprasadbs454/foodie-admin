@@ -241,22 +241,26 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
 
           {canManage ? (
             <div style={{ display: 'flex', gap: tokens.spacing.md, flexWrap: 'wrap' }}>
-              <Button
-                label="Approve"
-                aria-label="Approve restaurant"
-                loading={approveState.isLoading}
-                disabled={!isConnected || approveState.isLoading}
-                onClick={() => {
-                  void onApprove();
-                }}
-              />
-              <Button
-                label="Suspend"
-                aria-label="Suspend restaurant"
-                variant="danger"
-                disabled={!isConnected || suspendState.isLoading}
-                onClick={() => setSuspendOpen(true)}
-              />
+              {data.status === 'PENDING' && (
+                <Button
+                  label="Approve"
+                  aria-label="Approve restaurant"
+                  loading={approveState.isLoading}
+                  disabled={!isConnected || approveState.isLoading}
+                  onClick={() => {
+                    void onApprove();
+                  }}
+                />
+              )}
+              {data.status === 'APPROVED' && (
+                <Button
+                  label="Suspend"
+                  aria-label="Suspend restaurant"
+                  variant="danger"
+                  disabled={!isConnected || suspendState.isLoading}
+                  onClick={() => setSuspendOpen(true)}
+                />
+              )}
             </div>
           ) : null}
 
