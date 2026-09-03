@@ -184,6 +184,59 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
                 Cuisines: {data.cuisineTypes.join(', ')}
               </Text>
             ) : null}
+            {data.legalDetails && (
+              <div style={{ marginTop: tokens.spacing.sm, padding: tokens.spacing.sm, backgroundColor: tokens.color.background, borderRadius: tokens.radius.sm }}>
+                <Text as="h3" variant="heading3" style={{ marginBottom: tokens.spacing.xs }}>Legal Details</Text>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, auto) 1fr', gap: tokens.spacing.xs }}>
+                  <Text as="span" variant="caption" color={tokens.color.textSecondary}>Legal Name</Text>
+                  <Text as="span" variant="body">{data.legalDetails.legalName ?? '—'}</Text>
+
+                  <Text as="span" variant="caption" color={tokens.color.textSecondary}>FSSAI</Text>
+                  <Text as="span" variant="body">{data.legalDetails.fssaiLicenseNumber ?? '—'}</Text>
+
+                  <Text as="span" variant="caption" color={tokens.color.textSecondary}>PAN</Text>
+                  <Text as="span" variant="body">{data.legalDetails.pan ?? '—'}</Text>
+
+                  <Text as="span" variant="caption" color={tokens.color.textSecondary}>GSTIN</Text>
+                  <Text as="span" variant="body">{data.legalDetails.gstin ?? '—'}</Text>
+
+                  <Text as="span" variant="caption" color={tokens.color.textSecondary}>Business Type</Text>
+                  <Text as="span" variant="body">{data.legalDetails.businessType ?? '—'}</Text>
+                </div>
+              </div>
+            )}
+
+            {data.documents && data.documents.length > 0 && (
+              <div style={{ marginTop: tokens.spacing.sm, padding: tokens.spacing.sm, backgroundColor: tokens.color.background, borderRadius: tokens.radius.sm }}>
+                <Text as="h3" variant="heading3" style={{ marginBottom: tokens.spacing.xs }}>Documents</Text>
+                <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
+                  {data.documents.map((doc) => (
+                    <div key={doc.id} style={{ padding: tokens.spacing.sm, border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.sm, background: tokens.color.surface }}>
+                      <Text as="p" variant="body">{doc.docType}</Text>
+                      <Text as="p" variant="caption" color={doc.verifiedAt ? tokens.color.success : tokens.color.textSecondary}>
+                        {doc.verifiedAt ? 'Verified' : 'Pending Verification'}
+                      </Text>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(data.logoImageUrl || data.coverImageUrl) && (
+              <div style={{ display: 'flex', gap: tokens.spacing.md, marginTop: tokens.spacing.sm }}>
+                {data.logoImageUrl && (
+                  <div>
+                    <Text as="p" variant="caption" color={tokens.color.textSecondary} style={{ marginBottom: tokens.spacing.xs }}>Logo</Text>
+                    <img src={data.logoImageUrl} alt="Logo" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: tokens.radius.sm, border: `1px solid ${tokens.color.border}` }} />
+                  </div>
+                )}
+                {data.coverImageUrl && (
+                  <div>
+                    <Text as="p" variant="caption" color={tokens.color.textSecondary} style={{ marginBottom: tokens.spacing.xs }}>Cover Image</Text>
+                    <img src={data.coverImageUrl} alt="Cover" style={{ width: 200, height: 100, objectFit: 'cover', borderRadius: tokens.radius.sm, border: `1px solid ${tokens.color.border}` }} />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {canManage ? (

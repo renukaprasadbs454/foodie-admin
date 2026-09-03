@@ -26,6 +26,18 @@ export type RestaurantDetail = {
   status?: string | null;
   commissionPct?: number | string | null;
   ownerUserCredentialId?: string | null;
+  legalDetails?: {
+    gstin?: string | null;
+    pan?: string | null;
+    fssaiLicenseNumber?: string | null;
+    legalName?: string | null;
+    businessType?: string | null;
+  } | null;
+  documents?: {
+    id: string;
+    docType: string;
+    verifiedAt?: string | null;
+  }[] | null;
 };
 
 export type RestaurantReview = {
