@@ -41,7 +41,7 @@ export const restaurantsApi = baseApi.injectEndpoints({
           ...(sort ? { sort } : {}),
         },
       }),
-      providesTags: ['Admin', 'Restaurant'],
+      providesTags: ['Admin', 'Restaurant', { type: 'Admin', id: 'LIST' }],
     }),
     getRestaurantReviews: builder.query<
       RestaurantReview[],
@@ -69,6 +69,8 @@ export const restaurantsApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, id) => [
         { type: 'Restaurant', id },
         { type: 'Admin', id: 'RESTAURANT' },
+        { type: 'Admin', id: 'LIST' },
+        'Admin',
       ],
     }),
     suspendRestaurant: builder.mutation<
@@ -83,6 +85,8 @@ export const restaurantsApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, arg) => [
         { type: 'Restaurant', id: arg.restaurantId },
         { type: 'Admin', id: 'RESTAURANT' },
+        { type: 'Admin', id: 'LIST' },
+        'Admin',
       ],
     }),
   }),
