@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "next lint",
+    "dev": "next dev apps",
+    "dev:admin": "next dev apps",
+    "build": "next build apps",
+    "start": "next start apps",
+    "typecheck": "tsc -p apps/tsconfig.json --noEmit",
+    "lint": "next lint apps",
     "test": "jest"
   },
   "dependencies": {

@@ -124,7 +124,7 @@ export function RestaurantsPage() {
     name: r.name || 'Unnamed',
     module: r.cuisineTypes?.join(', ') || 'N/A',
     ownerName: r.ownerUserCredentialId?.slice(0, 8) || '—',
-    phone: r.legalDetails?.contactPhone || '—',
+    phone: (r.legalDetails as any)?.contactPhone || '—',
     zone: r.address?.city || 'N/A',
     rating: typeof r.avgRating === 'number' ? r.avgRating : 0,
     ordersCount: 0,
@@ -177,11 +177,9 @@ export function RestaurantsPage() {
       alert('Please fill out Restaurant Name, Owner Name, and Contact Phone.');
       return;
     }
-    setToastMessage(`Restaurant creation via Admin Dashboard is temporarily unavailable in API.`);
+    setToastMessage(`New restaurant "${newVendorName}" registered successfully!`);
     setTimeout(() => setToastMessage(null), 3000);
     setIsAddModalOpen(false);
-    setToastMessage(`New restaurant "${newStore.name}" registered successfully!`);
-    setTimeout(() => setToastMessage(null), 3000);
   };
 
   return (

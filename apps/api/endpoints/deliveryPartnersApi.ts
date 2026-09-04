@@ -1,5 +1,8 @@
 import { baseApi } from '../baseApi';
-import type { DeliveryPartnerProfile } from '../../features/deliveryPartners/types';
+import type {
+  AdminDeliveryPartnersResponse,
+  DeliveryPartnerProfile,
+} from '../../features/deliveryPartners/types';
 
 export interface DeliveryPricingConfig {
   minPricePerDelivery: number;
@@ -13,8 +16,40 @@ export interface UpdateDeliveryPricingRequest {
   moneyPerKm: number;
 }
 
+export interface GetAdminDeliveryPartnersParams {
+  status?: string;
+  search?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+export interface RejectKycRequest {
+  partnerId: string;
+  reason?: string;
+}
+
 export const deliveryPartnersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getAdminDeliveryPartners: builder.query<AdminDeliveryPartnersResponse, GetAdminDeliveryPartnersParams | void>({
+      query: (params) => ({
+        url: '/api/bff/admin/delivery-partners',
+        params: {
+          status: params?.status && params.status !== 'ALL' ? params.status : undefined,
+          search: params?.search ? params.search : undefined,
+          page: params?.page ?? 0,
+          size: params?.size ?? 50,
+          sort: params?.sort ?? 'createdAt,desc',
+        },
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map(({ id }) => ({ type: 'Delivery' as const, id })),
+              { type: 'Admin', id: 'DELIVERY_LIST' },
+            ]
+          : [{ type: 'Admin', id: 'DELIVERY_LIST' }],
+    }),
     approveDeliveryPartnerKyc: builder.mutation<DeliveryPartnerProfile, string>({
       query: (partnerId) => ({
         url: `/api/bff/admin/delivery-partners/${partnerId}/kyc-approve`,
@@ -22,6 +57,19 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, id) => [
         { type: 'Delivery', id },
+        { type: 'Admin', id: 'DELIVERY_LIST' },
+        { type: 'Admin', id: 'DELIVERY' },
+      ],
+    }),
+    rejectDeliveryPartnerKyc: builder.mutation<DeliveryPartnerProfile, RejectKycRequest>({
+      query: ({ partnerId, reason }) => ({
+        url: `/api/bff/admin/delivery-partners/${partnerId}/kyc-reject`,
+        method: 'PATCH',
+        body: { reason },
+      }),
+      invalidatesTags: (_result, _error, { partnerId }) => [
+        { type: 'Delivery', id: partnerId },
+        { type: 'Admin', id: 'DELIVERY_LIST' },
         { type: 'Admin', id: 'DELIVERY' },
       ],
     }),
@@ -41,7 +89,9 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetAdminDeliveryPartnersQuery,
   useApproveDeliveryPartnerKycMutation,
+  useRejectDeliveryPartnerKycMutation,
   useGetDeliveryPricingQuery,
   useUpdateDeliveryPricingMutation,
 } = deliveryPartnersApi;
