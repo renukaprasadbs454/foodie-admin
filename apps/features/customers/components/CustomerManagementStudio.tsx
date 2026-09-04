@@ -58,7 +58,7 @@ export function CustomerManagementStudio() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   React.useEffect(() => {
-    fetch('/api/customers')
+    fetch('/api/bff/admin/customers')
       .then(res => res.json())
       .then(data => {
         if (data && data.customers) {
