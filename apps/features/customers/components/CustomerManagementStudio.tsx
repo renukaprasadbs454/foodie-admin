@@ -4,60 +4,6 @@ import React, { useState } from 'react';
 import type { CustomerProfile, SupportTicket, AccountStatus, TicketStatus } from '../types/customerTypes';
 import { calculateCustomerLtvBadge } from '../types/customerTypes';
 
-const INITIAL_CUSTOMERS: CustomerProfile[] = [
-  {
-    id: 'CUST-8001',
-    name: 'Sarah Jenkins',
-    email: 'sarah.j@example.com',
-    phone: '+1 (555) 234-5678',
-    totalOrders: 42,
-    totalSpend: 1280.50,
-    savedAddressesCount: 3,
-    accountStatus: 'ACTIVE',
-    joinedDate: '2025-11-12',
-    lastOrderDate: '2026-08-10',
-    loyaltyTier: 'PLATINUM',
-  },
-  {
-    id: 'CUST-8002',
-    name: 'Marcus Vance',
-    email: 'marcus.vance@example.com',
-    phone: '+1 (555) 987-6543',
-    totalOrders: 19,
-    totalSpend: 620.00,
-    savedAddressesCount: 2,
-    accountStatus: 'ACTIVE',
-    joinedDate: '2026-01-05',
-    lastOrderDate: '2026-08-11',
-    loyaltyTier: 'GOLD',
-  },
-  {
-    id: 'CUST-8003',
-    name: 'Elena Rostova',
-    email: 'elena.rostova@example.com',
-    phone: '+1 (555) 345-6789',
-    totalOrders: 8,
-    totalSpend: 240.25,
-    savedAddressesCount: 1,
-    accountStatus: 'ACTIVE',
-    joinedDate: '2026-03-20',
-    lastOrderDate: '2026-08-04',
-    loyaltyTier: 'SILVER',
-  },
-  {
-    id: 'CUST-8004',
-    name: 'Arthur Pendelton',
-    email: 'arthur.p@example.com',
-    phone: '+1 (555) 456-7890',
-    totalOrders: 3,
-    totalSpend: 85.00,
-    savedAddressesCount: 1,
-    accountStatus: 'SUSPENDED',
-    joinedDate: '2026-06-15',
-    lastOrderDate: '2026-07-22',
-    loyaltyTier: 'BRONZE',
-  },
-];
 
 const INITIAL_TICKETS: SupportTicket[] = [
   {
@@ -106,10 +52,25 @@ const INITIAL_TICKETS: SupportTicket[] = [
 
 export function CustomerManagementStudio() {
   const [activeTab, setActiveTab] = useState<'DIRECTORY' | 'TICKETS'>('DIRECTORY');
-  const [customers, setCustomers] = useState<CustomerProfile[]>(INITIAL_CUSTOMERS);
+  const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [tickets, setTickets] = useState<SupportTicket[]>(INITIAL_TICKETS);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
+  React.useEffect(() => {
+    fetch('/api/customers')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.customers) {
+          setCustomers(data.customers);
+        } else if (data && data.data) {
+          setCustomers(data.data);
+        } else if (Array.isArray(data)) {
+          setCustomers(data);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   // Block Modal State
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
