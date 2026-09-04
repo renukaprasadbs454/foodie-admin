@@ -21,6 +21,7 @@ export type TicketPriority = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface SupportTicket {
   id: string;
+  ticketNumber?: string;
   customerId: string;
   customerName: string;
   customerEmail: string;

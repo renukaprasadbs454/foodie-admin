@@ -2,61 +2,156 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLazySearchGlobalQuery } from '@/api/endpoints/searchApi';
+import { useLazyGetOrderQuery } from '@/api/endpoints/ordersApi';
 
 export interface GlobalSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-interface SearchResult {
+export interface SearchResultItem {
   id: string;
-  category: 'Order' | 'Restaurant' | 'Delivery Partner' | 'Coupon';
+  category: 'Order' | 'Restaurant' | 'Food Item' | 'Delivery Partner' | 'Customer' | 'Coupon';
   title: string;
   subtitle: string;
   url: string;
   icon: string;
 }
 
-const MOCK_SEARCH_ITEMS: SearchResult[] = [
-  { id: '1', category: 'Order', title: 'Order #ORD-9821', subtitle: 'Customer: Sarah Jenkins • $42.50 • Delivered', url: '/orders', icon: '📦' },
-  { id: '2', category: 'Order', title: 'Order #ORD-9820', subtitle: 'Customer: Mike Ross • $18.90 • Pending', url: '/orders', icon: '📦' },
-  { id: '3', category: 'Restaurant', title: 'The Gourmet Kitchen', subtitle: 'Italian & Continental • Rating 4.8★ • Active', url: '/restaurants', icon: '🍽️' },
-  { id: '4', category: 'Restaurant', title: 'Spice Garden India', subtitle: 'Indian Cuisine • Rating 4.6★ • Active', url: '/restaurants', icon: '🍽️' },
-  { id: '5', category: 'Delivery Partner', title: 'David Miller', subtitle: 'Vehicle: Scooter • Status: On-Duty (Active)', url: '/delivery-partners', icon: '🛵' },
-  { id: '6', category: 'Delivery Partner', title: 'Elena Vance', subtitle: 'Vehicle: Bicycle • Status: Pending KYC', url: '/delivery-partners', icon: '🛵' },
-  { id: '7', category: 'Coupon', title: 'FLAT50OFF', subtitle: '50% OFF up to $15 • Usage: 1,420 / 2,000', url: '/coupons', icon: '🎟️' },
-  { id: '8', category: 'Coupon', title: 'FREESHIP2026', subtitle: 'Free Delivery on orders above $30', url: '/coupons', icon: '🎟️' },
-];
-
 export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const router = useRouter();
 
+  const [triggerGlobalSearch, { data: globalData, isFetching: isSearchingGlobal, isError: isGlobalError }] =
+    useLazySearchGlobalQuery();
+
+  const [triggerGetOrder, { data: orderData, isFetching: isFetchingOrder }] =
+    useLazyGetOrderQuery();
+
+  // Debounce query input by 350ms
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Trigger search requests on debouncedQuery update
+  useEffect(() => {
+    if (!isOpen || !debouncedQuery) return;
+
+    void triggerGlobalSearch(debouncedQuery);
+
+    // If query matches a UUID or order ID format, also attempt order lookup
+    const looksLikeUuid = /^[0-9a-fA-F-]{8,36}$/.test(debouncedQuery) || /^ORD-/i.test(debouncedQuery);
+    if (looksLikeUuid) {
+      void triggerGetOrder(debouncedQuery);
+    }
+  }, [debouncedQuery, isOpen, triggerGlobalSearch, triggerGetOrder]);
+
+  // Reset state on modal open/close
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('');
+      setDebouncedQuery('');
+      setSelectedIndex(0);
+    }
+  }, [isOpen]);
+
+  // Prepare result items array from backend response
+  const results: SearchResultItem[] = [];
+
+  if (globalData?.restaurants) {
+    globalData.restaurants.forEach((r) => {
+      results.push({
+        id: `rest-${r.id}`,
+        category: 'Restaurant',
+        title: r.name,
+        subtitle: `${r.cuisineType ?? 'Restaurant'} • Rating ${r.rating ?? '4.5'} • ${
+          r.isAvailable !== false ? 'Active' : 'Inactive'
+        }`,
+        url: `/restaurants/${r.id}`,
+        icon: '',
+      });
+    });
+  }
+
+  if (globalData?.foodItems) {
+    globalData.foodItems.forEach((f) => {
+      results.push({
+        id: `food-${f.id}`,
+        category: 'Food Item',
+        title: f.name,
+        subtitle: `${f.categoryName ?? 'Menu Item'} • $${f.basePrice?.toFixed(2) ?? '0.00'}${
+          f.isVeg ? ' • Veg' : ''
+        }`,
+        url: `/restaurants`,
+        icon: '',
+      });
+    });
+  }
+
+  if (orderData) {
+    const oId = orderData.orderId || orderData.orderNumber || '1';
+    results.push({
+      id: `ord-${oId}`,
+      category: 'Order',
+      title: `Order #${oId}`,
+      subtitle: `Status: ${orderData.status} • Total: $${orderData.totalAmount ?? 0}`,
+      url: `/orders/${oId}`,
+      icon: '',
+    });
+  }
+
+  const isFetching = isSearchingGlobal || isFetchingOrder;
+
+  // Reset selected index if results change or shrink
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [results.length, debouncedQuery]);
+
+  // Keyboard navigation & shortcuts
+  useEffect(() => {
+    if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        if (isOpen) {
+        onClose();
+        return;
+      }
+
+      if (results.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const selected = results[selectedIndex];
+        if (selected) {
+          router.push(selected.url);
           onClose();
         }
       }
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, results, selectedIndex, router]);
 
   if (!isOpen) return null;
-
-  const filtered = query.trim() === ''
-    ? MOCK_SEARCH_ITEMS
-    : MOCK_SEARCH_ITEMS.filter(item =>
-        item.title.toLowerCase().includes(query.toLowerCase()) ||
-        item.subtitle.toLowerCase().includes(query.toLowerCase()) ||
-        item.category.toLowerCase().includes(query.toLowerCase())
-      );
 
   const handleSelect = (url: string) => {
     router.push(url);
@@ -94,11 +189,11 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
       >
         {/* Search Header Input */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E2E8F0', gap: 12 }}>
-          <span style={{ fontSize: 18, color: '#64748B' }}>🔍</span>
+          <span style={{ fontSize: 18, color: '#64748B' }}></span>
           <input
             type="text"
             autoFocus
-            placeholder="Search orders, restaurants, delivery partners, coupons..."
+            placeholder="Search orders, restaurants, food items, partners, coupons..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             style={{
@@ -111,6 +206,23 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               backgroundColor: 'transparent',
             }}
           />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#94A3B8',
+                fontSize: 16,
+                cursor: 'pointer',
+                padding: '0 4px',
+              }}
+              title="Clear search"
+            >
+              
+            </button>
+          ) : null}
           <span style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', backgroundColor: '#F1F5F9', padding: '3px 8px', borderRadius: 6 }}>
             ESC
           </span>
@@ -118,73 +230,91 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
 
         {/* Results Body */}
         <div style={{ maxHeight: '380px', overflowY: 'auto', padding: '12px 8px' }}>
-          {filtered.length === 0 ? (
+          {query.trim() === '' ? (
+            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B', fontSize: 13, lineHeight: 1.6 }}>
+              Type a keyword to search live backend records across <strong>Orders</strong>, <strong>Restaurants</strong>, <strong>Food Items</strong>, and more.
+            </div>
+          ) : isFetching ? (
+            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#14532D', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <span className="pulse-live" style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#10B981' }} />
+              Fetching backend search results...
+            </div>
+          ) : isGlobalError ? (
+            <div style={{ padding: '24px 16px', textAlign: 'center', color: '#DC2626', fontSize: 13, backgroundColor: '#FEF2F2', borderRadius: 8, margin: '8px' }}>
+               Failed to fetch search results from server. Please check your backend connection.
+            </div>
+          ) : results.length === 0 ? (
             <div style={{ padding: '32px 16px', textAlign: 'center', color: '#64748B', fontSize: 14 }}>
-              No results matching &quot;{query}&quot;
+              No results matching &quot;{debouncedQuery}&quot;
             </div>
           ) : (
-            filtered.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => handleSelect(item.url)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: '12px 16px',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.15s ease',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-              >
+            results.map((item, idx) => {
+              const isSelected = selectedIndex === idx;
+              return (
                 <div
+                  key={item.id}
+                  onClick={() => handleSelect(item.url)}
+                  onMouseEnter={() => setSelectedIndex(idx)}
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    backgroundColor: '#F0FDF4',
-                    border: '1px solid #DCFCE7',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 18,
+                    gap: 14,
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? '#F0FDF4' : 'transparent',
+                    border: isSelected ? '1px solid #BBF7D0' : '1px solid transparent',
+                    transition: 'background-color 0.12s ease, border-color 0.12s ease',
                   }}
                 >
-                  {item.icon}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#14532D' }}>{item.title}</span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: '#D97706',
-                        backgroundColor: '#FEF3C7',
-                        padding: '2px 6px',
-                        borderRadius: 4,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {item.category}
-                    </span>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      backgroundColor: isSelected ? '#DCFCE7' : '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 18,
+                    }}
+                  >
+                    {item.icon}
                   </div>
-                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{item.subtitle}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#14532D' }}>{item.title}</span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: '#D97706',
+                          backgroundColor: '#FEF3C7',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {item.category}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{item.subtitle}</div>
+                  </div>
+                  <span style={{ fontSize: 16, color: isSelected ? '#10B981' : '#CBD5E1' }}></span>
                 </div>
-                <span style={{ fontSize: 16, color: '#CBD5E1' }}>➔</span>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
         {/* Footer shortcuts */}
         <div style={{ padding: '10px 20px', backgroundColor: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#64748B' }}>
-          <span>Search Admin Console items</span>
+          <span>Real-time Backend Console Search</span>
           <span style={{ display: 'flex', gap: 12 }}>
             <span><strong>↑↓</strong> Navigate</span>
             <span><strong>↵</strong> Select</span>
+            <span><strong>ESC</strong> Close</span>
           </span>
         </div>
       </div>

@@ -18,12 +18,11 @@ import { DashboardKpiSkeleton } from '../components/DashboardKpiSkeleton';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { KpiGrid } from '../components/KpiGrid';
 import { PermissionDenied } from '../components/PermissionDenied';
-import { OrderOperationalPipeline } from '../components/OrderOperationalPipeline';
+
 import { SalesAnalyticsChart } from '../components/SalesAnalyticsChart';
 import { TopPerformersWidget } from '../components/TopPerformersWidget';
 import { RecentOrdersTableWidget } from '../components/RecentOrdersTableWidget';
-import { CentralizedManagementSection } from '@/components/CentralizedManagementSection';
-import { SupportQuestionsBanner } from '@/components/SupportQuestionsBanner';
+
 import {
   defaultDateRange,
   validateDateRange,
@@ -114,7 +113,7 @@ export function DashboardPage() {
     setRangeError(null);
     setApplied(validated.range);
     setToast({
-      message: `✅ Custom date range applied: ${validated.range.dateFrom} to ${validated.range.dateTo}`,
+      message: ` Custom date range applied: ${validated.range.dateFrom} to ${validated.range.dateTo}`,
       variant: 'success',
     });
     trackAnalyticsEvent('date_range_changed', {
@@ -179,7 +178,7 @@ export function DashboardPage() {
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#14532D', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>📅 Analytics Timeframe Filter</span>
+            <span> Analytics Timeframe Filter</span>
             <span
               style={{
                 fontSize: 11,
@@ -279,8 +278,7 @@ export function DashboardPage() {
         </Text>
       ) : null}
 
-      {/* 1. Live Order Operational Pipeline Ticker */}
-      <OrderOperationalPipeline totalOrders={query.data?.totalOrders ?? 324} />
+
 
       {/* 2. Primary KPI Grid */}
       {forbidden ? (
@@ -291,12 +289,12 @@ export function DashboardPage() {
         <KpiGrid
           summary={
             query.data ?? {
-              totalOrders: 324,
-              totalRevenue: 14850.0,
-              activeRestaurants: 42,
-              activeDeliveryPartners: 28,
-              newCustomers: 156,
-              avgOrderValue: 45.83,
+              totalOrders: 0,
+              totalRevenue: 0,
+              activeRestaurants: 0,
+              activeDeliveryPartners: 0,
+              newCustomers: 0,
+              avgOrderValue: 0,
             }
           }
         />
@@ -311,11 +309,7 @@ export function DashboardPage() {
       {/* 5. Live Recent Orders Table Widget */}
       <RecentOrdersTableWidget />
 
-      {/* 6. Zone-wise & Centralized Business Management Section */}
-      <CentralizedManagementSection />
 
-      {/* 7. Still Have Questions Support Banner */}
-      <SupportQuestionsBanner />
 
       <Toast
         open={Boolean(toast)}
