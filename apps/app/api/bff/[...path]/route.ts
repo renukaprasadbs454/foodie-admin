@@ -104,11 +104,16 @@ async function proxy(request: Request, pathSegments: string[]) {
     // Graceful fallback: If the live backend hasn't been deployed yet and returns a 500 or 404 
     // due to missing handlers on GET endpoints, intercept them so the UI does not break.
     if ((upstream.status === 404 || upstream.status === 500 || upstream.status === 405) && request.method === 'GET') {
-      if (targetPath.includes('admin/coupons') || targetPath.includes('admin/support-tickets')) {
+      if (
+        targetPath.includes('admin/coupons') ||
+        targetPath.includes('admin/support-tickets') ||
+        targetPath.includes('admin/delivery-partners') ||
+        targetPath.includes('admin/payments')
+      ) {
         return NextResponse.json(
           {
             success: true,
-            data: [],
+            data: (targetPath.includes('delivery-partners') || incomingUrl.search.includes('page=')) ? { items: [], pagination: { totalItems: 0, totalPages: 0 } } : [],
             error: null,
             meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
           },

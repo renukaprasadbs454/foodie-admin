@@ -16,35 +16,7 @@ import { useGetAdminPayoutsQuery } from '../../../api/endpoints/paymentsApi';
 
 // Replaced INITIAL_MOCK_PAYOUTS with real API data
 
-const MOCK_LEDGER_ITEMS: WalletLedgerItem[] = [
-  {
-    ledgerEntryId: 'LEDGER-101',
-    walletAccountId: 'w-acc-1111-2222',
-    entryType: 'CREDIT',
-    amount: 140.0,
-    referenceType: 'DELIVERY_EARNING',
-    referenceId: 'ORD-8801',
-    createdAt: '2026-08-25 12:15',
-  },
-  {
-    ledgerEntryId: 'LEDGER-102',
-    walletAccountId: 'w-acc-1111-2222',
-    entryType: 'CREDIT',
-    amount: 90.0,
-    referenceType: 'DELIVERY_EARNING',
-    referenceId: 'ORD-8802',
-    createdAt: '2026-08-25 11:40',
-  },
-  {
-    ledgerEntryId: 'LEDGER-103',
-    walletAccountId: 'w-acc-1111-2222',
-    entryType: 'DEBIT',
-    amount: 3450.0,
-    referenceType: 'PAYOUT_SETTLEMENT',
-    referenceId: 'PO-9001',
-    createdAt: '2026-08-25 10:18',
-  },
-];
+// MOCK_LEDGER_ITEMS removed
 
 const DEFAULT_FILTERS: PayoutFilterOptions = {
   partnerQuery: '',
@@ -447,7 +419,7 @@ export function DeliveryPayoutsPage() {
           payout={selectedPayout}
           walletBalance={12450.0}
           totalEarned={38900.0}
-          ledgerHistory={MOCK_LEDGER_ITEMS}
+          ledgerHistory={[]}
           onClose={() => setSelectedPayout(null)}
           onRetry={handleRetryPayout}
           initialTab={modalInitialTab}
