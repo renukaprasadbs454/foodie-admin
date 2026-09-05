@@ -217,7 +217,7 @@ export function CouponsPage() {
         value: Number(discountValue),
         minOrderAmount: Number(minPurchase) || 0,
         maxDiscountAmount: discountType === 'PERCENT' ? 200 : Number(discountValue),
-        expiryDate: '2025-12-31T23:59:59Z',
+        expiryDate: '2025-12-31',
         usageLimitTotal: 1000,
         usageLimitPerUser: 1,
       }).unwrap();
