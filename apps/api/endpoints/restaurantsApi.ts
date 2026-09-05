@@ -22,6 +22,7 @@ function normalizeReviewList(data: unknown): RestaurantReview[] {
  * No admin list GET (GAP-API-14).
  */
 export const restaurantsApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     getRestaurant: builder.query<RestaurantDetail, string>({
       query: (restaurantId) => `/api/bff/restaurants/${restaurantId}`,

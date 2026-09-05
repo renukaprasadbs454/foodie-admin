@@ -178,6 +178,7 @@ export function CouponsPage() {
   const [cmpCategory, setCmpCategory] = useState('All Food Delivery');
   const [cmpBudget, setCmpBudget] = useState('');
 
+  const [searchQuery, setSearchQuery] = useState('');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -285,6 +286,24 @@ export function CouponsPage() {
             Manage promotional coupons, first-order welcome offers, referral rewards & seasonal campaigns
           </Text>
         </div>
+
+        {/* Search Bar */}
+        <input
+          type="text"
+          placeholder="Search coupon code, offer title, or campaign..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: '10px 16px',
+            borderRadius: 10,
+            border: '1px solid #CBD5E1',
+            fontSize: 13,
+            width: 320,
+            maxWidth: '100%',
+            outline: 'none',
+            backgroundColor: '#FFFFFF',
+          }}
+        />
       </div>
 
       {/* Feature Navigation Tabs */}
@@ -515,6 +534,13 @@ export function CouponsPage() {
               <tbody>
                 {coupons
                   .filter((c) => {
+                    const q = searchQuery.trim().toLowerCase();
+                    const matchesSearch =
+                      !q ||
+                      c.code.toLowerCase().includes(q) ||
+                      c.title.toLowerCase().includes(q) ||
+                      c.module.toLowerCase().includes(q);
+                    if (!matchesSearch) return false;
                     if (activeModule === 'FOOD') return true;
                     if (activeModule === 'RESTAURANTS') return c.module.includes('Fine Dining') || c.module.includes('Pizza') || c.module.includes('All');
                     if (activeModule === 'CAFES') return c.module.includes('Bakery') || c.module.includes('Cafes') || c.module.includes('All');
@@ -524,7 +550,7 @@ export function CouponsPage() {
                   .map((c) => (
                   <tr key={c.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                     <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 800, color: '#14532D', fontFamily: 'monospace' }}>🏷️ {c.code}</div>
+                      <div style={{ fontWeight: 800, color: '#14532D', fontFamily: 'monospace' }}> {c.code}</div>
                       <div style={{ fontSize: 12, color: '#475569' }}>{c.title}</div>
                     </td>
                     <td style={{ padding: '16px 20px', fontWeight: 800, color: '#D97706' }}>
@@ -701,10 +727,15 @@ export function CouponsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {firstOrderOffers.map((fo) => (
+                  {firstOrderOffers
+                    .filter((fo) => {
+                      const q = searchQuery.trim().toLowerCase();
+                      return !q || fo.code.toLowerCase().includes(q) || fo.title.toLowerCase().includes(q);
+                    })
+                    .map((fo) => (
                     <tr key={fo.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#14532D', fontFamily: 'monospace' }}>🎁 {fo.code}</div>
+                        <div style={{ fontWeight: 800, color: '#14532D', fontFamily: 'monospace' }}> {fo.code}</div>
                         <div style={{ fontSize: 12, color: '#475569' }}>{fo.title}</div>
                       </td>
                       <td style={{ padding: '16px 20px', fontWeight: 800, color: '#D97706' }}>
@@ -734,7 +765,7 @@ export function CouponsPage() {
             <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 12, border: '1px solid #E2E8F0', borderTop: '4px solid #14532D' }}>
               <div style={{ fontSize: 12, color: '#64748B' }}>Referral Status</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: isReferralActive ? '#047857' : '#DC2626', marginTop: 4 }}>
-                {isReferralActive ? '✅ Active Campaign' : '⏸️ Paused'}
+                {isReferralActive ? ' Active Campaign' : ' Paused'}
               </div>
             </div>
             <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 12, border: '1px solid #E2E8F0', borderTop: '4px solid #F59E0B' }}>
@@ -842,7 +873,7 @@ export function CouponsPage() {
                   ].map((row, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '16px 20px', fontWeight: 700, color: '#14532D' }}>{row.name}</td>
-                      <td style={{ padding: '16px 20px', fontFamily: 'monospace', fontWeight: 700, color: '#D97706' }}>🏷️ {row.code}</td>
+                      <td style={{ padding: '16px 20px', fontFamily: 'monospace', fontWeight: 700, color: '#D97706' }}> {row.code}</td>
                       <td style={{ padding: '16px 20px', color: '#334155', fontWeight: 600 }}>{row.count} referred</td>
                       <td style={{ padding: '16px 20px', fontWeight: 800, color: '#047857' }}>{row.earned}</td>
                     </tr>
@@ -958,7 +989,7 @@ export function CouponsPage() {
                   marginTop: 8,
                 }}
               >
-                🚀 Launch Marketing Campaign
+                 Launch Marketing Campaign
               </button>
             </form>
 
@@ -983,7 +1014,7 @@ export function CouponsPage() {
                   {campaigns.map((cmp) => (
                     <tr key={cmp.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#14532D' }}>📣 {cmp.title}</div>
+                        <div style={{ fontWeight: 800, color: '#14532D' }}> {cmp.title}</div>
                         <div style={{ fontSize: 12, color: '#D97706', fontWeight: 600 }}>{cmp.bannerOffer}</div>
                       </td>
                       <td style={{ padding: '16px 20px', color: '#475569', fontSize: 13 }}>{cmp.category}</td>
@@ -1026,7 +1057,7 @@ export function CouponsPage() {
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           }}
         >
-          🏷️ {toastMsg}
+           {toastMsg}
         </div>
       ) : null}
     </div>

@@ -1,42 +1,60 @@
 import { NextResponse } from 'next/server';
+import { readAccessTokenFromCookieHeader } from 'foodie-shared-web/auth';
 import { ENV } from '@/constants/env';
 
-
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const res = await fetch(`${ENV.apiBaseUrl}/api/v1/admin/customers`, {
-      headers: { 'Content-Type': 'application/json' },
+    const cookieHeader = req.headers.get('cookie');
+    const accessToken = readAccessTokenFromCookieHeader(cookieHeader);
+
+    const { search } = new URL(req.url);
+    const targetUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/customers${search}`;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const res = await fetch(targetUrl, {
+      headers,
       cache: 'no-store',
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      return NextResponse.json(data);
-    }
-  } catch (_err) {
-    // Offline fallback data
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    return NextResponse.json(
+      { success: false, error: { code: 'NETWORK_ERROR', message: 'Failed to fetch customer data' } },
+      { status: 502 }
+    );
   }
 
-  return NextResponse.json({ customers: [], total: 0 });
 }
 
 export async function PATCH(req: Request) {
   try {
+    const cookieHeader = req.headers.get('cookie');
+    const accessToken = readAccessTokenFromCookieHeader(cookieHeader);
+
     const body = await req.json();
-    const res = await fetch(`${ENV.apiBaseUrl}/api/v1/admin/customers/status`, {
+    const { id, accountStatus, reason } = body;
+    const targetUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/customers/${id}/status`;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const res = await fetch(targetUrl, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      headers,
+      body: JSON.stringify({ accountStatus, reason }),
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      return NextResponse.json(data);
-    }
-  } catch (_err) {
-    // Fallback response
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    return NextResponse.json(
+      { success: false, error: { code: 'NETWORK_ERROR', message: 'Failed to update customer status' } },
+      { status: 502 }
+    );
   }
-
-  const payload = await req.clone().json().catch(() => ({}));
-  return NextResponse.json({ success: true, updated: payload }, { status: 200 });
 }
