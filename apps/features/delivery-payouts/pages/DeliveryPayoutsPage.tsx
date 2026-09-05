@@ -12,102 +12,9 @@ import type {
   ReconciliationOverview,
   WalletLedgerItem,
 } from '../types';
+import { useGetAdminPayoutsQuery } from '../../../api/endpoints/paymentsApi';
 
-const INITIAL_MOCK_PAYOUTS: DeliveryPartnerPayout[] = [
-  {
-    id: 'PO-9001',
-    walletAccountId: 'w-acc-1111-2222',
-    partnerId: 'p1111111-2222-3333-4444-555555555555',
-    partnerName: 'Vikram Choudhary',
-    partnerPhone: '+91 98111 22233',
-    amount: 3450.0,
-    status: 'SUCCESS',
-    provider: 'RAZORPAY',
-    bankRef: 'RZP-PY-882391029',
-    requestedAt: '2026-08-25 10:15',
-    processedAt: '2026-08-25 10:18',
-    reconciliationStatus: 'MATCHED',
-    retryEligible: false,
-    accountHolderName: 'Vikram Choudhary',
-    accountNumber: '981273918239',
-    ifscCode: 'HDFC0001234',
-    bankName: 'HDFC Bank',
-  },
-  {
-    id: 'PO-9002',
-    walletAccountId: 'w-acc-2222-3333',
-    partnerId: 'p2222222-3333-4444-5555-666666666666',
-    partnerName: 'Arjun Das',
-    partnerPhone: '+91 98222 33344',
-    amount: 1820.5,
-    status: 'REQUESTED',
-    provider: 'RAZORPAY',
-    requestedAt: '2026-08-26 08:30',
-    reconciliationStatus: 'MATCHED',
-    retryEligible: false,
-    accountHolderName: 'Arjun Das',
-    accountNumber: '887711223344',
-    ifscCode: 'ICIC0005678',
-    bankName: 'ICICI Bank',
-  },
-  {
-    id: 'PO-9003',
-    walletAccountId: 'w-acc-3333-4444',
-    partnerId: 'p3333333-4444-5555-6666-777777777777',
-    partnerName: 'Siddharth Rao',
-    partnerPhone: '+91 98333 44455',
-    amount: 2200.0,
-    status: 'FAILED',
-    provider: 'CASHFREE',
-    bankRef: 'CF-ERR-9910',
-    failureReason: 'Invalid IFSC code or beneficiary account mismatch',
-    requestedAt: '2026-08-24 14:20',
-    processedAt: '2026-08-24 14:22',
-    reconciliationStatus: 'STATUS_MISMATCH',
-    retryEligible: true,
-    accountHolderName: 'Siddharth Rao',
-    accountNumber: '776655443322',
-    ifscCode: 'SBIN0001092',
-    bankName: 'State Bank of India',
-  },
-  {
-    id: 'PO-9004',
-    walletAccountId: 'w-acc-4444-5555',
-    partnerId: 'p4444444-5555-6666-7777-888888888888',
-    partnerName: 'Rahul Sharma',
-    partnerPhone: '+91 98444 55566',
-    amount: 4100.0,
-    status: 'PROCESSING',
-    provider: 'RAZORPAY',
-    bankRef: 'RZP-PY-77123490',
-    requestedAt: '2026-08-26 09:10',
-    reconciliationStatus: 'MATCHED',
-    retryEligible: false,
-    accountHolderName: 'Rahul Sharma',
-    accountNumber: '112233445566',
-    ifscCode: 'AXIS0009988',
-    bankName: 'Axis Bank',
-  },
-  {
-    id: 'PO-9005',
-    walletAccountId: 'w-acc-5555-6666',
-    partnerId: 'p5555555-6666-7777-8888-999999999999',
-    partnerName: 'Anita Patel',
-    partnerPhone: '+91 98555 66677',
-    amount: 1250.0,
-    status: 'FAILED',
-    provider: 'RAZORPAY',
-    failureReason: 'Beneficiary bank network connection timeout',
-    requestedAt: '2026-08-23 16:45',
-    processedAt: '2026-08-23 16:46',
-    reconciliationStatus: 'AMOUNT_MISMATCH',
-    retryEligible: true,
-    accountHolderName: 'Anita Patel',
-    accountNumber: '554433221100',
-    ifscCode: 'KKBK0004321',
-    bankName: 'Kotak Mahindra Bank',
-  },
-];
+// Replaced INITIAL_MOCK_PAYOUTS with real API data
 
 const MOCK_LEDGER_ITEMS: WalletLedgerItem[] = [
   {
@@ -151,7 +58,31 @@ const DEFAULT_FILTERS: PayoutFilterOptions = {
 export function DeliveryPayoutsPage() {
   const { tokens } = useTheme();
 
-  const [payouts, setPayouts] = useState<DeliveryPartnerPayout[]>(INITIAL_MOCK_PAYOUTS);
+  const { data: serverPayouts = [] } = useGetAdminPayoutsQuery();
+  const payouts: DeliveryPartnerPayout[] = React.useMemo(() => {
+    return serverPayouts.map((p: any) => ({
+      id: p.id || p.payoutId || `po-${Math.random()}`,
+      walletAccountId: p.walletAccountId || '',
+      partnerId: p.walletAccountId || '',
+      partnerName: p.accountHolderName || 'Partner',
+      partnerPhone: '',
+      amount: p.amount || 0,
+      status: p.status === 'COMPLETED' ? 'SUCCESS' : (p.status || 'REQUESTED'),
+      provider: p.provider || 'CASHFREE',
+      bankRef: p.bankRef || p.providerReferenceId || '',
+      failureReason: p.failureReason || '',
+      requestedAt: p.createdAt || '',
+      processedAt: p.processedAt || p.completedAt || '',
+      reconciliationStatus: 'MATCHED',
+      retryEligible: p.status === 'FAILED',
+      accountHolderName: p.accountHolderName || '',
+      accountNumber: p.accountNumber || '',
+      ifscCode: p.ifscCode || '',
+      bankName: p.bankName || '',
+    }));
+  }, [serverPayouts]);
+
+  const [localRetries, setLocalRetries] = useState<Record<string, boolean>>({});
   const [filters, setFilters] = useState<PayoutFilterOptions>(DEFAULT_FILTERS);
   const [activeTab, setActiveTab] = useState<'PAYOUTS' | 'RECONCILIATION' | 'PROVIDERS'>('PAYOUTS');
   const [selectedPayout, setSelectedPayout] = useState<DeliveryPartnerPayout | null>(null);
@@ -200,30 +131,18 @@ export function DeliveryPayoutsPage() {
       return;
     }
 
-    setPayouts((prev) =>
-      prev.map((p) =>
-        p.id === targetPayout.id
-          ? {
-              ...p,
-              status: 'PROCESSING',
-              failureReason: undefined,
-              processedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-              retryEligible: false,
-            }
-          : p,
-      ),
-    );
+    setLocalRetries(prev => ({ ...prev, [targetPayout.id]: true }));
 
     if (selectedPayout && selectedPayout.id === targetPayout.id) {
       setSelectedPayout((prev) =>
         prev
           ? {
-              ...prev,
-              status: 'PROCESSING',
-              failureReason: undefined,
-              processedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-              retryEligible: false,
-            }
+            ...prev,
+            status: 'PROCESSING',
+            failureReason: undefined,
+            processedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+            retryEligible: false,
+          }
           : null,
       );
     }
@@ -262,7 +181,7 @@ export function DeliveryPayoutsPage() {
               animation: 'fadeIn 0.2s ease',
             }}
           >
-             {toastMsg}
+            {toastMsg}
           </div>
         )}
       </div>
@@ -372,7 +291,7 @@ export function DeliveryPayoutsPage() {
             cursor: 'pointer',
           }}
         >
-           Payout Requests & History ({payouts.length})
+          Payout Requests & History ({payouts.length})
         </button>
 
         <button
@@ -391,7 +310,7 @@ export function DeliveryPayoutsPage() {
             cursor: 'pointer',
           }}
         >
-           Reconciliation Studio ({discrepancyCount > 0 ? ` ${discrepancyCount}` : 'OK'})
+          Reconciliation Studio ({discrepancyCount > 0 ? ` ${discrepancyCount}` : 'OK'})
         </button>
 
         <button
@@ -410,7 +329,7 @@ export function DeliveryPayoutsPage() {
             cursor: 'pointer',
           }}
         >
-           Provider Config (Read-Only)
+          Provider Config (Read-Only)
         </button>
       </div>
 
@@ -423,7 +342,7 @@ export function DeliveryPayoutsPage() {
             onReset={() => setFilters(DEFAULT_FILTERS)}
           />
           <PayoutListTable
-            payouts={filteredPayouts}
+            payouts={filteredPayouts.map(p => localRetries[p.id] ? { ...p, status: 'PROCESSING' } : p)}
             onSelectPayout={(p) => handleOpenDetailModal(p, 'DETAILS')}
             onRetryPayout={handleRetryPayout}
             onViewWalletLedger={(p) => handleOpenDetailModal(p, 'WALLET')}
@@ -476,7 +395,7 @@ export function DeliveryPayoutsPage() {
                 </code>
               </div>
               <div style={{ fontSize: 11, color: '#64748B', backgroundColor: '#F8FAFC', padding: 10, borderRadius: 8, marginTop: 8 }}>
-                 Provider credentials and secret keys are stored in encrypted environment variables and never returned over API endpoints.
+                Provider credentials and secret keys are stored in encrypted environment variables and never returned over API endpoints.
               </div>
             </div>
           </div>
@@ -515,7 +434,7 @@ export function DeliveryPayoutsPage() {
                 </code>
               </div>
               <div style={{ fontSize: 11, color: '#64748B', backgroundColor: '#F8FAFC', padding: 10, borderRadius: 8, marginTop: 8 }}>
-                 Provider credentials and secret keys are stored in encrypted environment variables and never returned over API endpoints.
+                Provider credentials and secret keys are stored in encrypted environment variables and never returned over API endpoints.
               </div>
             </div>
           </div>

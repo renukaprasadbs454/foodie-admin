@@ -10,7 +10,7 @@ import { selectActiveModule } from '@/store/moduleSlice';
 
 import type { CommissionConfig, PaymentSettlementRecord } from '../types';
 import { calculatePaymentSplit } from '../types';
-import { useGetSettlementsQuery, useGetCommissionRulesQuery } from '../../../api/endpoints/paymentsApi';
+import { useGetSettlementsQuery, useGetCommissionRulesQuery, useGetAdminPayoutsQuery } from '../../../api/endpoints/paymentsApi';
 import { useGetAdminRestaurantsQuery } from '../../../api/endpoints/restaurantsApi';
 import { useGetAdminDeliveryPartnersQuery } from '../../../api/endpoints/deliveryPartnersApi';
 export interface WithdrawRequest {
@@ -31,35 +31,7 @@ const DEFAULT_COMMISSION_CONFIG: CommissionConfig = {
 
 // MOCK_SETTLEMENTS removed - now fetching from API
 
-const MOCK_WITHDRAWS: WithdrawRequest[] = [
-  {
-    id: 'w101',
-    vendorName: 'Royal Biryani House',
-    module: 'North Indian & Biryani',
-    amount: 24500,
-    bankAccount: 'HDFC Bank •• 4321',
-    requestedDate: '2026-08-24',
-    status: 'PENDING',
-  },
-  {
-    id: 'w102',
-    vendorName: 'Bella Italia Pizzeria',
-    module: 'Italian & Pizza',
-    amount: 18900,
-    bankAccount: 'ICICI Bank •• 8765',
-    requestedDate: '2026-08-23',
-    status: 'APPROVED',
-  },
-  {
-    id: 'w103',
-    vendorName: 'Sweet Dreams Bakery & Cafe',
-    module: 'Bakery & Desserts',
-    amount: 9800,
-    bankAccount: 'SBI Bank •• 1092',
-    requestedDate: '2026-08-22',
-    status: 'PENDING',
-  },
-];
+// MOCK_WITHDRAWS removed - now fetching from API
 
 export function PaymentsPage() {
   const { tokens } = useTheme();
@@ -73,7 +45,21 @@ export function PaymentsPage() {
 
   const [commissionConfig, setCommissionConfig] = useState<CommissionConfig>(DEFAULT_COMMISSION_CONFIG);
   const [localSimulations, setLocalSimulations] = useState<PaymentSettlementRecord[]>([]);
-  const [withdraws, setWithdraws] = useState<WithdrawRequest[]>(MOCK_WITHDRAWS);
+
+  const { data: serverPayouts = [] } = useGetAdminPayoutsQuery();
+  const withdraws: WithdrawRequest[] = React.useMemo(() => {
+    return serverPayouts.map((p: any) => ({
+      id: p.id || p.payoutId || `w-${Math.random()}`,
+      vendorName: p.accountHolderName || 'Rest/Partner',
+      module: 'General',
+      amount: p.amount || 0,
+      bankAccount: `${p.bankName || 'Bank'} •• ${p.accountNumber?.slice(-4) || '****'}`,
+      requestedDate: p.createdAt ? String(p.createdAt).slice(0, 10) : '2026-08-27',
+      status: p.status === 'COMPLETED' ? 'APPROVED' : (p.status === 'FAILED' ? 'REJECTED' : 'PENDING'),
+    }));
+  }, [serverPayouts]);
+
+  const [localApprovals, setLocalApprovals] = useState<Record<string, boolean>>({});
 
   const realRestaurants = restaurantsData?.items || [];
   const realPartners = partnersData?.items || [];
@@ -182,9 +168,7 @@ export function PaymentsPage() {
   };
 
   const handleApproveWithdraw = (id: string) => {
-    setWithdraws((prev) =>
-      prev.map((w) => (w.id === id ? { ...w, status: 'APPROVED' } : w))
-    );
+    setLocalApprovals((prev) => ({ ...prev, [id]: true }));
     showToast('Vendor withdrawal request approved and disbursed!');
   };
 
@@ -719,11 +703,11 @@ export function PaymentsPage() {
                           borderRadius: 20,
                         }}
                       >
-                        {w.status}
+                        {localApprovals[w.id] || w.status === 'APPROVED' ? 'APPROVED' : w.status}
                       </span>
                     </td>
                     <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                      {w.status === 'PENDING' ? (
+                      {(w.status === 'PENDING' && !localApprovals[w.id]) ? (
                         <button
                           type="button"
                           onClick={() => handleApproveWithdraw(w.id)}

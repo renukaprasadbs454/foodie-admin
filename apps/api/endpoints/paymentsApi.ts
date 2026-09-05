@@ -17,6 +17,10 @@ export const paymentsApi = baseApi.injectEndpoints({
       query: () => '/api/bff/admin/payments/settlements',
       providesTags: [{ type: 'Payment', id: 'LIST' }],
     }),
+    getAdminPayouts: builder.query<any[], void>({
+      query: () => '/api/bff/admin/payments/payouts',
+      providesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
+    }),
     getCommissionRules: builder.query<CommissionConfig, void>({
       query: () => '/api/bff/admin/payments/commission-rules',
     }),
@@ -55,6 +59,7 @@ export const paymentsApi = baseApi.injectEndpoints({
 
 export const {
   useGetSettlementsQuery,
+  useGetAdminPayoutsQuery,
   useGetCommissionRulesQuery,
   useUpdateCommissionRulesMutation,
   useCalculateSplitMutation,
