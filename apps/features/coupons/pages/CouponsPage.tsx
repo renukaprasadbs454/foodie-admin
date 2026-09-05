@@ -213,7 +213,7 @@ export function CouponsPage() {
     try {
       await createCouponApi({
         code: code.trim().toUpperCase(),
-        discountType,
+        discountType: discountType === 'FIXED' ? 'FLAT' : 'PERCENT',
         value: Number(discountValue),
         minOrderAmount: Number(minPurchase) || 0,
         maxDiscountAmount: discountType === 'PERCENT' ? 200 : Number(discountValue),
