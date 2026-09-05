@@ -14,15 +14,15 @@ export const paymentsApi = baseApi.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
     getSettlements: builder.query<PaymentSettlementRecord[], void>({
-      query: () => '/api/v1/admin/payments/settlements',
+      query: () => '/api/bff/admin/payments/settlements',
       providesTags: [{ type: 'Payment', id: 'LIST' }],
     }),
     getCommissionRules: builder.query<CommissionConfig, void>({
-      query: () => '/api/v1/admin/payments/commission-rules',
+      query: () => '/api/bff/admin/payments/commission-rules',
     }),
     updateCommissionRules: builder.mutation<CommissionConfig, CommissionConfig>({
       query: (config) => ({
-        url: '/api/v1/admin/payments/commission-rules',
+        url: '/api/bff/admin/payments/commission-rules',
         method: 'POST',
         body: config,
       }),
@@ -32,7 +32,7 @@ export const paymentsApi = baseApi.injectEndpoints({
       { foodSubtotal: number; deliveryFee: number }
     >({
       query: ({ foodSubtotal, deliveryFee }) => ({
-        url: `/api/v1/admin/payments/calculate-split?foodSubtotal=${foodSubtotal}&deliveryFee=${deliveryFee}`,
+        url: `/api/bff/admin/payments/calculate-split?foodSubtotal=${foodSubtotal}&deliveryFee=${deliveryFee}`,
         method: 'POST',
       }),
     }),

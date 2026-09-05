@@ -10,7 +10,9 @@ import { selectActiveModule } from '@/store/moduleSlice';
 
 import type { CommissionConfig, PaymentSettlementRecord } from '../types';
 import { calculatePaymentSplit } from '../types';
-
+import { useGetSettlementsQuery, useGetCommissionRulesQuery } from '../../../api/endpoints/paymentsApi';
+import { useGetAdminRestaurantsQuery } from '../../../api/endpoints/restaurantsApi';
+import { useGetAdminDeliveryPartnersQuery } from '../../../api/endpoints/deliveryPartnersApi';
 export interface WithdrawRequest {
   id: string;
   vendorName: string;
@@ -27,59 +29,7 @@ const DEFAULT_COMMISSION_CONFIG: CommissionConfig = {
   platformFixedFee: 40,         // ₹40
 };
 
-const MOCK_SETTLEMENTS: PaymentSettlementRecord[] = [
-  {
-    id: 'SETTL-901',
-    paymentUuid: 'e28014a0-7612-4c22-951b-102948172631',
-    orderId: 'ORD-8801',
-    customerName: 'Sarah Jenkins',
-    paymentMethod: 'RAZORPAY_UPI',
-    totalPaid: 580,
-    foodSubtotal: 450,
-    deliveryFee: 90,
-    adminTotalRevenue: 116.5, // 15% of 450 (67.5) + 10% of 90 (9) + 40
-    restaurantNetShare: 382.5, // 450 - 67.5
-    restaurantName: 'Royal Biryani House',
-    deliveryPartnerNetShare: 81.0, // 90 - 9
-    driverName: 'Rahul Sharma (Rider)',
-    settlementStatus: 'FUNDS_DISTRIBUTED',
-    settledAt: '2026-08-24 12:15',
-  },
-  {
-    id: 'SETTL-902',
-    paymentUuid: 'f49129b1-8723-4d33-a62c-203959283742',
-    orderId: 'ORD-8802',
-    customerName: 'Marcus Vance',
-    paymentMethod: 'CREDIT_CARD',
-    totalPaid: 440,
-    foodSubtotal: 350,
-    deliveryFee: 50,
-    adminTotalRevenue: 97.5, // 15% of 350 (52.5) + 10% of 50 (5) + 40
-    restaurantNetShare: 297.5, // 350 - 52.5
-    restaurantName: 'Bella Italia Pizzeria',
-    deliveryPartnerNetShare: 45.0, // 50 - 5
-    driverName: 'Vikram Singh (Rider)',
-    settlementStatus: 'FUNDS_DISTRIBUTED',
-    settledAt: '2026-08-24 11:40',
-  },
-  {
-    id: 'SETTL-903',
-    paymentUuid: 'a10293c2-9834-4e44-b73d-304060394853',
-    orderId: 'ORD-8803',
-    customerName: 'Elena Rostova',
-    paymentMethod: 'FOODIE_WALLET',
-    totalPaid: 710,
-    foodSubtotal: 600,
-    deliveryFee: 70,
-    adminTotalRevenue: 137.0, // 15% of 600 (90) + 10% of 70 (7) + 40
-    restaurantNetShare: 510.0, // 600 - 90
-    restaurantName: 'Sweet Dreams Bakery',
-    deliveryPartnerNetShare: 63.0, // 70 - 7
-    driverName: 'Anita Patel (Rider)',
-    settlementStatus: 'FUNDS_DISTRIBUTED',
-    settledAt: '2026-08-24 10:20',
-  },
-];
+// MOCK_SETTLEMENTS removed - now fetching from API
 
 const MOCK_WITHDRAWS: WithdrawRequest[] = [
   {
@@ -116,16 +66,36 @@ export function PaymentsPage() {
   const activeModule = useAppSelector(selectActiveModule);
 
   // Core Financial State
+  const { data: serverRules } = useGetCommissionRulesQuery();
+  const { data: serverSettlements } = useGetSettlementsQuery();
+  const { data: restaurantsData } = useGetAdminRestaurantsQuery({});
+  const { data: partnersData } = useGetAdminDeliveryPartnersQuery();
+
   const [commissionConfig, setCommissionConfig] = useState<CommissionConfig>(DEFAULT_COMMISSION_CONFIG);
-  const [settlements, setSettlements] = useState<PaymentSettlementRecord[]>(MOCK_SETTLEMENTS);
+  const [localSimulations, setLocalSimulations] = useState<PaymentSettlementRecord[]>([]);
   const [withdraws, setWithdraws] = useState<WithdrawRequest[]>(MOCK_WITHDRAWS);
+
+  const realRestaurants = restaurantsData?.items || [];
+  const realPartners = partnersData?.items || [];
+
+  // Combine server settlements with local simulations
+  const settlements = [...localSimulations, ...(serverSettlements || [])];
+
+  useEffect(() => {
+    if (serverRules) {
+      setCommissionConfig(serverRules);
+      setConfigRestRate(serverRules.restaurantCommissionRate.toString());
+      setConfigDelivRate(serverRules.deliveryCommissionRate.toString());
+      setConfigPlatformFee(serverRules.platformFixedFee.toString());
+    }
+  }, [serverRules]);
 
   // Live Simulator Form State
   const [simCustomerName, setSimCustomerName] = useState('Arthur Pendelton');
   const [simFoodCost, setSimFoodCost] = useState('500');
   const [simDeliveryFee, setSimDeliveryFee] = useState('80');
-  const [simRestaurantName, setSimRestaurantName] = useState('Artisan Burger Co.');
-  const [simDriverName, setSimDriverName] = useState('Karan Kumar (Rider)');
+  const [simRestaurantName, setSimRestaurantName] = useState('');
+  const [simDriverName, setSimDriverName] = useState('');
   const [simPayMethod, setSimPayMethod] = useState<'RAZORPAY_UPI' | 'CREDIT_CARD' | 'FOODIE_WALLET'>('RAZORPAY_UPI');
 
   // Config Modal & Refund States
@@ -189,7 +159,7 @@ export function PaymentsPage() {
       settledAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
     };
 
-    setSettlements((prev) => [newSettlement, ...prev]);
+    setLocalSimulations((prev) => [newSettlement, ...prev]);
 
     showToast(
       ` Customer Payment ₹${split.totalPaid.toFixed(2)} Credited to Admin Escrow! Auto-Split: Admin ₹${split.adminTotalRevenue.toFixed(2)} | Restaurant ₹${split.restaurantNetShare.toFixed(2)} | Driver ₹${split.deliveryPartnerNetShare.toFixed(2)}`
@@ -267,7 +237,7 @@ export function PaymentsPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Text as="h1" variant="heading1" color="#0F3D21" style={{ margin: 0 }}>
-             Admin Central Escrow & Automatic Commission Settlement
+            Admin Central Escrow & Automatic Commission Settlement
           </Text>
           <Text as="p" variant="caption" color="#64748B" style={{ margin: '4px 0 0' }}>
             Customer payments credit 100% directly to Admin Account and auto-distribute to Restaurants and Delivery Partners based on commission rates.
@@ -419,7 +389,7 @@ export function PaymentsPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
-               Customer Payment & Commission Auto-Split Simulator
+              Customer Payment & Commission Auto-Split Simulator
             </h2>
             <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0' }}>
               Simulate a customer order payment to verify instant credit to Admin Escrow and automatic split calculation.
@@ -477,24 +447,34 @@ export function PaymentsPage() {
                 <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
                   Restaurant Store Name
                 </label>
-                <input
-                  type="text"
+                <select
                   value={simRestaurantName}
                   onChange={(e) => setSimRestaurantName(e.target.value)}
                   style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
-                />
+                >
+                  <option value="">-- Select Real Restaurant --</option>
+                  {realRestaurants.map((r: any) => (
+                    <option key={r.restaurantId} value={r.name}>{r.name}</option>
+                  ))}
+                  <option value="Artisan Burger Co.">Artisan Burger Co. (Custom)</option>
+                </select>
               </div>
 
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
                   Assigned Rider Name
                 </label>
-                <input
-                  type="text"
+                <select
                   value={simDriverName}
                   onChange={(e) => setSimDriverName(e.target.value)}
                   style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
-                />
+                >
+                  <option value="">-- Select Real Delivery Partner --</option>
+                  {realPartners.map((dp: any) => (
+                    <option key={dp.partnerId} value={dp.fullName}>{dp.fullName}</option>
+                  ))}
+                  <option value="Karan Kumar (Rider)">Karan Kumar (Custom)</option>
+                </select>
               </div>
             </div>
 
@@ -529,7 +509,7 @@ export function PaymentsPage() {
           >
             <div>
               <div style={{ fontSize: 12, fontWeight: 800, color: '#0F3D21', textTransform: 'uppercase', marginBottom: 10 }}>
-                 Calculated Auto-Split Breakdown
+                Calculated Auto-Split Breakdown
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
@@ -578,7 +558,7 @@ export function PaymentsPage() {
                 transition: 'all 0.15s ease',
               }}
             >
-               Pay Bill & Auto-Distribute Funds
+              Pay Bill & Auto-Distribute Funds
             </button>
           </div>
         </form>
@@ -597,7 +577,7 @@ export function PaymentsPage() {
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', backgroundColor: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <Text as="h2" variant="heading3" color="#0F3D21" style={{ margin: 0 }}>
-               Live Payment Settlement & Distribution Ledger
+              Live Payment Settlement & Distribution Ledger
             </Text>
             <Text as="p" variant="caption" color="#64748B" style={{ margin: '2px 0 0' }}>
               Real-time audit log of customer bill payments credited to Admin Escrow and split to stakeholders.
@@ -693,7 +673,7 @@ export function PaymentsPage() {
         >
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
             <Text as="h2" variant="heading3" color="#0F3D21">
-               Vendor & Delivery Partner Payout Requests
+              Vendor & Delivery Partner Payout Requests
             </Text>
             <Text as="p" variant="caption" color="#64748B">
               Withdrawal requests from restaurants and riders to disburse their accumulated wallet earnings.
@@ -787,7 +767,7 @@ export function PaymentsPage() {
         >
           <div>
             <Text as="h2" variant="heading3" color="#0F3D21" style={{ margin: 0 }}>
-               Issue Payment Refund
+              Issue Payment Refund
             </Text>
             <Text as="p" variant="caption" color="#64748B" style={{ margin: '2px 0 0' }}>
               Process direct refunds to customer account by Payment UUID (GAP-API-17)
@@ -896,14 +876,14 @@ export function PaymentsPage() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
-                 Configure Commission & Fee Rules
+                Configure Commission & Fee Rules
               </h3>
               <button
                 type="button"
                 onClick={() => setIsConfigOpen(false)}
                 style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748B' }}
               >
-                
+
               </button>
             </div>
 
