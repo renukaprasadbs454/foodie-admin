@@ -216,7 +216,6 @@ export function CouponsPage() {
         discountType: discountType === 'FIXED' ? 'FLAT' : 'PERCENT',
         value: Number(discountValue),
         minOrderAmount: Number(minPurchase) || 0,
-        maxDiscountAmount: discountType === 'PERCENT' ? 200 : Number(discountValue),
         expiryDate: '2025-12-31',
       }).unwrap();
       setCode('');

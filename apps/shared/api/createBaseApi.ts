@@ -118,6 +118,32 @@ export function createBaseApi<TagTypes extends string = string>(
     if (result.error) {
       const fetchError = result.error as FetchBaseQueryError;
       const statusStr = String(fetchError.status);
+
+      const errorEnvelope = parseEnvelopeFromUnknown(fetchError.data);
+      if (errorEnvelope && typeof errorEnvelope.success === 'boolean' && !errorEnvelope.success) {
+        if (statusStr === '401' || statusStr === '403' || statusStr === '404') {
+          logger.warn('API network status', { url: extractUrl(requestArgs), status: statusStr });
+        } else {
+          logger.error('API application error', {
+            url: extractUrl(requestArgs),
+            status: statusStr,
+            code: errorEnvelope.error?.code,
+            message: errorEnvelope.error?.message
+          });
+        }
+        return {
+          error: {
+            status: fetchError.status,
+            data: {
+              code: errorEnvelope.error?.code ?? 'UNKNOWN_ERROR',
+              message: errorEnvelope.error?.message ?? 'Unknown validation error',
+              fields: errorEnvelope.error?.fields ?? null,
+            }
+          },
+          meta: result.meta
+        };
+      }
+
       if (statusStr === '401' || statusStr === '403' || statusStr === '404') {
         logger.warn('API network status', {
           url: extractUrl(requestArgs),
