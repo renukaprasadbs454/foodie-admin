@@ -14,7 +14,7 @@ export type CreateCouponBody = {
   maxDiscountAmount?: number | null;
   expiryDate: string;
   usageLimitTotal?: number | null;
-  usageLimitPerUser: number;
+  usageLimitPerUser?: number | null;
   restaurantId?: string | null;
 };
 

@@ -38,6 +38,22 @@ export const customersApi = baseApi.injectEndpoints({
         const searchStr = queryParams.toString();
         return `/api/bff/admin/customers${searchStr ? `?${searchStr}` : ''}`;
       },
+      transformResponse: (response: any) => {
+        if (Array.isArray(response)) {
+          return {
+            summary: {
+              totalRegistered: response.length,
+              activeAccounts: response.filter(c => c.accountStatus === 'ACTIVE').length,
+              suspendedAccounts: response.filter(c => c.accountStatus === 'SUSPENDED').length,
+              averageCustomerLtv: 0,
+            },
+            customers: response,
+            total: response.length,
+            openTicketsCount: 0,
+          };
+        }
+        return response;
+      },
       providesTags: [{ type: 'Admin', id: 'CUSTOMERS' }],
       keepUnusedDataFor: 30,
     }),

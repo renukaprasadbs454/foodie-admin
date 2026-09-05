@@ -218,8 +218,6 @@ export function CouponsPage() {
         minOrderAmount: Number(minPurchase) || 0,
         maxDiscountAmount: discountType === 'PERCENT' ? 200 : Number(discountValue),
         expiryDate: '2025-12-31',
-        usageLimitTotal: 1000,
-        usageLimitPerUser: 1,
       }).unwrap();
       setCode('');
       setTitle('');
