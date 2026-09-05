@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,12 +23,28 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "foodie-shared-web": ["./shared/index.ts"],
-      "foodie-shared-web/auth": ["./shared/auth/index.ts"],
-      "foodie-shared-web/*": ["./shared/*"]
+      "@/*": [
+        "./*"
+      ],
+      "foodie-shared-web": [
+        "./shared/index.ts"
+      ],
+      "foodie-shared-web/auth": [
+        "./shared/auth/index.ts"
+      ],
+      "foodie-shared-web/*": [
+        "./shared/*"
+      ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "apps"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "apps"
+  ]
 }
