@@ -119,7 +119,10 @@ export function RestaurantsPage() {
     const matchesSearch =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.zone.toLowerCase().includes(searchQuery.toLowerCase());
+      s.zone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.ownerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.phone.includes(searchQuery) ||
+      s.module.toLowerCase().includes(searchQuery.toLowerCase());
 
     let matchesModule = true;
     if (activeModule === 'RESTAURANTS') {

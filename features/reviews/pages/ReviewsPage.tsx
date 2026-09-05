@@ -213,6 +213,24 @@ export function ReviewsPage() {
             Manage customer ratings, restaurant feedback, delivery partner scorecards, reported reviews & support complaints
           </Text>
         </div>
+
+        {/* Search Bar */}
+        <input
+          type="text"
+          placeholder="Search reviews, stores, comments, or ticket numbers..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: '10px 16px',
+            borderRadius: 10,
+            border: '1px solid #CBD5E1',
+            fontSize: 13,
+            width: 320,
+            maxWidth: '100%',
+            outline: 'none',
+            backgroundColor: '#FFFFFF',
+          }}
+        />
       </div>
 
       {/* Main Mode Navigation (Reviews & Ratings vs Customer Complaints) */}

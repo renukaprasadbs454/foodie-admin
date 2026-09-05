@@ -178,6 +178,7 @@ export function CouponsPage() {
   const [cmpCategory, setCmpCategory] = useState('All Food Delivery');
   const [cmpBudget, setCmpBudget] = useState('');
 
+  const [searchQuery, setSearchQuery] = useState('');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -285,6 +286,24 @@ export function CouponsPage() {
             Manage promotional coupons, first-order welcome offers, referral rewards & seasonal campaigns
           </Text>
         </div>
+
+        {/* Search Bar */}
+        <input
+          type="text"
+          placeholder="Search coupon code, offer title, or campaign..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: '10px 16px',
+            borderRadius: 10,
+            border: '1px solid #CBD5E1',
+            fontSize: 13,
+            width: 320,
+            maxWidth: '100%',
+            outline: 'none',
+            backgroundColor: '#FFFFFF',
+          }}
+        />
       </div>
 
       {/* Feature Navigation Tabs */}
@@ -515,6 +534,13 @@ export function CouponsPage() {
               <tbody>
                 {coupons
                   .filter((c) => {
+                    const q = searchQuery.trim().toLowerCase();
+                    const matchesSearch =
+                      !q ||
+                      c.code.toLowerCase().includes(q) ||
+                      c.title.toLowerCase().includes(q) ||
+                      c.module.toLowerCase().includes(q);
+                    if (!matchesSearch) return false;
                     if (activeModule === 'FOOD') return true;
                     if (activeModule === 'RESTAURANTS') return c.module.includes('Fine Dining') || c.module.includes('Pizza') || c.module.includes('All');
                     if (activeModule === 'CAFES') return c.module.includes('Bakery') || c.module.includes('Cafes') || c.module.includes('All');
@@ -701,7 +727,12 @@ export function CouponsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {firstOrderOffers.map((fo) => (
+                  {firstOrderOffers
+                    .filter((fo) => {
+                      const q = searchQuery.trim().toLowerCase();
+                      return !q || fo.code.toLowerCase().includes(q) || fo.title.toLowerCase().includes(q);
+                    })
+                    .map((fo) => (
                     <tr key={fo.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '16px 20px' }}>
                         <div style={{ fontWeight: 800, color: '#14532D', fontFamily: 'monospace' }}> {fo.code}</div>

@@ -168,7 +168,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   const isActive =
                     item.href === '/'
                       ? pathname === '/'
-                      : pathname.startsWith(item.href);
+                      : pathname.startsWith(item.href) ||
+                        (item.href === '/support' && pathname.startsWith('/contact-us'));
 
                   const isHighlighted = item.highlighted ?? false;
 

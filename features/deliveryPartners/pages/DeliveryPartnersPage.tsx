@@ -108,6 +108,8 @@ export function DeliveryPartnersPage() {
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.zone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.phone.includes(searchQuery) ||
+      p.vehicleType.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.documentNumber && p.documentNumber.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesTab && matchesSearch;
   });

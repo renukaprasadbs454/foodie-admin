@@ -8,11 +8,11 @@ describe('6amMart Admin Panel Navigation & Role Configuration', () => {
     const financeItems = DASHBOARD_NAV.filter(item => item.category === 'FINANCE & MARKETING');
     const systemItems = DASHBOARD_NAV.filter(item => item.category === 'SYSTEM');
 
-    expect(mainItems.map(i => i.href)).toEqual(['/', '/dashboard', '/analytics']);
+    expect(mainItems.map(i => i.href)).toEqual(['/', '/dashboard', '/analytics', '/support']);
     expect(businessItems.map(i => i.href)).toEqual(['/members', '/users', '/customers', '/restaurants', '/delivery-partners', '/other', '/location', '/social-media']);
     expect(orderItems.map(i => i.href)).toEqual(['/orders']);
     expect(financeItems.map(i => i.href)).toEqual(['/coupons', '/payments']);
-    expect(systemItems.map(i => i.href)).toEqual(['/approvals', '/reviews', '/audit-log', '/settings']);
+    expect(systemItems.map(i => i.href)).toEqual(['/reviews', '/audit-log', '/settings']);
   });
 
   it('includes icons and badges on 6amMart navigation items', () => {
@@ -54,6 +54,7 @@ describe('6amMart Admin Panel Navigation & Role Configuration', () => {
       '/',
       '/dashboard',
       '/analytics',
+      '/support',
       '/users',
       '/customers',
       '/social-media',

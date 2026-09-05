@@ -107,7 +107,10 @@ export function OrdersPage() {
       searchUuid === '' ||
       o.id.toLowerCase().includes(searchUuid.toLowerCase()) ||
       o.customerName.toLowerCase().includes(searchUuid.toLowerCase()) ||
-      o.storeName.toLowerCase().includes(searchUuid.toLowerCase());
+      o.customerPhone.includes(searchUuid) ||
+      o.storeName.toLowerCase().includes(searchUuid.toLowerCase()) ||
+      o.itemsSummary.toLowerCase().includes(searchUuid.toLowerCase()) ||
+      o.paymentMethod.toLowerCase().includes(searchUuid.toLowerCase());
 
     let matchesModule = true;
     if (activeModule === 'RESTAURANTS') {
