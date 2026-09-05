@@ -1,0 +1,97 @@
+On branch main
+Your branch and 'origin/main' have diverged,
+and have 10 and 3 different commits each, respectively.
+  (use "git pull" if you want to integrate the remote branch with yours)
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Changes to be committed:
+	new file:   app/(dashboard)/support/page.tsx
+	modified:   apps/__tests__/AdminEnhancements.test.ts
+	modified:   apps/__tests__/socialMediaFeature.test.ts
+	modified:   apps/__tests__/usersFeature.test.ts
+	modified:   apps/api/endpoints/analyticsApi.ts
+	modified:   apps/api/endpoints/auditLogsApi.ts
+	modified:   apps/api/endpoints/authApi.ts
+	modified:   apps/api/endpoints/couponsApi.ts
+	modified:   apps/api/endpoints/ordersApi.ts
+	modified:   apps/api/endpoints/paymentsApi.ts
+	modified:   apps/api/endpoints/restaurantsApi.ts
+	modified:   apps/app/(dashboard)/members/page.tsx
+	modified:   apps/app/(dashboard)/other/page.tsx
+	modified:   apps/app/api/auth/login/route.ts
+	modified:   apps/app/api/auth/refresh/route.ts
+	modified:   apps/app/api/bff/[...path]/route.ts
+	modified:   apps/app/approvals/page.tsx
+	modified:   apps/app/roles/page.tsx
+	modified:   apps/components/AdminFooter.tsx
+	modified:   apps/components/AdminHeaderBar.tsx
+	modified:   apps/components/AiAssistantWidget.tsx
+	modified:   apps/components/CentralizedManagementSection.tsx
+	modified:   apps/components/DashboardShell.tsx
+	modified:   apps/components/GlobalSearchModal.tsx
+	modified:   apps/components/ModuleSwitcher.tsx
+	modified:   apps/components/RoleLandingHub.tsx
+	modified:   apps/components/SupportQuestionsBanner.tsx
+	modified:   apps/features/analytics/components/KpiGrid.tsx
+	modified:   apps/features/analytics/components/OrderOperationalPipeline.tsx
+	modified:   apps/features/analytics/components/RecentOrdersTableWidget.tsx
+	modified:   apps/features/analytics/components/SalesAnalyticsChart.tsx
+	modified:   apps/features/analytics/components/TopPerformersWidget.tsx
+	modified:   apps/features/analytics/pages/AnalyticsPage.tsx
+	modified:   apps/features/analytics/pages/DashboardPage.tsx
+	modified:   apps/features/audit-log/pages/AuditLogPage.tsx
+	modified:   apps/features/contact/pages/ContactUsPage.tsx
+	modified:   apps/features/coupons/pages/CouponsPage.tsx
+	modified:   apps/features/customers/types/customerTypes.ts
+	modified:   apps/features/darkstore/components/DarkstoreShell.tsx
+	modified:   apps/features/darkstore/pages/DarkstoreDashboardPage.tsx
+	modified:   apps/features/darkstore/pages/DarkstoreDispatchPage.tsx
+	modified:   apps/features/darkstore/pages/DarkstoreInventoryPage.tsx
+	modified:   apps/features/darkstore/pages/DarkstoreNotificationsPage.tsx
+	modified:   apps/features/darkstore/pages/DarkstoreOrdersPage.tsx
+	modified:   apps/features/darkstore/pages/DarkstorePackingPage.tsx
+	modified:   apps/features/darkstore/pages/DarkstorePickingPage.tsx
+	modified:   apps/features/darkstore/pages/DarkstoreProductsPage.tsx
+	modified:   apps/features/darkstore/pages/DarkstoreProfilePage.tsx
+	modified:   apps/features/darkstore/pages/DarkstoreReportsPage.tsx
+	modified:   apps/features/darkstore/pages/DarkstoreSettingsPage.tsx
+	modified:   apps/features/darkstore/pages/DarkstoreStaffPage.tsx
+	modified:   apps/features/delivery-payouts/components/PayoutDetailModal.tsx
+	modified:   apps/features/delivery-payouts/components/PayoutListTable.tsx
+	modified:   apps/features/delivery-payouts/components/ReconciliationStudio.tsx
+	modified:   apps/features/delivery-payouts/pages/DeliveryPayoutsPage.tsx
+	modified:   apps/features/deliveryPartners/components/DeliveryPricingSettingsCard.tsx
+	modified:   apps/features/finance-admin/FinanceAdminDashboardPage.tsx
+	modified:   apps/features/location/pages/LocationManagementPage.tsx
+	modified:   apps/features/orders/pages/OrdersPage.tsx
+	modified:   apps/features/payments/pages/PaymentsPage.tsx
+	modified:   apps/features/restaurant-admin/RestaurantAdminDashboardPage.tsx
+	modified:   apps/features/restaurants/pages/RestaurantsPage.tsx
+	modified:   apps/features/reviews/pages/ReviewsPage.tsx
+	modified:   apps/features/settings/pages/SettingsPage.tsx
+	modified:   apps/features/social-media/components/SocialMediaStudio.tsx
+	modified:   apps/features/support-admin/SupportAdminDashboardPage.tsx
+	modified:   apps/features/users/components/UserManagementStudio.tsx
+	modified:   apps/lib/routeGuards.ts
+	modified:   apps/next.config.ts
+	modified:   apps/tsconfig.json
+	modified:   tsconfig.tsbuildinfo
+
+Unmerged paths:
+  (use "git add/rm <file>..." as appropriate to mark resolution)
+	deleted by us:   api/endpoints/deliveryPartnersApi.ts
+	added by them:   apps/api/endpoints/customersApi.ts
+	added by them:   apps/api/endpoints/searchApi.ts
+	both modified:   apps/app/api/customers/route.ts
+	both modified:   apps/features/customers/components/CustomerManagementStudio.tsx
+	both added:      apps/features/deliveryPartners/pages/DeliveryPartnersPage.tsx
+	deleted by us:   features/deliveryPartners/pages/DeliveryPartnersPage.tsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	status.txt
+	status_utf8.txt
+

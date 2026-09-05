@@ -12,6 +12,11 @@ import type {
 export const couponsApi = baseApi.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
+    getCoupons: builder.query<Coupon[], void>({
+      query: () => '/api/bff/admin/coupons',
+      providesTags: [{ type: 'Coupon', id: 'LIST' }],
+      keepUnusedDataFor: 60,
+    }),
     createCoupon: builder.mutation<Coupon, CreateCouponBody>({
       query: (body) => ({
         url: '/api/bff/admin/coupons',
@@ -37,5 +42,5 @@ export const couponsApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useCreateCouponMutation, useDeactivateCouponMutation } =
+export const { useCreateCouponMutation, useDeactivateCouponMutation, useGetCouponsQuery } =
   couponsApi;

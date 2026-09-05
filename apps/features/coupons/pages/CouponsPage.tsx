@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_19_COUPON_LIST } from '@/constants/gaps';
+import { useGetCouponsQuery, useCreateCouponMutation, useDeactivateCouponMutation } from '@/api/endpoints/couponsApi';
 
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
@@ -148,7 +149,23 @@ export function CouponsPage() {
   const activeModule = useAppSelector(selectActiveModule);
 
   const [activeTab, setActiveTab] = useState<CouponTab>('PROMO_COUPONS');
-  const [coupons, setCoupons] = useState<CouponRecord[]>(MOCK_COUPONS);
+  const { data: serverCoupons = [], isLoading: isCouponsLoading } = useGetCouponsQuery();
+  const [createCouponApi, { isLoading: isCreatingCoupon }] = useCreateCouponMutation();
+  const [deactivateCouponApi, { isLoading: isDeactivatingCoupon }] = useDeactivateCouponMutation();
+
+  const coupons: CouponRecord[] = serverCoupons.map((c: any) => ({
+    id: c.id,
+    code: c.code,
+    title: `${c.discountType === 'PERCENT' ? `${c.value}% OFF` : `₹${c.value} FLAT`} Promo`,
+    discountType: c.discountType,
+    discountValue: c.value,
+    minPurchase: c.minOrderAmount,
+    maxDiscount: c.maxDiscountAmount || 0,
+    module: c.restaurantId ? 'Specific Restaurant' : 'All Food Delivery',
+    expiryDate: new Date(c.expiryDate).toLocaleDateString(),
+    status: c.active ? 'ACTIVE' : 'DEACTIVATED'
+  }));
+
   const [firstOrderOffers, setFirstOrderOffers] = useState<FirstOrderOfferRecord[]>(MOCK_FIRST_ORDER_OFFERS);
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>(MOCK_CAMPAIGNS);
 
@@ -187,31 +204,32 @@ export function CouponsPage() {
     });
   }, []);
 
-  const handleCreateCoupon = (e: React.FormEvent) => {
+  const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim() || !discountValue.trim()) {
       alert('Please fill out coupon code and discount value');
       return;
     }
-    const newCoupon: CouponRecord = {
-      id: `c${Date.now().toString().slice(-4)}`,
-      code: code.trim().toUpperCase(),
-      title: title.trim() || `${code.trim().toUpperCase()} Promo`,
-      discountType,
-      discountValue: Number(discountValue),
-      minPurchase: Number(minPurchase) || 0,
-      maxDiscount: discountType === 'PERCENT' ? 200 : Number(discountValue),
-      module,
-      expiryDate: '2025-12-31',
-      status: 'ACTIVE',
-    };
-    setCoupons((prev) => [newCoupon, ...prev]);
-    setCode('');
-    setTitle('');
-    setDiscountValue('');
-    setMinPurchase('');
-    setToastMsg(`Coupon code ${newCoupon.code} created successfully!`);
-    setTimeout(() => setToastMsg(null), 3000);
+    try {
+      await createCouponApi({
+        code: code.trim().toUpperCase(),
+        discountType,
+        value: Number(discountValue),
+        minOrderAmount: Number(minPurchase) || 0,
+        maxDiscountAmount: discountType === 'PERCENT' ? 200 : Number(discountValue),
+        expiryDate: '2025-12-31T23:59:59Z',
+        usageLimitTotal: 1000,
+        usageLimitPerUser: 1,
+      }).unwrap();
+      setCode('');
+      setTitle('');
+      setDiscountValue('');
+      setMinPurchase('');
+      setToastMsg(`Coupon code ${code.toUpperCase()} created successfully!`);
+      setTimeout(() => setToastMsg(null), 3000);
+    } catch (err: any) {
+      alert(err?.data?.error?.message || 'Failed to create coupon');
+    }
   };
 
   const handleCreateFirstOrderOffer = (e: React.FormEvent) => {
@@ -264,14 +282,18 @@ export function CouponsPage() {
     setTimeout(() => setToastMsg(null), 3000);
   };
 
-  const handleToggleStatus = (id: string) => {
-    setCoupons((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? { ...c, status: c.status === 'ACTIVE' ? 'DEACTIVATED' : 'ACTIVE' }
-          : c,
-      ),
-    );
+  const handleToggleStatus = async (id: string, currentStatus: string) => {
+    if (currentStatus === 'DEACTIVATED') {
+      alert('Coupon is already deactivated.');
+      return;
+    }
+    try {
+      await deactivateCouponApi(id).unwrap();
+      setToastMsg('Coupon deactivated successfully!');
+      setTimeout(() => setToastMsg(null), 3000);
+    } catch (err) {
+      alert('Failed to deactivate coupon.');
+    }
   };
 
   return (
@@ -487,6 +509,7 @@ export function CouponsPage() {
 
             <button
               type="submit"
+              disabled={isCreatingCoupon}
               style={{
                 padding: '12px 18px',
                 backgroundColor: '#F59E0B',
@@ -495,12 +518,13 @@ export function CouponsPage() {
                 borderRadius: 8,
                 fontSize: 14,
                 fontWeight: 700,
-                cursor: 'pointer',
+                cursor: isCreatingCoupon ? 'not-allowed' : 'pointer',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                 marginTop: 8,
+                opacity: isCreatingCoupon ? 0.7 : 1,
               }}
             >
-              Create Coupon
+              {isCreatingCoupon ? 'Creating...' : 'Create Coupon'}
             </button>
           </form>
 
@@ -548,57 +572,58 @@ export function CouponsPage() {
                     return true;
                   })
                   .map((c) => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 800, color: '#14532D', fontFamily: 'monospace' }}> {c.code}</div>
-                      <div style={{ fontSize: 12, color: '#475569' }}>{c.title}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 800, color: '#D97706' }}>
-                      {c.discountType === 'PERCENT' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT`}
-                    </td>
-                    <td style={{ padding: '16px 20px', color: '#475569', fontWeight: 600 }}>
-                      ₹{c.minPurchase}
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#FEF3C7', color: '#B45309', padding: '3px 8px', borderRadius: 4 }}>
-                        {c.module}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', color: '#64748B', fontSize: 12 }}>{c.expiryDate}</td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span
-                        style={{
-                          backgroundColor: c.status === 'ACTIVE' ? '#D1FAE5' : '#FEE2E2',
-                          color: c.status === 'ACTIVE' ? '#047857' : '#B91C1C',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: '4px 8px',
-                          borderRadius: 20,
-                        }}
-                      >
-                        {c.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStatus(c.id)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: c.status === 'ACTIVE' ? '#FEE2E2' : '#D1FAE5',
-                          color: c.status === 'ACTIVE' ? '#991B1B' : '#047857',
-                          border: 'none',
-                          borderRadius: 6,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                    <tr key={c.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <td style={{ padding: '16px 20px' }}>
+                        <div style={{ fontWeight: 800, color: '#14532D', fontFamily: 'monospace' }}> {c.code}</div>
+                        <div style={{ fontSize: 12, color: '#475569' }}>{c.title}</div>
+                      </td>
+                      <td style={{ padding: '16px 20px', fontWeight: 800, color: '#D97706' }}>
+                        {c.discountType === 'PERCENT' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT`}
+                      </td>
+                      <td style={{ padding: '16px 20px', color: '#475569', fontWeight: 600 }}>
+                        ₹{c.minPurchase}
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#FEF3C7', color: '#B45309', padding: '3px 8px', borderRadius: 4 }}>
+                          {c.module}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px', color: '#64748B', fontSize: 12 }}>{c.expiryDate}</td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <span
+                          style={{
+                            backgroundColor: c.status === 'ACTIVE' ? '#D1FAE5' : '#FEE2E2',
+                            color: c.status === 'ACTIVE' ? '#047857' : '#B91C1C',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '4px 8px',
+                            borderRadius: 20,
+                          }}
+                        >
+                          {c.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(c.id, c.status)}
+                          disabled={c.status === 'DEACTIVATED' || isDeactivatingCoupon}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: c.status === 'ACTIVE' ? '#FEE2E2' : '#F8FAFC',
+                            color: c.status === 'ACTIVE' ? '#991B1B' : '#94A3B8',
+                            border: 'none',
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: c.status === 'ACTIVE' && !isDeactivatingCoupon ? 'pointer' : 'not-allowed',
+                          }}
+                        >
+                          {c.status === 'ACTIVE' ? 'Deactivate' : 'Deactivated'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -733,23 +758,23 @@ export function CouponsPage() {
                       return !q || fo.code.toLowerCase().includes(q) || fo.title.toLowerCase().includes(q);
                     })
                     .map((fo) => (
-                    <tr key={fo.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#14532D', fontFamily: 'monospace' }}> {fo.code}</div>
-                        <div style={{ fontSize: 12, color: '#475569' }}>{fo.title}</div>
-                      </td>
-                      <td style={{ padding: '16px 20px', fontWeight: 800, color: '#D97706' }}>
-                        {fo.discountType === 'PERCENT' ? `${fo.discountValue}% OFF` : `₹${fo.discountValue} FLAT`}
-                      </td>
-                      <td style={{ padding: '16px 20px', color: '#475569', fontWeight: 600 }}>₹{fo.minPurchase}</td>
-                      <td style={{ padding: '16px 20px', color: '#14532D', fontWeight: 700 }}>{fo.totalClaims} redemptions</td>
-                      <td style={{ padding: '16px 20px' }}>
-                        <span style={{ backgroundColor: '#D1FAE5', color: '#047857', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20 }}>
-                          {fo.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                      <tr key={fo.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={{ padding: '16px 20px' }}>
+                          <div style={{ fontWeight: 800, color: '#14532D', fontFamily: 'monospace' }}> {fo.code}</div>
+                          <div style={{ fontSize: 12, color: '#475569' }}>{fo.title}</div>
+                        </td>
+                        <td style={{ padding: '16px 20px', fontWeight: 800, color: '#D97706' }}>
+                          {fo.discountType === 'PERCENT' ? `${fo.discountValue}% OFF` : `₹${fo.discountValue} FLAT`}
+                        </td>
+                        <td style={{ padding: '16px 20px', color: '#475569', fontWeight: 600 }}>₹{fo.minPurchase}</td>
+                        <td style={{ padding: '16px 20px', color: '#14532D', fontWeight: 700 }}>{fo.totalClaims} redemptions</td>
+                        <td style={{ padding: '16px 20px' }}>
+                          <span style={{ backgroundColor: '#D1FAE5', color: '#047857', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20 }}>
+                            {fo.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -989,7 +1014,7 @@ export function CouponsPage() {
                   marginTop: 8,
                 }}
               >
-                 Launch Marketing Campaign
+                Launch Marketing Campaign
               </button>
             </form>
 
@@ -1057,7 +1082,7 @@ export function CouponsPage() {
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           }}
         >
-           {toastMsg}
+          {toastMsg}
         </div>
       ) : null}
     </div>
