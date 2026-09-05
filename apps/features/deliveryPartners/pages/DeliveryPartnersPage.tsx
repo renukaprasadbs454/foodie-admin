@@ -38,31 +38,13 @@ export function DeliveryPartnersPage() {
     });
   }, []);
 
-<<<<<<< HEAD
-  // Fetch partners with status and search filter from database
-=======
   // Fetch partners with status and search filter from database (polls every 4s for live registrations)
->>>>>>> 64fe4e1b401f7b81ae2f2c9a0396f6d5b0b8b2a3
   const {
     data: partnersData,
     isLoading,
     isFetching,
     refetch,
     error,
-<<<<<<< HEAD
-  } = useGetAdminDeliveryPartnersQuery({
-    status: statusFilter,
-    search: debouncedSearch,
-    page: 0,
-    size: 100,
-  });
-
-  // Fetch full overview stats (all partners) to keep KPI cards accurate across tabs
-  const { data: allPartnersData } = useGetAdminDeliveryPartnersQuery({
-    page: 0,
-    size: 500,
-  });
-=======
   } = useGetAdminDeliveryPartnersQuery(
     {
       status: statusFilter,
@@ -81,7 +63,6 @@ export function DeliveryPartnersPage() {
     },
     { pollingInterval: 4000 }
   );
->>>>>>> 64fe4e1b401f7b81ae2f2c9a0396f6d5b0b8b2a3
 
   const [approveKyc, { isLoading: isApproving }] = useApproveDeliveryPartnerKycMutation();
   const [rejectKyc, { isLoading: isRejecting }] = useRejectDeliveryPartnerKycMutation();
@@ -443,14 +424,14 @@ export function DeliveryPartnersPage() {
                             p.kycStatus === 'VERIFIED'
                               ? '#D1FAE5'
                               : p.kycStatus === 'REJECTED'
-                              ? '#FEE2E2'
-                              : '#FEF3C7',
+                                ? '#FEE2E2'
+                                : '#FEF3C7',
                           color:
                             p.kycStatus === 'VERIFIED'
                               ? '#047857'
                               : p.kycStatus === 'REJECTED'
-                              ? '#DC2626'
-                              : '#B45309',
+                                ? '#DC2626'
+                                : '#B45309',
                           fontSize: 12,
                           fontWeight: 700,
                           padding: '4px 10px',
@@ -469,30 +450,18 @@ export function DeliveryPartnersPage() {
                             onClick={() => handleApproveKyc(p)}
                             disabled={isApproving}
                             style={{
-<<<<<<< HEAD
-                              padding: '6px 12px',
-                              backgroundColor: '#14532D',
-                              color: '#F59E0B',
-=======
                               padding: '6px 14px',
                               backgroundColor: '#14532D',
                               color: '#FFFFFF',
->>>>>>> 64fe4e1b401f7b81ae2f2c9a0396f6d5b0b8b2a3
                               border: 'none',
                               borderRadius: 6,
                               fontSize: 12,
                               fontWeight: 700,
                               cursor: isApproving ? 'wait' : 'pointer',
-<<<<<<< HEAD
-                            }}
-                          >
-                            Approve KYC
-=======
                               boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                             }}
                           >
                             ✓ Approve KYC
->>>>>>> 64fe4e1b401f7b81ae2f2c9a0396f6d5b0b8b2a3
                           </button>
                         )}
                         {p.kycStatus !== 'REJECTED' && (
@@ -501,11 +470,7 @@ export function DeliveryPartnersPage() {
                             onClick={() => setRejectModalPartner(p)}
                             disabled={isRejecting}
                             style={{
-<<<<<<< HEAD
-                              padding: '6px 12px',
-=======
                               padding: '6px 14px',
->>>>>>> 64fe4e1b401f7b81ae2f2c9a0396f6d5b0b8b2a3
                               backgroundColor: '#FFF1F2',
                               color: '#E11D48',
                               border: '1px solid #FECDD3',
@@ -515,11 +480,7 @@ export function DeliveryPartnersPage() {
                               cursor: isRejecting ? 'wait' : 'pointer',
                             }}
                           >
-<<<<<<< HEAD
-                            Reject
-=======
                             ✗ Reject
->>>>>>> 64fe4e1b401f7b81ae2f2c9a0396f6d5b0b8b2a3
                           </button>
                         )}
                       </div>
