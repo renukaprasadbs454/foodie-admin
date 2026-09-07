@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { GlobalSearchModal } from '@/components/GlobalSearchModal';
 
@@ -24,6 +25,7 @@ export function AdminHeaderBar({
   isCompact = false,
   onToggleCompact,
 }: AdminHeaderBarProps) {
+  const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -554,6 +556,57 @@ export function AdminHeaderBar({
             WebkitOverflowScrolling: 'touch',
           }}
         >
+          <button
+            type="button"
+            onClick={() => setActiveModalTab('ABOUT')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#475569',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: '4px 8px',
+            }}
+          >
+            About us
+          </button>
+
+          <Link
+            href="/legal"
+            style={{
+              color: pathname === '/legal' ? '#14532D' : '#475569',
+              fontWeight: pathname === '/legal' ? 800 : 600,
+              textDecoration: 'none',
+              padding: '4px 8px',
+            }}
+          >
+            Legal & Compliance
+          </Link>
+
+          <Link
+            href="/contact-us"
+            style={{
+              color: pathname === '/contact-us' || pathname === '/support' ? '#14532D' : '#475569',
+              fontWeight: pathname === '/contact-us' || pathname === '/support' ? 800 : 600,
+              textDecoration: 'none',
+              padding: '4px 8px',
+            }}
+          >
+            Contact us
+          </Link>
+
+          <Link
+            href="/notifications"
+            style={{
+              color: pathname === '/notifications' ? '#14532D' : '#475569',
+              fontWeight: pathname === '/notifications' ? 800 : 600,
+              textDecoration: 'none',
+              padding: '4px 8px',
+            }}
+          >
+            Notifications
+          </Link>
 
 
           {/* =================================================

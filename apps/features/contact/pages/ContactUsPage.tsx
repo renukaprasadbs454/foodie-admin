@@ -82,44 +82,6 @@ const INITIAL_ENQUIRIES: EnquiryRecord[] = [
     status: 'OPEN',
     priority: 'LOW',
   },
-  {
-    id: 'ENQ-906',
-    category: 'CUSTOMER',
-    senderName: 'Sneha Patel',
-    senderEmail: 'sneha.patel@gmail.com',
-    senderPhone: '+91 98990 77112',
-    subject: 'Wrong items delivered in Order #ORD-10492',
-    message: 'Ordered vegetarian paneer tikka meal but received non-veg chicken items. Requesting immediate replacement.',
-    timestamp: '3 hours ago',
-    status: 'OPEN',
-    priority: 'HIGH',
-    orderId: 'ORD-10492',
-  },
-  {
-    id: 'ENQ-907',
-    category: 'RESTAURANT',
-    senderName: 'Chef Mario (Pizzeria Gusto)',
-    senderEmail: 'mario@pizzeriagusto.com',
-    senderPhone: '+91 97112 44990',
-    subject: 'Kitchen Display Printer Offline Issue',
-    message: 'Orders are not auto-printing on thermal printer after Bluetooth update.',
-    timestamp: '4 hours ago',
-    status: 'IN_PROGRESS',
-    priority: 'HIGH',
-    replyMessage: 'Merchant support engineer dispatched thermal printer driver patch.',
-  },
-  {
-    id: 'ENQ-908',
-    category: 'DELIVERY',
-    senderName: 'Deepa V. (Rider #DRV-889)',
-    senderEmail: 'deepa.rider@gmail.com',
-    senderPhone: '+91 96221 00334',
-    subject: 'Vehicle Insurance & KYC Document Re-validation Pending',
-    message: 'Uploaded renewed two-wheeler insurance certificate 2 days ago. Account remains temporarily soft-locked.',
-    timestamp: '5 hours ago',
-    status: 'OPEN',
-    priority: 'MEDIUM',
-  },
 ];
 
 const INITIAL_HISTORY: EnquiryRecord[] = [
@@ -362,12 +324,12 @@ export function ContactUsPage() {
       {/* Header & Quick Action */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#14532D">
-            Support Operations Desk
-          </Text>
-          <Text as="p" variant="caption" color="#64748B">
-            Manage customer, restaurant, delivery partner & general enquiries with direct message replies, filters & resolution tracking
-          </Text>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#14532D', fontFamily: 'Georgia, serif', margin: '0 0 6px 0' }}>
+            Contact Us & Support Operations Desk
+          </h1>
+          <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
+            Manage customer, restaurant, delivery partner & general enquiries with direct message replies and resolution tracking
+          </p>
         </div>
 
         <button

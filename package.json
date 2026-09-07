@@ -9,7 +9,7 @@
     "start": "next start apps",
     "typecheck": "tsc -p apps/tsconfig.json --noEmit",
     "lint": "next lint apps",
-    "test": "jest"
+    "test": "jest --config apps/jest.config.js"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.5.1",
