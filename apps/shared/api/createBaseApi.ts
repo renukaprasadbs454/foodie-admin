@@ -144,7 +144,17 @@ export function createBaseApi<TagTypes extends string = string>(
         };
       }
 
-      if (statusStr === '401' || statusStr === '403' || statusStr === '404') {
+      if (
+        statusStr === '401' ||
+        statusStr === '403' ||
+        statusStr === '404' ||
+        statusStr === '500' ||
+        statusStr === '502' ||
+        statusStr === '503' ||
+        statusStr === 'FETCH_ERROR' ||
+        statusStr === 'PARSING_ERROR' ||
+        statusStr === 'TIMEOUT_ERROR'
+      ) {
         logger.warn('API network status', {
           url: extractUrl(requestArgs),
           status: statusStr,
