@@ -6,11 +6,11 @@ import { createAppTheme, type ColorMode } from 'foodie-shared-web';
  */
 export function createAdminTheme(mode: ColorMode = 'light') {
   return createAppTheme(mode, {
-    accent: '#14532D',
-    accentMuted: '#E6F4EA',
+    accent: '#000000',
+    accentMuted: '#F4F4F5',
     color: {
-      warning: '#F59E0B',
-      inProgress: '#14532D',
+      warning: '#71717A',
+      inProgress: '#000000',
     },
   });
 }

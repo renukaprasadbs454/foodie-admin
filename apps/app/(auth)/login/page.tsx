@@ -15,8 +15,8 @@ export default function LoginPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#0E1712',
-        backgroundImage: 'radial-gradient(circle at 50% 20%, #14532D 0%, #0E1712 70%)',
+        backgroundColor: '#000000',
+        backgroundImage: 'radial-gradient(circle at 50% 20%, #18181B 0%, #000000 70%)',
         padding: '32px 16px',
         boxSizing: 'border-box',
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -30,15 +30,16 @@ export default function LoginPage() {
           borderRadius: 20,
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)',
           overflow: 'hidden',
+          border: '1px solid #E4E4E7',
         }}
       >
         {/* Brand Header Banner */}
         <div
           style={{
-            backgroundColor: '#0F3D21',
+            backgroundColor: '#000000',
             padding: '28px 32px',
             color: '#FFFFFF',
-            borderBottom: '4px solid #10B981',
+            borderBottom: '4px solid #27272A',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -47,9 +48,9 @@ export default function LoginPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div>
               <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px' }}>
-                Foodie <span style={{ color: '#F59E0B' }}>Admin</span>
+                Foodie <span style={{ color: '#A1A1AA' }}>Admin</span>
               </div>
-              <div style={{ fontSize: 11, color: '#A7F3D0', fontWeight: 600 }}>
+              <div style={{ fontSize: 11, color: '#A1A1AA', fontWeight: 600 }}>
                 Hyperlocal Operations Portal
               </div>
             </div>

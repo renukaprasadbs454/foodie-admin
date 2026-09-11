@@ -465,9 +465,9 @@ export function AdminHeaderBar({
                 width: 38,
                 height: 38,
                 borderRadius: 10,
-                border: isCompact ? '1px solid #F59E0B' : '1px solid #CBD5E1',
-                backgroundColor: isCompact ? '#FEF3C7' : '#F8FAFC',
-                color: isCompact ? '#D97706' : '#14532D',
+                border: isCompact ? '1px solid #000000' : '1px solid #CBD5E1',
+                backgroundColor: isCompact ? '#000000' : '#F8FAFC',
+                color: isCompact ? '#FFFFFF' : '#000000',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}

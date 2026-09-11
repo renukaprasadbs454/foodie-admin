@@ -157,7 +157,7 @@ export function DarkstorePickingPage() {
              Picker Execution Station
           </h1>
           <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
-            Active Pick Order: <strong style={{ color: '#0F3D21' }}>{activeOrderId}</strong> | Assigned Picker: <strong>Karan Verma</strong> | Total Items: <strong>{items.length} SKUs ({totalRequested} units)</strong>
+            Active Pick Order: <strong style={{ color: '#09090B' }}>{activeOrderId}</strong> | Assigned Picker: <strong>Karan Verma</strong> | Total Items: <strong>{items.length} SKUs ({totalRequested} units)</strong>
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -166,7 +166,7 @@ export function DarkstorePickingPage() {
               type="button"
               onClick={handleBatchPickAll}
               style={{
-                backgroundColor: '#10B981',
+                backgroundColor: '#000000',
                 color: '#FFFFFF',
                 border: 'none',
                 padding: '8px 16px',
@@ -174,36 +174,36 @@ export function DarkstorePickingPage() {
                 fontSize: 12,
                 fontWeight: 800,
                 cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(16,185,129,0.2)',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
               }}
             >
-               Fast Pick All
+              Fast Pick All
             </button>
           )}
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#15803D', backgroundColor: '#DCFCE7', padding: '6px 14px', borderRadius: 20 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '6px 14px', borderRadius: 20 }}>
             Pick Progress: {pickProgress}% Complete ({totalPicked}/{totalRequested} units)
           </span>
         </div>
       </div>
 
       {toastMessage && (
-        <div style={{ backgroundColor: '#FEF3C7', color: '#92400E', padding: '12px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, marginBottom: 16 }}>
-           {toastMessage}
+        <div style={{ backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', padding: '12px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, marginBottom: 16 }}>
+          {toastMessage}
         </div>
       )}
 
       {/* Progress Bar */}
-      <div style={{ height: 10, width: '100%', backgroundColor: '#E5E7EB', borderRadius: 5, overflow: 'hidden', marginBottom: 20 }}>
-        <div style={{ height: '100%', width: `${pickProgress}%`, backgroundColor: '#0F3D21', transition: 'width 0.3s ease' }} />
+      <div style={{ height: 10, width: '100%', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', borderRadius: 5, overflow: 'hidden', marginBottom: 20 }}>
+        <div style={{ height: '100%', width: `${pickProgress}%`, backgroundColor: '#000000', transition: 'width 0.3s ease' }} />
       </div>
 
       {/* Shelf Zone Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {[
           { key: 'ALL', label: `All Items (${items.length})` },
-          { key: 'COOLER', label: ` Cooler & Chiller (${items.filter(i => i.shelfLocation.toLowerCase().includes('cooler') || i.shelfLocation.toLowerCase().includes('chiller')).length})` },
-          { key: 'SNACKS', label: ` Snacks & Pantry (${items.filter(i => i.shelfLocation.toLowerCase().includes('snacks') || i.shelfLocation.toLowerCase().includes('pantry') || i.shelfLocation.toLowerCase().includes('premium')).length})` },
-          { key: 'PENDING', label: ` Pending Pick (${items.filter(i => i.status === 'PENDING').length})` },
+          { key: 'COOLER', label: `Cooler & Chiller (${items.filter(i => i.shelfLocation.toLowerCase().includes('cooler') || i.shelfLocation.toLowerCase().includes('chiller')).length})` },
+          { key: 'SNACKS', label: `Snacks & Pantry (${items.filter(i => i.shelfLocation.toLowerCase().includes('snacks') || i.shelfLocation.toLowerCase().includes('pantry') || i.shelfLocation.toLowerCase().includes('premium')).length})` },
+          { key: 'PENDING', label: `Pending Pick (${items.filter(i => i.status === 'PENDING').length})` },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -214,9 +214,9 @@ export function DarkstorePickingPage() {
               borderRadius: 8,
               fontSize: 12,
               fontWeight: zoneFilter === tab.key ? 800 : 600,
-              backgroundColor: zoneFilter === tab.key ? '#0F3D21' : '#F3F4F6',
-              color: zoneFilter === tab.key ? '#FFFFFF' : '#4B5563',
-              border: 'none',
+              backgroundColor: zoneFilter === tab.key ? '#000000' : '#FFFFFF',
+              color: zoneFilter === tab.key ? '#FFFFFF' : '#71717A',
+              border: zoneFilter === tab.key ? '1px solid #000000' : '1px solid #E4E4E7',
               cursor: 'pointer',
             }}
           >
@@ -234,7 +234,7 @@ export function DarkstorePickingPage() {
               backgroundColor: '#FFFFFF',
               borderRadius: 12,
               padding: 20,
-              border: item.status === 'PICKED' ? '2px solid #10B981' : item.status === 'UNAVAILABLE' ? '2px solid #EF4444' : '1px solid #E5E7EB',
+              border: item.status === 'PICKED' ? '2px solid #000000' : item.status === 'UNAVAILABLE' ? '2px solid #71717A' : '1px solid #E4E4E7',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               display: 'flex',
               alignItems: 'center',
@@ -246,15 +246,15 @@ export function DarkstorePickingPage() {
                 <img
                   src={item.imageUrl}
                   alt={item.productName}
-                  style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid #E5E7EB' }}
+                  style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid #E4E4E7' }}
                 />
               )}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: item.shelfLocation.includes('Cooler') || item.shelfLocation.includes('Chiller') ? '#2563EB' : '#F59E0B', textTransform: 'uppercase' }}>
-                   Shelf Location: {item.shelfLocation}
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#71717A', textTransform: 'uppercase' }}>
+                  Shelf Location: {item.shelfLocation}
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginTop: 2 }}>{item.productName}</div>
-                <div style={{ fontSize: 12, color: '#6B7280' }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#09090B', marginTop: 2 }}>{item.productName}</div>
+                <div style={{ fontSize: 12, color: '#71717A' }}>
                   SKU: {item.sku} | Unit Price: ₹{item.unitPrice.toFixed(2)}
                 </div>
               </div>
@@ -262,10 +262,10 @@ export function DarkstorePickingPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21' }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#09090B' }}>
                   {item.quantityPicked} / {item.quantityRequested}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 800, color: item.status === 'PICKED' ? '#15803D' : item.status === 'UNAVAILABLE' ? '#B91C1C' : '#6B7280' }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: item.status === 'PICKED' ? '#09090B' : item.status === 'UNAVAILABLE' ? '#71717A' : '#71717A' }}>
                   STATUS: {item.status}
                 </div>
               </div>
@@ -276,7 +276,7 @@ export function DarkstorePickingPage() {
                   onClick={() => handlePickIncrement(item.id)}
                   disabled={item.quantityPicked >= item.quantityRequested}
                   style={{
-                    backgroundColor: '#0F3D21',
+                    backgroundColor: '#000000',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -293,9 +293,9 @@ export function DarkstorePickingPage() {
                   type="button"
                   onClick={() => handleMarkUnavailable(item.id)}
                   style={{
-                    backgroundColor: '#FEE2E2',
-                    color: '#B91C1C',
-                    border: 'none',
+                    backgroundColor: '#F4F4F5',
+                    color: '#09090B',
+                    border: '1px solid #E4E4E7',
                     borderRadius: 8,
                     padding: '10px 14px',
                     fontSize: 12,
@@ -303,7 +303,7 @@ export function DarkstorePickingPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  Report Missing 
+                  Report Missing
                 </button>
               </div>
             </div>
@@ -313,17 +313,17 @@ export function DarkstorePickingPage() {
 
       {/* Completion Action */}
       {isComplete && (
-        <div style={{ marginTop: 32, padding: 20, backgroundColor: '#DCFCE7', borderRadius: 12, border: '1px solid #86EFAC', textAlign: 'center' }}>
-          <h3 style={{ fontSize: 18, fontWeight: 900, color: '#15803D', margin: '0 0 8px' }}>
-             All {items.length} Items Picked!
+        <div style={{ marginTop: 32, padding: 20, backgroundColor: '#F4F4F5', borderRadius: 12, border: '1px solid #E4E4E7', textAlign: 'center' }}>
+          <h3 style={{ fontSize: 18, fontWeight: 900, color: '#09090B', margin: '0 0 8px' }}>
+            All {items.length} Items Picked!
           </h3>
-          <p style={{ fontSize: 13, color: '#166534', margin: '0 0 16px' }}>
+          <p style={{ fontSize: 13, color: '#71717A', margin: '0 0 16px' }}>
             Order {activeOrderId} picking is complete. Please hand over the crate ({totalRequested} items) to the packing station.
           </p>
           <a
             href="/darkstore-admin/packing"
             style={{
-              backgroundColor: '#0F3D21',
+              backgroundColor: '#000000',
               color: '#FFFFFF',
               padding: '12px 24px',
               borderRadius: 8,
@@ -340,4 +340,5 @@ export function DarkstorePickingPage() {
     </div>
   );
 }
+
 

@@ -124,15 +124,15 @@ export function AiAssistantWidget() {
           bottom: 28,
           right: 28,
           zIndex: 9999,
-          backgroundColor: '#14532D',
-          color: '#F59E0B',
-          border: '2px solid #F59E0B',
+          backgroundColor: '#000000',
+          color: '#FFFFFF',
+          border: '1px solid #27272A',
           borderRadius: 30,
           padding: '12px 20px',
           fontWeight: 800,
           fontSize: 14,
           cursor: 'pointer',
-          boxShadow: '0 8px 24px rgba(20, 83, 45, 0.4)',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
           display: 'flex',
           alignItems: 'center',
           gap: 10,
@@ -166,28 +166,28 @@ export function AiAssistantWidget() {
           {/* Header */}
           <div
             style={{
-              backgroundColor: '#0F3D21',
+              backgroundColor: '#1E1B4B',
               color: '#FFFFFF',
               padding: '16px 20px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              borderBottom: '1px solid rgba(255,255,255,0.1)',
+              borderBottom: '1px solid #312E81',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 22 }}></span>
+              <span style={{ fontSize: 22 }}>🤖</span>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF' }}>
                   FoodieBot
                 </div>
-                <div style={{ fontSize: 11, color: '#FEF3C7', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 11, color: '#A5B4FC', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span
                     style={{
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      backgroundColor: '#10B981',
+                      backgroundColor: '#818CF8',
                       display: 'inline-block',
                     }}
                   />
@@ -199,15 +199,14 @@ export function AiAssistantWidget() {
               type="button"
               onClick={() => setIsOpen(false)}
               style={{
-                backgroundColor: 'transparent',
+                background: 'none',
                 border: 'none',
-                color: '#E6F4EA',
+                color: '#FFFFFF',
                 fontSize: 18,
                 cursor: 'pointer',
-                fontWeight: 700,
               }}
             >
-              
+              ✕
             </button>
           </div>
 
@@ -371,8 +370,8 @@ export function AiAssistantWidget() {
               onClick={() => handleSend()}
               style={{
                 padding: '10px 16px',
-                backgroundColor: '#14532D',
-                color: '#F59E0B',
+                backgroundColor: '#000000',
+                color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 10,
                 fontWeight: 800,

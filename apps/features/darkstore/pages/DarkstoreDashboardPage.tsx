@@ -140,8 +140,8 @@ export function DarkstoreDashboardPage() {
           <Link
             href="/darkstore-admin/dispatch"
             style={{
-              backgroundColor: '#F59E0B',
-              color: '#0F3D21',
+              backgroundColor: '#000000',
+              color: '#FFFFFF',
               padding: '10px 16px',
               borderRadius: 8,
               fontSize: 13,

@@ -16,27 +16,27 @@ export function RestaurantAdminDashboardPage() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-        <div style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E5E7EB' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280' }}>TODAY'S ORDERS</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', marginTop: 4 }}>32 Orders</div>
+        <div style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E4E4E7' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#71717A' }}>TODAY'S ORDERS</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#09090B', marginTop: 4 }}>32 Orders</div>
         </div>
-        <div style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E5E7EB' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280' }}>KITCHEN PREP TIME</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#15803D', marginTop: 4 }}>14 mins avg</div>
+        <div style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E4E4E7' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#71717A' }}>KITCHEN PREP TIME</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#09090B', marginTop: 4 }}>14 mins avg</div>
         </div>
-        <div style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E5E7EB' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280' }}>RESTAURANT RATING</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#F59E0B', marginTop: 4 }}> 4.8 / 5.0</div>
+        <div style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E4E4E7' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#71717A' }}>RESTAURANT RATING</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#09090B', marginTop: 4 }}>4.8 / 5.0</div>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-        <Link href="/restaurants" style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E5E7EB', textDecoration: 'none', color: 'inherit' }}>
+        <Link href="/restaurants" style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E4E4E7', textDecoration: 'none', color: 'inherit' }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}></div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#0F3D21' }}>Restaurant Profile & Menu Management</div>
-          <p style={{ fontSize: 12, color: '#6B7280', margin: '4px 0 0' }}>Update menu items, set prices, toggle item availability, and edit operating hours.</p>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#09090B' }}>Restaurant Profile & Menu Management</div>
+          <p style={{ fontSize: 12, color: '#71717A', margin: '4px 0 0' }}>Update menu items, set prices, toggle item availability, and edit operating hours.</p>
         </Link>
-        <Link href="/orders" style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E5E7EB', textDecoration: 'none', color: 'inherit' }}>
+        <Link href="/orders" style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E4E4E7', textDecoration: 'none', color: 'inherit' }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}></div>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#0F3D21' }}>Kitchen Order Display</div>
           <p style={{ fontSize: 12, color: '#6B7280', margin: '4px 0 0' }}>Accept incoming kitchen orders, mark items as preparing, and alert delivery partners when ready.</p>

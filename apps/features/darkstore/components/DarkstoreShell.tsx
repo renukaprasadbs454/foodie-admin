@@ -74,7 +74,7 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#F8FAFC', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#FFFFFF', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* Toast Notification Banner */}
       {toastMsg && (
         <div
@@ -82,8 +82,8 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
             position: 'fixed',
             top: 74,
             right: 24,
-            backgroundColor: '#0F3D21',
-            color: '#F59E0B',
+            backgroundColor: '#000000',
+            color: '#FFFFFF',
             padding: '12px 20px',
             borderRadius: 10,
             fontSize: 13,
@@ -100,13 +100,13 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
       <header
         style={{
           height: 64,
-          backgroundColor: '#0F3D21',
+          backgroundColor: '#000000',
           color: '#FFFFFF',
           padding: '0 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          borderBottom: '1px solid #27272A',
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           position: 'sticky',
           top: 0,
@@ -115,13 +115,13 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
       >
         {/* Brand & Interactive Darkstore Location Dropdown */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px' }}>
-            Foodiee <span style={{ color: '#F59E0B' }}>QuickStore</span>
+          <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', color: '#FFFFFF' }}>
+            Foodiee <span style={{ color: '#E4E4E7' }}>QuickStore</span>
           </div>
           <div
             style={{
-              backgroundColor: '#14532D',
-              border: '1.5px solid rgba(245, 158, 11, 0.4)',
+              backgroundColor: '#18181B',
+              border: '1px solid #3F3F46',
               borderRadius: 8,
               padding: '3px 10px',
               fontSize: 12,
@@ -131,7 +131,7 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
               gap: 8,
             }}
           >
-            <label htmlFor="darkstore-location-select" style={{ color: '#A7F3D0', fontWeight: 800, whiteSpace: 'nowrap' }}>
+            <label htmlFor="darkstore-location-select" style={{ color: '#A1A1AA', fontWeight: 800, whiteSpace: 'nowrap' }}>
               Darkstore:
             </label>
             <select
@@ -139,9 +139,9 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
               value={selectedDarkstoreId}
               onChange={(e) => handleDarkstoreChange(e.target.value)}
               style={{
-                backgroundColor: '#0F3D21',
-                color: '#F59E0B',
-                border: '1px solid #10B981',
+                backgroundColor: '#09090B',
+                color: '#FFFFFF',
+                border: '1px solid #3F3F46',
                 borderRadius: 6,
                 padding: '4px 10px',
                 fontSize: 12,
@@ -166,9 +166,9 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
             type="button"
             onClick={() => setIsOpenStatus(!isOpenStatus)}
             style={{
-              backgroundColor: isOpenStatus ? '#DCFCE7' : '#FEE2E2',
-              color: isOpenStatus ? '#15803D' : '#B91C1C',
-              border: 'none',
+              backgroundColor: isOpenStatus ? '#FFFFFF' : '#27272A',
+              color: isOpenStatus ? '#000000' : '#A1A1AA',
+              border: '1px solid #3F3F46',
               borderRadius: 20,
               padding: '6px 14px',
               fontSize: 12,
@@ -184,7 +184,7 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                backgroundColor: isOpenStatus ? '#16A34A' : '#DC2626',
+                backgroundColor: isOpenStatus ? '#000000' : '#71717A',
               }}
             />
             {isOpenStatus ? 'STORE OPEN' : 'STORE CLOSED'}
@@ -193,7 +193,7 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
           {/* User Profile */}
           <div style={{ fontSize: 13, textAlign: 'right' }}>
             <div style={{ fontWeight: 800, color: '#FFFFFF' }}>Darkstore Admin</div>
-            <div style={{ fontSize: 11, color: '#A7F3D0' }}>Role: {role || 'DARKSTORE_ADMIN'}</div>
+            <div style={{ fontSize: 11, color: '#A1A1AA' }}>Role: {role || 'DARKSTORE_ADMIN'}</div>
           </div>
 
           <button
@@ -201,9 +201,9 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
             onClick={onLogout}
             disabled={loggingOut}
             style={{
-              backgroundColor: 'rgba(255,255,255,0.1)',
+              backgroundColor: '#18181B',
               color: '#FFFFFF',
-              border: '1px solid rgba(255,255,255,0.2)',
+              border: '1px solid #3F3F46',
               borderRadius: 8,
               padding: '6px 12px',
               fontSize: 12,
@@ -221,17 +221,17 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
         {/* Left Operational Sidebar */}
         <aside
           style={{
-            backgroundColor: '#0F3D21',
+            backgroundColor: '#09090B',
             color: '#FFFFFF',
             padding: '20px 12px',
-            borderRight: '1px solid rgba(255,255,255,0.05)',
+            borderRight: '1px solid #27272A',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
           }}
         >
           <nav aria-label="Darkstore Operations">
-            <div style={{ fontSize: 10, color: '#A7F3D0', fontWeight: 800, textTransform: 'uppercase', paddingLeft: 12, marginBottom: 10 }}>
+            <div style={{ fontSize: 10, color: '#A1A1AA', fontWeight: 800, textTransform: 'uppercase', paddingLeft: 12, marginBottom: 10 }}>
               Darkstore Operations
             </div>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -249,9 +249,9 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
                         borderRadius: 8,
                         fontSize: 13,
                         fontWeight: isActive ? 800 : 600,
-                        color: isActive ? '#FFFFFF' : '#D1D5DB',
-                        backgroundColor: isActive ? '#14532D' : 'transparent',
-                        borderLeft: isActive ? '4px solid #F59E0B' : '4px solid transparent',
+                        color: isActive ? '#000000' : '#D4D4D8',
+                        backgroundColor: isActive ? '#FFFFFF' : 'transparent',
+                        borderLeft: isActive ? '4px solid #000000' : '4px solid transparent',
                         textDecoration: 'none',
                         transition: 'all 0.15s ease',
                       }}
@@ -264,8 +264,8 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
                           style={{
                             fontSize: 10,
                             fontWeight: 800,
-                            backgroundColor: '#F59E0B',
-                            color: '#0F3D21',
+                            backgroundColor: isActive ? '#000000' : '#FFFFFF',
+                            color: isActive ? '#FFFFFF' : '#000000',
                             padding: '2px 6px',
                             borderRadius: 4,
                           }}
@@ -280,16 +280,17 @@ export function DarkstoreShell({ children }: DarkstoreShellProps) {
             </ul>
           </nav>
 
-          <div style={{ padding: 12, backgroundColor: '#14532D', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', marginTop: 20 }}>
-            <div style={{ fontSize: 11, color: '#A7F3D0', fontWeight: 800 }}> Operational Hotline</div>
+          <div style={{ padding: 12, backgroundColor: '#18181B', borderRadius: 10, border: '1px solid #27272A', marginTop: 20 }}>
+            <div style={{ fontSize: 11, color: '#A1A1AA', fontWeight: 800 }}> Operational Hotline</div>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#FFFFFF', marginTop: 2 }}>+91 98000 11223</div>
-            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>Quick-commerce SLA: Sub 15-min delivery</div>
+            <div style={{ fontSize: 10, color: '#71717A', marginTop: 2 }}>Quick-commerce SLA: Sub 15-min delivery</div>
           </div>
         </aside>
 
         {/* Main Operational Workspace Content */}
-        <main style={{ flex: 1, backgroundColor: '#F8FAFC' }}>{children}</main>
+        <main style={{ flex: 1, backgroundColor: '#FFFFFF' }}>{children}</main>
       </div>
     </div>
   );
 }
+

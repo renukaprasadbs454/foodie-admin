@@ -35,10 +35,10 @@ export function DarkstoreDispatchPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
-           Dispatch Bay & Delivery Partner Coordination
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#09090B', margin: 0 }}>
+          Dispatch Bay & Delivery Partner Coordination
         </h1>
-        <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
+        <p style={{ fontSize: 13, color: '#71717A', margin: '4px 0 0' }}>
           Monitor orders ready for pickup and manage delivery partner handoff at the gate.
         </p>
       </div>
@@ -51,7 +51,7 @@ export function DarkstoreDispatchPage() {
               backgroundColor: '#FFFFFF',
               borderRadius: 12,
               padding: 20,
-              border: o.status === 'DISPATCHED' ? '2px solid #10B981' : '1px solid #E5E7EB',
+              border: o.status === 'DISPATCHED' ? '2px solid #000000' : '1px solid #E4E4E7',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               display: 'flex',
               alignItems: 'center',
@@ -60,11 +60,11 @@ export function DarkstoreDispatchPage() {
           >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21' }}>{o.orderNumber}</span>
-                <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: 4 }}>
+                <span style={{ fontSize: 18, fontWeight: 900, color: '#09090B' }}>{o.orderNumber}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', padding: '2px 8px', borderRadius: 4 }}>
                   {o.priority} PRIORITY
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#DCFCE7', color: '#15803D', padding: '2px 8px', borderRadius: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#000000', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4 }}>
                   {o.status}
                 </span>
               </div>

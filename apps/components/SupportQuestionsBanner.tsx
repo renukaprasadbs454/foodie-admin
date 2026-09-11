@@ -27,8 +27,8 @@ export function SupportQuestionsBanner() {
       {/* Banner Container */}
       <div
         style={{
-          backgroundColor: '#0F3D21',
-          backgroundImage: 'linear-gradient(135deg, #0F3D21 0%, #047857 100%)',
+          backgroundColor: '#000000',
+          backgroundImage: 'linear-gradient(135deg, #000000 0%, #18181B 100%)',
           borderRadius: 20,
           padding: '36px 44px',
           color: '#FFFFFF',
@@ -37,7 +37,7 @@ export function SupportQuestionsBanner() {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 24,
-          boxShadow: '0 10px 25px rgba(15, 61, 33, 0.2)',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -45,9 +45,9 @@ export function SupportQuestionsBanner() {
         {/* Left Text & CTA */}
         <div style={{ maxWidth: 520, zIndex: 2 }}>
           <h2 style={{ fontSize: 32, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>
-            Still Have <span style={{ color: '#F59E0B' }}>Questions?</span>
+            Still Have <span style={{ color: '#A1A1AA' }}>Questions?</span>
           </h2>
-          <p style={{ fontSize: 15, color: '#A7F3D0', marginTop: 12, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 15, color: '#D4D4D8', marginTop: 12, lineHeight: 1.6 }}>
             Book a meeting with our Foodie marketplace operations specialists and discuss your queries.
           </p>
 
@@ -58,7 +58,7 @@ export function SupportQuestionsBanner() {
               marginTop: 20,
               padding: '12px 28px',
               backgroundColor: '#FFFFFF',
-              color: '#0F3D21',
+              color: '#000000',
               border: 'none',
               borderRadius: 10,
               fontSize: 14,

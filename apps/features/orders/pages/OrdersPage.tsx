@@ -130,16 +130,16 @@ export function OrdersPage() {
       {/* Page Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <Text as="h1" variant="heading1" color="#14532D">
+          <Text as="h1" variant="heading1" color="#09090B">
             Order Dispatch Control Center
           </Text>
-          <Text as="p" variant="caption" color="#64748B">
+          <Text as="p" variant="caption" color="#71717A">
             Real-time multi-vendor order tracking, dispatch management & status overrides
           </Text>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#FEF3C7', padding: '6px 12px', borderRadius: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '6px 12px', borderRadius: 20 }}>
           <span style={{ fontSize: 14 }}></span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#D97706' }}>Live WebSocket Dispatch Feed</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Live WebSocket Dispatch Feed</span>
         </div>
       </div>
 
@@ -152,7 +152,7 @@ export function OrdersPage() {
           backgroundColor: '#FFFFFF',
           padding: '16px 20px',
           borderRadius: 12,
-          border: '1px solid #E2E8F0',
+          border: '1px solid #E4E4E7',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -170,8 +170,8 @@ export function OrdersPage() {
                 padding: '8px 14px',
                 borderRadius: 8,
                 border: 'none',
-                backgroundColor: statusFilter === st ? '#14532D' : '#F1F5F9',
-                color: statusFilter === st ? '#F59E0B' : '#475569',
+                backgroundColor: statusFilter === st ? '#000000' : '#F4F4F5',
+                color: statusFilter === st ? '#FFFFFF' : '#09090B',
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -190,10 +190,12 @@ export function OrdersPage() {
           style={{
             padding: '10px 16px',
             borderRadius: 8,
-            border: '1px solid #CBD5E1',
+            border: '1px solid #E4E4E7',
             width: 320,
             fontSize: 14,
             outline: 'none',
+            color: '#09090B',
+            backgroundColor: '#FFFFFF',
           }}
         />
       </div>
@@ -203,14 +205,14 @@ export function OrdersPage() {
         style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 12,
-          border: '1px solid #E2E8F0',
+          border: '1px solid #E4E4E7',
           overflow: 'hidden',
           boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
         }}
       >
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#14532D', fontWeight: 700 }}>
+            <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
               <th style={{ padding: '14px 20px' }}>Order ID</th>
               <th style={{ padding: '14px 20px' }}>Customer</th>
               <th style={{ padding: '14px 20px' }}>Store & Module</th>
@@ -222,32 +224,33 @@ export function OrdersPage() {
           </thead>
           <tbody>
             {filteredOrders.map((order) => (
-              <tr key={order.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+              <tr key={order.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
                 <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 700, color: '#14532D', fontFamily: 'monospace', fontSize: 12 }}>
+                  <div style={{ fontWeight: 700, color: '#09090B', fontFamily: 'monospace', fontSize: 12 }}>
                     #{order.id.slice(0, 8)}...
                   </div>
-                  <div style={{ fontSize: 11, color: '#94A3B8' }}>{order.createdAt}</div>
+                  <div style={{ fontSize: 11, color: '#71717A' }}>{order.createdAt}</div>
                 </td>
                 <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 600, color: '#334155' }}>{order.customerName}</div>
-                  <div style={{ fontSize: 12, color: '#64748B' }}>{order.customerPhone}</div>
+                  <div style={{ fontWeight: 600, color: '#09090B' }}>{order.customerName}</div>
+                  <div style={{ fontSize: 12, color: '#71717A' }}>{order.customerPhone}</div>
                 </td>
                 <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 600, color: '#14532D' }}>{order.storeName}</div>
-                  <span style={{ fontSize: 11, color: '#D97706', fontWeight: 600 }}>{order.module}</span>
+                  <div style={{ fontWeight: 600, color: '#09090B' }}>{order.storeName}</div>
+                  <span style={{ fontSize: 11, color: '#71717A', fontWeight: 600 }}>{order.module}</span>
                 </td>
-                <td style={{ padding: '16px 20px', color: '#475569', fontSize: 13 }}>{order.itemsSummary}</td>
+                <td style={{ padding: '16px 20px', color: '#18181B', fontSize: 13 }}>{order.itemsSummary}</td>
                 <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 700, color: '#14532D' }}>₹{order.totalAmount}</div>
+                  <div style={{ fontWeight: 700, color: '#09090B' }}>₹{order.totalAmount}</div>
                   <span
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
                       padding: '2px 6px',
                       borderRadius: 4,
-                      backgroundColor: order.paymentMethod === 'DIGITAL' ? '#E0F2FE' : '#FEF3C7',
-                      color: order.paymentMethod === 'DIGITAL' ? '#0369A1' : '#B45309',
+                      backgroundColor: '#F4F4F5',
+                      border: '1px solid #E4E4E7',
+                      color: '#09090B',
                     }}
                   >
                     {order.paymentMethod}
@@ -257,25 +260,20 @@ export function OrdersPage() {
                   <span
                     style={{
                       backgroundColor:
-                        order.status === 'DELIVERED'
-                          ? '#D1FAE5'
+                        order.status === 'DELIVERED' || order.status === 'PENDING'
+                          ? '#F4F4F5'
                           : order.status === 'READY_FOR_PICKUP'
-                          ? '#E0E7FF'
+                          ? '#000000'
                           : order.status === 'OUT_FOR_DELIVERY' || order.status === 'PREPARING'
-                          ? '#FEF3C7'
-                          : order.status === 'PENDING'
-                          ? '#E0F2FE'
-                          : '#FEE2E2',
+                          ? '#18181B'
+                          : '#E4E4E7',
                       color:
-                        order.status === 'DELIVERED'
-                          ? '#047857'
-                          : order.status === 'READY_FOR_PICKUP'
-                          ? '#3730A3'
-                          : order.status === 'OUT_FOR_DELIVERY' || order.status === 'PREPARING'
-                          ? '#B45309'
-                          : order.status === 'PENDING'
-                          ? '#0369A1'
-                          : '#B91C1C',
+                        order.status === 'READY_FOR_PICKUP' || order.status === 'OUT_FOR_DELIVERY' || order.status === 'PREPARING'
+                          ? '#FFFFFF'
+                          : order.status === 'CANCELED'
+                          ? '#71717A'
+                          : '#09090B',
+                      border: '1px solid #E4E4E7',
                       fontSize: 12,
                       fontWeight: 700,
                       padding: '4px 10px',
@@ -296,9 +294,9 @@ export function OrdersPage() {
                       }}
                       style={{
                         padding: '6px 12px',
-                        backgroundColor: '#E0E7FF',
-                        color: '#3730A3',
-                        border: '1px solid #C7D2FE',
+                        backgroundColor: '#F4F4F5',
+                        color: '#09090B',
+                        border: '1px solid #E4E4E7',
                         borderRadius: 6,
                         fontSize: 12,
                         fontWeight: 700,
@@ -314,8 +312,8 @@ export function OrdersPage() {
                     onClick={() => router.push(`/orders/${order.id}`)}
                     style={{
                       padding: '6px 14px',
-                      backgroundColor: '#14532D',
-                      color: '#F59E0B',
+                      backgroundColor: '#000000',
+                      color: '#FFFFFF',
                       border: 'none',
                       borderRadius: 6,
                       fontSize: 12,

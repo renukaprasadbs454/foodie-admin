@@ -187,7 +187,7 @@ export function AdminLoginForm({
       noValidate
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <Text as="h1" variant="heading1" style={{ fontSize: 24, fontWeight: 800, color: '#0F3D21' }}>
+        <Text as="h1" variant="heading1" style={{ fontSize: 24, fontWeight: 800, color: '#09090B' }}>
           Sign In to Admin Panel
         </Text>
         <Text variant="body" color={tokens.color.textSecondary} style={{ fontSize: 13, lineHeight: 1.5 }}>
@@ -201,11 +201,11 @@ export function AdminLoginForm({
           display: 'flex',
           flexDirection: 'column',
           gap: 8,
-          backgroundColor: '#F8FAFC',
+          backgroundColor: '#F4F4F5',
           padding: 16,
           borderRadius: 14,
-          border: '1.5px solid #0F3D21',
-          boxShadow: '0 2px 8px rgba(15, 61, 33, 0.06)',
+          border: '1.5px solid #000000',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
         }}
       >
         <label
@@ -213,7 +213,7 @@ export function AdminLoginForm({
           style={{
             fontSize: 12,
             fontWeight: 800,
-            color: '#0F3D21',
+            color: '#09090B',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
           }}
@@ -228,11 +228,11 @@ export function AdminLoginForm({
             width: '100%',
             padding: '12px 14px',
             borderRadius: 10,
-            border: '2px solid #10B981',
+            border: '1.5px solid #000000',
             backgroundColor: '#FFFFFF',
             fontSize: 14,
             fontWeight: 800,
-            color: '#0F3D21',
+            color: '#09090B',
             cursor: 'pointer',
             outline: 'none',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
@@ -302,7 +302,7 @@ export function AdminLoginForm({
         style={{
           marginTop: 4,
           padding: '12px 20px',
-          backgroundColor: '#0F3D21',
+          backgroundColor: '#000000',
           color: '#FFFFFF',
           borderRadius: 10,
           fontWeight: 800,

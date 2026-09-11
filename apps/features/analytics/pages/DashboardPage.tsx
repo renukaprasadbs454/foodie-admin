@@ -148,17 +148,17 @@ export function DashboardPage() {
       {/* Top Banner Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#14532D', letterSpacing: '-0.5px' }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#09090B', letterSpacing: '-0.5px' }}>
             Executive Operations Console
           </div>
-          <Text as="p" variant="caption" color="#64748B">
+          <Text as="p" variant="caption" color="#71717A">
             Real-time multi-vendor performance, order status pipeline, and sales telemetry
           </Text>
         </div>
       </div>
 
       {!isConnected ? (
-        <Text as="p" variant="caption" color="#D97706">
+        <Text as="p" variant="caption" color="#71717A">
           Offline — showing cached summary when available.
         </Text>
       ) : null}
@@ -169,7 +169,7 @@ export function DashboardPage() {
           backgroundColor: '#FFFFFF',
           padding: '16px 20px',
           borderRadius: 14,
-          border: '1px solid #E2E8F0',
+          border: '1px solid #E4E4E7',
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
@@ -177,16 +177,17 @@ export function DashboardPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#14532D', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span> Analytics Timeframe Filter</span>
             <span
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: '#047857',
-                backgroundColor: '#D1FAE5',
+                color: '#09090B',
+                backgroundColor: '#F4F4F5',
                 padding: '2px 8px',
                 borderRadius: 12,
+                border: '1px solid #E4E4E7',
               }}
             >
               {applied.dateFrom} to {applied.dateTo}
@@ -233,9 +234,9 @@ export function DashboardPage() {
                   style={{
                     padding: '6px 14px',
                     borderRadius: 8,
-                    border: isPresetActive ? '1px solid #14532D' : '1px solid #CBD5E1',
-                    backgroundColor: isPresetActive ? '#14532D' : '#F8FAFC',
-                    color: isPresetActive ? '#FEF3C7' : '#475569',
+                    border: isPresetActive ? '1px solid #000000' : '1px solid #E4E4E7',
+                    backgroundColor: isPresetActive ? '#000000' : '#FAFAFA',
+                    color: isPresetActive ? '#FFFFFF' : '#475569',
                     fontSize: 12,
                     fontWeight: isPresetActive ? 800 : 600,
                     cursor: 'pointer',
@@ -257,8 +258,8 @@ export function DashboardPage() {
             onClick={applyRange}
             style={{
               padding: '8px 18px',
-              backgroundColor: '#F59E0B',
-              color: '#0F3D21',
+              backgroundColor: '#000000',
+              color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
               fontSize: 13,

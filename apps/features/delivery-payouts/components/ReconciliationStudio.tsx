@@ -37,20 +37,20 @@ export function ReconciliationStudio({ overview, onSelectPayout }: Reconciliatio
           <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px' }}>
              Payout Reconciliation Studio
           </div>
-          <div style={{ fontSize: 13, color: '#A7F3D0', marginTop: 4, maxWidth: 600 }}>
+          <div style={{ fontSize: 13, color: '#A1A1AA', marginTop: 4, maxWidth: 600 }}>
             Automated cross-reconciliation engine auditing local ledger entries against Razorpay and Cashfree provider settlement logs.
           </div>
         </div>
         <div
           style={{
-            backgroundColor: '#14532D',
+            backgroundColor: '#18181B',
             padding: '10px 16px',
             borderRadius: 10,
-            border: '1px solid rgba(255, 255, 255, 0.15)',
+            border: '1px solid #3F3F46',
             textAlign: 'right',
           }}
         >
-          <div style={{ fontSize: 11, color: '#A7F3D0', textTransform: 'uppercase', fontWeight: 700 }}>
+          <div style={{ fontSize: 11, color: '#A1A1AA', textTransform: 'uppercase', fontWeight: 700 }}>
             Audit Health Rate
           </div>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#FFFFFF', marginTop: 2 }}>
@@ -193,7 +193,7 @@ export function ReconciliationStudio({ overview, onSelectPayout }: Reconciliatio
               onClick={() => setSelectedStatusFilter('ALL_DISCREPANCIES')}
               style={{
                 fontSize: 12,
-                color: '#2563EB',
+                color: '#09090B',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',

@@ -47,11 +47,11 @@ export function TopPerformersWidget({ restaurants = [], items = [] }: Props) {
           gap: 14,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: 10 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#14532D' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E4E4E7', paddingBottom: 10 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#09090B' }}>
             Top Rated Stores
           </div>
-          <a href="/restaurants" style={{ fontSize: 12, fontWeight: 700, color: '#F59E0B' }}>
+          <a href="/restaurants" style={{ fontSize: 12, fontWeight: 700, color: '#000000', textDecoration: 'underline' }}>
             View All
           </a>
         </div>
@@ -108,18 +108,18 @@ export function TopPerformersWidget({ restaurants = [], items = [] }: Props) {
           gap: 14,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: 10 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#14532D' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E4E4E7', paddingBottom: 10 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#09090B' }}>
             Trending Popular Items
           </div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', backgroundColor: '#F1F5F9', padding: '2px 8px', borderRadius: 10 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#71717A', backgroundColor: '#F4F4F5', padding: '2px 8px', borderRadius: 10 }}>
             Top Volume
           </span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {items.length === 0 ? (
-            <div style={{ padding: '24px 0', textAlign: 'center', color: '#64748B', fontSize: 13 }}>
+            <div style={{ padding: '24px 0', textAlign: 'center', color: '#71717A', fontSize: 13 }}>
               No trending items recorded yet.
             </div>
           ) : (
@@ -132,21 +132,21 @@ export function TopPerformersWidget({ restaurants = [], items = [] }: Props) {
                   justifyContent: 'space-between',
                   padding: '10px 12px',
                   borderRadius: 10,
-                  backgroundColor: '#F8FAFC',
-                  border: '1px solid #F1F5F9',
+                  backgroundColor: '#FAFAFA',
+                  border: '1px solid #E4E4E7',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#94A3B8', width: 14 }}>#{index + 1}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#71717A', width: 14 }}>#{index + 1}</span>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>{item.name}</div>
-                    <div style={{ fontSize: 11, color: '#64748B' }}>{item.restaurant}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>{item.name}</div>
+                    <div style={{ fontSize: 11, color: '#71717A' }}>{item.restaurant}</div>
                   </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#14532D' }}>₹{item.price.toFixed(2)}</div>
-                  <div style={{ fontSize: 11, color: '#64748B' }}>{item.salesCount} sold</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#09090B' }}>₹{item.price.toFixed(2)}</div>
+                  <div style={{ fontSize: 11, color: '#71717A' }}>{item.salesCount} sold</div>
                 </div>
               </div>
             ))

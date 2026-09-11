@@ -112,10 +112,10 @@ export function DeliveryPartnersPage() {
       {/* Page Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#14532D">
+          <Text as="h1" variant="heading1" color="#09090B">
             Delivery Fleet Management
           </Text>
-          <Text as="p" variant="caption" color="#64748B">
+          <Text as="p" variant="caption" color="#71717A">
             Real-time delivery fleet monitoring, live database partner records, KYC approvals & cash tracking
           </Text>
         </div>
@@ -126,9 +126,9 @@ export function DeliveryPartnersPage() {
             disabled={isFetching}
             style={{
               padding: '10px 16px',
-              backgroundColor: '#F1F5F9',
-              color: '#334155',
-              border: '1px solid #CBD5E1',
+              backgroundColor: '#F4F4F5',
+              color: '#09090B',
+              border: '1px solid #E4E4E7',
               borderRadius: 8,
               fontWeight: 700,
               fontSize: 13,
@@ -142,7 +142,7 @@ export function DeliveryPartnersPage() {
             onClick={() => router.push('/delivery-payouts')}
             style={{
               padding: '10px 18px',
-              backgroundColor: '#0F3D21',
+              backgroundColor: '#000000',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
@@ -166,15 +166,15 @@ export function DeliveryPartnersPage() {
             backgroundColor: '#FFFFFF',
             padding: '20px',
             borderRadius: 12,
-            border: '1px solid #E2E8F0',
-            borderTop: '4px solid #14532D',
+            border: '1px solid #E4E4E7',
+            borderTop: '4px solid #000000',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
           }}
         >
-          <Text as="span" variant="caption" color="#64748B">
+          <Text as="span" variant="caption" color="#71717A">
             Total Registered Fleet
           </Text>
-          <Text as="h2" variant="heading1" color="#14532D" style={{ marginTop: 4 }}>
+          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4 }}>
             {isLoading ? '...' : totalFleetCount}
           </Text>
         </div>
@@ -184,15 +184,15 @@ export function DeliveryPartnersPage() {
             backgroundColor: '#FFFFFF',
             padding: '20px',
             borderRadius: 12,
-            border: '1px solid #E2E8F0',
-            borderTop: '4px solid #059669',
+            border: '1px solid #E4E4E7',
+            borderTop: '4px solid #18181B',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
           }}
         >
-          <Text as="span" variant="caption" color="#64748B">
+          <Text as="span" variant="caption" color="#71717A">
             Currently Online
           </Text>
-          <Text as="h2" variant="heading1" color="#059669" style={{ marginTop: 4 }}>
+          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4 }}>
             {isLoading ? '...' : currentlyOnlineCount}
           </Text>
         </div>
@@ -202,15 +202,15 @@ export function DeliveryPartnersPage() {
             backgroundColor: '#FFFFFF',
             padding: '20px',
             borderRadius: 12,
-            border: '1px solid #E2E8F0',
-            borderTop: '4px solid #F59E0B',
+            border: '1px solid #E4E4E7',
+            borderTop: '4px solid #000000',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
           }}
         >
-          <Text as="span" variant="caption" color="#64748B">
+          <Text as="span" variant="caption" color="#71717A">
             Pending KYC Reviews
           </Text>
-          <Text as="h2" variant="heading1" color="#D97706" style={{ marginTop: 4 }}>
+          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4 }}>
             {isLoading ? '...' : pendingKycCount}
           </Text>
         </div>
@@ -220,15 +220,15 @@ export function DeliveryPartnersPage() {
             backgroundColor: '#FFFFFF',
             padding: '20px',
             borderRadius: 12,
-            border: '1px solid #E2E8F0',
-            borderTop: '4px solid #3B82F6',
+            border: '1px solid #E4E4E7',
+            borderTop: '4px solid #71717A',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
           }}
         >
-          <Text as="span" variant="caption" color="#64748B">
+          <Text as="span" variant="caption" color="#71717A">
             Verified Drivers
           </Text>
-          <Text as="h2" variant="heading1" color="#2563EB" style={{ marginTop: 4 }}>
+          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4 }}>
             {isLoading ? '...' : verifiedCount}
           </Text>
         </div>
@@ -240,7 +240,7 @@ export function DeliveryPartnersPage() {
           backgroundColor: '#FFFFFF',
           padding: '16px 20px',
           borderRadius: 12,
-          border: '1px solid #E2E8F0',
+          border: '1px solid #E4E4E7',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -265,8 +265,8 @@ export function DeliveryPartnersPage() {
                 padding: '8px 16px',
                 borderRadius: 8,
                 border: 'none',
-                backgroundColor: statusFilter === tab.key ? '#14532D' : '#F1F5F9',
-                color: statusFilter === tab.key ? '#F59E0B' : '#475569',
+                backgroundColor: statusFilter === tab.key ? '#000000' : '#F4F4F5',
+                color: statusFilter === tab.key ? '#FFFFFF' : '#09090B',
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -286,11 +286,13 @@ export function DeliveryPartnersPage() {
           style={{
             padding: '10px 16px',
             borderRadius: 8,
-            border: '1px solid #CBD5E1',
+            border: '1px solid #E4E4E7',
             width: 320,
             maxWidth: '100%',
             fontSize: 14,
             outline: 'none',
+            color: '#09090B',
+            backgroundColor: '#FFFFFF',
           }}
         />
       </div>
@@ -300,14 +302,14 @@ export function DeliveryPartnersPage() {
         style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 12,
-          border: '1px solid #E2E8F0',
+          border: '1px solid #E4E4E7',
           overflow: 'hidden',
           boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
         }}
       >
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#14532D', fontWeight: 700 }}>
+            <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
               <th style={{ padding: '14px 20px' }}>Deliveryman Name</th>
               <th style={{ padding: '14px 20px' }}>Contact Phone</th>
               <th style={{ padding: '14px 20px' }}>Vehicle & Zone</th>
@@ -321,24 +323,24 @@ export function DeliveryPartnersPage() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center', color: '#71717A' }}>
                   ⏳ Loading dynamic delivery partner database records...
                 </td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center', color: '#DC2626' }}>
+                <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center', color: '#09090B' }}>
                   ⚠️ Unable to fetch delivery partners from server. Please verify backend is running.
                 </td>
               </tr>
             ) : partners.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ padding: '48px 20px', textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={8} style={{ padding: '48px 20px', textAlign: 'center', color: '#71717A' }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>🛵</div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: '#334155' }}>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#09090B' }}>
                     No delivery partners found
                   </div>
-                  <div style={{ fontSize: 13, color: '#94A3B8', marginTop: 4 }}>
+                  <div style={{ fontSize: 13, color: '#71717A', marginTop: 4 }}>
                     {searchQuery
                       ? `No partners matching "${searchQuery}" in ${statusFilter} tab`
                       : 'Delivery partners will appear here automatically when employees register'}
@@ -349,36 +351,37 @@ export function DeliveryPartnersPage() {
               partners.map((p) => {
                 const docCount = p.documents?.length ?? 0;
                 return (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background-color 0.15s' }}>
+                  <tr key={p.id} style={{ borderBottom: '1px solid #E4E4E7', transition: 'background-color 0.15s' }}>
                     <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 700, color: '#14532D' }}>{p.fullName || 'Unnamed Partner'}</div>
-                      <div style={{ fontSize: 11, color: '#94A3B8', fontFamily: 'monospace' }}>
+                      <div style={{ fontWeight: 700, color: '#09090B' }}>{p.fullName || 'Unnamed Partner'}</div>
+                      <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'monospace' }}>
                         ID: {p.id.slice(0, 8)}...
                       </div>
                     </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#334155' }}>
+                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#09090B' }}>
                       {p.phoneNumber || '—'}
                     </td>
                     <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 600, color: '#14532D' }}>
+                      <div style={{ fontWeight: 600, color: '#09090B' }}>
                         🛵 {p.vehicleType || 'BIKE'} {p.vehicleNumber ? `• ${p.vehicleNumber}` : ''}
                       </div>
-                      <div style={{ fontSize: 12, color: '#64748B' }}>{p.zone || 'Downtown Central'}</div>
+                      <div style={{ fontSize: 12, color: '#71717A' }}>{p.zone || 'Downtown Central'}</div>
                     </td>
                     <td style={{ padding: '16px 20px' }}>
                       {docCount > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {p.documents.map((d) => (
                             <div key={d.id} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontWeight: 600, color: '#0F172A' }}>📄 {d.docType}</span>
+                              <span style={{ fontWeight: 600, color: '#09090B' }}>📄 {d.docType}</span>
                               <span
                                 style={{
                                   fontSize: 10,
                                   fontWeight: 700,
                                   padding: '1px 6px',
                                   borderRadius: 4,
-                                  backgroundColor: d.verificationStatus === 'VERIFIED' ? '#D1FAE5' : '#FEF3C7',
-                                  color: d.verificationStatus === 'VERIFIED' ? '#047857' : '#B45309',
+                                  backgroundColor: '#F4F4F5',
+                                  border: '1px solid #E4E4E7',
+                                  color: '#09090B',
                                 }}
                               >
                                 {d.verificationStatus}
@@ -387,7 +390,7 @@ export function DeliveryPartnersPage() {
                           ))}
                         </div>
                       ) : (
-                        <div style={{ fontSize: 12, color: '#94A3B8' }}>
+                        <div style={{ fontSize: 12, color: '#71717A' }}>
                           <em>No documents uploaded</em>
                         </div>
                       )}
@@ -400,7 +403,7 @@ export function DeliveryPartnersPage() {
                           gap: 6,
                           fontSize: 12,
                           fontWeight: 700,
-                          color: p.isOnline ? '#047857' : '#64748B',
+                          color: p.isOnline ? '#09090B' : '#71717A',
                         }}
                       >
                         <span
@@ -408,13 +411,13 @@ export function DeliveryPartnersPage() {
                             width: 8,
                             height: 8,
                             borderRadius: '50%',
-                            backgroundColor: p.isOnline ? '#10B981' : '#94A3B8',
+                            backgroundColor: p.isOnline ? '#000000' : '#71717A',
                           }}
                         />
                         {p.isOnline ? 'ONLINE' : 'OFFLINE'}
                       </span>
                     </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 700, color: '#D97706' }}>
+                    <td style={{ padding: '16px 20px', fontWeight: 700, color: '#09090B' }}>
                       ₹{p.cashInHand ?? 0}
                     </td>
                     <td style={{ padding: '16px 20px' }}>
@@ -422,16 +425,17 @@ export function DeliveryPartnersPage() {
                         style={{
                           backgroundColor:
                             p.kycStatus === 'VERIFIED'
-                              ? '#D1FAE5'
+                              ? '#F4F4F5'
                               : p.kycStatus === 'REJECTED'
-                                ? '#FEE2E2'
-                                : '#FEF3C7',
+                                ? '#E4E4E7'
+                                : '#000000',
                           color:
                             p.kycStatus === 'VERIFIED'
-                              ? '#047857'
+                              ? '#09090B'
                               : p.kycStatus === 'REJECTED'
-                                ? '#DC2626'
-                                : '#B45309',
+                                ? '#71717A'
+                                : '#FFFFFF',
+                          border: '1px solid #E4E4E7',
                           fontSize: 12,
                           fontWeight: 700,
                           padding: '4px 10px',
@@ -451,7 +455,7 @@ export function DeliveryPartnersPage() {
                             disabled={isApproving}
                             style={{
                               padding: '6px 14px',
-                              backgroundColor: '#14532D',
+                              backgroundColor: '#000000',
                               color: '#FFFFFF',
                               border: 'none',
                               borderRadius: 6,
@@ -471,9 +475,9 @@ export function DeliveryPartnersPage() {
                             disabled={isRejecting}
                             style={{
                               padding: '6px 14px',
-                              backgroundColor: '#FFF1F2',
-                              color: '#E11D48',
-                              border: '1px solid #FECDD3',
+                              backgroundColor: '#F4F4F5',
+                              color: '#09090B',
+                              border: '1px solid #E4E4E7',
                               borderRadius: 6,
                               fontSize: 12,
                               fontWeight: 600,
@@ -521,16 +525,16 @@ export function DeliveryPartnersPage() {
             }}
           >
             <div>
-              <Text as="h2" variant="heading2" color="#991B1B">
+              <Text as="h2" variant="heading2" color="#09090B">
                 Reject Delivery Partner KYC
               </Text>
-              <div style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>
+              <div style={{ fontSize: 13, color: '#71717A', marginTop: 4 }}>
                 Rejecting KYC for <strong>{rejectModalPartner.fullName}</strong>. Please provide a reason:
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>Rejection Reason</label>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Rejection Reason</label>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
@@ -538,10 +542,12 @@ export function DeliveryPartnersPage() {
                 style={{
                   padding: '10px 12px',
                   borderRadius: 8,
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid #E4E4E7',
                   fontSize: 13,
                   outline: 'none',
                   resize: 'none',
+                  color: '#09090B',
+                  backgroundColor: '#FFFFFF',
                 }}
               />
             </div>
@@ -553,9 +559,9 @@ export function DeliveryPartnersPage() {
                 style={{
                   padding: '8px 16px',
                   borderRadius: 8,
-                  border: '1px solid #CBD5E1',
-                  backgroundColor: '#F8FAFC',
-                  color: '#475569',
+                  border: '1px solid #E4E4E7',
+                  backgroundColor: '#F4F4F5',
+                  color: '#09090B',
                   fontWeight: 600,
                   fontSize: 13,
                   cursor: 'pointer',
@@ -571,7 +577,7 @@ export function DeliveryPartnersPage() {
                   padding: '8px 16px',
                   borderRadius: 8,
                   border: 'none',
-                  backgroundColor: '#DC2626',
+                  backgroundColor: '#000000',
                   color: '#FFFFFF',
                   fontWeight: 700,
                   fontSize: 13,
@@ -592,12 +598,12 @@ export function DeliveryPartnersPage() {
             position: 'fixed',
             bottom: 24,
             right: 24,
-            backgroundColor: toastMsg.type === 'success' ? '#14532D' : '#991B1B',
-            color: toastMsg.type === 'success' ? '#F59E0B' : '#FFFFFF',
+            backgroundColor: '#000000',
+            color: '#FFFFFF',
             padding: '12px 24px',
             borderRadius: 8,
             fontWeight: 700,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
             zIndex: 10000,
             display: 'flex',
             alignItems: 'center',

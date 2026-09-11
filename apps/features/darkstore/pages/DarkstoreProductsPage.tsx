@@ -124,17 +124,17 @@ export function DarkstoreProductsPage() {
           <tbody>
             {products.map((p) => (
               <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0F3D21' }}>{p.sku}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 700, color: '#111827' }}>{p.name}</td>
-                <td style={{ padding: '14px 16px', color: '#4B5563' }}>{p.category}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.sku}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B' }}>{p.name}</td>
+                <td style={{ padding: '14px 16px', color: '#71717A' }}>{p.category}</td>
                 <td style={{ padding: '14px 16px' }}>
-                  <span style={{ textDecoration: 'line-through', color: '#9CA3AF', marginRight: 6 }}>₹{p.price.toFixed(2)}</span>
-                  <span style={{ fontWeight: 800, color: '#0F3D21' }}>₹{p.sellingPrice.toFixed(2)}</span>
+                  <span style={{ textDecoration: 'line-through', color: '#A1A1AA', marginRight: 6 }}>₹{p.price.toFixed(2)}</span>
+                  <span style={{ fontWeight: 800, color: '#09090B' }}>₹{p.sellingPrice.toFixed(2)}</span>
                 </td>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#F59E0B' }}> {p.shelfLocation}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#111827' }}>{p.currentStock} {p.unit}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.shelfLocation}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.currentStock} {p.unit}</td>
                 <td style={{ padding: '14px 16px' }}>
-                  <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 800, backgroundColor: '#DCFCE7', color: '#15803D' }}>
+                  <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 800, backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7' }}>
                     {p.status}
                   </span>
                 </td>

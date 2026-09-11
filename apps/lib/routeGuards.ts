@@ -163,7 +163,7 @@ export const DASHBOARD_NAV: readonly NavItem[] = [
   { href: '/', label: 'Home', category: 'MAIN', highlighted: true },
   { href: '/dashboard', label: 'Dashboard', category: 'MAIN' },
   { href: '/analytics', label: 'Analytics', category: 'MAIN' },
-  { href: '/support', label: 'Support', category: 'MAIN', highlighted: true, roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN', 'SUPPORT', 'SUPPORT_AGENT'] },
+  { href: '/support', label: 'Support', category: 'MAIN', roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN', 'SUPPORT', 'SUPPORT_AGENT'] },
   { href: '/members', label: 'Members', category: 'BUSINESS MANAGERS', highlighted: true, roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN'] },
   { href: '/users', label: 'Users', category: 'BUSINESS MANAGERS', icon: '', roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN', 'FINANCE', 'FINANCE_ADMIN', 'SUPPORT', 'SUPPORT_AGENT'] },
   { href: '/customers', label: 'Customers', category: 'BUSINESS MANAGERS', roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN', 'SUPPORT', 'SUPPORT_AGENT'] },

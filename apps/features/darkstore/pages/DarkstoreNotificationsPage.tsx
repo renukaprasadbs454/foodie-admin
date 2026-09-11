@@ -37,10 +37,10 @@ export function DarkstoreNotificationsPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
-           Darkstore Operational Alerts & Notifications
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#09090B', margin: 0 }}>
+          Darkstore Operational Alerts & Notifications
         </h1>
-        <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
+        <p style={{ fontSize: 13, color: '#71717A', margin: '4px 0 0' }}>
           Real-time alerts for incoming orders, inventory threshold breaches, and delivery partner handoff events.
         </p>
       </div>
@@ -53,18 +53,18 @@ export function DarkstoreNotificationsPage() {
               backgroundColor: '#FFFFFF',
               borderRadius: 10,
               padding: 16,
-              border: '1px solid #E5E7EB',
-              borderLeft: n.severity === 'HIGH' ? '4px solid #EF4444' : '4px solid #F59E0B',
+              border: '1px solid #E4E4E7',
+              borderLeft: '4px solid #000000',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
           >
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>{n.title}</div>
-              <div style={{ fontSize: 12, color: '#4B5563', marginTop: 2 }}>{n.message}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#09090B' }}>{n.title}</div>
+              <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>{n.message}</div>
             </div>
-            <div style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>{n.timestamp}</div>
+            <div style={{ fontSize: 11, color: '#71717A', fontWeight: 600 }}>{n.timestamp}</div>
           </div>
         ))}
       </div>

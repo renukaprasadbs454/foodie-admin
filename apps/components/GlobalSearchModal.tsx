@@ -280,16 +280,16 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               Type a keyword to search live backend records across <strong>Orders</strong>, <strong>Restaurants</strong>, <strong>Food Items</strong>, and more.
             </div>
           ) : isFetching ? (
-            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#14532D', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <span className="pulse-live" style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#10B981' }} />
+            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#000000', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <span className="pulse-live" style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#000000' }} />
               Fetching backend search results...
             </div>
           ) : isGlobalError ? (
-            <div style={{ padding: '24px 16px', textAlign: 'center', color: '#DC2626', fontSize: 13, backgroundColor: '#FEF2F2', borderRadius: 8, margin: '8px' }}>
+            <div style={{ padding: '24px 16px', textAlign: 'center', color: '#000000', fontSize: 13, backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', borderRadius: 8, margin: '8px' }}>
                Failed to fetch search results from server. Please check your backend connection.
             </div>
           ) : results.length === 0 ? (
-            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#64748B', fontSize: 14 }}>
+            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#71717A', fontSize: 14 }}>
               No results matching &quot;{debouncedQuery}&quot;
             </div>
           ) : (
@@ -307,8 +307,8 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                     padding: '12px 16px',
                     borderRadius: 10,
                     cursor: 'pointer',
-                    backgroundColor: isSelected ? '#F0FDF4' : 'transparent',
-                    border: isSelected ? '1px solid #BBF7D0' : '1px solid transparent',
+                    backgroundColor: isSelected ? '#F4F4F5' : 'transparent',
+                    border: isSelected ? '1px solid #000000' : '1px solid transparent',
                     transition: 'background-color 0.12s ease, border-color 0.12s ease',
                   }}
                 >
@@ -317,8 +317,8 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      backgroundColor: isSelected ? '#DCFCE7' : '#F8FAFC',
-                      border: '1px solid #E2E8F0',
+                      backgroundColor: isSelected ? '#FFFFFF' : '#FAFAFA',
+                      border: '1px solid #E4E4E7',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -329,13 +329,14 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: '#14532D' }}>{item.title}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#09090B' }}>{item.title}</span>
                       <span
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          color: '#D97706',
-                          backgroundColor: '#FEF3C7',
+                          color: '#000000',
+                          backgroundColor: '#F4F4F5',
+                          border: '1px solid #E4E4E7',
                           padding: '2px 6px',
                           borderRadius: 4,
                           textTransform: 'uppercase',
@@ -344,9 +345,9 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                         {item.category}
                       </span>
                     </div>
-                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{item.subtitle}</div>
+                    <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>{item.subtitle}</div>
                   </div>
-                  <span style={{ fontSize: 16, color: isSelected ? '#10B981' : '#CBD5E1' }}></span>
+                  <span style={{ fontSize: 16, color: isSelected ? '#000000' : '#CBD5E1' }}></span>
                 </div>
               );
             })

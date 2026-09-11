@@ -188,14 +188,15 @@ export function AnalyticsPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#14532D', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span> Analytics Timeframe Filter</span>
             <span
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: '#047857',
-                backgroundColor: '#D1FAE5',
+                color: '#09090B',
+                backgroundColor: '#F4F4F5',
+                border: '1px solid #E4E4E7',
                 padding: '2px 8px',
                 borderRadius: 12,
               }}
@@ -244,9 +245,9 @@ export function AnalyticsPage() {
                   style={{
                     padding: '6px 14px',
                     borderRadius: 8,
-                    border: isPresetActive ? '1px solid #14532D' : '1px solid #CBD5E1',
-                    backgroundColor: isPresetActive ? '#14532D' : '#F8FAFC',
-                    color: isPresetActive ? '#FEF3C7' : '#475569',
+                    border: isPresetActive ? '1px solid #000000' : '1px solid #E4E4E7',
+                    backgroundColor: isPresetActive ? '#000000' : '#FAFAFA',
+                    color: isPresetActive ? '#FFFFFF' : '#475569',
                     fontSize: 12,
                     fontWeight: isPresetActive ? 800 : 600,
                     cursor: 'pointer',
@@ -268,8 +269,8 @@ export function AnalyticsPage() {
             onClick={applyRange}
             style={{
               padding: '8px 18px',
-              backgroundColor: '#F59E0B',
-              color: '#0F3D21',
+              backgroundColor: '#000000',
+              color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
               fontSize: 13,

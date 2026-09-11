@@ -328,18 +328,18 @@ export function PayoutDetailModal({
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
                     Current Wallet Balance
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: '#14532D', marginTop: 2 }}>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#09090B', marginTop: 2 }}>
                     ₹{walletBalance.toFixed(2)}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
                     Total Earnings Credited
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: '#14532D', marginTop: 2 }}>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#09090B', marginTop: 2 }}>
                     ₹{totalEarned.toFixed(2)}
                   </div>
                 </div>

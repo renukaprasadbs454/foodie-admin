@@ -168,15 +168,15 @@ export function UserManagementStudio() {
           }}
         >
           <span>{toastMsg}</span>
-          <span style={{ fontSize: 12, color: '#F59E0B' }}>● Security Directory Updated</span>
+          <span style={{ fontSize: 12, color: '#FFFFFF' }}>● Security Directory Updated</span>
         </div>
       ) : null}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
-             Members & Admin User Directory
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#09090B', margin: 0 }}>
+            Members & Admin User Directory
           </h1>
           <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0' }}>
             Provision, assign roles, manage system privileges, and monitor security status for platform staff.
@@ -316,8 +316,8 @@ export function UserManagementStudio() {
                               width: 36,
                               height: 36,
                               borderRadius: '50%',
-                              backgroundColor: '#0F3D21',
-                              color: '#F59E0B',
+                              backgroundColor: '#000000',
+                              color: '#FFFFFF',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',

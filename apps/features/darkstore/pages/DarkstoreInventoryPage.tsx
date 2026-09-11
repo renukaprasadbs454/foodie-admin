@@ -187,15 +187,15 @@ export function DarkstoreInventoryPage() {
           </thead>
           <tbody>
             {filteredProducts.map((p) => (
-              <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0F3D21' }}>{p.sku}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 700, color: '#111827' }}>{p.name}</td>
-                <td style={{ padding: '14px 16px', color: '#4B5563' }}>{p.category}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#F59E0B' }}> {p.shelfLocation}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 900, color: '#111827' }}>{p.currentStock} {p.unit}</td>
-                <td style={{ padding: '14px 16px', color: '#D97706' }}>{p.reservedStock}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#15803D' }}>{p.availableStock}</td>
-                <td style={{ padding: '14px 16px', color: '#6B7280' }}>{p.minThreshold}</td>
+              <tr key={p.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.sku}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B' }}>{p.name}</td>
+                <td style={{ padding: '14px 16px', color: '#71717A' }}>{p.category}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.shelfLocation}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 900, color: '#09090B' }}>{p.currentStock} {p.unit}</td>
+                <td style={{ padding: '14px 16px', color: '#71717A' }}>{p.reservedStock}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.availableStock}</td>
+                <td style={{ padding: '14px 16px', color: '#71717A' }}>{p.minThreshold}</td>
                 <td style={{ padding: '14px 16px' }}>
                   <span
                     style={{

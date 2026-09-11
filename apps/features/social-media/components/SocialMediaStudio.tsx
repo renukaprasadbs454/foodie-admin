@@ -119,20 +119,20 @@ export function SocialMediaStudio() {
             position: 'fixed',
             top: 20,
             right: 20,
-            backgroundColor: '#14532D',
-            color: '#F59E0B',
+            backgroundColor: '#000000',
+            color: '#FFFFFF',
             padding: '12px 24px',
             borderRadius: 12,
             fontSize: 14,
             fontWeight: 700,
-            boxShadow: '0 10px 30px rgba(20, 83, 45, 0.3)',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+            border: '1px solid #E4E4E7',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
             gap: 10,
           }}
         >
-          <span></span>
           <span>{toastMsg}</span>
         </div>
       )}
@@ -141,12 +141,11 @@ export function SocialMediaStudio() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 26 }}></span>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#14532D', margin: 0 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#09090B', margin: 0 }}>
               Social Media
             </h1>
           </div>
-          <p style={{ fontSize: 14, color: '#64748B', margin: '4px 0 0 36px' }}>
+          <p style={{ fontSize: 14, color: '#71717A', margin: '4px 0 0 0' }}>
             Configure official social media links, customer channel URLs, and active display toggles
           </p>
         </div>
@@ -158,9 +157,9 @@ export function SocialMediaStudio() {
         style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 16,
-          border: '1.5px solid #14532D',
+          border: '1px solid #E4E4E7',
           padding: '24px 28px',
-          boxShadow: '0 4px 16px rgba(20, 83, 45, 0.05)',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
           display: 'flex',
           flexDirection: 'column',
           gap: 20,
@@ -169,7 +168,7 @@ export function SocialMediaStudio() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           {/* Social Media Name Select */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: '#14532D' }}>
+            <label style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>
               Social Media Name
             </label>
             <div style={{ position: 'relative' }}>
@@ -180,11 +179,11 @@ export function SocialMediaStudio() {
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: 10,
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid #E4E4E7',
                   backgroundColor: '#FFFFFF',
                   fontSize: 14,
                   fontWeight: 500,
-                  color: selectedName ? '#0F172A' : '#94A3B8',
+                  color: selectedName ? '#09090B' : '#71717A',
                   outline: 'none',
                   cursor: 'pointer',
                   appearance: 'none',
@@ -192,12 +191,12 @@ export function SocialMediaStudio() {
               >
                 <option value="">---Select---</option>
                 {SOCIAL_MEDIA_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value} style={{ color: '#0F172A' }}>
+                  <option key={opt.value} value={opt.value} style={{ color: '#09090B' }}>
                     {opt.label}
                   </option>
                 ))}
               </select>
-              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#14532D', fontSize: 12 }}>
+              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#09090B', fontSize: 12 }}>
                 ▼
               </span>
             </div>
@@ -205,7 +204,7 @@ export function SocialMediaStudio() {
 
           {/* Social Media Link Input */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: '#14532D' }}>
+            <label style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>
               Social Media Link
             </label>
             <input
@@ -217,10 +216,10 @@ export function SocialMediaStudio() {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: 10,
-                border: '1px solid #CBD5E1',
+                border: '1px solid #E4E4E7',
                 backgroundColor: '#FFFFFF',
                 fontSize: 14,
-                color: '#0F172A',
+                color: '#09090B',
                 outline: 'none',
               }}
             />
@@ -234,9 +233,9 @@ export function SocialMediaStudio() {
             onClick={handleReset}
             style={{
               padding: '10px 24px',
-              backgroundColor: '#E2E8F0',
-              color: '#475569',
-              border: 'none',
+              backgroundColor: '#F4F4F5',
+              color: '#09090B',
+              border: '1px solid #E4E4E7',
               borderRadius: 10,
               fontSize: 14,
               fontWeight: 700,
@@ -250,14 +249,14 @@ export function SocialMediaStudio() {
             type="submit"
             style={{
               padding: '10px 36px',
-              backgroundColor: '#14532D',
-              color: '#F59E0B',
+              backgroundColor: '#000000',
+              color: '#FFFFFF',
               border: 'none',
               borderRadius: 10,
               fontSize: 14,
               fontWeight: 800,
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(20, 83, 45, 0.25)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
               transition: 'all 0.15s ease',
             }}
           >
@@ -271,7 +270,7 @@ export function SocialMediaStudio() {
         style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 16,
-          border: '1px solid #E2E8F0',
+          border: '1px solid #E4E4E7',
           overflow: 'hidden',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
         }}
@@ -279,7 +278,7 @@ export function SocialMediaStudio() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
             <thead>
-              <tr style={{ backgroundColor: '#F8FAFC', color: '#14532D', fontSize: 13, borderBottom: '1px solid #E2E8F0' }}>
+              <tr style={{ backgroundColor: '#F4F4F5', color: '#09090B', fontSize: 13, borderBottom: '1px solid #E4E4E7' }}>
                 <th style={{ padding: '16px 24px', fontWeight: 800, width: 80 }}>SL</th>
                 <th style={{ padding: '16px 24px', fontWeight: 800, width: 220 }}>Name</th>
                 <th style={{ padding: '16px 24px', fontWeight: 800 }}>Link</th>
@@ -297,17 +296,17 @@ export function SocialMediaStudio() {
                   <tr
                     key={item.id}
                     style={{
-                      borderBottom: '1px solid #F1F5F9',
-                      backgroundColor: isEditingThis ? '#FEF3C7' : 'transparent',
+                      borderBottom: '1px solid #E4E4E7',
+                      backgroundColor: isEditingThis ? '#F4F4F5' : 'transparent',
                       transition: 'background-color 0.15s ease',
                     }}
                   >
-                    <td style={{ padding: '18px 24px', color: '#64748B', fontWeight: 600 }}>
+                    <td style={{ padding: '18px 24px', color: '#71717A', fontWeight: 600 }}>
                       {index + 1}
                     </td>
 
-                    <td style={{ padding: '18px 24px', color: '#0F172A', fontWeight: 700 }}>
-                      <span style={{ marginRight: 8 }}>{icon}</span>
+                    <td style={{ padding: '18px 24px', color: '#09090B', fontWeight: 700 }}>
+                      {icon && <span style={{ marginRight: 8 }}>{icon}</span>}
                       <span>{item.name}</span>
                     </td>
 
@@ -316,13 +315,13 @@ export function SocialMediaStudio() {
                         href={item.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: '#14532D', fontWeight: 600, textDecoration: 'underline', wordBreak: 'break-all' }}
+                        style={{ color: '#09090B', fontWeight: 600, textDecoration: 'underline', wordBreak: 'break-all' }}
                       >
                         {item.link}
                       </a>
                     </td>
 
-                    {/* Toggle Switch in #14532D and #F59E0B */}
+                    {/* Toggle Switch */}
                     <td style={{ padding: '18px 24px' }}>
                       <button
                         type="button"
@@ -332,7 +331,7 @@ export function SocialMediaStudio() {
                           width: 44,
                           height: 24,
                           borderRadius: 12,
-                          backgroundColor: isActive ? '#14532D' : '#CBD5E1',
+                          backgroundColor: isActive ? '#000000' : '#E4E4E7',
                           border: 'none',
                           padding: 2,
                           cursor: 'pointer',
@@ -347,7 +346,7 @@ export function SocialMediaStudio() {
                             width: 20,
                             height: 20,
                             borderRadius: '50%',
-                            backgroundColor: isActive ? '#F59E0B' : '#FFFFFF',
+                            backgroundColor: '#FFFFFF',
                             boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                           }}
                         />
@@ -361,21 +360,21 @@ export function SocialMediaStudio() {
                         onClick={() => handleEdit(item)}
                         title="Edit Social Media Link"
                         style={{
-                          width: 36,
-                          height: 36,
+                          padding: '6px 12px',
                           borderRadius: 8,
-                          border: '1.5px solid #14532D',
-                          backgroundColor: isEditingThis ? '#FEF3C7' : '#FFFFFF',
-                          color: '#14532D',
+                          border: '1px solid #E4E4E7',
+                          backgroundColor: isEditingThis ? '#000000' : '#F4F4F5',
+                          color: isEditingThis ? '#FFFFFF' : '#09090B',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           cursor: 'pointer',
-                          fontSize: 14,
+                          fontSize: 12,
+                          fontWeight: 700,
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        
+                        Edit
                       </button>
                     </td>
                   </tr>
