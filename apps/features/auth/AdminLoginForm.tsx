@@ -39,8 +39,8 @@ interface AdminLoginFormProps {
 }
 
 export function AdminLoginForm({
-  initialEmail = 'admin@foodie.local',
-  initialPassword = 'ChangeMe@123',
+  initialEmail = '',
+  initialPassword = '',
 }: AdminLoginFormProps) {
   const { tokens } = useTheme();
   const { isConnected } = useConnectivity();
@@ -61,56 +61,37 @@ export function AdminLoginForm({
     {
       role: 'SUPER_ADMIN',
       label: 'Super Admin',
-      email: 'admin@foodie.local',
-      pass: 'ChangeMe@123',
     },
     {
       role: 'FINANCE_ADMIN',
       label: 'Finance Admin',
-      email: 'Financeadmin@foodie.local',
-      pass: 'FoodieMinister@111',
     },
     {
       role: 'OPERATIONS_ADMIN',
       label: 'Operations Admin',
-      email: 'opsadmin@foodie.local',
-      pass: 'FoodieOps@222',
     },
     {
       role: 'RESTAURANT_MANAGER',
       label: 'Restaurant Manager',
-      email: 'manager@foodie.local',
-      pass: 'FoodieManager@333',
     },
     {
       role: 'SUPPORT_AGENT',
       label: 'Support Agent',
-      email: 'support@foodie.local',
-      pass: 'FoodieSupport@444',
     },
     {
       role: 'AUDITOR',
       label: 'Compliance Auditor',
-      email: 'auditor@foodie.local',
-      pass: 'FoodieAuditor@555',
     },
     {
       role: 'DARKSTORE_ADMIN',
       label: 'Darkstore Admin',
-      email: 'darkstore@foodie.local',
-      pass: 'DarkstoreOps@123',
     },
   ];
 
   const handleRoleSelect = (roleKey: string) => {
     setSelectedRole(roleKey);
-    const target = ROLE_OPTIONS.find((r) => r.role === roleKey);
-    if (target) {
-      setEmail(target.email);
-      setPassword(target.pass);
-      setEmailError(undefined);
-      setPasswordError(undefined);
-    }
+    setEmailError(undefined);
+    setPasswordError(undefined);
   };
 
   const onSubmit = async (event: React.FormEvent) => {
@@ -129,7 +110,7 @@ export function AdminLoginForm({
 
     let valid = true;
     if (!isValidAdminEmail(email)) {
-      setEmailError('Enter a valid admin email address (e.g. admin@foodie.local).');
+      setEmailError('Enter a valid admin email address.');
       valid = false;
     }
 
@@ -191,7 +172,7 @@ export function AdminLoginForm({
           Sign In to Admin Panel
         </Text>
         <Text variant="body" color={tokens.color.textSecondary} style={{ fontSize: 13, lineHeight: 1.5 }}>
-          Select an admin role account below to auto-fill development credentials, or enter custom email & password.
+          Select an admin role and enter your credentials to sign in.
         </Text>
       </div>
 
@@ -218,7 +199,7 @@ export function AdminLoginForm({
             letterSpacing: '0.5px',
           }}
         >
-          Select Admin Role Preset:
+          Select Admin Role:
         </label>
         <select
           id="admin-role-select"
@@ -240,7 +221,7 @@ export function AdminLoginForm({
         >
           {ROLE_OPTIONS.map((item) => (
             <option key={item.role} value={item.role}>
-              {item.label} ({item.email})
+              {item.label}
             </option>
           ))}
         </select>
@@ -252,7 +233,7 @@ export function AdminLoginForm({
           name="email"
           type="email"
           autoComplete="username"
-          placeholder="admin@foodie.local"
+          placeholder=""
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           errorText={emailError}
@@ -266,7 +247,7 @@ export function AdminLoginForm({
             name="password"
             type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
-            placeholder="••••••••••••"
+            placeholder=""
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             errorText={passwordError}
