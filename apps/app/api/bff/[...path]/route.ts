@@ -79,24 +79,8 @@ async function proxy(request: Request, pathSegments: string[]) {
     let upstream: Response;
     try {
       upstream = await fetch(targetUrl, init);
-      if (upstream.status === 502) {
-        const fallbackUrl = targetUrl.replace(ENV.apiBaseUrl.replace(/\/$/, ''), 'http://localhost:8082');
-        if (fallbackUrl !== targetUrl) {
-          try {
-            const fallbackRes = await fetch(fallbackUrl, init);
-            upstream = fallbackRes;
-          } catch {
-            // Keep primary 502
-          }
-        }
-      }
     } catch {
-      const fallbackUrl = targetUrl.replace(ENV.apiBaseUrl.replace(/\/$/, ''), 'http://localhost:8082');
-      if (fallbackUrl !== targetUrl) {
-        upstream = await fetch(fallbackUrl, init);
-      } else {
-        throw new Error('Network error');
-      }
+      throw new Error('Network error');
     }
 
     if (upstream && upstream.ok) {

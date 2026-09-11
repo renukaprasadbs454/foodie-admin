@@ -67,7 +67,6 @@ export async function POST(request: Request) {
 
   try {
     const primaryUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/auth/login`;
-    const fallbackUrl = 'http://localhost:8082/api/v1/auth/login';
     const payload = JSON.stringify({
       email,
       password,
@@ -81,20 +80,8 @@ export async function POST(request: Request) {
     let upstream: Response;
     try {
       upstream = await fetch(primaryUrl, { method: 'POST', headers, body: payload });
-      if (upstream.status === 502 && primaryUrl !== fallbackUrl) {
-        try {
-          const fallbackRes = await fetch(fallbackUrl, { method: 'POST', headers, body: payload });
-          upstream = fallbackRes;
-        } catch {
-          // Keep primary upstream
-        }
-      }
     } catch {
-      if (primaryUrl !== fallbackUrl) {
-        upstream = await fetch(fallbackUrl, { method: 'POST', headers, body: payload });
-      } else {
-        throw new Error('Network error');
-      }
+      throw new Error('Network error');
     }
 
     const envelope = (await upstream.json()) as {
