@@ -14,19 +14,19 @@ export const paymentsApi = baseApi.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
     getSettlements: builder.query<PaymentSettlementRecord[], void>({
-      query: () => '/api/bff/admin/payments/settlements',
+      query: () => '/api/v1/admin/payments/settlements',
       providesTags: [{ type: 'Payment', id: 'LIST' }],
     }),
     getAdminPayouts: builder.query<any[], void>({
-      query: () => '/api/bff/admin/payments/payouts',
+      query: () => '/api/v1/admin/payments/payouts',
       providesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
     }),
     getCommissionRules: builder.query<CommissionConfig, void>({
-      query: () => '/api/bff/admin/payments/commission-rules',
+      query: () => '/api/v1/admin/payments/commission-rules',
     }),
     updateCommissionRules: builder.mutation<CommissionConfig, CommissionConfig>({
       query: (config) => ({
-        url: '/api/bff/admin/payments/commission-rules',
+        url: '/api/v1/admin/payments/commission-rules',
         method: 'POST',
         body: config,
       }),
@@ -36,7 +36,7 @@ export const paymentsApi = baseApi.injectEndpoints({
       { foodSubtotal: number; deliveryFee: number }
     >({
       query: ({ foodSubtotal, deliveryFee }) => ({
-        url: `/api/bff/admin/payments/calculate-split?foodSubtotal=${foodSubtotal}&deliveryFee=${deliveryFee}`,
+        url: `/api/v1/admin/payments/calculate-split?foodSubtotal=${foodSubtotal}&deliveryFee=${deliveryFee}`,
         method: 'POST',
       }),
     }),
@@ -45,7 +45,7 @@ export const paymentsApi = baseApi.injectEndpoints({
       { paymentId: string; body: RefundPaymentBody }
     >({
       query: ({ paymentId, body }) => ({
-        url: `/api/bff/payments/${paymentId}/refund`,
+        url: `/api/v1/payments/${paymentId}/refund`,
         method: 'POST',
         body,
       }),
