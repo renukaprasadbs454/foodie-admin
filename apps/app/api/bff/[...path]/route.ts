@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { readAccessTokenFromCookieHeader } from 'foodie-shared-web/auth';
 import { ENV } from '@/constants/env';
 import { sanitizeBffPathSegments } from '@/lib/bffPath';
+import { safeFetch } from '@/lib/networkUtils';
 
 /**
  * Thin BFF proxy — Blueprint §7.4 / System Design §9.4.
@@ -76,11 +77,13 @@ async function proxy(request: Request, pathSegments: string[]) {
   }
 
   try {
-    let upstream: Response;
-    try {
-      upstream = await fetch(targetUrl, init);
-    } catch {
-      throw new Error('Network error');
+    const { response: upstream, error: fetchErr } = await safeFetch(targetUrl, {
+      ...init,
+      timeoutMs: 3000,
+    });
+
+    if (fetchErr) {
+      throw fetchErr;
     }
 
     if (upstream && upstream.ok) {
@@ -231,8 +234,8 @@ export async function PUT(request: Request, ctx: Ctx) {
 }
 
 export async function PATCH(request: Request, ctx: Ctx) {
-  const { path } = await ctx.params;
-  return proxy(request, path);
+  const { path } = await ctx.path ?? ctx.params;
+  return proxy(request, (await ctx.params).path);
 }
 
 export async function DELETE(request: Request, ctx: Ctx) {

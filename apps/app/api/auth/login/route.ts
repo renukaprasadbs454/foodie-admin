@@ -5,6 +5,8 @@ import {
 } from 'foodie-shared-web/auth';
 import { ENV } from '@/constants/env';
 
+import { safeFetch } from '@/lib/networkUtils';
+
 type LoginBody = {
   email?: string;
   password?: string;
@@ -77,10 +79,13 @@ export async function POST(request: Request) {
       'Content-Type': 'application/json',
     };
 
-    let upstream: Response;
-    try {
-      upstream = await fetch(primaryUrl, { method: 'POST', headers, body: payload });
-    } catch {
+    const { response: upstream, error: fetchErr } = await safeFetch(primaryUrl, {
+      method: 'POST',
+      headers,
+      body: payload,
+      timeoutMs: 3000,
+    });
+    if (fetchErr || !upstream) {
       throw new Error('Network error');
     }
 
