@@ -72,20 +72,20 @@ export function ReconciliationStudio({ overview, onSelectPayout }: Reconciliatio
           onClick={() => setSelectedStatusFilter('ALL_DISCREPANCIES')}
           style={{
             backgroundColor: '#FFFFFF',
-            border: selectedStatusFilter === 'ALL_DISCREPANCIES' ? '2px solid #059669' : '1px solid #E2E8F0',
+            border: selectedStatusFilter === 'ALL_DISCREPANCIES' ? '2px solid #000000' : '1px solid #E4E4E7',
             borderRadius: 12,
             padding: '16px',
             cursor: 'pointer',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#047857', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#09090B', textTransform: 'uppercase' }}>
             MATCHED
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#0F172A', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#09090B', marginTop: 4 }}>
             {overview.matchedCount}
           </div>
-          <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>Zero discrepancy</div>
+          <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>Zero discrepancy</div>
         </div>
 
         {/* AMOUNT MISMATCH */}
@@ -93,20 +93,20 @@ export function ReconciliationStudio({ overview, onSelectPayout }: Reconciliatio
           onClick={() => setSelectedStatusFilter('AMOUNT_MISMATCH')}
           style={{
             backgroundColor: '#FFFFFF',
-            border: selectedStatusFilter === 'AMOUNT_MISMATCH' ? '2px solid #D97706' : '1px solid #E2E8F0',
+            border: selectedStatusFilter === 'AMOUNT_MISMATCH' ? '2px solid #000000' : '1px solid #E4E4E7',
             borderRadius: 12,
             padding: '16px',
             cursor: 'pointer',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#D97706', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#09090B', textTransform: 'uppercase' }}>
             AMOUNT MISMATCH
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#0F172A', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#09090B', marginTop: 4 }}>
             {overview.amountMismatchCount}
           </div>
-          <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>Ledger vs Provider diff</div>
+          <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>Ledger vs Provider diff</div>
         </div>
 
         {/* STATUS MISMATCH */}
@@ -114,20 +114,20 @@ export function ReconciliationStudio({ overview, onSelectPayout }: Reconciliatio
           onClick={() => setSelectedStatusFilter('STATUS_MISMATCH')}
           style={{
             backgroundColor: '#FFFFFF',
-            border: selectedStatusFilter === 'STATUS_MISMATCH' ? '2px solid #DC2626' : '1px solid #E2E8F0',
+            border: selectedStatusFilter === 'STATUS_MISMATCH' ? '2px solid #000000' : '1px solid #E4E4E7',
             borderRadius: 12,
             padding: '16px',
             cursor: 'pointer',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#DC2626', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#09090B', textTransform: 'uppercase' }}>
             STATUS MISMATCH
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#0F172A', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#09090B', marginTop: 4 }}>
             {overview.statusMismatchCount}
           </div>
-          <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>State desynchronization</div>
+          <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>State desynchronization</div>
         </div>
 
         {/* MISSING PROVIDER RECORD */}
@@ -135,7 +135,7 @@ export function ReconciliationStudio({ overview, onSelectPayout }: Reconciliatio
           onClick={() => setSelectedStatusFilter('MISSING_PROVIDER_RECORD')}
           style={{
             backgroundColor: '#FFFFFF',
-            border: selectedStatusFilter === 'MISSING_PROVIDER_RECORD' ? '2px solid #7C3AED' : '1px solid #E2E8F0',
+            border: selectedStatusFilter === 'MISSING_PROVIDER_RECORD' ? '2px solid #000000' : '1px solid #E4E4E7',
             borderRadius: 12,
             padding: '16px',
             cursor: 'pointer',

@@ -208,7 +208,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
+        backgroundColor: 'rgba(0, 0, 0, 0.65)',
         backdropFilter: 'blur(4px)',
         zIndex: 9999,
         display: 'flex',
@@ -225,7 +225,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
           backgroundColor: '#FFFFFF',
           borderRadius: 16,
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          border: '1px solid #E2E8F0',
+          border: '1px solid #E4E4E7',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -233,8 +233,8 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Header Input */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E2E8F0', gap: 12 }}>
-          <span style={{ fontSize: 18, color: '#64748B' }}></span>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E4E4E7', gap: 12 }}>
+          <span style={{ fontSize: 18, color: '#71717A' }}></span>
           <input
             type="text"
             autoFocus
@@ -247,7 +247,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               outline: 'none',
               fontSize: 15,
               fontWeight: 500,
-              color: '#0F172A',
+              color: '#09090B',
               backgroundColor: 'transparent',
             }}
           />
@@ -258,7 +258,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#94A3B8',
+                color: '#A1A1AA',
                 fontSize: 16,
                 cursor: 'pointer',
                 padding: '0 4px',
@@ -268,7 +268,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               
             </button>
           ) : null}
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', backgroundColor: '#F1F5F9', padding: '3px 8px', borderRadius: 6 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#71717A', backgroundColor: '#F4F4F5', padding: '3px 8px', borderRadius: 6 }}>
             ESC
           </span>
         </div>
@@ -276,7 +276,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
         {/* Results Body */}
         <div style={{ maxHeight: '380px', overflowY: 'auto', padding: '12px 8px' }}>
           {query.trim() === '' ? (
-            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B', fontSize: 13, lineHeight: 1.6 }}>
+            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#71717A', fontSize: 13, lineHeight: 1.6 }}>
               Type a keyword to search live backend records across <strong>Orders</strong>, <strong>Restaurants</strong>, <strong>Food Items</strong>, and more.
             </div>
           ) : isFetching ? (
@@ -347,7 +347,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                     </div>
                     <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>{item.subtitle}</div>
                   </div>
-                  <span style={{ fontSize: 16, color: isSelected ? '#000000' : '#CBD5E1' }}></span>
+                  <span style={{ fontSize: 16, color: isSelected ? '#000000' : '#A1A1AA' }}></span>
                 </div>
               );
             })
@@ -355,7 +355,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
         </div>
 
         {/* Footer shortcuts */}
-        <div style={{ padding: '10px 20px', backgroundColor: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#64748B' }}>
+        <div style={{ padding: '10px 20px', backgroundColor: '#FAFAFA', borderTop: '1px solid #E4E4E7', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#71717A' }}>
           <span>Real-time Backend Console Search</span>
           <span style={{ display: 'flex', gap: 12 }}>
             <span><strong>↑↓</strong> Navigate</span>

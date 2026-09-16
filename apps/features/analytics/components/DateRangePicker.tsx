@@ -60,11 +60,11 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
           onChange={(e) => onChange({ ...value, dateTo: e.target.value })}
           style={{
             padding: '8px 12px',
-            border: '1px solid #CBD5E1',
+            border: '1px solid #E4E4E7',
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 600,
-            color: '#1E293B',
+            color: '#09090B',
             backgroundColor: '#FFFFFF',
             outline: 'none',
             cursor: 'pointer',

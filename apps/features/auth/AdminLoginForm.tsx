@@ -263,7 +263,7 @@ export function AdminLoginForm({
               top: 36,
               background: 'none',
               border: 'none',
-              color: '#64748B',
+              color: '#71717A',
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',

@@ -78,7 +78,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         width: '100vw',
         overflow: 'hidden',
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: '#FAFAFA',
       }}
     >
       <div

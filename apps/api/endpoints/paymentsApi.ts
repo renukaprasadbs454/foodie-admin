@@ -1,56 +1,116 @@
 import { baseApi } from '../baseApi';
 import type {
   CommissionConfig,
+  LedgerEntryRecord,
   PaymentSettlementRecord,
   PaymentSplitBreakdown,
+  PaymentTransactionRecord,
+  PayoutRecord,
   RefundInitiation,
   RefundPaymentBody,
+  RestaurantSettlementRecord,
 } from '../../features/payments/types';
 
 /**
- * Payments RTK — Commission Settlement, Payment Distribution & Refunds.
+ * Payments RTK — Commission Settlement, Real Transactions, Ledger & Disbursals.
+ * Calls BFF proxy `/api/bff/admin/payments/...` which forwards to Java Spring Boot.
  */
 export const paymentsApi = baseApi.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
     getSettlements: builder.query<PaymentSettlementRecord[], void>({
-      query: () => '/api/v1/admin/payments/settlements',
-      providesTags: [{ type: 'Payment', id: 'LIST' }],
+      query: () => '/api/bff/admin/payments/settlements',
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
+      providesTags: [{ type: 'Payment', id: 'SETTLEMENTS' }],
     }),
-    getAdminPayouts: builder.query<any[], void>({
-      query: () => '/api/v1/admin/payments/payouts',
+
+    getTransactions: builder.query<PaymentTransactionRecord[], void>({
+      query: () => '/api/bff/admin/payments/transactions',
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
+      providesTags: [{ type: 'Payment', id: 'TRANSACTIONS' }],
+    }),
+
+    getLedger: builder.query<LedgerEntryRecord[], void>({
+      query: () => '/api/bff/admin/payments/ledger',
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
+      providesTags: [{ type: 'Payment', id: 'LEDGER' }],
+    }),
+
+    getRestaurantSettlements: builder.query<
+      RestaurantSettlementRecord[],
+      { restaurantId?: string; status?: string } | void
+    >({
+      query: (params) => ({
+        url: '/api/bff/admin/payments/restaurant-settlements',
+        params: params || {},
+      }),
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
+      providesTags: [{ type: 'Payment', id: 'RESTAURANT_SETTLEMENTS' }],
+    }),
+
+    disburseRestaurantSettlement: builder.mutation<
+      RestaurantSettlementRecord,
+      { settlementId: string; paymentReference: string }
+    >({
+      query: (body) => ({
+        url: '/api/bff/admin/payments/restaurant-settlements/disburse',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
+      invalidatesTags: [
+        { type: 'Payment', id: 'RESTAURANT_SETTLEMENTS' },
+        { type: 'Payment', id: 'LEDGER' },
+      ],
+    }),
+
+    getAdminPayouts: builder.query<PayoutRecord[], void>({
+      query: () => '/api/bff/admin/payments/payouts',
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
       providesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
     }),
+
     getCommissionRules: builder.query<CommissionConfig, void>({
-      query: () => '/api/v1/admin/payments/commission-rules',
+      query: () => '/api/bff/admin/payments/commission-rules',
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
+      providesTags: [{ type: 'Payment', id: 'RULES' }],
     }),
+
     updateCommissionRules: builder.mutation<CommissionConfig, CommissionConfig>({
       query: (config) => ({
-        url: '/api/v1/admin/payments/commission-rules',
+        url: '/api/bff/admin/payments/commission-rules',
         method: 'POST',
         body: config,
       }),
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Payment', id: 'RULES' }],
     }),
+
     calculateSplit: builder.mutation<
       PaymentSplitBreakdown,
       { foodSubtotal: number; deliveryFee: number }
     >({
       query: ({ foodSubtotal, deliveryFee }) => ({
-        url: `/api/v1/admin/payments/calculate-split?foodSubtotal=${foodSubtotal}&deliveryFee=${deliveryFee}`,
+        url: `/api/bff/admin/payments/calculate-split?foodSubtotal=${foodSubtotal}&deliveryFee=${deliveryFee}`,
         method: 'POST',
       }),
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
     }),
+
     refundPayment: builder.mutation<
       RefundInitiation,
       { paymentId: string; body: RefundPaymentBody }
     >({
       query: ({ paymentId, body }) => ({
-        url: `/api/v1/payments/${paymentId}/refund`,
+        url: `/api/bff/payments/${paymentId}/refund`,
         method: 'POST',
         body,
       }),
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
       invalidatesTags: [
-        { type: 'Payment', id: 'LIST' },
+        { type: 'Payment', id: 'SETTLEMENTS' },
+        { type: 'Payment', id: 'TRANSACTIONS' },
+        { type: 'Payment', id: 'LEDGER' },
         { type: 'Order', id: 'LIST' },
       ],
     }),
@@ -59,6 +119,10 @@ export const paymentsApi = baseApi.injectEndpoints({
 
 export const {
   useGetSettlementsQuery,
+  useGetTransactionsQuery,
+  useGetLedgerQuery,
+  useGetRestaurantSettlementsQuery,
+  useDisburseRestaurantSettlementMutation,
   useGetAdminPayoutsQuery,
   useGetCommissionRulesQuery,
   useUpdateCommissionRulesMutation,
