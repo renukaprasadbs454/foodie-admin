@@ -247,11 +247,11 @@ export function AdminHeaderBar({
 
                 <div
                   style={{
-                    backgroundColor: '#ECFDF5',
+                    backgroundColor: '#F4F4F5',
                     padding: '12px',
                     borderRadius: '8px',
-                    border: '1px solid #A7F3D0',
-                    color: '#065F46',
+                    border: '1px solid #E4E4E7',
+                    color: '#09090B',
                     fontWeight: 600,
                   }}
                 >
@@ -589,7 +589,7 @@ export function AdminHeaderBar({
                   backgroundColor: '#E5E7EB',
                   color: '#374151',
                   border: isProfileOpen
-                    ? '2px solid #10B981'
+                    ? '2px solid #000000'
                     : '2px solid transparent',
                   display: 'flex',
                   alignItems: 'center',
@@ -597,7 +597,7 @@ export function AdminHeaderBar({
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   boxShadow: isProfileOpen
-                    ? '0 0 0 3px rgba(16,185,129,0.15)'
+                    ? '0 0 0 3px rgba(0,0,0,0.15)'
                     : 'none',
                   flexShrink: 0,
                 }}
@@ -695,7 +695,7 @@ export function AdminHeaderBar({
                   style={{
                     fontSize: 18,
                     fontWeight: 800,
-                    color: '#14532D',
+                    color: '#000000',
                     margin: 0,
                   }}
                 >
@@ -756,7 +756,7 @@ export function AdminHeaderBar({
                 style={{
                   padding: '8px 20px',
                   backgroundColor:
-                    '#10B981',
+                    '#000000',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
@@ -857,9 +857,9 @@ export function AdminHeaderBar({
 
           border-radius: 50%;
 
-          background: #ecfdf5;
+          background: #f4f4f5;
 
-          color: #10b981;
+          color: #000000;
 
           display: flex;
           align-items: center;
@@ -879,7 +879,7 @@ export function AdminHeaderBar({
 
           font-weight: 800;
 
-          color: #334155;
+          color: #09090b;
 
           line-height: 1.3;
         }
@@ -887,7 +887,7 @@ export function AdminHeaderBar({
         .profile-user-role {
           font-size: 12px;
 
-          color: #64748b;
+          color: #71717a;
 
           font-weight: 600;
 
@@ -910,13 +910,13 @@ export function AdminHeaderBar({
 
           border-radius: 7px;
 
-          background: #f8fafc;
+          background: #fafafa;
 
-          border: 1px solid #e2e8f0;
+          border: 1px solid #e4e4e7;
 
           font-size: 11px;
 
-          color: #475569;
+          color: #52525b;
 
           word-break: break-all;
         }
@@ -945,7 +945,7 @@ export function AdminHeaderBar({
 
           border: none;
 
-          color: #64748b;
+          color: #52525b;
 
           font-size: 14px;
 
@@ -961,9 +961,9 @@ export function AdminHeaderBar({
         }
 
         .profile-menu-item:hover {
-          background-color: #f8fafc;
+          background-color: #f4f4f5;
 
-          color: #10b981;
+          color: #000000;
         }
 
         /*
@@ -983,12 +983,12 @@ export function AdminHeaderBar({
 
           justify-content: center;
 
-          color: #10b981;
+          color: #000000;
         }
 
         .profile-menu-item:hover
           .profile-menu-icon {
-          color: #059669;
+          color: #000000;
         }
 
         /*
