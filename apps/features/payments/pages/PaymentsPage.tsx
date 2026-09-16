@@ -675,13 +675,6 @@ export function PaymentsPage() {
             </thead>
             <tbody>
               {withdraws
-                .filter((w) => {
-                  if (activeModule === 'FOOD') return true;
-                  if (activeModule === 'RESTAURANTS') return w.module.includes('Indian') || w.module.includes('Italian') || w.module.includes('Pizza');
-                  if (activeModule === 'CAFES') return w.module.includes('Bakery') || w.module.includes('Desserts') || w.module.includes('Cafe');
-                  if (activeModule === 'CLOUD_KITCHEN') return w.module.includes('Burgers') || w.module.includes('Fast Food') || w.module.includes('Asian');
-                  return true;
-                })
                 .map((w) => (
                   <tr key={w.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                     <td style={{ padding: '16px 20px' }}>
