@@ -127,7 +127,8 @@ async function proxy(request: Request, pathSegments: string[]) {
         targetPath.includes('admin/restaurants') ||
         targetPath.includes('admin/users') ||
         targetPath.includes('admin/orders') ||
-        targetPath.includes('admin/members')
+        targetPath.includes('admin/members') ||
+        targetPath.includes('admin/audit-logs')
       ) {
         return NextResponse.json(
           {

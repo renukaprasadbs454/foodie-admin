@@ -1,11 +1,11 @@
 /**
  * Payment shapes & Commission Distribution System — Foodie Admin.
- * Handles customer bill payments credited 100% to Admin Master Account
- * and auto-distributed to Restaurants & Delivery Partners based on commission rates.
+ * Single source of truth backed by Spring Boot backend entities & endpoints.
  */
 
 export type RefundInitiation = {
-  refundRequestId: string;
+  refundRequestId?: string;
+  refundId?: string;
   status: string;
 };
 
@@ -15,9 +15,9 @@ export type RefundPaymentBody = {
 };
 
 export interface CommissionConfig {
-  restaurantCommissionRate: number; // e.g. 15 = 15%
+  restaurantCommissionRate: number; // e.g. 14 = 14%
   deliveryCommissionRate: number;   // e.g. 10 = 10%
-  platformFixedFee: number;         // e.g. 40 = ₹40 fixed platform/packaging fee
+  platformFixedFee: number;         // e.g. 40 = ₹40 fixed platform fee
 }
 
 export interface PaymentSplitBreakdown {
@@ -34,28 +34,89 @@ export interface PaymentSplitBreakdown {
 
 export interface PaymentSettlementRecord {
   id: string;
-  paymentUuid: string;
+  settlementId?: string;
+  paymentUuid?: string;
   orderId: string;
-  customerName: string;
-  paymentMethod: 'RAZORPAY_UPI' | 'CREDIT_CARD' | 'FOODIE_WALLET' | 'NET_BANKING';
+  orderNumber?: string;
+  customerName?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
   totalPaid: number;
   foodSubtotal: number;
   deliveryFee: number;
-  adminTotalRevenue: number;
+  platformFee?: number;
+  taxAmount?: number;
+  discountAmount?: number;
+  restaurantFoodCommissionRate?: number;
+  restaurantFoodCommission?: number;
   restaurantNetShare: number;
-  restaurantName: string;
+  restaurantName?: string;
+  deliveryPartnerCommissionRate?: number;
+  deliveryPartnerCommission?: number;
   deliveryPartnerNetShare: number;
-  driverName: string;
-  settlementStatus: 'CREDITED_TO_ADMIN' | 'FUNDS_DISTRIBUTED' | 'REFUNDED';
+  driverName?: string;
+  adminTotalRevenue: number;
+  settlementStatus: string;
   settledAt: string;
 }
 
+export interface PaymentTransactionRecord {
+  id: string;
+  orderId: string;
+  userId: string;
+  amount: number;
+  currency: string;
+  paymentMethod: string;
+  status: string;
+  gatewayTransactionId: string;
+  gatewayName: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface LedgerEntryRecord {
+  id: string;
+  walletAccountId: string;
+  amount: number;
+  entryType: 'DEBIT' | 'CREDIT';
+  referenceType: string;
+  referenceId: string;
+  balanceAfter: number;
+  createdAt: string;
+}
+
+export interface RestaurantSettlementRecord {
+  id: string;
+  restaurantId: string;
+  restaurantName: string;
+  periodStart: string;
+  periodEnd: string;
+  totalOrdersCount: number;
+  totalSubtotal: number;
+  totalCommission: number;
+  netPayoutAmount: number;
+  status: 'PENDING' | 'DISBURSED' | 'FAILED' | 'CANCELLED';
+  paidAt?: string;
+  paymentReference?: string;
+}
+
+export interface PayoutRecord {
+  id: string;
+  walletAccountId: string;
+  amount: number;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  bankName?: string;
+  accountNumber?: string;
+  accountHolderName?: string;
+  ifscCode?: string;
+  referenceNumber?: string;
+  failureReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 /**
- * Calculates the exact split breakdown when a customer pays an order bill.
- * 1. Customer pays totalBill (100% credited to Admin Master Account).
- * 2. Admin receives: Admin Food Commission + Admin Delivery Commission + Platform Fixed Fee.
- * 3. Restaurant receives: Food Subtotal - Admin Food Commission.
- * 4. Delivery Partner receives: Delivery Fee - Admin Delivery Commission.
+ * Utility for local calculation preview if needed.
  */
 export function calculatePaymentSplit(
   foodSubtotal: number,
@@ -103,8 +164,8 @@ export function validateRefundForm(
   | { ok: true; paymentId: string; body: RefundPaymentBody }
   | { ok: false; message: string } {
   const id = paymentId.trim();
-  if (!isPaymentUuid(id)) {
-    return { ok: false, message: 'Enter a valid payment UUID.' };
+  if (!id) {
+    return { ok: false, message: 'Payment ID is required.' };
   }
   const amount = Number(amountRaw);
   if (!Number.isFinite(amount) || amount < 0.01) {

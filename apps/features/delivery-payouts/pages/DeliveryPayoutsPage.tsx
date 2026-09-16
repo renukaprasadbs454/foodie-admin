@@ -229,17 +229,17 @@ export function DeliveryPayoutsPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             padding: 20,
-            border: '1px solid #E2E8F0',
+            border: '1px solid #E4E4E7',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
             Audit Discrepancies
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: discrepancyCount > 0 ? '#DC2626' : '#059669', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#09090B', marginTop: 4 }}>
             {discrepancyCount}
           </div>
-          <div style={{ fontSize: 12, color: discrepancyCount > 0 ? '#B91C1C' : '#059669', marginTop: 4, fontWeight: 700 }}>
+          <div style={{ fontSize: 12, color: '#71717A', marginTop: 4, fontWeight: 700 }}>
             {discrepancyCount > 0 ? 'Requires reconciliation attention' : 'All transactions matched'}
           </div>
         </div>
