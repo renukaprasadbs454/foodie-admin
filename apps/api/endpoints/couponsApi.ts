@@ -39,6 +39,17 @@ export const couponsApi = baseApi.injectEndpoints({
         { type: 'Admin', id: 'COUPON' },
       ],
     }),
+    activateCoupon: builder.mutation<DeactivateCouponResult, string>({
+      query: (couponId) => ({
+        url: `/api/bff/admin/coupons/${couponId}/activate`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'Coupon', id },
+        { type: 'Coupon', id: 'LIST' },
+        { type: 'Admin', id: 'COUPON' },
+      ],
+    }),
     deleteCoupon: builder.mutation<boolean, string>({
       query: (couponId) => ({
         url: `/api/bff/admin/coupons/${couponId}`,
@@ -52,5 +63,5 @@ export const couponsApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useCreateCouponMutation, useDeactivateCouponMutation, useGetCouponsQuery, useDeleteCouponMutation } =
+export const { useCreateCouponMutation, useDeactivateCouponMutation, useGetCouponsQuery, useDeleteCouponMutation, useActivateCouponMutation } =
   couponsApi;

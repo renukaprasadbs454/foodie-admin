@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_19_COUPON_LIST } from '@/constants/gaps';
-import { useGetCouponsQuery, useCreateCouponMutation, useDeactivateCouponMutation, useDeleteCouponMutation } from '@/api/endpoints/couponsApi';
+import { useGetCouponsQuery, useCreateCouponMutation, useDeactivateCouponMutation, useDeleteCouponMutation, useActivateCouponMutation } from '@/api/endpoints/couponsApi';
 
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
@@ -152,6 +152,7 @@ export function CouponsPage() {
   const { data: serverCoupons = [], isLoading: isCouponsLoading } = useGetCouponsQuery();
   const [createCouponApi, { isLoading: isCreatingCoupon }] = useCreateCouponMutation();
   const [deactivateCouponApi, { isLoading: isDeactivatingCoupon }] = useDeactivateCouponMutation();
+  const [activateCouponApi, { isLoading: isActivatingCoupon }] = useActivateCouponMutation();
   const [deleteCouponApi, { isLoading: isDeletingCoupon }] = useDeleteCouponMutation();
 
   const coupons: CouponRecord[] = serverCoupons.map((c: any) => ({
@@ -294,16 +295,17 @@ export function CouponsPage() {
   };
 
   const handleToggleStatus = async (id: string, currentStatus: string) => {
-    if (currentStatus === 'DEACTIVATED') {
-      alert('Coupon is already deactivated.');
-      return;
-    }
     try {
-      await deactivateCouponApi(id).unwrap();
-      setToastMsg('Coupon deactivated successfully!');
+      if (currentStatus === 'ACTIVE') {
+        await deactivateCouponApi(id).unwrap();
+        setToastMsg('Coupon deactivated successfully!');
+      } else {
+        await activateCouponApi(id).unwrap();
+        setToastMsg('Coupon activated successfully!');
+      }
       setTimeout(() => setToastMsg(null), 3000);
-    } catch (err) {
-      alert('Failed to deactivate coupon.');
+    } catch (err: any) {
+      alert(err?.data?.error?.message || 'Failed to toggle coupon status.');
     }
   };
 
@@ -619,19 +621,20 @@ export function CouponsPage() {
                           <button
                             type="button"
                             onClick={() => handleToggleStatus(c.id, c.status)}
-                            disabled={c.status === 'DEACTIVATED' || isDeactivatingCoupon}
+                            disabled={c.status === 'ACTIVE' ? isDeactivatingCoupon : isActivatingCoupon}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: c.status === 'ACTIVE' ? '#F4F4F5' : '#E4E4E7',
-                              color: c.status === 'ACTIVE' ? '#09090B' : '#71717A',
-                              border: '1px solid #E4E4E7',
+                              backgroundColor: c.status === 'ACTIVE' ? '#F4F4F5' : '#E0E7FF',
+                              color: c.status === 'ACTIVE' ? '#09090B' : '#3730A3',
+                              border: c.status === 'ACTIVE' ? '1px solid #E4E4E7' : '1px solid #C7D2FE',
                               borderRadius: 6,
                               fontSize: 12,
                               fontWeight: 700,
-                              cursor: c.status === 'ACTIVE' && !isDeactivatingCoupon ? 'pointer' : 'not-allowed',
+                              cursor: (isDeactivatingCoupon || isActivatingCoupon) ? 'not-allowed' : 'pointer',
+                              opacity: (isDeactivatingCoupon || isActivatingCoupon) ? 0.5 : 1,
                             }}
                           >
-                            {c.status === 'ACTIVE' ? 'Deactivate' : 'Deactivated'}
+                            {c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                           </button>
                           <button
                             type="button"
