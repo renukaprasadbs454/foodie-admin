@@ -39,7 +39,7 @@ export async function safeFetch(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   // If signal already exists, combine abort signals
-  let signal = controller.signal;
+  const signal = controller.signal;
   if (fetchInit.signal) {
     const externalSignal = fetchInit.signal;
     if (externalSignal.aborted) {
