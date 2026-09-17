@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { SocialMediaStudio } from '@/features/social-media/components/SocialMediaStudio';
 
 export type SettingsTab =
   | 'admin-profile'
+  | 'page-setup'
+  | 'social-media'
   | 'admin-users'
   | 'roles-permissions'
-  | 'commission-settings'
   | 'tax-gst'
   | 'payment-settings'
   | 'app-settings'
-  | 'security'
-  | 'page-setup';
+  | 'security';
 
 export interface AdminUserRecord {
   id: string;
@@ -111,9 +113,18 @@ const INITIAL_POLICY_PAGES: PolicyPageRecord[] = [
 ];
 
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('admin-profile');
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams?.get('tab') as SettingsTab) || 'admin-profile';
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const tabParam = searchParams?.get('tab') as SettingsTab;
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   // 1. Admin Profile State
   const [profileName, setProfileName] = useState('Preethi Shree D');
@@ -138,12 +149,6 @@ export function SettingsPage() {
     FINANCE: { dashboard: true, restaurants: false, deliveryKyc: false, refunds: true, commissions: true, auditLogs: false },
     SUPPORT: { dashboard: true, restaurants: false, deliveryKyc: false, refunds: false, commissions: false, auditLogs: false },
   });
-
-  // 4. Commission Settings State
-  const [baseCommission, setBaseCommission] = useState('15.0');
-  const [restaurantCommission, setRestaurantCommission] = useState('18.0');
-  const [cafeCommission, setCafeCommission] = useState('12.0');
-  const [cloudKitchenCommission, setCloudKitchenCommission] = useState('15.0');
 
   // 5. Tax / GST State
   const [gstinNumber, setGstinNumber] = useState('29AAAAA0000A1Z5');
@@ -273,7 +278,7 @@ export function SettingsPage() {
             Control Center Settings
           </h1>
           <p style={{ fontSize: 14, color: '#71717A', margin: '4px 0 0 0' }}>
-            Configure admin profiles, policy page setups, commission rates, GST taxes, delivery pricing & security
+            Configure admin profiles, policy page setups, GST taxes, delivery pricing & security
           </p>
         </div>
 
@@ -318,9 +323,9 @@ export function SettingsPage() {
           {[
             { id: 'admin-profile', label: 'Admin Profile' },
             { id: 'page-setup', label: 'Page Setup' },
+            { id: 'social-media', label: 'Social Media' },
             { id: 'admin-users', label: 'Admin Users' },
             { id: 'roles-permissions', label: 'Roles & Permissions' },
-            { id: 'commission-settings', label: 'Commission Settings' },
             { id: 'tax-gst', label: 'Tax / GST' },
             { id: 'payment-settings', label: 'Payment Settings' },
             { id: 'app-settings', label: 'App Settings' },
@@ -354,7 +359,7 @@ export function SettingsPage() {
         </div>
 
         {/* Main Settings Content Area */}
-        <form onSubmit={handleSave}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* 1. Admin Profile */}
           {activeTab === 'admin-profile' && (
             <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -529,6 +534,13 @@ export function SettingsPage() {
             </div>
           )}
 
+          {/* Social Media */}
+          {activeTab === 'social-media' && (
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <SocialMediaStudio />
+            </div>
+          )}
+
           {/* 2. Admin Users */}
           {activeTab === 'admin-users' && (
             <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -627,31 +639,6 @@ export function SettingsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}
-
-          {/* 4. Commission Settings */}
-          {activeTab === 'commission-settings' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>Marketplace Commission Rates</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Global Base Commission Rate (%)</label>
-                  <input type="number" value={baseCommission} onChange={(e) => setBaseCommission(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Fine Dining & Pizzerias (%)</label>
-                  <input type="number" value={restaurantCommission} onChange={(e) => setRestaurantCommission(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Cafes & Bakery Rate (%)</label>
-                  <input type="number" value={cafeCommission} onChange={(e) => setCafeCommission(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Cloud Kitchens Rate (%)</label>
-                  <input type="number" value={cloudKitchenCommission} onChange={(e) => setCloudKitchenCommission(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
-                </div>
-              </div>
             </div>
           )}
 
@@ -766,7 +753,7 @@ export function SettingsPage() {
               </div>
             </div>
           )}
-        </form>
+        </div>
       </div>
 
       {/* ADD CUSTOM POLICY PAGE MODAL */}

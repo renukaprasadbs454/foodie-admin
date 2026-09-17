@@ -9,7 +9,7 @@ describe('6amMart Admin Panel Navigation & Role Configuration', () => {
     const systemItems = DASHBOARD_NAV.filter(item => item.category === 'SYSTEM');
 
     expect(mainItems.map(i => i.href)).toEqual(['/', '/dashboard', '/analytics', '/support']);
-    expect(businessItems.map(i => i.href)).toEqual(['/members', '/users', '/customers', '/restaurants', '/delivery-partners', '/other', '/location', '/social-media']);
+    expect(businessItems.map(i => i.href)).toEqual(['/members', '/users', '/customers', '/restaurants', '/delivery-partners', '/other', '/location']);
     expect(orderItems.map(i => i.href)).toEqual(['/orders']);
     expect(financeItems.map(i => i.href)).toEqual(['/coupons', '/payments']);
     expect(systemItems.map(i => i.href)).toEqual(['/reviews', '/audit-log', '/settings']);
@@ -26,9 +26,6 @@ describe('6amMart Admin Panel Navigation & Role Configuration', () => {
 
     const usersNav = DASHBOARD_NAV.find(i => i.href === '/users');
     expect(usersNav?.icon).toBe('');
-
-    const socialMediaNav = DASHBOARD_NAV.find(i => i.href === '/social-media');
-    expect(socialMediaNav?.icon).toBe('');
 
     const otherNav = DASHBOARD_NAV.find(i => i.href === '/other');
     expect(otherNav?.icon).toBeUndefined();
@@ -47,7 +44,7 @@ describe('6amMart Admin Panel Navigation & Role Configuration', () => {
 
   it('correctly filters categorized navigation for different roles', () => {
     const superAdminNav = filterNavForRole('SUPER_ADMIN');
-    expect(superAdminNav.length).toBe(19);
+    expect(superAdminNav.length).toBe(18);
 
     const supportNav = filterNavForRole('SUPPORT');
     expect(supportNav.map(i => i.href)).toEqual([
@@ -57,7 +54,6 @@ describe('6amMart Admin Panel Navigation & Role Configuration', () => {
       '/support',
       '/users',
       '/customers',
-      '/social-media',
       '/orders',
       '/notifications',
       '/reviews',

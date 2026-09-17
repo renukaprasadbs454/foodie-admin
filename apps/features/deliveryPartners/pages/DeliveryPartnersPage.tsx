@@ -370,8 +370,11 @@ export function DeliveryPartnersPage() {
                     <td style={{ padding: '16px 20px' }}>
                       {docCount > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {p.documents.map((d) => (
-                            <div key={d.id} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {p.documents.map((d, dIdx) => (
+                            <div
+                              key={d.id ? `${p.id}-doc-${d.id}` : `${p.id}-doc-${d.docType || 'doc'}-${dIdx}`}
+                              style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
+                            >
                               <span style={{ fontWeight: 600, color: '#09090B' }}>📄 {d.docType}</span>
                               <span
                                 style={{

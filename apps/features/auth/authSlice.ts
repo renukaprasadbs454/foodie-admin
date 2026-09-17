@@ -14,28 +14,13 @@ export type AuthState = {
   authStatus: AuthStatus;
 };
 
-const getSavedRole = (): AdminRole | null => {
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role');
-    if (saved) return saved as AdminRole;
-  }
-  return null;
-};
-
-const getSavedUserId = (): string | null => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('foodie_admin_user_id') || sessionStorage.getItem('foodie_admin_user_id');
-  }
-  return null;
-};
-
 const initialState: AuthState = {
-  userType: getSavedUserId() ? 'ADMIN' : null,
-  userId: getSavedUserId(),
-  role: getSavedRole(),
+  userType: null,
+  userId: null,
+  role: null,
   fullName: null,
   permissions: [],
-  authStatus: getSavedUserId() ? 'authenticated' : 'unauthenticated',
+  authStatus: 'unauthenticated',
 };
 
 export type SetSessionPayload = {

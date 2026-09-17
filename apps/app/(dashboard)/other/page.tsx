@@ -58,7 +58,7 @@ export default function OtherBusinessPage() {
 
         {/* Card 2: Social Media Management */}
         <Link
-          href="/social-media"
+          href="/settings?tab=social-media"
           style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 16,
