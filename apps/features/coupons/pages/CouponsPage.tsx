@@ -217,6 +217,7 @@ export function CouponsPage() {
         value: Number(discountValue),
         minOrderAmount: Number(minPurchase) || 0,
         expiryDate: '2025-12-31',
+        usageLimitPerUser: 1,
       }).unwrap();
       setCode('');
       setTitle('');
