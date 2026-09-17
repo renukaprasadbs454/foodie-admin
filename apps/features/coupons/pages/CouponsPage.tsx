@@ -212,11 +212,11 @@ export function CouponsPage() {
     }
     try {
       await createCouponApi({
-        code: code.trim().toUpperCase(),
+        code: code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, ''),
         discountType: discountType === 'FIXED' ? 'FLAT' : 'PERCENT',
         value: Number(discountValue),
         minOrderAmount: Number(minPurchase) || 0,
-        expiryDate: '2025-12-31',
+        expiryDate: '2099-12-31',
         usageLimitPerUser: 1,
       }).unwrap();
       setCode('');
