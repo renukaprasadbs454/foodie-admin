@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { GlobalSearchModal } from '@/components/GlobalSearchModal';
 
@@ -25,7 +24,6 @@ export function AdminHeaderBar({
   isCompact = false,
   onToggleCompact,
 }: AdminHeaderBarProps) {
-  const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -331,7 +329,7 @@ export function AdminHeaderBar({
             ================================= */}
           <div className="profile-user-id">
             <span className="profile-id-icon">
-              
+
             </span>
 
             <span>
@@ -727,7 +725,7 @@ export function AdminHeaderBar({
                   color: '#64748B',
                 }}
               >
-                
+
               </button>
             </div>
 

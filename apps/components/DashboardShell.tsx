@@ -102,8 +102,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     setLoggingOut(false);
   };
 
-  const isExpanded = !isCompact;
-
   return (
     <div
       style={{
@@ -203,7 +201,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                     item.href === '/'
                       ? pathname === '/'
                       : pathname.startsWith(item.href) ||
-                        (item.href === '/support' && pathname.startsWith('/contact-us'));
+                      (item.href === '/support' && pathname.startsWith('/contact-us'));
 
                   const isHighlighted = item.highlighted ?? false;
 
@@ -222,18 +220,18 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                           color: isActive
                             ? '#000000'
                             : isHighlighted
-                            ? '#FFFFFF'
-                            : '#A1A1AA',
+                              ? '#FFFFFF'
+                              : '#A1A1AA',
                           backgroundColor: isActive
                             ? '#FFFFFF'
                             : isHighlighted
-                            ? '#27272A'
-                            : 'transparent',
+                              ? '#27272A'
+                              : 'transparent',
                           borderLeft: isActive
                             ? '4px solid #000000'
                             : isHighlighted
-                            ? '4px solid #FFFFFF'
-                            : '4px solid transparent',
+                              ? '4px solid #FFFFFF'
+                              : '4px solid transparent',
                           textDecoration: 'none',
                           transition: 'all 0.15s ease-in-out',
                         }}

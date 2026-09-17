@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_19_COUPON_LIST } from '@/constants/gaps';
-import { useGetCouponsQuery, useCreateCouponMutation, useDeactivateCouponMutation } from '@/api/endpoints/couponsApi';
+import { useGetCouponsQuery, useCreateCouponMutation, useDeactivateCouponMutation, useDeleteCouponMutation, useActivateCouponMutation } from '@/api/endpoints/couponsApi';
 
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
@@ -152,9 +152,11 @@ export function CouponsPage() {
   const { data: serverCoupons = [], isLoading: isCouponsLoading } = useGetCouponsQuery();
   const [createCouponApi, { isLoading: isCreatingCoupon }] = useCreateCouponMutation();
   const [deactivateCouponApi, { isLoading: isDeactivatingCoupon }] = useDeactivateCouponMutation();
+  const [activateCouponApi, { isLoading: isActivatingCoupon }] = useActivateCouponMutation();
+  const [deleteCouponApi, { isLoading: isDeletingCoupon }] = useDeleteCouponMutation();
 
   const coupons: CouponRecord[] = serverCoupons.map((c: any) => ({
-    id: c.id,
+    id: c.couponId,
     code: c.code,
     title: `${c.discountType === 'PERCENT' ? `${c.value}% OFF` : `₹${c.value} FLAT`} Promo`,
     discountType: c.discountType,
@@ -163,7 +165,7 @@ export function CouponsPage() {
     maxDiscount: c.maxDiscountAmount || 0,
     module: c.restaurantId ? 'Specific Restaurant' : 'All Food Delivery',
     expiryDate: new Date(c.expiryDate).toLocaleDateString(),
-    status: c.active ? 'ACTIVE' : 'DEACTIVATED'
+    status: c.isActive ? 'ACTIVE' : 'DEACTIVATED'
   }));
 
   const [firstOrderOffers, setFirstOrderOffers] = useState<FirstOrderOfferRecord[]>(MOCK_FIRST_ORDER_OFFERS);
@@ -212,11 +214,12 @@ export function CouponsPage() {
     }
     try {
       await createCouponApi({
-        code: code.trim().toUpperCase(),
+        code: code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, ''),
         discountType: discountType === 'FIXED' ? 'FLAT' : 'PERCENT',
         value: Number(discountValue),
         minOrderAmount: Number(minPurchase) || 0,
-        expiryDate: '2025-12-31',
+        expiryDate: '2099-12-31',
+        usageLimitPerUser: 1,
       }).unwrap();
       setCode('');
       setTitle('');
@@ -226,6 +229,18 @@ export function CouponsPage() {
       setTimeout(() => setToastMsg(null), 3000);
     } catch (err: any) {
       alert(err?.data?.error?.message || 'Failed to create coupon');
+    }
+  };
+
+  const handleDeleteCoupon = async (id: string, currentStatus: string) => {
+    if (confirm('Are you sure you want to permanently delete this coupon?')) {
+      try {
+        await deleteCouponApi(id).unwrap();
+        setToastMsg('Coupon deleted successfully!');
+        setTimeout(() => setToastMsg(null), 3000);
+      } catch (err: any) {
+        alert(err?.data?.error?.message || 'Failed to delete coupon');
+      }
     }
   };
 
@@ -280,16 +295,17 @@ export function CouponsPage() {
   };
 
   const handleToggleStatus = async (id: string, currentStatus: string) => {
-    if (currentStatus === 'DEACTIVATED') {
-      alert('Coupon is already deactivated.');
-      return;
-    }
     try {
-      await deactivateCouponApi(id).unwrap();
-      setToastMsg('Coupon deactivated successfully!');
+      if (currentStatus === 'ACTIVE') {
+        await deactivateCouponApi(id).unwrap();
+        setToastMsg('Coupon deactivated successfully!');
+      } else {
+        await activateCouponApi(id).unwrap();
+        setToastMsg('Coupon activated successfully!');
+      }
       setTimeout(() => setToastMsg(null), 3000);
-    } catch (err) {
-      alert('Failed to deactivate coupon.');
+    } catch (err: any) {
+      alert(err?.data?.error?.message || 'Failed to toggle coupon status.');
     }
   };
 
@@ -601,23 +617,44 @@ export function CouponsPage() {
                         </span>
                       </td>
                       <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(c.id, c.status)}
-                          disabled={c.status === 'DEACTIVATED' || isDeactivatingCoupon}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: c.status === 'ACTIVE' ? '#F4F4F5' : '#E4E4E7',
-                            color: c.status === 'ACTIVE' ? '#09090B' : '#71717A',
-                            border: '1px solid #E4E4E7',
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: c.status === 'ACTIVE' && !isDeactivatingCoupon ? 'pointer' : 'not-allowed',
-                          }}
-                        >
-                          {c.status === 'ACTIVE' ? 'Deactivate' : 'Deactivated'}
-                        </button>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(c.id, c.status)}
+                            disabled={c.status === 'ACTIVE' ? isDeactivatingCoupon : isActivatingCoupon}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: c.status === 'ACTIVE' ? '#F4F4F5' : '#E0E7FF',
+                              color: c.status === 'ACTIVE' ? '#09090B' : '#3730A3',
+                              border: c.status === 'ACTIVE' ? '1px solid #E4E4E7' : '1px solid #C7D2FE',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: (isDeactivatingCoupon || isActivatingCoupon) ? 'not-allowed' : 'pointer',
+                              opacity: (isDeactivatingCoupon || isActivatingCoupon) ? 0.5 : 1,
+                            }}
+                          >
+                            {c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCoupon(c.id, c.status)}
+                            disabled={isDeletingCoupon}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#FEE2E2',
+                              color: '#991B1B',
+                              border: '1px solid #FECACA',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: isDeletingCoupon ? 'not-allowed' : 'pointer',
+                              opacity: isDeletingCoupon ? 0.5 : 1,
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

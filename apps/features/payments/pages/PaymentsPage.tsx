@@ -466,8 +466,8 @@ export function PaymentsPage() {
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
                     >
                       <option value="">-- Select Store --</option>
-                      {realRestaurants.map((r: any) => (
-                        <option key={r.restaurantId} value={r.name}>{r.name}</option>
+                      {realRestaurants.map((r: any, idx: number) => (
+                        <option key={r.id || r.restaurantId || `rest-${idx}`} value={r.name}>{r.name}</option>
                       ))}
                       <option value="Spice Garden">Spice Garden (Default)</option>
                     </select>
@@ -483,8 +483,8 @@ export function PaymentsPage() {
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
                     >
                       <option value="">-- Select Rider --</option>
-                      {realPartners.map((dp: any) => (
-                        <option key={dp.partnerId} value={dp.fullName}>{dp.fullName}</option>
+                      {realPartners.map((dp: any, idx: number) => (
+                        <option key={dp.id || dp.partnerId || `dp-${idx}`} value={dp.fullName}>{dp.fullName}</option>
                       ))}
                       <option value="Rohan Sharma">Rohan Sharma (Default)</option>
                     </select>

@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { HasPermission } from '@/components/HasPermission';
-import { usePermissions } from '@/context/PermissionContext';
 
 export interface SystemRole {
   id: string;
@@ -374,7 +373,7 @@ export default function RolesPage() {
       permission="role.manage"
       fallback={
         <div style={{ padding: 24, color: '#DC2626', fontWeight: 800 }}>
-           403 Forbidden — Only SUPER_ADMIN may access Role & Permission Management.
+          403 Forbidden — Only SUPER_ADMIN may access Role & Permission Management.
         </div>
       }
     >
@@ -407,7 +406,7 @@ export default function RolesPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-               Role & Permission Management (RBAC) Studio
+              Role & Permission Management (RBAC) Studio
             </h1>
             <p style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>
               Enterprise multi-role authorization console: Manage roles, edit permission matrices, view effective permissions & audit security logs
@@ -429,7 +428,7 @@ export default function RolesPage() {
                 cursor: 'pointer',
               }}
             >
-               Grant Temp Permission
+              Grant Temp Permission
             </button>
             <button
               type="button"
@@ -513,7 +512,7 @@ export default function RolesPage() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <span style={{ fontSize: 16, fontWeight: 900, color: '#0F3D21' }}>
-                         {role.label}
+                        {role.label}
                       </span>
                       <span
                         style={{
@@ -703,7 +702,7 @@ export default function RolesPage() {
             <div style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 16, border: '1px solid #CBD5E1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 900, color: '#0F3D21' }}>
-                   {selectedUserObj.name} ({selectedUserObj.email})
+                  {selectedUserObj.name} ({selectedUserObj.email})
                 </div>
                 <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
                   Role: <strong>{selectedUserObj.role}</strong> | Assigned Scope: <strong>{selectedUserObj.scope}</strong>
@@ -915,7 +914,7 @@ export default function RolesPage() {
             <form onSubmit={handleGrantTempPermission} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, maxWidth: 480, width: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
-                   Grant Temporary Permission
+                  Grant Temporary Permission
                 </h3>
                 <button type="button" onClick={() => setIsGrantTempModal(false)} style={{ border: 'none', background: 'none', fontSize: 18, cursor: 'pointer' }}></button>
               </div>

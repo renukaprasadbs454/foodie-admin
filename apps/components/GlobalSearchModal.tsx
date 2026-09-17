@@ -62,94 +62,96 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   }, [isOpen]);
 
   // Prepare result items array from backend response & comprehensive local dataset
-  const results: SearchResultItem[] = [];
+  const results: SearchResultItem[] = React.useMemo(() => {
+    const res: SearchResultItem[] = [];
 
-  if (globalData?.restaurants) {
-    globalData.restaurants.forEach((r) => {
-      results.push({
-        id: `rest-${r.id}`,
-        category: 'Restaurant',
-        title: r.name,
-        subtitle: `${r.cuisineType ?? 'Restaurant'} • Rating ${r.rating ?? '4.5'} • ${
-          r.isAvailable !== false ? 'Active' : 'Inactive'
-        }`,
-        url: `/restaurants/${r.id}`,
+    if (globalData?.restaurants) {
+      globalData.restaurants.forEach((r) => {
+        res.push({
+          id: `rest-${r.id}`,
+          category: 'Restaurant',
+          title: r.name,
+          subtitle: `${r.cuisineType ?? 'Restaurant'} • Rating ${r.rating ?? '4.5'} • ${r.isAvailable !== false ? 'Active' : 'Inactive'
+            }`,
+          url: `/restaurants/${r.id}`,
+          icon: '',
+        });
+      });
+    }
+
+    if (globalData?.foodItems) {
+      globalData.foodItems.forEach((f) => {
+        res.push({
+          id: `food-${f.id}`,
+          category: 'Food Item',
+          title: f.name,
+          subtitle: `${f.categoryName ?? 'Menu Item'} • ₹${f.basePrice?.toFixed(2) ?? '0.00'}${f.isVeg ? ' • Veg' : ''
+            }`,
+          url: `/restaurants`,
+          icon: '',
+        });
+      });
+    }
+
+    if (orderData) {
+      const oId = orderData.orderId || orderData.orderNumber || '1';
+      res.push({
+        id: `ord-${oId}`,
+        category: 'Order',
+        title: `Order #${oId}`,
+        subtitle: `Status: ${orderData.status} • Total: ₹${orderData.totalAmount ?? 0}`,
+        url: `/orders/${oId}`,
         icon: '',
       });
-    });
-  }
+    }
 
-  if (globalData?.foodItems) {
-    globalData.foodItems.forEach((f) => {
-      results.push({
-        id: `food-${f.id}`,
-        category: 'Food Item',
-        title: f.name,
-        subtitle: `${f.categoryName ?? 'Menu Item'} • ₹${f.basePrice?.toFixed(2) ?? '0.00'}${
-          f.isVeg ? ' • Veg' : ''
-        }`,
-        url: `/restaurants`,
-        icon: '',
-      });
-    });
-  }
+    // Multi-entity local search index for instant offline / mock results
+    if (debouncedQuery) {
+      const q = debouncedQuery.toLowerCase();
 
-  if (orderData) {
-    const oId = orderData.orderId || orderData.orderNumber || '1';
-    results.push({
-      id: `ord-${oId}`,
-      category: 'Order',
-      title: `Order #${oId}`,
-      subtitle: `Status: ${orderData.status} • Total: ₹${orderData.totalAmount ?? 0}`,
-      url: `/orders/${oId}`,
-      icon: '',
-    });
-  }
+      const MOCK_ENTITIES: SearchResultItem[] = [
+        { id: 'm-rest-1', category: 'Restaurant', title: 'Royal Biryani House', subtitle: 'North Indian & Biryani • Rating 4.8 • Active', url: '/restaurants', icon: '' },
+        { id: 'm-rest-2', category: 'Restaurant', title: 'Bella Italia Pizzeria', subtitle: 'Italian & Wood-Fired Pizza • Rating 4.6 • Active', url: '/restaurants', icon: '' },
+        { id: 'm-rest-3', category: 'Restaurant', title: 'Sweet Dreams Bakery & Cafe', subtitle: 'Bakery & Desserts • Rating 4.9 • Pending', url: '/restaurants', icon: '' },
+        { id: 'm-rest-4', category: 'Restaurant', title: 'The Gourmet Burger Bistro', subtitle: 'Burgers & Fast Food • Rating 4.5 • Suspended', url: '/restaurants', icon: '' },
+        { id: 'm-rest-5', category: 'Restaurant', title: 'Dragon Bowl Asian Kitchen', subtitle: 'Chinese & Pan-Asian • Rating 4.7 • Active', url: '/restaurants', icon: '' },
+        { id: 'm-cust-1', category: 'Customer', title: 'Ananya Sharma', subtitle: 'ananya.s@gmail.com • +91 98765 12345 • Active', url: '/customers', icon: '' },
+        { id: 'm-cust-2', category: 'Customer', title: 'Vikram Mehta', subtitle: 'vikram.m@yahoo.com • +91 98123 45678 • Active', url: '/customers', icon: '' },
+        { id: 'm-cust-3', category: 'Customer', title: 'Sarah Jenkins', subtitle: 'sarah.j@foodie.com • +91 98765 44321 • Active', url: '/customers', icon: '' },
+        { id: 'm-cust-4', category: 'Customer', title: 'Neha Kapoor', subtitle: 'neha.k@gmail.com • +91 98765 00002 • Active', url: '/customers', icon: '' },
+        { id: 'm-drv-1', category: 'Delivery Partner', title: 'Vikram Choudhary', subtitle: '+91 98111 22233 • Motorcycle • Verified KYC', url: '/delivery-partners', icon: '' },
+        { id: 'm-drv-2', category: 'Delivery Partner', title: 'Arjun Das', subtitle: '+91 98222 33344 • Electric Scooter • Verified KYC', url: '/delivery-partners', icon: '' },
+        { id: 'm-drv-3', category: 'Delivery Partner', title: 'Siddharth Rao', subtitle: '+91 98333 44455 • Motorcycle • Pending KYC', url: '/delivery-partners', icon: '' },
+        { id: 'm-drv-4', category: 'Delivery Partner', title: 'Ramesh Kumar', subtitle: '+91 97400 33211 • Rider #DRV-402 • Verified', url: '/delivery-partners', icon: '' },
+        { id: 'm-cpn-1', category: 'Coupon', title: 'FOODIE50', subtitle: '50% OFF Super Meal Deal • Active', url: '/coupons', icon: '' },
+        { id: 'm-cpn-2', category: 'Coupon', title: 'WELCOME100', subtitle: '₹100 Flat Savings for New Users • Active', url: '/coupons', icon: '' },
+        { id: 'm-cpn-3', category: 'Coupon', title: 'PIZZA100', subtitle: '₹100 Flat Savings on Pizzerias • Active', url: '/coupons', icon: '' },
+        { id: 'm-cpn-4', category: 'Coupon', title: 'FIRST50', subtitle: '50% OFF Welcome Bonus on First Order • Active', url: '/coupons', icon: '' },
+        { id: 'm-ord-1', category: 'Order', title: 'Order #ORD-9821', subtitle: 'Customer: Ananya Sharma • Status: PREPARING • ₹680', url: '/orders', icon: '' },
+        { id: 'm-ord-2', category: 'Order', title: 'Order #ORD-8801', subtitle: 'Customer: Sarah Jenkins • Status: DELIVERED • ₹580', url: '/orders', icon: '' },
+        { id: 'm-ord-3', category: 'Order', title: 'Order #ORD-8802', subtitle: 'Customer: Marcus Vance • Status: OUT FOR DELIVERY • ₹440', url: '/orders', icon: '' },
+        { id: 'm-enq-1', category: 'Customer', title: 'ENQ-901: Delayed Refund', subtitle: 'From: Ananya Sharma • Status: OPEN', url: '/support', icon: '' },
+        { id: 'm-enq-2', category: 'Customer', title: 'ENQ-902: Promo Code Issue', subtitle: 'From: Vikram Mehta • Status: IN_PROGRESS', url: '/support', icon: '' },
+        { id: 'm-enq-3', category: 'Restaurant', title: 'ENQ-903: Menu Price Update', subtitle: 'From: Rajesh Gupta • Status: OPEN', url: '/support', icon: '' },
+        { id: 'm-user-1', category: 'Customer', title: 'Alex Vance (Super Admin)', subtitle: 'alex.vance@foodie.com • Executive Operations', url: '/users', icon: '' },
+        { id: 'm-user-2', category: 'Customer', title: 'Priya Sharma (Ops Manager)', subtitle: 'priya.sharma@foodie.com • Logistics & Merchant Ops', url: '/users', icon: '' },
+      ];
 
-  // Multi-entity local search index for instant offline / mock results
-  if (debouncedQuery) {
-    const q = debouncedQuery.toLowerCase();
-
-    const MOCK_ENTITIES: SearchResultItem[] = [
-      { id: 'm-rest-1', category: 'Restaurant', title: 'Royal Biryani House', subtitle: 'North Indian & Biryani • Rating 4.8 • Active', url: '/restaurants', icon: '' },
-      { id: 'm-rest-2', category: 'Restaurant', title: 'Bella Italia Pizzeria', subtitle: 'Italian & Wood-Fired Pizza • Rating 4.6 • Active', url: '/restaurants', icon: '' },
-      { id: 'm-rest-3', category: 'Restaurant', title: 'Sweet Dreams Bakery & Cafe', subtitle: 'Bakery & Desserts • Rating 4.9 • Pending', url: '/restaurants', icon: '' },
-      { id: 'm-rest-4', category: 'Restaurant', title: 'The Gourmet Burger Bistro', subtitle: 'Burgers & Fast Food • Rating 4.5 • Suspended', url: '/restaurants', icon: '' },
-      { id: 'm-rest-5', category: 'Restaurant', title: 'Dragon Bowl Asian Kitchen', subtitle: 'Chinese & Pan-Asian • Rating 4.7 • Active', url: '/restaurants', icon: '' },
-      { id: 'm-cust-1', category: 'Customer', title: 'Ananya Sharma', subtitle: 'ananya.s@gmail.com • +91 98765 12345 • Active', url: '/customers', icon: '' },
-      { id: 'm-cust-2', category: 'Customer', title: 'Vikram Mehta', subtitle: 'vikram.m@yahoo.com • +91 98123 45678 • Active', url: '/customers', icon: '' },
-      { id: 'm-cust-3', category: 'Customer', title: 'Sarah Jenkins', subtitle: 'sarah.j@foodie.com • +91 98765 44321 • Active', url: '/customers', icon: '' },
-      { id: 'm-cust-4', category: 'Customer', title: 'Neha Kapoor', subtitle: 'neha.k@gmail.com • +91 98765 00002 • Active', url: '/customers', icon: '' },
-      { id: 'm-drv-1', category: 'Delivery Partner', title: 'Vikram Choudhary', subtitle: '+91 98111 22233 • Motorcycle • Verified KYC', url: '/delivery-partners', icon: '' },
-      { id: 'm-drv-2', category: 'Delivery Partner', title: 'Arjun Das', subtitle: '+91 98222 33344 • Electric Scooter • Verified KYC', url: '/delivery-partners', icon: '' },
-      { id: 'm-drv-3', category: 'Delivery Partner', title: 'Siddharth Rao', subtitle: '+91 98333 44455 • Motorcycle • Pending KYC', url: '/delivery-partners', icon: '' },
-      { id: 'm-drv-4', category: 'Delivery Partner', title: 'Ramesh Kumar', subtitle: '+91 97400 33211 • Rider #DRV-402 • Verified', url: '/delivery-partners', icon: '' },
-      { id: 'm-cpn-1', category: 'Coupon', title: 'FOODIE50', subtitle: '50% OFF Super Meal Deal • Active', url: '/coupons', icon: '' },
-      { id: 'm-cpn-2', category: 'Coupon', title: 'WELCOME100', subtitle: '₹100 Flat Savings for New Users • Active', url: '/coupons', icon: '' },
-      { id: 'm-cpn-3', category: 'Coupon', title: 'PIZZA100', subtitle: '₹100 Flat Savings on Pizzerias • Active', url: '/coupons', icon: '' },
-      { id: 'm-cpn-4', category: 'Coupon', title: 'FIRST50', subtitle: '50% OFF Welcome Bonus on First Order • Active', url: '/coupons', icon: '' },
-      { id: 'm-ord-1', category: 'Order', title: 'Order #ORD-9821', subtitle: 'Customer: Ananya Sharma • Status: PREPARING • ₹680', url: '/orders', icon: '' },
-      { id: 'm-ord-2', category: 'Order', title: 'Order #ORD-8801', subtitle: 'Customer: Sarah Jenkins • Status: DELIVERED • ₹580', url: '/orders', icon: '' },
-      { id: 'm-ord-3', category: 'Order', title: 'Order #ORD-8802', subtitle: 'Customer: Marcus Vance • Status: OUT FOR DELIVERY • ₹440', url: '/orders', icon: '' },
-      { id: 'm-enq-1', category: 'Customer', title: 'ENQ-901: Delayed Refund', subtitle: 'From: Ananya Sharma • Status: OPEN', url: '/support', icon: '' },
-      { id: 'm-enq-2', category: 'Customer', title: 'ENQ-902: Promo Code Issue', subtitle: 'From: Vikram Mehta • Status: IN_PROGRESS', url: '/support', icon: '' },
-      { id: 'm-enq-3', category: 'Restaurant', title: 'ENQ-903: Menu Price Update', subtitle: 'From: Rajesh Gupta • Status: OPEN', url: '/support', icon: '' },
-      { id: 'm-user-1', category: 'Customer', title: 'Alex Vance (Super Admin)', subtitle: 'alex.vance@foodie.com • Executive Operations', url: '/users', icon: '' },
-      { id: 'm-user-2', category: 'Customer', title: 'Priya Sharma (Ops Manager)', subtitle: 'priya.sharma@foodie.com • Logistics & Merchant Ops', url: '/users', icon: '' },
-    ];
-
-    MOCK_ENTITIES.forEach((item) => {
-      if (
-        item.title.toLowerCase().includes(q) ||
-        item.subtitle.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q)
-      ) {
-        if (!results.some((r) => r.title.toLowerCase() === item.title.toLowerCase())) {
-          results.push(item);
+      MOCK_ENTITIES.forEach((item) => {
+        if (
+          item.title.toLowerCase().includes(q) ||
+          item.subtitle.toLowerCase().includes(q) ||
+          item.category.toLowerCase().includes(q)
+        ) {
+          if (!res.some((r) => r.title.toLowerCase() === item.title.toLowerCase())) {
+            res.push(item);
+          }
         }
-      }
-    });
-  }
+      });
+    }
+
+    return res;
+  }, [globalData, orderData, debouncedQuery]);
 
   const isFetching = isSearchingGlobal || isFetchingOrder;
 
@@ -265,7 +267,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               }}
               title="Clear search"
             >
-              
+
             </button>
           ) : null}
           <span style={{ fontSize: 11, fontWeight: 600, color: '#71717A', backgroundColor: '#F4F4F5', padding: '3px 8px', borderRadius: 6 }}>
@@ -286,7 +288,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
             </div>
           ) : isGlobalError ? (
             <div style={{ padding: '24px 16px', textAlign: 'center', color: '#000000', fontSize: 13, backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', borderRadius: 8, margin: '8px' }}>
-               Failed to fetch search results from server. Please check your backend connection.
+              Failed to fetch search results from server. Please check your backend connection.
             </div>
           ) : results.length === 0 ? (
             <div style={{ padding: '32px 16px', textAlign: 'center', color: '#71717A', fontSize: 14 }}>
