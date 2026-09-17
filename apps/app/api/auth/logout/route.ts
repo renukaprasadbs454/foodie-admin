@@ -5,6 +5,7 @@ import {
   readRefreshTokenFromCookieHeader,
 } from 'foodie-shared-web/auth';
 import { ENV } from '@/constants/env';
+import { safeFetch } from '@/lib/networkUtils';
 
 /**
  * BFF logout — UI-API Admin Settings logout via BFF (P2-AUTH-04 wiring).
@@ -25,12 +26,13 @@ export async function POST(request: Request) {
       if (accessToken) {
         headers.Authorization = `Bearer ${accessToken}`;
       }
-      await fetch(
+      await safeFetch(
         `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/auth/logout`,
         {
           method: 'POST',
           headers,
           body: JSON.stringify({ refreshToken }),
+          timeoutMs: 5000,
         },
       );
     } catch {

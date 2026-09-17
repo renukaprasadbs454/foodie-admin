@@ -8,64 +8,97 @@ import { GAP_API_17_PAYMENT_LIST } from '@/constants/gaps';
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
 
-import type { CommissionConfig, PaymentSettlementRecord } from '../types';
-import { calculatePaymentSplit } from '../types';
-import { useGetSettlementsQuery, useGetCommissionRulesQuery, useGetAdminPayoutsQuery } from '../../../api/endpoints/paymentsApi';
+import type {
+  CommissionConfig,
+  LedgerEntryRecord,
+  PaymentSettlementRecord,
+  PaymentTransactionRecord,
+  PayoutRecord,
+  RestaurantSettlementRecord,
+} from '../types';
+import { calculatePaymentSplit, validateRefundForm } from '../types';
+
+import {
+  useCalculateSplitMutation,
+  useDisburseRestaurantSettlementMutation,
+  useGetAdminPayoutsQuery,
+  useGetCommissionRulesQuery,
+  useGetLedgerQuery,
+  useGetRestaurantSettlementsQuery,
+  useGetSettlementsQuery,
+  useGetTransactionsQuery,
+  useRefundPaymentMutation,
+  useUpdateCommissionRulesMutation,
+} from '../../../api/endpoints/paymentsApi';
 import { useGetAdminRestaurantsQuery } from '../../../api/endpoints/restaurantsApi';
 import { useGetAdminDeliveryPartnersQuery } from '../../../api/endpoints/deliveryPartnersApi';
-export interface WithdrawRequest {
-  id: string;
-  vendorName: string;
-  module: string;
-  amount: number;
-  bankAccount: string;
-  requestedDate: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-}
+
+type TabKey =
+  | 'OVERVIEW'
+  | 'TRANSACTIONS'
+  | 'SETTLEMENTS'
+  | 'LEDGER'
+  | 'RESTAURANT_PAYOUTS'
+  | 'DELIVERY_PAYOUTS'
+  | 'EARNINGS'
+  | 'COMMISSION_RULES'
+  | 'REFUNDS';
 
 const DEFAULT_COMMISSION_CONFIG: CommissionConfig = {
-  restaurantCommissionRate: 15, // 15%
+  restaurantCommissionRate: 14, // 14%
   deliveryCommissionRate: 10,   // 10%
   platformFixedFee: 40,         // ₹40
 };
-
-// MOCK_SETTLEMENTS removed - now fetching from API
-
-// MOCK_WITHDRAWS removed - now fetching from API
 
 export function PaymentsPage() {
   const { tokens } = useTheme();
   const activeModule = useAppSelector(selectActiveModule);
 
-  // Core Financial State
-  const { data: serverRules } = useGetCommissionRulesQuery();
-  const { data: serverSettlements } = useGetSettlementsQuery();
+  // Active Sub-Tab State
+  const [activeTab, setActiveTab] = useState<TabKey>('OVERVIEW');
+
+  // Backend RTK Queries
+  const { data: serverRules, isLoading: rulesLoading } = useGetCommissionRulesQuery();
+  const { data: serverSettlements = [], isLoading: settlementsLoading } = useGetSettlementsQuery();
+  const { data: serverTransactions = [], isLoading: transactionsLoading } = useGetTransactionsQuery();
+  const { data: serverLedger = [], isLoading: ledgerLoading } = useGetLedgerQuery();
+  const { data: restaurantSettlements = [], isLoading: restSettlementsLoading } = useGetRestaurantSettlementsQuery();
+  const { data: serverPayouts = [], isLoading: payoutsLoading } = useGetAdminPayoutsQuery();
   const { data: restaurantsData } = useGetAdminRestaurantsQuery({});
   const { data: partnersData } = useGetAdminDeliveryPartnersQuery();
 
+  // RTK Mutations
+  const [updateRules, { isLoading: isSavingRules }] = useUpdateCommissionRulesMutation();
+  const [disburseSettlement, { isLoading: isDisbursing }] = useDisburseRestaurantSettlementMutation();
+  const [executeRefund, { isLoading: isRefunding }] = useRefundPaymentMutation();
+  const [calculateSplitApi] = useCalculateSplitMutation();
+
+  // Local State
   const [commissionConfig, setCommissionConfig] = useState<CommissionConfig>(DEFAULT_COMMISSION_CONFIG);
-  const [localSimulations, setLocalSimulations] = useState<PaymentSettlementRecord[]>([]);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  const { data: serverPayouts = [] } = useGetAdminPayoutsQuery();
-  const withdraws: WithdrawRequest[] = React.useMemo(() => {
-    return serverPayouts.map((p: any) => ({
-      id: p.id || p.payoutId || `w-${Math.random()}`,
-      vendorName: p.accountHolderName || 'Rest/Partner',
-      module: 'General',
-      amount: p.amount || 0,
-      bankAccount: `${p.bankName || 'Bank'} •• ${p.accountNumber?.slice(-4) || '****'}`,
-      requestedDate: p.createdAt ? String(p.createdAt).slice(0, 10) : '2026-08-27',
-      status: p.status === 'COMPLETED' ? 'APPROVED' : (p.status === 'FAILED' ? 'REJECTED' : 'PENDING'),
-    }));
-  }, [serverPayouts]);
+  // Live Simulator State
+  const [simCustomerName, setSimCustomerName] = useState('Arthur Pendelton');
+  const [simFoodCost, setSimFoodCost] = useState('500');
+  const [simDeliveryFee, setSimDeliveryFee] = useState('80');
+  const [simRestaurantName, setSimRestaurantName] = useState('');
+  const [simDriverName, setSimDriverName] = useState('');
+  const [simPayMethod, setSimPayMethod] = useState<'RAZORPAY_UPI' | 'CREDIT_CARD' | 'FOODIE_WALLET'>('RAZORPAY_UPI');
 
-  const [localApprovals, setLocalApprovals] = useState<Record<string, boolean>>({});
+  // Config Modal & Rules Form
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [configRestRate, setConfigRestRate] = useState('14');
+  const [configDelivRate, setConfigDelivRate] = useState('10');
+  const [configPlatformFee, setConfigPlatformFee] = useState('40');
 
-  const realRestaurants = restaurantsData?.items || [];
-  const realPartners = partnersData?.items || [];
+  // Disburse Modal State
+  const [selectedDisburseId, setSelectedDisburseId] = useState<string | null>(null);
+  const [disburseTxRef, setDisburseTxRef] = useState('');
 
-  // Combine server settlements with local simulations
-  const settlements = [...localSimulations, ...(serverSettlements || [])];
+  // Refund Form State
+  const [refundPaymentUuid, setRefundPaymentUuid] = useState('');
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundReason, setRefundReason] = useState('');
 
   useEffect(() => {
     if (serverRules) {
@@ -76,25 +109,6 @@ export function PaymentsPage() {
     }
   }, [serverRules]);
 
-  // Live Simulator Form State
-  const [simCustomerName, setSimCustomerName] = useState('Arthur Pendelton');
-  const [simFoodCost, setSimFoodCost] = useState('500');
-  const [simDeliveryFee, setSimDeliveryFee] = useState('80');
-  const [simRestaurantName, setSimRestaurantName] = useState('');
-  const [simDriverName, setSimDriverName] = useState('');
-  const [simPayMethod, setSimPayMethod] = useState<'RAZORPAY_UPI' | 'CREDIT_CARD' | 'FOODIE_WALLET'>('RAZORPAY_UPI');
-
-  // Config Modal & Refund States
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [configRestRate, setConfigRestRate] = useState(DEFAULT_COMMISSION_CONFIG.restaurantCommissionRate.toString());
-  const [configDelivRate, setConfigDelivRate] = useState(DEFAULT_COMMISSION_CONFIG.deliveryCommissionRate.toString());
-  const [configPlatformFee, setConfigPlatformFee] = useState(DEFAULT_COMMISSION_CONFIG.platformFixedFee.toString());
-
-  const [refundPaymentUuid, setRefundPaymentUuid] = useState('');
-  const [refundAmount, setRefundAmount] = useState('');
-  const [refundReason, setRefundReason] = useState('');
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
-
   useEffect(() => {
     trackAnalyticsEvent('admin_payments_viewed', {
       gapId: GAP_API_17_PAYMENT_LIST,
@@ -103,91 +117,122 @@ export function PaymentsPage() {
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 4000);
+    setTimeout(() => setToastMsg(null), 4500);
   };
 
-  // Calculated Live Metrics
-  const totalAdminEscrowPaid = settlements.reduce((acc, s) => acc + s.totalPaid, 0);
-  const totalAdminNetRevenue = settlements.reduce((acc, s) => acc + s.adminTotalRevenue, 0);
-  const totalDistributedToRestaurants = settlements.reduce((acc, s) => acc + s.restaurantNetShare, 0);
-  const totalDistributedToDrivers = settlements.reduce((acc, s) => acc + s.deliveryPartnerNetShare, 0);
+  const realRestaurants = restaurantsData?.items || [];
+  const realPartners = partnersData?.items || [];
 
-  // Live Simulator Handler
-  const handleSimulatePayment = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Live Financial Metrics Calculated from Real Database Data
+  const totalAdminEscrowPaid = serverSettlements.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
+  const totalAdminNetRevenue = serverSettlements.reduce((acc, s) => acc + (s.adminTotalRevenue || 0), 0);
+  const totalDistributedToRestaurants = serverSettlements.reduce((acc, s) => acc + (s.restaurantNetShare || 0), 0);
+  const totalDistributedToDrivers = serverSettlements.reduce((acc, s) => acc + (s.deliveryPartnerNetShare || 0), 0);
 
-    const foodCostNum = Math.max(0, Number(simFoodCost) || 0);
-    const deliveryFeeNum = Math.max(0, Number(simDeliveryFee) || 0);
-
-    if (foodCostNum <= 0) {
-      alert('Please enter a valid Food Subtotal amount');
-      return;
-    }
-
-    const split = calculatePaymentSplit(foodCostNum, deliveryFeeNum, commissionConfig);
-
-    const newOrderNum = 8800 + settlements.length + 1;
-    const newSettlement: PaymentSettlementRecord = {
-      id: `SETTL-90${settlements.length + 1}`,
-      paymentUuid: crypto.randomUUID ? crypto.randomUUID() : `uuid-${Date.now()}`,
-      orderId: `ORD-${newOrderNum}`,
-      customerName: simCustomerName || 'Guest Customer',
-      paymentMethod: simPayMethod,
-      totalPaid: split.totalPaid,
-      foodSubtotal: split.foodSubtotal,
-      deliveryFee: split.deliveryFee,
-      adminTotalRevenue: split.adminTotalRevenue,
-      restaurantNetShare: split.restaurantNetShare,
-      restaurantName: simRestaurantName || 'Partner Restaurant',
-      deliveryPartnerNetShare: split.deliveryPartnerNetShare,
-      driverName: simDriverName || 'Delivery Partner',
-      settlementStatus: 'FUNDS_DISTRIBUTED',
-      settledAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-    };
-
-    setLocalSimulations((prev) => [newSettlement, ...prev]);
-
-    showToast(
-      ` Customer Payment ₹${split.totalPaid.toFixed(2)} Credited to Admin Escrow! Auto-Split: Admin ₹${split.adminTotalRevenue.toFixed(2)} | Restaurant ₹${split.restaurantNetShare.toFixed(2)} | Driver ₹${split.deliveryPartnerNetShare.toFixed(2)}`
-    );
-  };
-
-  const handleSaveConfig = () => {
-    const rRate = Math.min(100, Math.max(0, Number(configRestRate) || 0));
-    const dRate = Math.min(100, Math.max(0, Number(configDelivRate) || 0));
-    const pFee = Math.max(0, Number(configPlatformFee) || 0);
-
-    setCommissionConfig({
-      restaurantCommissionRate: rRate,
-      deliveryCommissionRate: dRate,
-      platformFixedFee: pFee,
-    });
-
-    setIsConfigOpen(false);
-    showToast(`Updated Commission Rules: Restaurant ${rRate}%, Delivery ${dRate}%, Platform Fee ₹${pFee}`);
-  };
-
-  const handleApproveWithdraw = (id: string) => {
-    setLocalApprovals((prev) => ({ ...prev, [id]: true }));
-    showToast('Vendor withdrawal request approved and disbursed!');
-  };
-
-  const handleProcessRefund = () => {
-    if (!refundPaymentUuid.trim()) {
-      alert('Please enter a valid Payment UUID');
-      return;
-    }
-    showToast(`Refund of ₹${refundAmount || '0'} processed for Payment UUID: ${refundPaymentUuid.slice(0, 8)}...`);
-    setRefundPaymentUuid('');
-    setRefundAmount('');
-    setRefundReason('');
-  };
-
-  // Preview calculation for live simulator
+  // Live Simulator Calculations
   const livePreviewSplit = calculatePaymentSplit(
     Number(simFoodCost) || 0,
     Number(simDeliveryFee) || 0,
     commissionConfig
+  );
+
+  const handleSaveConfig = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const rRate = Math.min(100, Math.max(0, Number(configRestRate) || 0));
+    const dRate = Math.min(100, Math.max(0, Number(configDelivRate) || 0));
+    const pFee = Math.max(0, Number(configPlatformFee) || 0);
+
+    const payload: CommissionConfig = {
+      restaurantCommissionRate: rRate,
+      deliveryCommissionRate: dRate,
+      platformFixedFee: pFee,
+    };
+
+    try {
+      await updateRules(payload).unwrap();
+      setCommissionConfig(payload);
+      setIsConfigOpen(false);
+      showToast(`Successfully updated Commission Rules: Restaurant ${rRate}%, Delivery ${dRate}%, Platform Fee ₹${pFee}`);
+    } catch (err: any) {
+      showToast(`Failed to update rules: ${err?.data?.error?.message || err?.message || 'Server error'}`);
+    }
+  };
+
+  const handleDisburseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDisburseId) return;
+    if (!disburseTxRef.trim()) {
+      alert('Please enter a bank transaction reference number');
+      return;
+    }
+    try {
+      await disburseSettlement({
+        settlementId: selectedDisburseId,
+        paymentReference: disburseTxRef.trim(),
+      }).unwrap();
+      showToast(`Disbursement completed for settlement! Transaction Ref: ${disburseTxRef}`);
+      setSelectedDisburseId(null);
+      setDisburseTxRef('');
+    } catch (err: any) {
+      alert(`Disbursement error: ${err?.data?.error?.message || err?.message || 'Failed'}`);
+    }
+  };
+
+  const handleProcessRefund = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const validation = validateRefundForm(refundPaymentUuid, refundAmount, refundReason);
+    if (!validation.ok) {
+      alert(validation.message);
+      return;
+    }
+    try {
+      await executeRefund({
+        paymentId: validation.paymentId,
+        body: validation.body,
+      }).unwrap();
+      showToast(`Refund of ₹${validation.body.amount} executed successfully for Payment ID: ${validation.paymentId.slice(0, 8)}...`);
+      setRefundPaymentUuid('');
+      setRefundAmount('');
+      setRefundReason('');
+    } catch (err: any) {
+      alert(`Refund failed: ${err?.data?.error?.message || err?.message || 'Failed to execute refund'}`);
+    }
+  };
+
+  const renderTabsHeader = () => (
+    <div style={{ display: 'flex', borderBottom: '2px solid #E2E8F0', gap: 4, overflowX: 'auto', paddingBottom: 2 }}>
+      {[
+        { key: 'OVERVIEW', label: '📊 Executive Overview' },
+        { key: 'TRANSACTIONS', label: `💳 Transactions (${serverTransactions.length})` },
+        { key: 'SETTLEMENTS', label: `⚖️ Order Settlements (${serverSettlements.length})` },
+        { key: 'LEDGER', label: `📖 Audit Ledger (${serverLedger.length})` },
+        { key: 'RESTAURANT_PAYOUTS', label: `🏪 Restaurant Payouts (${restaurantSettlements.length})` },
+        { key: 'DELIVERY_PAYOUTS', label: `🛵 Driver Payouts (${serverPayouts.length})` },
+        { key: 'EARNINGS', label: '💰 Admin Earnings' },
+        { key: 'COMMISSION_RULES', label: '⚙️ Commission Rules' },
+        { key: 'REFUNDS', label: '🔄 Refunds & Reversals' },
+      ].map((t) => (
+        <button
+          key={t.key}
+          type="button"
+          onClick={() => setActiveTab(t.key as TabKey)}
+          style={{
+            padding: '10px 16px',
+            border: 'none',
+            background: 'none',
+            fontSize: 13,
+            fontWeight: activeTab === t.key ? 800 : 600,
+            color: activeTab === t.key ? '#0F3D21' : '#64748B',
+            borderBottom: activeTab === t.key ? '3px solid #0F3D21' : '3px solid transparent',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
   );
 
   return (
@@ -199,7 +244,7 @@ export function PaymentsPage() {
             position: 'fixed',
             bottom: 24,
             right: 24,
-            backgroundColor: '#000000',
+            backgroundColor: '#0F3D21',
             color: '#FFFFFF',
             padding: '14px 24px',
             borderRadius: 12,
@@ -212,51 +257,30 @@ export function PaymentsPage() {
             gap: 10,
           }}
         >
-          <span style={{ fontSize: 18 }}></span>
+          <span>✓</span>
           <span>{toastMsg}</span>
         </div>
       ) : null}
 
-      {/* Header */}
+      {/* Page Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Text as="h1" variant="heading1" color="#0F3D21" style={{ margin: 0 }}>
-            Admin Central Escrow & Automatic Commission Settlement
+            Foodie Platform — Payment & Commission Settlement Center
           </Text>
           <Text as="p" variant="caption" color="#64748B" style={{ margin: '4px 0 0' }}>
-            Customer payments credit 100% directly to Admin Account and auto-distribute to Restaurants and Delivery Partners based on commission rates.
+            Single source of truth for customer payments, 14% restaurant commissions, 10% delivery commissions, ₹40 platform fees, and wallet ledger postings.
           </Text>
         </div>
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link
-            href="/delivery-payouts"
-            style={{
-              backgroundColor: '#15803D',
-              color: '#FFFFFF',
-              border: 'none',
-              padding: '10px 18px',
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              boxShadow: '0 4px 12px rgba(21, 128, 61, 0.25)',
-              textDecoration: 'none',
-            }}
-          >
-            <span></span> Delivery Partner Payouts & Reconciliation
-          </Link>
-
           <button
             type="button"
             onClick={() => setIsConfigOpen(true)}
             style={{
-              backgroundColor: '#000000',
+              backgroundColor: '#0F3D21',
               color: '#FFFFFF',
-              border: '1px solid #27272A',
+              border: 'none',
               padding: '10px 18px',
               borderRadius: 10,
               fontSize: 13,
@@ -265,551 +289,1075 @@ export function PaymentsPage() {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              boxShadow: '0 4px 12px rgba(15,61,33,0.2)',
+              boxShadow: '0 4px 12px rgba(15,61,33,0.25)',
             }}
           >
-            <span></span> Configure Commission Rates
+            <span>⚙️</span> Edit Commission Rules (14% / 10% / ₹40)
           </button>
         </div>
       </div>
 
-      {/* Financial Summary KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            padding: '20px',
-            borderRadius: 14,
-            border: '1px solid #E2E8F0',
-            borderTop: '4px solid #0F3D21',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-          }}
-        >
-          <Text as="span" variant="caption" color="#64748B" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
-            Admin Escrow Collection Pool
-          </Text>
-          <Text as="h2" variant="heading1" color="#0F3D21" style={{ marginTop: 4, fontWeight: 800 }}>
-            ₹{totalAdminEscrowPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </Text>
-          <div style={{ fontSize: 11, color: '#166534', fontWeight: 700, marginTop: 4 }}>
-            ● 100% Customer Bill Direct Collections
-          </div>
-        </div>
+      {/* Sub-Tabs Bar */}
+      {renderTabsHeader()}
 
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            padding: '20px',
-            borderRadius: 14,
-            border: '1px solid #E4E4E7',
-            borderTop: '4px solid #000000',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-          }}
-        >
-          <Text as="span" variant="caption" color="#71717A" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
-            Total Admin Net Commission
-          </Text>
-          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4, fontWeight: 800 }}>
-            ₹{totalAdminNetRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </Text>
-          <div style={{ fontSize: 11, color: '#71717A', fontWeight: 700, marginTop: 4 }}>
-            Platform Fee ({commissionConfig.platformFixedFee}) + {commissionConfig.restaurantCommissionRate}% Rest. Comm.
-          </div>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            padding: '20px',
-            borderRadius: 14,
-            border: '1px solid #E4E4E7',
-            borderTop: '4px solid #000000',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-          }}
-        >
-          <Text as="span" variant="caption" color="#71717A" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
-            Distributed to Restaurants
-          </Text>
-          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4, fontWeight: 800 }}>
-            ₹{totalDistributedToRestaurants.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </Text>
-          <div style={{ fontSize: 11, color: '#71717A', fontWeight: 700, marginTop: 4 }}>
-            Net Food Earnings Credited to Vendors
-          </div>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            padding: '20px',
-            borderRadius: 14,
-            border: '1px solid #E4E4E7',
-            borderTop: '4px solid #000000',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-          }}
-        >
-          <Text as="span" variant="caption" color="#71717A" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
-            Distributed to Delivery Partners
-          </Text>
-          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4, fontWeight: 800 }}>
-            ₹{totalDistributedToDrivers.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </Text>
-          <div style={{ fontSize: 11, color: '#71717A', fontWeight: 700, marginTop: 4 }}>
-            Net Delivery Fees Credited to Riders
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 1: CUSTOMER PAYMENT & AUTO-SPLIT SIMULATOR */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: 16,
-          border: '1px solid #E2E8F0',
-          padding: 24,
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
-              Customer Payment & Commission Auto-Split Simulator
-            </h2>
-            <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0' }}>
-              Simulate a customer order payment to verify instant credit to Admin Escrow and automatic split calculation.
-            </p>
-          </div>
-          <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#FEF3C7', color: '#B45309', padding: '4px 10px', borderRadius: 8 }}>
-            ACTIVE RULES: Rest {commissionConfig.restaurantCommissionRate}% | Delivery {commissionConfig.deliveryCommissionRate}% | Fee ₹{commissionConfig.platformFixedFee}
-          </span>
-        </div>
-
-        <form onSubmit={handleSimulatePayment} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          {/* Inputs */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                Customer Name
-              </label>
-              <input
-                type="text"
-                value={simCustomerName}
-                onChange={(e) => setSimCustomerName(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                  Food Subtotal (₹) *
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={simFoodCost}
-                  onChange={(e) => setSimFoodCost(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                  Delivery Fee (₹)
-                </label>
-                <input
-                  type="number"
-                  value={simDeliveryFee}
-                  onChange={(e) => setSimDeliveryFee(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                  Restaurant Store Name
-                </label>
-                <select
-                  value={simRestaurantName}
-                  onChange={(e) => setSimRestaurantName(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
-                >
-                  <option value="">-- Select Real Restaurant --</option>
-                  {realRestaurants.map((r: any) => (
-                    <option key={r.restaurantId} value={r.name}>{r.name}</option>
-                  ))}
-                  <option value="Artisan Burger Co.">Artisan Burger Co. (Custom)</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                  Assigned Rider Name
-                </label>
-                <select
-                  value={simDriverName}
-                  onChange={(e) => setSimDriverName(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
-                >
-                  <option value="">-- Select Real Delivery Partner --</option>
-                  {realPartners.map((dp: any) => (
-                    <option key={dp.partnerId} value={dp.fullName}>{dp.fullName}</option>
-                  ))}
-                  <option value="Karan Kumar (Rider)">Karan Kumar (Custom)</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                Payment Gateway / Method
-              </label>
-              <select
-                value={simPayMethod}
-                onChange={(e) => setSimPayMethod(e.target.value as any)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 600 }}
-              >
-                <option value="RAZORPAY_UPI">Razorpay UPI / Instant</option>
-                <option value="CREDIT_CARD">Credit / Debit Card</option>
-                <option value="FOODIE_WALLET">Foodie Customer Wallet</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Live Auto-Split Breakdown Preview */}
-          <div
-            style={{
-              backgroundColor: '#F8FAFC',
-              borderRadius: 14,
-              border: '1px solid #E2E8F0',
-              padding: 18,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              gap: 12,
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#0F3D21', textTransform: 'uppercase', marginBottom: 10 }}>
-                Calculated Auto-Split Breakdown
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #CBD5E1', paddingBottom: 6 }}>
-                  <span style={{ color: '#475569', fontWeight: 600 }}>Total Paid by Customer (100% Admin Escrow):</span>
-                  <span style={{ fontWeight: 800, color: '#0F3D21' }}>₹{livePreviewSplit.totalPaid.toFixed(2)}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#D97706', fontWeight: 700 }}>
-                  <span> Admin Net Commission Revenue:</span>
-                  <span>₹{livePreviewSplit.adminTotalRevenue.toFixed(2)}</span>
-                </div>
-
-                <div style={{ fontSize: 11, color: '#94A3B8', paddingLeft: 12, marginTop: -4 }}>
-                  • Rest. Comm ({commissionConfig.restaurantCommissionRate}%): ₹{livePreviewSplit.adminFoodCommission.toFixed(2)}
-                  <br />
-                  • Delivery Comm ({commissionConfig.deliveryCommissionRate}%): ₹{livePreviewSplit.adminDeliveryCommission.toFixed(2)}
-                  <br />
-                  • Fixed Platform Fee: ₹{livePreviewSplit.platformFee.toFixed(2)}
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#09090B', fontWeight: 700, paddingTop: 4 }}>
-                  <span> Restaurant Net Wallet Distribution:</span>
-                  <span>₹{livePreviewSplit.restaurantNetShare.toFixed(2)}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#09090B', fontWeight: 700 }}>
-                  <span> Delivery Partner Net Wallet Distribution:</span>
-                  <span>₹{livePreviewSplit.deliveryPartnerNetShare.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
+      {/* TAB 1: EXECUTIVE OVERVIEW */}
+      {activeTab === 'OVERVIEW' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Financial Summary KPI Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+            <div
               style={{
-                backgroundColor: '#000000',
-                color: '#FFFFFF',
-                border: 'none',
-                padding: '12px 18px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                transition: 'all 0.15s ease',
+                backgroundColor: '#FFFFFF',
+                padding: '20px',
+                borderRadius: 14,
+                border: '1px solid #E2E8F0',
+                borderTop: '4px solid #0F3D21',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
               }}
             >
-              Pay Bill & Auto-Distribute Funds
-            </button>
+              <Text as="span" variant="caption" color="#64748B" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
+                Total Admin Escrow Pool
+              </Text>
+              <Text as="h2" variant="heading1" color="#0F3D21" style={{ marginTop: 4, fontWeight: 800 }}>
+                ₹{totalAdminEscrowPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </Text>
+              <div style={{ fontSize: 11, color: '#166534', fontWeight: 700, marginTop: 4 }}>
+                ● 100% Customer Bill Direct Collections
+              </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: '#FFFFFF',
+                padding: '20px',
+                borderRadius: 14,
+                border: '1px solid #E4E4E7',
+                borderTop: '4px solid #000000',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+              }}
+            >
+              <Text as="span" variant="caption" color="#71717A" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
+                Total Admin Platform Revenue
+              </Text>
+              <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4, fontWeight: 800 }}>
+                ₹{totalAdminNetRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </Text>
+              <div style={{ fontSize: 11, color: '#71717A', fontWeight: 700, marginTop: 4 }}>
+                14% Rest. Comm + 10% Driver Comm + ₹{commissionConfig.platformFixedFee} Service Fee
+              </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: '#FFFFFF',
+                padding: '20px',
+                borderRadius: 14,
+                border: '1px solid #E4E4E7',
+                borderTop: '4px solid #15803D',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+              }}
+            >
+              <Text as="span" variant="caption" color="#71717A" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
+                Distributed to Restaurants
+              </Text>
+              <Text as="h2" variant="heading1" color="#15803D" style={{ marginTop: 4, fontWeight: 800 }}>
+                ₹{totalDistributedToRestaurants.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </Text>
+              <div style={{ fontSize: 11, color: '#71717A', fontWeight: 700, marginTop: 4 }}>
+                86% Net Food Subtotal Credited to Vendors
+              </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: '#FFFFFF',
+                padding: '20px',
+                borderRadius: 14,
+                border: '1px solid #E4E4E7',
+                borderTop: '4px solid #000000',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+              }}
+            >
+              <Text as="span" variant="caption" color="#71717A" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
+                Distributed to Delivery Partners
+              </Text>
+              <Text as="h2" variant="heading1" color="#000000" style={{ marginTop: 4, fontWeight: 800 }}>
+                ₹{totalDistributedToDrivers.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </Text>
+              <div style={{ fontSize: 11, color: '#71717A', fontWeight: 700, marginTop: 4 }}>
+                90% Net Delivery Payout Credited to Riders
+              </div>
+            </div>
           </div>
-        </form>
-      </div>
 
-      {/* SECTION 2: LIVE PAYMENT SETTLEMENT LEDGER */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: 16,
-          border: '1px solid #E4E4E7',
-          overflow: 'hidden',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-        }}
-      >
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
-              Live Payment Settlement & Distribution Ledger
-            </Text>
-            <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
-              Real-time audit log of customer bill payments credited to Admin Escrow and split to stakeholders.
-            </Text>
-          </div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '4px 10px', borderRadius: 20 }}>
-            ● {settlements.length} Settlements Processed
-          </span>
-        </div>
+          {/* COMMISSION AUTO-SPLIT SIMULATOR & TEST TOOLS */}
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              border: '1px solid #E2E8F0',
+              padding: 24,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
+                  Customer Payment & Commission Calculator
+                </h2>
+                <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0' }}>
+                  Test exact food subtotal and delivery fee split breakdown against current active database rules.
+                </p>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#DCFCE7', color: '#166534', padding: '6px 12px', borderRadius: 8 }}>
+                ACTIVE BACKEND RULES: 14% Rest Comm | 10% Driver Comm | ₹40 Platform Fee
+              </span>
+            </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#18181B', backgroundColor: '#F4F4F5' }}>
-                <th style={{ padding: '12px 16px', fontWeight: 700 }}>Settlement / Order</th>
-                <th style={{ padding: '12px 16px', fontWeight: 700 }}>Customer</th>
-                <th style={{ padding: '12px 16px', fontWeight: 700 }}>Total Paid (Admin Escrow)</th>
-                <th style={{ padding: '12px 16px', fontWeight: 700 }}>Admin Net Commission</th>
-                <th style={{ padding: '12px 16px', fontWeight: 700 }}>Restaurant Share</th>
-                <th style={{ padding: '12px 16px', fontWeight: 700 }}>Delivery Partner Share</th>
-                <th style={{ padding: '12px 16px', fontWeight: 700 }}>Status</th>
-                <th style={{ padding: '12px 16px', fontWeight: 700 }}>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {settlements.map((s) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ fontWeight: 800, color: '#09090B' }}>{s.orderId}</div>
-                    <div style={{ fontSize: 11, color: '#71717A' }}>{s.id}</div>
-                  </td>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                    Customer Name
+                  </label>
+                  <input
+                    type="text"
+                    value={simCustomerName}
+                    onChange={(e) => setSimCustomerName(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
+                  />
+                </div>
 
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ fontWeight: 700, color: '#09090B' }}>{s.customerName}</div>
-                    <div style={{ fontSize: 11, color: '#71717A' }}>{s.paymentMethod}</div>
-                  </td>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                      Food Subtotal (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={simFoodCost}
+                      onChange={(e) => setSimFoodCost(e.target.value)}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}
+                    />
+                  </div>
 
-                  <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>
-                    ₹{s.totalPaid.toFixed(2)}
-                  </td>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                      Delivery Fee (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={simDeliveryFee}
+                      onChange={(e) => setSimDeliveryFee(e.target.value)}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}
+                    />
+                  </div>
+                </div>
 
-                  <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>
-                    +₹{s.adminTotalRevenue.toFixed(2)}
-                  </td>
-
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ fontWeight: 800, color: '#09090B' }}>+₹{s.restaurantNetShare.toFixed(2)}</div>
-                    <div style={{ fontSize: 11, color: '#71717A' }}>{s.restaurantName}</div>
-                  </td>
-
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ fontWeight: 800, color: '#09090B' }}>+₹{s.deliveryPartnerNetShare.toFixed(2)}</div>
-                    <div style={{ fontSize: 11, color: '#71717A' }}>{s.driverName}</div>
-                  </td>
-
-                  <td style={{ padding: '14px 16px' }}>
-                    <span
-                      style={{
-                        backgroundColor: '#DCFCE7',
-                        color: '#166534',
-                        fontSize: 10,
-                        fontWeight: 800,
-                        padding: '3px 8px',
-                        borderRadius: 20,
-                        border: '1px solid #86EFAC',
-                      }}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                      Restaurant Store
+                    </label>
+                    <select
+                      value={simRestaurantName}
+                      onChange={(e) => setSimRestaurantName(e.target.value)}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
                     >
-                      ● FUNDS DISTRIBUTED
-                    </span>
-                  </td>
+                      <option value="">-- Select Store --</option>
+                      {realRestaurants.map((r: any) => (
+                        <option key={r.restaurantId} value={r.name}>{r.name}</option>
+                      ))}
+                      <option value="Spice Garden">Spice Garden (Default)</option>
+                    </select>
+                  </div>
 
-                  <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
-                    {s.settledAt}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                      Delivery Partner
+                    </label>
+                    <select
+                      value={simDriverName}
+                      onChange={(e) => setSimDriverName(e.target.value)}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
+                    >
+                      <option value="">-- Select Rider --</option>
+                      {realPartners.map((dp: any) => (
+                        <option key={dp.partnerId} value={dp.fullName}>{dp.fullName}</option>
+                      ))}
+                      <option value="Rohan Sharma">Rohan Sharma (Default)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Calculated Split Preview Box */}
+              <div
+                style={{
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: 14,
+                  border: '1px solid #E2E8F0',
+                  padding: 18,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#0F3D21', textTransform: 'uppercase', marginBottom: 10 }}>
+                    Real-time Calculated Auto-Split
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #CBD5E1', paddingBottom: 6 }}>
+                      <span style={{ color: '#475569', fontWeight: 600 }}>Total Customer Bill:</span>
+                      <span style={{ fontWeight: 800, color: '#0F3D21' }}>₹{livePreviewSplit.totalPaid.toFixed(2)}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#D97706', fontWeight: 700 }}>
+                      <span> Foodie Admin Total Commission:</span>
+                      <span>₹{livePreviewSplit.adminTotalRevenue.toFixed(2)}</span>
+                    </div>
+
+                    <div style={{ fontSize: 11, color: '#64748B', paddingLeft: 12, marginTop: -4 }}>
+                      • 14% Food Commission: ₹{livePreviewSplit.adminFoodCommission.toFixed(2)}
+                      <br />
+                      • 10% Driver Commission: ₹{livePreviewSplit.adminDeliveryCommission.toFixed(2)}
+                      <br />
+                      • Fixed Service Fee: ₹{livePreviewSplit.platformFee.toFixed(2)}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#15803D', fontWeight: 700, paddingTop: 4 }}>
+                      <span> Restaurant Net Payout (86%):</span>
+                      <span>₹{livePreviewSplit.restaurantNetShare.toFixed(2)}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#09090B', fontWeight: 700 }}>
+                      <span> Delivery Partner Net Payout (90%):</span>
+                      <span>₹{livePreviewSplit.deliveryPartnerNetShare.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* SECTION 3 & 4: VENDOR WITHDRAWALS & REFUND PROCESSING */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 24 }}>
-        {/* Vendor Withdrawal Requests Table */}
+      {/* TAB 2: TRANSACTIONS */}
+      {activeTab === 'TRANSACTIONS' && (
         <div
           style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 16,
-            border: '1px solid #E2E8F0',
+            border: '1px solid #E4E4E7',
             overflow: 'hidden',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
-            <Text as="h2" variant="heading3" color="#0F3D21">
-              Vendor & Delivery Partner Payout Requests
-            </Text>
-            <Text as="p" variant="caption" color="#64748B">
-              Withdrawal requests from restaurants and riders to disburse their accumulated wallet earnings.
-            </Text>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
+                Real Payment Transactions Database
+              </Text>
+              <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
+                All incoming customer payment transaction records captured from Razorpay / Payment Gateway.
+              </Text>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '4px 10px', borderRadius: 20 }}>
+              {serverTransactions.length} Transactions Recorded
+            </span>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #E2E8F0', color: '#64748B' }}>
-                <th style={{ padding: '12px 20px' }}>Vendor / Store</th>
-                <th style={{ padding: '12px 20px' }}>Payout Amount</th>
-                <th style={{ padding: '12px 20px' }}>Bank Account</th>
-                <th style={{ padding: '12px 20px' }}>Status</th>
-                <th style={{ padding: '12px 20px', textAlign: 'right' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {withdraws
-                .map((w) => (
-                  <tr key={w.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 700, color: '#0F3D21' }}>{w.vendorName}</div>
-                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{w.module} • {w.requestedDate}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0F3D21' }}>
-                      ₹{w.amount.toLocaleString()}
-                    </td>
-                    <td style={{ padding: '16px 20px', color: '#475569', fontSize: 12 }}>{w.bankAccount}</td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span
-                        style={{
-                          backgroundColor: w.status === 'APPROVED' ? '#DCFCE7' : '#FEF3C7',
-                          color: w.status === 'APPROVED' ? '#166534' : '#B45309',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: '4px 8px',
-                          borderRadius: 20,
-                        }}
-                      >
-                        {localApprovals[w.id] || w.status === 'APPROVED' ? 'APPROVED' : w.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                      {(w.status === 'PENDING' && !localApprovals[w.id]) ? (
-                        <button
-                          type="button"
-                          onClick={() => handleApproveWithdraw(w.id)}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#18181B', backgroundColor: '#F4F4F5' }}>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Transaction ID</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Order ID</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>User ID</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Amount</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Method</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Gateway</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Status</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactionsLoading ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>Loading real payment transactions...</td>
+                  </tr>
+                ) : serverTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>No payment transactions found in database.</td>
+                  </tr>
+                ) : (
+                  serverTransactions.map((tx: PaymentTransactionRecord) => (
+                    <tr key={tx.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B', fontFamily: 'monospace' }}>
+                        {tx.id}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
+                        {tx.orderId || 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', color: '#64748B', fontSize: 12 }}>
+                        {tx.userId || 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>
+                        ₹{(tx.amount || 0).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#334155' }}>
+                        {tx.paymentMethod || 'RAZORPAY_UPI'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
+                        {tx.gatewayName || 'RAZORPAY'} ({tx.gatewayTransactionId ? tx.gatewayTransactionId.slice(0, 10) : 'N/A'})
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
                           style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#000000',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
+                            backgroundColor: tx.status === 'SUCCESS' || tx.status === 'CAPTURED' ? '#DCFCE7' : '#FEF3C7',
+                            color: tx.status === 'SUCCESS' || tx.status === 'CAPTURED' ? '#166534' : '#B45309',
+                            fontSize: 10,
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: 20,
                           }}
                         >
-                          Approve Payout
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: 12, color: '#71717A', fontWeight: 600 }}>Completed</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+                          ● {tx.status || 'CAPTURED'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
+                        {tx.createdAt ? String(tx.createdAt).replace('T', ' ').slice(0, 16) : 'N/A'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+      )}
 
-        {/* Refund Processing Box */}
+      {/* TAB 3: SETTLEMENTS & DISTRIBUTION */}
+      {activeTab === 'SETTLEMENTS' && (
         <div
           style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 16,
             border: '1px solid #E4E4E7',
-            borderTop: '4px solid #000000',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
+            overflow: 'hidden',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-            height: 'fit-content',
           }}
         >
-          <div>
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#09090B', margin: 0 }}>
-              Initiate Customer Refund
-            </h3>
-            <p style={{ fontSize: 12, color: '#71717A', margin: '4px 0 0' }}>
-              Issue direct wallet or source gateway refunds for cancelled or disputed orders.
-            </p>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
+                Order Payment Settlement & Distribution Ledger
+              </Text>
+              <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
+                Real backend settlements showing exact breakdown: Customer Payment → 14% Food Comm → 10% Driver Comm → ₹40 Platform Fee → Net Distributions.
+              </Text>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '4px 10px', borderRadius: 20 }}>
+              {serverSettlements.length} Settlements
+            </span>
           </div>
 
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
-              Payment UUID
-            </label>
-            <input
-              type="text"
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              value={refundPaymentUuid}
-              onChange={(e) => setRefundPaymentUuid(e.target.value)}
-              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13 }}
-            />
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#18181B', backgroundColor: '#F4F4F5' }}>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Settlement ID / Order</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Customer</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Total Paid (Admin)</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Admin Net Revenue</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Restaurant Net (86%)</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Delivery Net (90%)</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Status</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Settled At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {settlementsLoading ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>Loading order settlements...</td>
+                  </tr>
+                ) : serverSettlements.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>No settlement records available.</td>
+                  </tr>
+                ) : (
+                  serverSettlements.map((s: PaymentSettlementRecord) => (
+                    <tr key={s.id || s.settlementId} style={{ borderBottom: '1px solid #F4F4F5' }}>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontWeight: 800, color: '#0F3D21' }}>{s.orderNumber || s.orderId}</div>
+                        <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'monospace' }}>{s.id || s.settlementId}</div>
+                      </td>
+
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontWeight: 700, color: '#09090B' }}>{s.customerName || 'Customer'}</div>
+                        <div style={{ fontSize: 11, color: '#71717A' }}>{s.paymentMethod || 'RAZORPAY_UPI'}</div>
+                      </td>
+
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>
+                        ₹{(s.totalPaid || 0).toFixed(2)}
+                      </td>
+
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: '#D97706' }}>
+                        +₹{(s.adminTotalRevenue || 0).toFixed(2)}
+                        <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 500 }}>
+                          Rest: ₹{(s.restaurantFoodCommission || 0).toFixed(2)} | Deliv: ₹{(s.deliveryPartnerCommission || 0).toFixed(2)} | Fee: ₹{(s.platformFee || 40).toFixed(2)}
+                        </div>
+                      </td>
+
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontWeight: 800, color: '#15803D' }}>+₹{(s.restaurantNetShare || 0).toFixed(2)}</div>
+                        <div style={{ fontSize: 11, color: '#71717A' }}>{s.restaurantName || 'Restaurant'}</div>
+                      </td>
+
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontWeight: 800, color: '#09090B' }}>+₹{(s.deliveryPartnerNetShare || 0).toFixed(2)}</div>
+                        <div style={{ fontSize: 11, color: '#71717A' }}>{s.driverName || 'Rider'}</div>
+                      </td>
+
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            backgroundColor: '#DCFCE7',
+                            color: '#166534',
+                            fontSize: 10,
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: 20,
+                            border: '1px solid #86EFAC',
+                          }}
+                        >
+                          ● {s.settlementStatus || 'FUNDS_DISTRIBUTED'}
+                        </span>
+                      </td>
+
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
+                        {s.settledAt ? String(s.settledAt).replace('T', ' ').slice(0, 16) : 'Just now'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: AUDIT LEDGER */}
+      {activeTab === 'LEDGER' && (
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            border: '1px solid #E4E4E7',
+            overflow: 'hidden',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          }}
+        >
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
+                Authoritative Double-Entry Financial Ledger
+              </Text>
+              <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
+                Immutable audit trail of all DEBIT & CREDIT postings across Platform, Restaurant, and Driver wallets.
+              </Text>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '4px 10px', borderRadius: 20 }}>
+              {serverLedger.length} Ledger Entries
+            </span>
           </div>
 
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
-              Refund Amount (₹)
-            </label>
-            <input
-              type="number"
-              placeholder="0.00"
-              value={refundAmount}
-              onChange={(e) => setRefundAmount(e.target.value)}
-              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, fontWeight: 700 }}
-            />
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#18181B', backgroundColor: '#F4F4F5' }}>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Entry ID</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Wallet Account ID</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Type</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Amount</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Reference Type</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Reference ID</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Balance After</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ledgerLoading ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>Loading financial ledger entries...</td>
+                  </tr>
+                ) : serverLedger.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>No ledger entries recorded yet.</td>
+                  </tr>
+                ) : (
+                  serverLedger.map((l: LedgerEntryRecord) => (
+                    <tr key={l.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, fontFamily: 'monospace', color: '#09090B' }}>
+                        {l.id}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, fontFamily: 'monospace', color: '#64748B' }}>
+                        {l.walletAccountId || 'PLATFORM-ESCROW'}
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            backgroundColor: l.entryType === 'CREDIT' ? '#DCFCE7' : '#FEE2E2',
+                            color: l.entryType === 'CREDIT' ? '#166534' : '#991B1B',
+                            fontSize: 11,
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                          }}
+                        >
+                          {l.entryType || 'CREDIT'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: l.entryType === 'CREDIT' ? '#166534' : '#991B1B' }}>
+                        {l.entryType === 'CREDIT' ? '+' : '-'}₹{(l.amount || 0).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#334155' }}>
+                        {l.referenceType || 'ORDER_SETTLEMENT'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B', fontFamily: 'monospace' }}>
+                        {l.referenceId || 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
+                        ₹{(l.balanceAfter || 0).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
+                        {l.createdAt ? String(l.createdAt).replace('T', ' ').slice(0, 16) : 'N/A'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: RESTAURANT PAYOUTS */}
+      {activeTab === 'RESTAURANT_PAYOUTS' && (
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            border: '1px solid #E4E4E7',
+            overflow: 'hidden',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          }}
+        >
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
+                Restaurant Store Settlements & Bank Disbursals
+              </Text>
+              <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
+                Accumulated net 86% food revenue payouts to restaurant partners with formal disbursement tracking.
+              </Text>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '4px 10px', borderRadius: 20 }}>
+              {restaurantSettlements.length} Store Payout Records
+            </span>
           </div>
 
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
-              Reason for Refund
-            </label>
-            <textarea
-              rows={3}
-              placeholder="Order cancelled, missing items, or food quality complaint..."
-              value={refundReason}
-              onChange={(e) => setRefundReason(e.target.value)}
-              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 12, fontFamily: 'inherit' }}
-            />
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#18181B', backgroundColor: '#F4F4F5' }}>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Settlement ID</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Restaurant Store</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Period</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Orders Count</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Food Subtotal</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>14% Comm Deducted</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Net Payout Amount</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Status</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700 }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {restSettlementsLoading ? (
+                  <tr>
+                    <td colSpan={9} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>Loading restaurant payouts...</td>
+                  </tr>
+                ) : restaurantSettlements.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>No restaurant settlement payout records found.</td>
+                  </tr>
+                ) : (
+                  restaurantSettlements.map((rs: RestaurantSettlementRecord) => (
+                    <tr key={rs.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B', fontFamily: 'monospace' }}>
+                        {rs.id}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
+                        {rs.restaurantName || 'Partner Store'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
+                        {rs.periodStart ? `${rs.periodStart.slice(0, 10)} to ${rs.periodEnd?.slice(0, 10)}` : 'Weekly Cycle'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B' }}>
+                        {rs.totalOrdersCount || 1}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#334155' }}>
+                        ₹{(rs.totalSubtotal || 0).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#D97706' }}>
+                        -₹{(rs.totalCommission || 0).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: '#15803D' }}>
+                        ₹{(rs.netPayoutAmount || 0).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            backgroundColor: rs.status === 'DISBURSED' ? '#DCFCE7' : '#FEF3C7',
+                            color: rs.status === 'DISBURSED' ? '#166534' : '#B45309',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: 20,
+                          }}
+                        >
+                          ● {rs.status || 'PENDING'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                        {rs.status === 'PENDING' ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDisburseId(rs.id)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#0F3D21',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Disburse Funds
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
+                            {rs.paymentReference ? `Ref: ${rs.paymentReference}` : 'Completed'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: DELIVERY PARTNER PAYOUTS */}
+      {activeTab === 'DELIVERY_PAYOUTS' && (
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            border: '1px solid #E4E4E7',
+            overflow: 'hidden',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          }}
+        >
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
+                Delivery Partner Payouts & Driver Earnings
+              </Text>
+              <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
+                Bank transfer disbursals for delivery partners after 10% platform commission deduction.
+              </Text>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '4px 10px', borderRadius: 20 }}>
+              {serverPayouts.length} Driver Payouts
+            </span>
           </div>
 
-          <button
-            type="button"
-            onClick={handleProcessRefund}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#18181B', backgroundColor: '#F4F4F5' }}>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Payout ID</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Driver / Account Holder</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Wallet Account</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Amount</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Bank & Account Details</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Status</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Requested Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payoutsLoading ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>Loading driver payouts...</td>
+                  </tr>
+                ) : serverPayouts.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>No delivery partner payout records.</td>
+                  </tr>
+                ) : (
+                  serverPayouts.map((p: PayoutRecord) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B', fontFamily: 'monospace' }}>
+                        {p.id}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
+                        {p.accountHolderName || 'Delivery Partner'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B', fontFamily: 'monospace' }}>
+                        {p.walletAccountId || 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>
+                        ₹{(p.amount || 0).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#334155' }}>
+                        {p.bankName || 'Bank'} • {p.accountNumber ? `•• ${p.accountNumber.slice(-4)}` : '••••'} ({p.ifscCode || 'IFSC'})
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : '#FEF3C7',
+                            color: p.status === 'COMPLETED' ? '#166534' : '#B45309',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: 20,
+                          }}
+                        >
+                          ● {p.status || 'PENDING'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
+                        {p.createdAt ? String(p.createdAt).replace('T', ' ').slice(0, 16) : 'N/A'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 7: FOODIE ADMIN EARNINGS */}
+      {activeTab === 'EARNINGS' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div
             style={{
-              padding: '12px 18px',
-              backgroundColor: '#000000',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 14,
-              fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              marginTop: 8,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              border: '1px solid #E2E8F0',
+              padding: 24,
             }}
           >
-            Execute Refund
-          </button>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
+              Foodie Admin Net Platform Revenue Breakdown
+            </h2>
+            <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 20px' }}>
+              Real-time accumulated earnings breakdown across all processed order settlements.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+              <div style={{ backgroundColor: '#F8FAFC', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>14% Food Item Commission</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0F3D21', margin: '8px 0' }}>
+                  ₹{serverSettlements.reduce((acc, s) => acc + (s.restaurantFoodCommission || 0), 0).toFixed(2)}
+                </div>
+                <div style={{ fontSize: 11, color: '#166534' }}>14% retained on total food subtotal</div>
+              </div>
+
+              <div style={{ backgroundColor: '#FAFAFA', padding: 20, borderRadius: 12, border: '1px solid #E4E4E7' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>10% Delivery Fee Commission</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#09090B', margin: '8px 0' }}>
+                  ₹{serverSettlements.reduce((acc, s) => acc + (s.deliveryPartnerCommission || 0), 0).toFixed(2)}
+                </div>
+                <div style={{ fontSize: 11, color: '#52525B' }}>10% retained on total delivery fee</div>
+              </div>
+
+              <div style={{ backgroundColor: '#F8FAFC', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Fixed Platform Service Fees</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#D97706', margin: '8px 0' }}>
+                  ₹{serverSettlements.reduce((acc, s) => acc + (s.platformFee || 40), 0).toFixed(2)}
+                </div>
+                <div style={{ fontSize: 11, color: '#B45309' }}>₹40 fixed per order retained 100%</div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* TAB 8: COMMISSION RULES */}
+      {activeTab === 'COMMISSION_RULES' && (
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            border: '1px solid #E2E8F0',
+            padding: 24,
+            maxWidth: 600,
+          }}
+        >
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
+            Platform Commission & Fee Configuration
+          </h2>
+          <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 20px' }}>
+            Modify active backend commission rates for real-time order distribution calculations.
+          </p>
+
+          <form onSubmit={handleSaveConfig} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                Restaurant Food Commission Rate (%)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={configRestRate}
+                onChange={(e) => setConfigRestRate(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 14, fontWeight: 700 }}
+              />
+              <span style={{ fontSize: 11, color: '#64748B' }}>Deducted from restaurant food subtotal (Default: 14%)</span>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                Delivery Partner Commission Rate (%)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={configDelivRate}
+                onChange={(e) => setConfigDelivRate(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 14, fontWeight: 700 }}
+              />
+              <span style={{ fontSize: 11, color: '#64748B' }}>Deducted from driver delivery payout (Default: 10%)</span>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                Fixed Platform Service Fee (₹ per order)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={configPlatformFee}
+                onChange={(e) => setConfigPlatformFee(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 14, fontWeight: 700 }}
+              />
+              <span style={{ fontSize: 11, color: '#64748B' }}>Retained 100% by Foodie Admin per order (Default: ₹40)</span>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSavingRules}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#0F3D21',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 800,
+                cursor: 'pointer',
+                marginTop: 8,
+              }}
+            >
+              {isSavingRules ? 'Saving to Database...' : 'Save & Publish Commission Rules'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* TAB 9: REFUNDS & REVERSALS */}
+      {activeTab === 'REFUNDS' && (
+        <div style={{ maxWidth: 600 }}>
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              border: '1px solid #E4E4E7',
+              borderTop: '4px solid #0F3D21',
+              padding: 24,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            }}
+          >
+            <div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+                Initiate Real Customer Refund / Reversal
+              </h3>
+              <p style={{ fontSize: 12, color: '#71717A', margin: '4px 0 0' }}>
+                Process an official refund through backend Payment Service & update customer wallet / Razorpay gateway.
+              </p>
+            </div>
+
+            <form onSubmit={handleProcessRefund} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                  Payment UUID / ID *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter Payment UUID"
+                  value={refundPaymentUuid}
+                  onChange={(e) => setRefundPaymentUuid(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                  Refund Amount (₹) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  step="0.01"
+                  placeholder="0.00"
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, fontWeight: 700 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                  Reason for Refund *
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Order cancellation, food quality complaint, or missing item..."
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 12, fontFamily: 'inherit' }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isRefunding}
+                style={{
+                  padding: '12px 18px',
+                  backgroundColor: '#000000',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  marginTop: 8,
+                }}
+              >
+                {isRefunding ? 'Processing Refund...' : 'Execute Payment Refund'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DISBURSE MODAL */}
+      {selectedDisburseId ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              padding: 24,
+              maxWidth: 440,
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            }}
+          >
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+              Disburse Restaurant Settlement
+            </h3>
+            <p style={{ fontSize: 12, color: '#71717A', margin: 0 }}>
+              Enter the bank transaction reference number for settlement ID: <strong style={{ fontFamily: 'monospace' }}>{selectedDisburseId}</strong>.
+            </p>
+
+            <form onSubmit={handleDisburseSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                  Bank Reference Number / UTR *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. UTR129048102938"
+                  value={disburseTxRef}
+                  onChange={(e) => setDisburseTxRef(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDisburseId(null)}
+                  style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E4E4E7', backgroundColor: '#F4F4F5', fontSize: 13, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isDisbursing}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 8,
+                    border: 'none',
+                    backgroundColor: '#0F3D21',
+                    color: '#FFFFFF',
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {isDisbursing ? 'Disbursing...' : 'Confirm Disbursal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       {/* CONFIGURATION MODAL */}
       {isConfigOpen ? (
@@ -904,25 +1452,26 @@ export function PaymentsPage() {
               <button
                 type="button"
                 onClick={() => setIsConfigOpen(false)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E4E4E7', backgroundColor: '#F4F4F5', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E4E4E7', backgroundColor: '#F4F4F5', fontSize: 13, cursor: 'cursor' }}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={handleSaveConfig}
+                onClick={(e) => handleSaveConfig(e)}
+                disabled={isSavingRules}
                 style={{
                   padding: '8px 18px',
                   borderRadius: 8,
                   border: 'none',
-                  backgroundColor: '#000000',
+                  backgroundColor: '#0F3D21',
                   color: '#FFFFFF',
                   fontSize: 13,
                   fontWeight: 800,
                   cursor: 'pointer',
                 }}
               >
-                Save Rules
+                {isSavingRules ? 'Saving...' : 'Save Rules'}
               </button>
             </div>
           </div>

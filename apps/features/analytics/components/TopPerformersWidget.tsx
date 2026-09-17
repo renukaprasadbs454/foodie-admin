@@ -40,8 +40,8 @@ export function TopPerformersWidget({ restaurants = [], items = [] }: Props) {
           backgroundColor: '#FFFFFF',
           borderRadius: 14,
           padding: '20px 22px',
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 4px 14px 0 rgba(20, 83, 45, 0.04)',
+          border: '1px solid #E4E4E7',
+          boxShadow: '0 4px 14px 0 rgba(0, 0, 0, 0.04)',
           display: 'flex',
           flexDirection: 'column',
           gap: 14,
@@ -58,7 +58,7 @@ export function TopPerformersWidget({ restaurants = [], items = [] }: Props) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {restaurants.length === 0 ? (
-            <div style={{ padding: '24px 0', textAlign: 'center', color: '#64748B', fontSize: 13 }}>
+            <div style={{ padding: '24px 0', textAlign: 'center', color: '#71717A', fontSize: 13 }}>
               No store performance metrics available.
             </div>
           ) : (
@@ -71,23 +71,23 @@ export function TopPerformersWidget({ restaurants = [], items = [] }: Props) {
                   justifyContent: 'space-between',
                   padding: '10px 12px',
                   borderRadius: 10,
-                  backgroundColor: '#F8FAFC',
-                  border: '1px solid #F1F5F9',
+                  backgroundColor: '#FAFAFA',
+                  border: '1px solid #E4E4E7',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#94A3B8', width: 14 }}>#{index + 1}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: '#71717A', width: 14 }}>#{index + 1}</span>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>{res.name}</div>
-                    <div style={{ fontSize: 11, color: '#64748B' }}>{res.category}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>{res.name}</div>
+                    <div style={{ fontSize: 11, color: '#71717A' }}>{res.category}</div>
                   </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#D97706' }}>
-                    {res.rating}
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#000000' }}>
+                    ★ {res.rating}
                   </div>
-                  <div style={{ fontSize: 11, color: '#166534', fontWeight: 600 }}>{res.ordersCount} orders</div>
+                  <div style={{ fontSize: 11, color: '#52525B', fontWeight: 600 }}>{res.ordersCount} orders</div>
                 </div>
               </div>
             ))
@@ -101,8 +101,8 @@ export function TopPerformersWidget({ restaurants = [], items = [] }: Props) {
           backgroundColor: '#FFFFFF',
           borderRadius: 14,
           padding: '20px 22px',
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 4px 14px 0 rgba(20, 83, 45, 0.04)',
+          border: '1px solid #E4E4E7',
+          boxShadow: '0 4px 14px 0 rgba(0, 0, 0, 0.04)',
           display: 'flex',
           flexDirection: 'column',
           gap: 14,

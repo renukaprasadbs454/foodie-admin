@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 
 const ZONES = [
-  { id: 'z1', name: 'Downtown Central', activeStores: 18, color: '#10B981', lat: '12.9716° N', lng: '77.5946° E' },
-  { id: 'z2', name: 'Tech Park & IT Corridor', activeStores: 14, color: '#3B82F6', lat: '12.9279° N', lng: '77.6271° E' },
-  { id: 'z3', name: 'Suburban Food Hub', activeStores: 10, color: '#F59E0B', lat: '13.0358° N', lng: '77.5970° E' },
+  { id: 'z1', name: 'Downtown Central', activeStores: 18, color: '#000000', lat: '12.9716° N', lng: '77.5946° E' },
+  { id: 'z2', name: 'Tech Park & IT Corridor', activeStores: 14, color: '#27272A', lat: '12.9279° N', lng: '77.6271° E' },
+  { id: 'z3', name: 'Suburban Food Hub', activeStores: 10, color: '#71717A', lat: '13.0358° N', lng: '77.5970° E' },
 ];
 
 export function CentralizedManagementSection() {

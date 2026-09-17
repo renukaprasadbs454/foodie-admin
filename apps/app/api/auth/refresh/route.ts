@@ -5,6 +5,7 @@ import {
   readRefreshTokenFromCookieHeader,
 } from 'foodie-shared-web/auth';
 import { ENV } from '@/constants/env';
+import { safeFetch } from '@/lib/networkUtils';
 
 /**
  * BFF refresh — Blueprint §7.4 / System Design §9.4.
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const upstream = await fetch(
+    const { response: upstream, error: fetchErr } = await safeFetch(
       `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/auth/refresh`,
       {
         method: 'POST',
@@ -52,8 +53,13 @@ export async function POST(request: Request) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ refreshToken }),
+        timeoutMs: 3000,
       },
     );
+
+    if (fetchErr || !upstream) {
+      throw fetchErr ?? new Error('Network error');
+    }
 
     const envelope = (await upstream.json()) as {
       success?: boolean;
