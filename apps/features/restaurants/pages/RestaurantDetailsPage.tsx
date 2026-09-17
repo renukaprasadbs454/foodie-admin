@@ -26,6 +26,7 @@ import { canManageRestaurants } from '@/lib/routeGuards';
 import { PermissionDenied } from '@/features/analytics/components/PermissionDenied';
 import { RestaurantDetailSkeleton } from '../components/RestaurantDetailSkeleton';
 import { SuspendReasonModal } from '../components/SuspendReasonModal';
+import { RestaurantCommissionModal, CommissionSettingsData, SelectedRestaurantTarget } from '../components/RestaurantCommissionModal';
 import { formatCommissionPct } from '../types';
 import { toUnwrappedApiError } from '../lib/apiError';
 
@@ -34,7 +35,7 @@ type Props = {
 };
 
 /**
- * P2-ADM-03 AdminRestaurantDetails — GET detail + reviews + approve/suspend.
+ * P2-ADM-03 AdminRestaurantDetails — GET detail + reviews + approve/suspend + commission settings.
  */
 export function RestaurantDetailsPage({ restaurantId }: Props) {
   const { tokens } = useTheme();
@@ -57,6 +58,8 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
   const router = useRouter();
 
   const [suspendOpen, setSuspendOpen] = useState(false);
+  const [commissionOpen, setCommissionOpen] = useState(false);
+  const [customCommission, setCustomCommission] = useState<CommissionSettingsData | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     variant: 'info' | 'success' | 'error' | 'warning';
@@ -141,11 +144,39 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
   const data = detailQuery.data;
   const address = data?.address;
 
+  const onSaveCommission = (settings: CommissionSettingsData, target: SelectedRestaurantTarget) => {
+    if (target.id === restaurantId || target.isAllStores) {
+      setCustomCommission(settings);
+    }
+    setCommissionOpen(false);
+    trackAnalyticsEvent('restaurant_commission_updated', {
+      restaurantId: target.id,
+      commissionPct: settings.commissionPct,
+    });
+    setToast({
+      message: `Commission settings updated for "${target.name}": ${settings.commissionPct}% food commission rate applied.`,
+      variant: 'success',
+    });
+  };
+
+  const activeCommissionPct = customCommission?.commissionPct ?? (typeof data?.commissionPct === 'number' ? data.commissionPct : 15);
+  const activeDeliveryCommissionPct = customCommission?.deliveryCommissionPct ?? 10;
+  const activeStructure = customCommission?.commissionModel === 'FLAT_FEE' ? 'Flat ₹ Fee per Order' : customCommission?.commissionModel === 'HYBRID' ? 'Hybrid (Base % + Fixed Fee)' : 'Percentage Per Order (%)';
+  const activePayout = customCommission?.payoutFrequency === 'BI_WEEKLY' ? 'Bi-Weekly (1st & 15th)' : customCommission?.payoutFrequency === 'MONTHLY' ? 'Monthly End' : customCommission?.payoutFrequency === 'INSTANT' ? 'Instant Daily Auto-Settlement' : 'Weekly (Every Monday)';
+  const activeContract = customCommission?.contractType === 'STANDARD_PLATFORM' ? 'Standard Marketplace Agreement' : customCommission?.contractType === 'PROMOTIONAL' ? 'Promotional Early Onboarding Tier' : 'Custom Key Merchant Contract';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.lg }}>
-      <Text as="h1" variant="heading1">
-        Restaurant details
-      </Text>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <Text as="h1" variant="heading1">
+            Restaurant details
+          </Text>
+          <Text as="p" variant="caption" color={tokens.color.textSecondary}>
+            Manage store profiles, commission settings, approvals & merchant operations
+          </Text>
+        </div>
+      </div>
 
       {!isConnected ? (
         <Text as="p" variant="caption" color={tokens.color.warning}>
@@ -154,7 +185,7 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
       ) : null}
 
       {!canManage ? (
-        <PermissionDenied description="OPS or SUPER_ADMIN required to approve or suspend." />
+        <PermissionDenied description="OPS or SUPER_ADMIN required to approve, suspend or edit commissions." />
       ) : null}
 
       {detailQuery.isLoading && !data ? (
@@ -182,15 +213,29 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
               background: tokens.color.surface,
             }}
           >
-            <Text as="h2" variant="heading2">
-              {data.name}
-            </Text>
-            <Text as="p" variant="body" color={tokens.color.textSecondary}>
-              Status: {data.status ?? '—'} · Rating: {data.avgRating ?? '—'}
-            </Text>
-            <Text as="p" variant="body">
-              Commission: {formatCommissionPct(data.commissionPct)}
-            </Text>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
+              <div>
+                <Text as="h2" variant="heading2">
+                  {data.name}
+                </Text>
+                <Text as="p" variant="body" color={tokens.color.textSecondary}>
+                  Status: {data.status ?? '—'} · Rating: {data.avgRating ?? '—'}
+                </Text>
+              </div>
+              <span
+                style={{
+                  backgroundColor: '#000000',
+                  color: '#FFFFFF',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  padding: '5px 12px',
+                  borderRadius: 20,
+                }}
+              >
+                {activeCommissionPct}% Commission
+              </span>
+            </div>
+
             <Text as="p" variant="caption" color={tokens.color.textSecondary}>
               ID {data.restaurantId}
             </Text>
@@ -237,8 +282,8 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
               <div style={{ marginTop: tokens.spacing.sm, padding: tokens.spacing.sm, backgroundColor: tokens.color.background, borderRadius: tokens.radius.sm }}>
                 <Text as="h3" variant="heading3" style={{ marginBottom: tokens.spacing.xs }}>Documents</Text>
                 <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
-                  {data.documents.map((doc) => (
-                    <div key={doc.id} style={{ padding: tokens.spacing.sm, border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.sm, background: tokens.color.surface }}>
+                  {data.documents.map((doc, docIdx) => (
+                    <div key={doc.id ? `doc-${doc.id}` : `doc-${doc.docType || 'doc'}-${docIdx}`} style={{ padding: tokens.spacing.sm, border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.sm, background: tokens.color.surface }}>
                       <Text as="p" variant="body">{doc.docType}</Text>
                       <Text as="p" variant="caption" color={doc.verifiedAt ? tokens.color.success : tokens.color.textSecondary}>
                         {doc.verifiedAt ? 'Verified' : 'Pending Verification'}
@@ -266,8 +311,105 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
             )}
           </div>
 
+          {/* Dedicated Commission Settings Action & Card */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: tokens.spacing.sm,
+              padding: tokens.spacing.md,
+              border: `1px solid ${tokens.color.border}`,
+              borderRadius: tokens.radius.md,
+              background: tokens.color.surface,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <Text as="h3" variant="heading3" style={{ margin: 0 }}>
+                  Commission & Settlement Settings
+                </Text>
+                <Text as="p" variant="caption" color={tokens.color.textSecondary} style={{ marginTop: 2 }}>
+                  Store-specific marketplace commission rate, delivery split, payout schedule & tax deductions
+                </Text>
+              </div>
+
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => setCommissionOpen(true)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#000000',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  Edit Commission Settings
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginTop: 8 }}>
+              <div style={{ backgroundColor: tokens.color.background, padding: 14, borderRadius: tokens.radius.sm, border: `1px solid ${tokens.color.border}` }}>
+                <Text as="p" variant="caption" color={tokens.color.textSecondary}>Food Order Commission</Text>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#09090B', marginTop: 4 }}>
+                  {activeCommissionPct}%
+                </div>
+                <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>Applied on gross food subtotal</div>
+              </div>
+
+              <div style={{ backgroundColor: tokens.color.background, padding: 14, borderRadius: tokens.radius.sm, border: `1px solid ${tokens.color.border}` }}>
+                <Text as="p" variant="caption" color={tokens.color.textSecondary}>Delivery Fee Split</Text>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#09090B', marginTop: 4 }}>
+                  {activeDeliveryCommissionPct}%
+                </div>
+                <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>Platform delivery commission</div>
+              </div>
+
+              <div style={{ backgroundColor: tokens.color.background, padding: 14, borderRadius: tokens.radius.sm, border: `1px solid ${tokens.color.border}` }}>
+                <Text as="p" variant="caption" color={tokens.color.textSecondary}>Commission Structure</Text>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', marginTop: 6 }}>
+                  {activeStructure}
+                </div>
+                <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>{activeContract}</div>
+              </div>
+
+              <div style={{ backgroundColor: tokens.color.background, padding: 14, borderRadius: tokens.radius.sm, border: `1px solid ${tokens.color.border}` }}>
+                <Text as="p" variant="caption" color={tokens.color.textSecondary}>Payout Cycle</Text>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', marginTop: 6 }}>
+                  {activePayout}
+                </div>
+                <div style={{ fontSize: 11, color: tokens.color.success, marginTop: 2 }}>TCS & GST Deductions Active</div>
+              </div>
+            </div>
+          </div>
+
           {canManage ? (
             <div style={{ display: 'flex', gap: tokens.spacing.md, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setCommissionOpen(true)}
+                style={{
+                  padding: '10px 18px',
+                  backgroundColor: '#000000',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Commission Settings
+              </button>
+
               {data.status === 'PENDING' && (
                 <Button
                   label="Approve"
@@ -356,6 +498,18 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
         }}
       />
 
+      {data && (
+        <RestaurantCommissionModal
+          open={commissionOpen}
+          restaurantName={data.name}
+          restaurantId={data.restaurantId}
+          initialCommission={customCommission?.commissionPct ?? data.commissionPct ?? 15}
+          showRestaurantSelector={false}
+          onClose={() => setCommissionOpen(false)}
+          onSave={onSaveCommission}
+        />
+      )}
+
       <Toast
         open={Boolean(toast)}
         message={toast?.message ?? ''}
@@ -366,3 +520,4 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
     </div>
   );
 }
+

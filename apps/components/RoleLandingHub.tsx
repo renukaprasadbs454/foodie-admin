@@ -3,11 +3,15 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePermissions } from '@/context/PermissionContext';
+import { useAppSelector } from '@/store/hooks';
+import { selectAdminRole } from '@/features/auth/authSlice';
 
 export function RoleLandingHub() {
   const { profile } = usePermissions();
+  const reduxRole = useAppSelector(selectAdminRole);
 
-  const activeRole = profile?.role || 'SUPER_ADMIN';
+  const activeRole = profile?.role || reduxRole;
+  if (!activeRole) return null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

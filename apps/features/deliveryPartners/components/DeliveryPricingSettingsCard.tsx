@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTheme } from 'foodie-shared-web';
 import {
   useGetDeliveryPricingQuery,
   useUpdateDeliveryPricingMutation,
 } from '@/api/endpoints/deliveryPartnersApi';
 
-interface IncentiveItem {
+export interface IncentiveItem {
   id: string;
   title: string;
-  icon: string;
+  icon?: string;
   value: number;
   unit: string;
   active: boolean;
@@ -18,147 +18,257 @@ interface IncentiveItem {
   category: 'Base & Distance' | 'Target & Mileage' | 'Weather & Surge' | 'Reward & Rating';
 }
 
+export interface ZoneItem {
+  id: string;
+  name: string;
+  city: string;
+  code: string;
+  description: string;
+}
+
+export interface PayoutStructureConfig {
+  minPrice: number;
+  moneyPerKm: number;
+  incentives: IncentiveItem[];
+}
+
+const DEFAULT_INCENTIVES: IncentiveItem[] = [
+  {
+    id: 'basePay',
+    title: 'Base Pay per Order',
+    icon: '',
+    value: 50,
+    unit: '₹ / order',
+    active: true,
+    description: 'Standard baseline compensation per fulfilled delivery assignment.',
+    category: 'Base & Distance',
+  },
+  {
+    id: 'peakHourBonus',
+    title: 'Peak Hour Bonus',
+    icon: '',
+    value: 100,
+    unit: '₹ / order',
+    active: true,
+    description: 'Extra surge payout during high-demand meal hours (12 PM–3 PM & 7 PM–11 PM).',
+    category: 'Weather & Surge',
+  },
+  {
+    id: 'dailyTargetBonus',
+    title: 'Daily Target Bonus',
+    icon: '',
+    value: 150,
+    unit: '₹ / day',
+    active: true,
+    description: 'Bonus awarded upon completing 15 or more orders in a single calendar day.',
+    category: 'Target & Mileage',
+  },
+  {
+    id: 'weeklyTargetBonus',
+    title: 'Weekly Target Bonus',
+    icon: '',
+    value: 800,
+    unit: '₹ / week',
+    active: true,
+    description: 'Tier-1 weekly payout bonus for completing 80+ deliveries per week.',
+    category: 'Target & Mileage',
+  },
+  {
+    id: 'longDistanceBonus',
+    title: 'Long-Distance Bonus',
+    icon: '',
+    value: 15,
+    unit: '₹ / extra km',
+    active: true,
+    description: 'Additional mileage incentive for deliveries exceeding 5 km radius.',
+    category: 'Base & Distance',
+  },
+  {
+    id: 'rainBonus',
+    title: 'Rain/Bad Weather Bonus',
+    icon: '',
+    value: 70,
+    unit: '₹ / order',
+    active: true,
+    description: 'Weather surge bonus automatically applied during rain or severe weather.',
+    category: 'Weather & Surge',
+  },
+  {
+    id: 'referralBonus',
+    title: 'Referral Bonus',
+    icon: '',
+    value: 500,
+    unit: '₹ / referral',
+    active: true,
+    description: 'Onboarding reward paid after referred delivery partner completes 25 orders.',
+    category: 'Reward & Rating',
+  },
+  {
+    id: 'performanceBonus',
+    title: 'Performance/Rating Bonus',
+    icon: '',
+    value: 250,
+    unit: '₹ / week',
+    active: true,
+    description: 'Weekly quality incentive for maintaining customer rating of 4.85+ stars.',
+    category: 'Reward & Rating',
+  },
+];
+
+const INITIAL_ZONES: ZoneItem[] = [
+  { id: 'zone-downtown', name: 'Downtown Central', city: 'Tumakuru', code: 'Z-01', description: 'High-density commercial market hub & food streets' },
+  { id: 'zone-north', name: 'North Metro Corridor', city: 'Tumakuru', code: 'Z-02', description: 'Highway connecting outer commercial suburbs' },
+  { id: 'zone-westside', name: 'Westside Tech & University Hub', city: 'Tumakuru', code: 'Z-03', description: 'University campuses, colleges & technology parks' },
+  { id: 'zone-east', name: 'East Suburban Cluster', city: 'Tumakuru', code: 'Z-04', description: 'Residential townships & peripheral gated communities' },
+  { id: 'zone-tumakuru-central', name: 'Tumakuru Central Hub', city: 'Tumakuru', code: 'Z-05', description: 'Core city market, railway station & bus terminus' },
+  { id: 'zone-bangalore-south', name: 'Bangalore South (Koramangala & HSR)', city: 'Bengaluru', code: 'Z-06', description: 'Prime dining hotspots, cloud kitchen clusters & startups' },
+  { id: 'zone-indiranagar', name: 'Indiranagar & CBD Central', city: 'Bengaluru', code: 'Z-07', description: 'High-ticket fine dining & commercial dining corridor' },
+  { id: 'zone-whitefield', name: 'Whitefield & ITPL Tech Hub', city: 'Bengaluru', code: 'Z-08', description: 'Extended suburban tech parks and residential high-rises' },
+];
+
 export function DeliveryPricingSettingsCard() {
   const { tokens } = useTheme();
   const { data: pricingConfig, isLoading } = useGetDeliveryPricingQuery();
   const [updatePricing, { isLoading: isUpdating }] = useUpdateDeliveryPricingMutation();
 
-  const [minPrice, setMinPrice] = useState<number>(200);
-  const [moneyPerKm, setMoneyPerKm] = useState<number>(25);
-  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
-  const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  // Mode: Universal Basis vs Zone Basis
+  const [pricingBasis, setPricingBasis] = useState<'UNIVERSAL' | 'ZONE'>('UNIVERSAL');
 
-  // Per-Item Saved State (Tracks which rule cards have been saved)
+  // Universal Basis State
+  const [universalConfig, setUniversalConfig] = useState<PayoutStructureConfig>({
+    minPrice: 200,
+    moneyPerKm: 25,
+    incentives: DEFAULT_INCENTIVES,
+  });
+
+  // Zone Basis State
+  const [zones, setZones] = useState<ZoneItem[]>(INITIAL_ZONES);
+  const [selectedZoneId, setSelectedZoneId] = useState<string>('zone-downtown');
+  const [zoneSearchQuery, setZoneSearchQuery] = useState<string>('');
+  const [zoneConfigs, setZoneConfigs] = useState<Record<string, PayoutStructureConfig>>({
+    'zone-downtown': { minPrice: 220, moneyPerKm: 28, incentives: DEFAULT_INCENTIVES },
+    'zone-north': { minPrice: 200, moneyPerKm: 25, incentives: DEFAULT_INCENTIVES },
+    'zone-westside': { minPrice: 190, moneyPerKm: 24, incentives: DEFAULT_INCENTIVES },
+    'zone-east': { minPrice: 210, moneyPerKm: 26, incentives: DEFAULT_INCENTIVES },
+    'zone-tumakuru-central': { minPrice: 230, moneyPerKm: 30, incentives: DEFAULT_INCENTIVES },
+    'zone-bangalore-south': { minPrice: 250, moneyPerKm: 32, incentives: DEFAULT_INCENTIVES },
+    'zone-indiranagar': { minPrice: 260, moneyPerKm: 35, incentives: DEFAULT_INCENTIVES },
+    'zone-whitefield': { minPrice: 240, moneyPerKm: 30, incentives: DEFAULT_INCENTIVES },
+  });
+
+  // New Custom Zone State
+  const [isAddingZone, setIsAddingZone] = useState(false);
+  const [newZoneName, setNewZoneName] = useState('');
+  const [newZoneCity, setNewZoneCity] = useState('Tumakuru');
+
+  const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [savedItemsMap, setSavedItemsMap] = useState<Record<string, boolean>>({});
 
-  // Input Focus States for Glow Effect
+  // Input Focus States
   const [minPriceFocused, setMinPriceFocused] = useState(false);
   const [moneyKmFocused, setMoneyKmFocused] = useState(false);
 
-  // Editable Simulator Distance Cards State
+  // Simulation State
   const [simDistances, setSimDistances] = useState<number[]>([2, 5, 8, 12]);
   const [customTestKm, setCustomTestKm] = useState<number>(10);
 
-  // 8 Delivery Partner Incentive & Bonus Items State (Fully Editable & Persistent)
-  const [incentives, setIncentives] = useState<IncentiveItem[]>([
-    {
-      id: 'basePay',
-      title: 'Base Pay per Order',
-      icon: '',
-      value: 50,
-      unit: '₹ / order',
-      active: true,
-      description: 'Standard baseline compensation per fulfilled delivery assignment.',
-      category: 'Base & Distance',
-    },
-    {
-      id: 'peakHourBonus',
-      title: 'Peak Hour Bonus',
-      icon: '',
-      value: 100,
-      unit: '₹ / order',
-      active: true,
-      description: 'Extra surge payout during high-demand meal hours (12 PM–3 PM & 7 PM–11 PM).',
-      category: 'Weather & Surge',
-    },
-    {
-      id: 'dailyTargetBonus',
-      title: 'Daily Target Bonus',
-      icon: '',
-      value: 150,
-      unit: '₹ / day',
-      active: true,
-      description: 'Bonus awarded upon completing 15 or more orders in a single calendar day.',
-      category: 'Target & Mileage',
-    },
-    {
-      id: 'weeklyTargetBonus',
-      title: 'Weekly Target Bonus',
-      icon: '',
-      value: 800,
-      unit: '₹ / week',
-      active: true,
-      description: 'Tier-1 weekly payout bonus for completing 80+ deliveries per week.',
-      category: 'Target & Mileage',
-    },
-    {
-      id: 'longDistanceBonus',
-      title: 'Long-Distance Bonus',
-      icon: '',
-      value: 15,
-      unit: '₹ / extra km',
-      active: true,
-      description: 'Additional mileage incentive for deliveries exceeding 5 km radius.',
-      category: 'Base & Distance',
-    },
-    {
-      id: 'rainBonus',
-      title: 'Rain/Bad Weather Bonus',
-      icon: '',
-      value: 70,
-      unit: '₹ / order',
-      active: true,
-      description: 'Weather surge bonus automatically applied during rain or severe weather.',
-      category: 'Weather & Surge',
-    },
-    {
-      id: 'referralBonus',
-      title: 'Referral Bonus',
-      icon: '',
-      value: 500,
-      unit: '₹ / referral',
-      active: true,
-      description: 'Onboarding reward paid after referred delivery partner completes 25 orders.',
-      category: 'Reward & Rating',
-    },
-    {
-      id: 'performanceBonus',
-      title: 'Performance/Rating Bonus',
-      icon: '',
-      value: 250,
-      unit: '₹ / week',
-      active: true,
-      description: 'Weekly quality incentive for maintaining customer rating of 4.85+ stars.',
-      category: 'Reward & Rating',
-    },
-  ]);
-
+  // Initialize from LocalStorage and API
   useEffect(() => {
-    // Load persisted rules from localStorage if available
     try {
-      const savedIncentives = localStorage.getItem('foodie_delivery_incentives');
-      if (savedIncentives) {
-        const parsed = JSON.parse(savedIncentives);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setIncentives(parsed);
-        }
+      const savedBasis = localStorage.getItem('foodie_pricing_basis');
+      if (savedBasis === 'ZONE' || savedBasis === 'UNIVERSAL') {
+        setPricingBasis(savedBasis);
       }
-      const savedPricing = localStorage.getItem('foodie_pricing_config');
-      if (savedPricing) {
-        const parsedConfig = JSON.parse(savedPricing);
-        if (parsedConfig.minPrice !== undefined) setMinPrice(parsedConfig.minPrice);
-        if (parsedConfig.moneyPerKm !== undefined) setMoneyPerKm(parsedConfig.moneyPerKm);
-        if (parsedConfig.updatedAt) setLastSavedTime(parsedConfig.updatedAt);
+      const savedZoneId = localStorage.getItem('foodie_selected_zone_id');
+      if (savedZoneId) {
+        setSelectedZoneId(savedZoneId);
+      }
+      const savedUniversal = localStorage.getItem('foodie_universal_pricing_config');
+      if (savedUniversal) {
+        const parsed = JSON.parse(savedUniversal);
+        setUniversalConfig(parsed);
+      }
+      const savedZoneConfigs = localStorage.getItem('foodie_zone_pricing_configs');
+      if (savedZoneConfigs) {
+        const parsed = JSON.parse(savedZoneConfigs);
+        setZoneConfigs(parsed);
+      }
+      const savedCustomZones = localStorage.getItem('foodie_custom_zones');
+      if (savedCustomZones) {
+        const parsed = JSON.parse(savedCustomZones);
+        if (Array.isArray(parsed)) {
+          setZones(parsed);
+        }
       }
     } catch (_e) {
       // Ignore parse errors
     }
 
     if (pricingConfig) {
-      setMinPrice(pricingConfig.minPricePerDelivery ?? 200);
-      setMoneyPerKm(pricingConfig.moneyPerKm ?? 25);
-      if (pricingConfig.updatedAt) {
-        setLastSavedTime(pricingConfig.updatedAt);
-      }
+      setUniversalConfig((prev) => ({
+        ...prev,
+        minPrice: pricingConfig.minPricePerDelivery ?? prev.minPrice,
+        moneyPerKm: pricingConfig.moneyPerKm ?? prev.moneyPerKm,
+      }));
     }
   }, [pricingConfig]);
 
-  const calculatePayout = (distKm: number): { payout: number; appliedRule: 'MIN_PRICE' | 'PER_KM' } => {
-    const feeByKm = distKm * moneyPerKm;
-    if (feeByKm > minPrice) {
-      return { payout: feeByKm, appliedRule: 'PER_KM' };
+  // Current Active Configuration (Universal vs Selected Zone)
+  const currentConfig: PayoutStructureConfig = useMemo(() => {
+    if (pricingBasis === 'UNIVERSAL') {
+      return universalConfig;
     }
-    return { payout: minPrice, appliedRule: 'MIN_PRICE' };
+    const zoneConfig = zoneConfigs[selectedZoneId];
+    if (zoneConfig) {
+      return zoneConfig;
+    }
+    return universalConfig;
+  }, [pricingBasis, selectedZoneId, universalConfig, zoneConfigs]);
+
+  const activeZone = useMemo(() => {
+    return zones.find((z) => z.id === selectedZoneId) || zones[0];
+  }, [zones, selectedZoneId]);
+
+  // Filtered Zones based on Search
+  const filteredZones = useMemo(() => {
+    const q = zoneSearchQuery.trim().toLowerCase();
+    if (!q) return zones;
+    return zones.filter(
+      (z) =>
+        z.name.toLowerCase().includes(q) ||
+        z.city.toLowerCase().includes(q) ||
+        z.code.toLowerCase().includes(q) ||
+        z.description.toLowerCase().includes(q)
+    );
+  }, [zones, zoneSearchQuery]);
+
+  // Update Active Config Values
+  const handleUpdateMinPrice = (val: number) => {
+    if (pricingBasis === 'UNIVERSAL') {
+      setUniversalConfig((prev) => ({ ...prev, minPrice: val }));
+    } else {
+      setZoneConfigs((prev) => ({
+        ...prev,
+        [selectedZoneId]: {
+          ...(prev[selectedZoneId] || universalConfig),
+          minPrice: val,
+        },
+      }));
+    }
+  };
+
+  const handleUpdateMoneyPerKm = (val: number) => {
+    if (pricingBasis === 'UNIVERSAL') {
+      setUniversalConfig((prev) => ({ ...prev, moneyPerKm: val }));
+    } else {
+      setZoneConfigs((prev) => ({
+        ...prev,
+        [selectedZoneId]: {
+          ...(prev[selectedZoneId] || universalConfig),
+          moneyPerKm: val,
+        },
+      }));
+    }
   };
 
   const handleIncentiveChange = (
@@ -166,69 +276,164 @@ export function DeliveryPricingSettingsCard() {
     field: 'value' | 'active' | 'description' | 'title',
     val: number | boolean | string
   ) => {
-    // Revert button state to 'Save' when user edits the rule condition
     setSavedItemsMap((prev) => ({ ...prev, [id]: false }));
-    setIncentives((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: val } : item))
-    );
+    const updateList = (list: IncentiveItem[]) =>
+      list.map((item) => (item.id === id ? { ...item, [field]: val } : item));
+
+    if (pricingBasis === 'UNIVERSAL') {
+      setUniversalConfig((prev) => ({
+        ...prev,
+        incentives: updateList(prev.incentives),
+      }));
+    } else {
+      setZoneConfigs((prev) => {
+        const existing = prev[selectedZoneId] || universalConfig;
+        return {
+          ...prev,
+          [selectedZoneId]: {
+            ...existing,
+            incentives: updateList(existing.incentives),
+          },
+        };
+      });
+    }
   };
 
   const handleAddCustomIncentive = () => {
     const newId = `customBonus_${Date.now()}`;
     const newRule: IncentiveItem = {
       id: newId,
-      title: 'Custom Rider Bonus',
+      title: 'Custom Location Surge',
       icon: '',
       value: 50,
-      unit: '₹ / rule',
+      unit: '₹ / order',
       active: true,
-      description: 'Custom rule condition created by admin operator.',
+      description: `Custom incentive bonus active for ${pricingBasis === 'ZONE' ? activeZone.name : 'all platform orders'}.`,
       category: 'Reward & Rating',
     };
-    setIncentives((prev) => [...prev, newRule]);
+
+    if (pricingBasis === 'UNIVERSAL') {
+      setUniversalConfig((prev) => ({
+        ...prev,
+        incentives: [...prev.incentives, newRule],
+      }));
+    } else {
+      setZoneConfigs((prev) => {
+        const existing = prev[selectedZoneId] || universalConfig;
+        return {
+          ...prev,
+          [selectedZoneId]: {
+            ...existing,
+            incentives: [...existing.incentives, newRule],
+          },
+        };
+      });
+    }
   };
 
   const handleRemoveIncentive = (id: string) => {
-    setIncentives((prev) => prev.filter((item) => item.id !== id));
+    if (pricingBasis === 'UNIVERSAL') {
+      setUniversalConfig((prev) => ({
+        ...prev,
+        incentives: prev.incentives.filter((i) => i.id !== id),
+      }));
+    } else {
+      setZoneConfigs((prev) => {
+        const existing = prev[selectedZoneId] || universalConfig;
+        return {
+          ...prev,
+          [selectedZoneId]: {
+            ...existing,
+            incentives: existing.incentives.filter((i) => i.id !== id),
+          },
+        };
+      });
+    }
   };
 
-  // PERSISTENCE SAVING FUNCTIONALITY (Saves rule state and triggers Saved  state)
-  const handleSaveSingleRule = async (item: IncentiveItem) => {
-    const nowIso = new Date().toISOString();
+  const handleAddCustomZone = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newZoneName.trim()) {
+      alert('Please enter a valid Zone / Location name');
+      return;
+    }
+    const zoneId = `zone-${Date.now()}`;
+    const newZone: ZoneItem = {
+      id: zoneId,
+      name: newZoneName.trim(),
+      city: newZoneCity.trim() || 'Tumakuru',
+      code: `Z-0${zones.length + 1}`,
+      description: `Custom zone location created for ${newZoneName.trim()}`,
+    };
+
+    const updatedZones = [...zones, newZone];
+    setZones(updatedZones);
+    setSelectedZoneId(zoneId);
+    setZoneConfigs((prev) => ({
+      ...prev,
+      [zoneId]: {
+        minPrice: universalConfig.minPrice,
+        moneyPerKm: universalConfig.moneyPerKm,
+        incentives: [...universalConfig.incentives],
+      },
+    }));
+
     try {
-      localStorage.setItem('foodie_delivery_incentives', JSON.stringify(incentives));
-      localStorage.setItem(
-        'foodie_pricing_config',
-        JSON.stringify({ minPrice, moneyPerKm, updatedAt: nowIso })
-      );
-      setLastSavedTime(nowIso);
-      setSavedItemsMap((prev) => ({ ...prev, [item.id]: true }));
+      localStorage.setItem('foodie_custom_zones', JSON.stringify(updatedZones));
+    } catch (_e) {}
 
-      await updatePricing({
-        minPricePerDelivery: Number(minPrice),
-        moneyPerKm: Number(moneyPerKm),
-      }).unwrap();
+    setIsAddingZone(false);
+    setNewZoneName('');
+    setToastMsg({ text: `Location "${newZone.name}" created and selected!`, type: 'success' });
+    setTimeout(() => setToastMsg(null), 3500);
+  };
 
-      setToastMsg({
-        text: `Rule "${item.title}" saved successfully (₹${item.value} • ${item.active ? 'Active' : 'Disabled'})!`,
-        type: 'success',
-      });
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentConfig.minPrice < 0 || currentConfig.moneyPerKm < 0) {
+      setToastMsg({ text: 'Payout values cannot be negative', type: 'error' });
+      return;
+    }
+
+    try {
+      localStorage.setItem('foodie_pricing_basis', pricingBasis);
+      localStorage.setItem('foodie_selected_zone_id', selectedZoneId);
+      localStorage.setItem('foodie_universal_pricing_config', JSON.stringify(universalConfig));
+      localStorage.setItem('foodie_zone_pricing_configs', JSON.stringify(zoneConfigs));
+
+      // Mark all rules as saved
+      const allSavedMap: Record<string, boolean> = {};
+      currentConfig.incentives.forEach((item) => (allSavedMap[item.id] = true));
+      setSavedItemsMap(allSavedMap);
+
+      if (pricingBasis === 'UNIVERSAL') {
+        await updatePricing({
+          minPricePerDelivery: Number(universalConfig.minPrice),
+          moneyPerKm: Number(universalConfig.moneyPerKm),
+        }).unwrap();
+        setToastMsg({ text: '🌍 Universal global payout structure & incentives saved successfully!', type: 'success' });
+      } else {
+        setToastMsg({
+          text: `📍 Payout structure & incentives for "${activeZone.name}" (${activeZone.city}) saved successfully!`,
+          type: 'success',
+        });
+      }
       setTimeout(() => setToastMsg(null), 4000);
     } catch (_err) {
-      localStorage.setItem('foodie_delivery_incentives', JSON.stringify(incentives));
-      localStorage.setItem(
-        'foodie_pricing_config',
-        JSON.stringify({ minPrice, moneyPerKm, updatedAt: nowIso })
-      );
-      setLastSavedTime(nowIso);
-      setSavedItemsMap((prev) => ({ ...prev, [item.id]: true }));
-
       setToastMsg({
-        text: `Rule "${item.title}" saved successfully (₹${item.value} • ${item.active ? 'Active' : 'Disabled'})!`,
+        text: `Settings saved locally (${pricingBasis === 'UNIVERSAL' ? 'Universal Global' : activeZone.name})!`,
         type: 'success',
       });
       setTimeout(() => setToastMsg(null), 4000);
     }
+  };
+
+  const calculatePayout = (distKm: number): { payout: number; appliedRule: 'MIN_PRICE' | 'PER_KM' } => {
+    const feeByKm = distKm * currentConfig.moneyPerKm;
+    if (feeByKm > currentConfig.minPrice) {
+      return { payout: feeByKm, appliedRule: 'PER_KM' };
+    }
+    return { payout: currentConfig.minPrice, appliedRule: 'MIN_PRICE' };
   };
 
   const handleUpdateDistance = (index: number, newKm: number) => {
@@ -245,54 +450,7 @@ export function DeliveryPricingSettingsCard() {
     setSimDistances((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (minPrice < 0 || moneyPerKm < 0) {
-      setToastMsg({ text: 'Values cannot be negative', type: 'error' });
-      return;
-    }
-
-    const nowIso = new Date().toISOString();
-    try {
-      localStorage.setItem('foodie_delivery_incentives', JSON.stringify(incentives));
-      localStorage.setItem(
-        'foodie_pricing_config',
-        JSON.stringify({ minPrice, moneyPerKm, updatedAt: nowIso })
-      );
-      setLastSavedTime(nowIso);
-
-      // Mark all items as saved
-      const allSavedMap: Record<string, boolean> = {};
-      incentives.forEach((item) => (allSavedMap[item.id] = true));
-      setSavedItemsMap(allSavedMap);
-
-      await updatePricing({
-        minPricePerDelivery: Number(minPrice),
-        moneyPerKm: Number(moneyPerKm),
-      }).unwrap();
-
-      setToastMsg({ text: 'All delivery partner pricing & incentive rules saved successfully!', type: 'success' });
-      setTimeout(() => setToastMsg(null), 4000);
-    } catch (_err) {
-      const nowIso = new Date().toISOString();
-      localStorage.setItem('foodie_delivery_incentives', JSON.stringify(incentives));
-      localStorage.setItem(
-        'foodie_pricing_config',
-        JSON.stringify({ minPrice, moneyPerKm, updatedAt: nowIso })
-      );
-      setLastSavedTime(nowIso);
-
-      const allSavedMap: Record<string, boolean> = {};
-      incentives.forEach((item) => (allSavedMap[item.id] = true));
-      setSavedItemsMap(allSavedMap);
-
-      setToastMsg({ text: 'All delivery partner pricing & incentive rules saved successfully!', type: 'success' });
-      setTimeout(() => setToastMsg(null), 4000);
-    }
-  };
-
   const customResult = calculatePayout(customTestKm);
-  const displaySavedTime = lastSavedTime || pricingConfig?.updatedAt;
 
   return (
     <div
@@ -308,21 +466,240 @@ export function DeliveryPricingSettingsCard() {
         transition: 'all 0.2s ease',
       }}
     >
-      {/* Card Header Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+      {/* Card Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#09090B', letterSpacing: '-0.02em' }}>
-              Delivery Partner Payout Structure & Incentives
-            </h2>
-          </div>
-          <p style={{ margin: '8px 0 0 0', fontSize: '0.875rem', color: '#71717A', lineHeight: '1.5' }}>
-            Configure minimum guaranteed payout per delivery assignment, money rate per kilometer, and driver incentive bonuses.
+          <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#09090B', letterSpacing: '-0.02em' }}>
+            Delivery Partner Payout Structure & Incentives
+          </h2>
+          <p style={{ margin: '6px 0 0 0', fontSize: '0.875rem', color: '#71717A', lineHeight: '1.5' }}>
+            Configure guaranteed base payouts, distance rates, and incentives on a universal platform-wide or zone-specific location basis.
           </p>
+        </div>
+
+        {/* Universal vs Zone Basis Toggle */}
+        <div
+          style={{
+            display: 'flex',
+            backgroundColor: '#F4F4F5',
+            padding: '4px',
+            borderRadius: '10px',
+            border: '1px solid #E4E4E7',
+            gap: '4px',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setPricingBasis('UNIVERSAL')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: pricingBasis === 'UNIVERSAL' ? '#000000' : 'transparent',
+              color: pricingBasis === 'UNIVERSAL' ? '#FFFFFF' : '#09090B',
+              fontSize: '0.8125rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>🌍</span> Universal Basis
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPricingBasis('ZONE')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: pricingBasis === 'ZONE' ? '#000000' : 'transparent',
+              color: pricingBasis === 'ZONE' ? '#FFFFFF' : '#09090B',
+              fontSize: '0.8125rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>📍</span> Zone Basis
+          </button>
         </div>
       </div>
 
-      {/* Alert / Notification Toast Banner */}
+      {/* Zone Search & Location Selector (Rendered only in Zone Basis Mode) */}
+      {pricingBasis === 'ZONE' && (
+        <div
+          style={{
+            backgroundColor: '#FAFAFA',
+            borderRadius: '14px',
+            padding: '18px 20px',
+            marginBottom: '24px',
+            border: '1px solid #E4E4E7',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1rem', fontWeight: 800, color: '#09090B' }}>📍 Select Operating Zone / Location</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#000000', color: '#FFFFFF', padding: '2px 8px', borderRadius: '12px' }}>
+                {zones.length} Zones Available
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsAddingZone(true)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                backgroundColor: '#000000',
+                color: '#FFFFFF',
+                border: 'none',
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              + Add Custom Location
+            </button>
+          </div>
+
+          {/* Search Input Bar */}
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="🔍 Search zone by name, city, or code (e.g. Tumakuru, Downtown, Koramangala, Indiranagar)..."
+              value={zoneSearchQuery}
+              onChange={(e) => setZoneSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                border: '1px solid #E4E4E7',
+                fontSize: '0.875rem',
+                backgroundColor: '#FFFFFF',
+                color: '#09090B',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* Quick Zone Chips Selector */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '140px', overflowY: 'auto' }}>
+            {filteredZones.map((z) => {
+              const isSelected = selectedZoneId === z.id;
+              const hasCustomConfig = !!zoneConfigs[z.id];
+              return (
+                <button
+                  key={z.id}
+                  type="button"
+                  onClick={() => setSelectedZoneId(z.id)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: isSelected ? '2px solid #000000' : '1px solid #E4E4E7',
+                    backgroundColor: isSelected ? '#000000' : '#FFFFFF',
+                    color: isSelected ? '#FFFFFF' : '#09090B',
+                    fontSize: '0.8125rem',
+                    fontWeight: isSelected ? 800 : 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span>{z.name}</span>
+                  <span style={{ fontSize: '0.7rem', opacity: isSelected ? 0.9 : 0.6, fontWeight: 700 }}>
+                    ({z.city})
+                  </span>
+                  {hasCustomConfig && (
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isSelected ? '#FFFFFF' : '#000000' }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Zone Details Card Banner */}
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              border: '1px solid #E4E4E7',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#09090B' }}>
+                📍 Configuring Zone: <span style={{ textDecoration: 'underline' }}>{activeZone.name}</span> ({activeZone.code})
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#71717A', marginTop: '2px' }}>
+                {activeZone.description} · City: {activeZone.city}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  backgroundColor: '#F4F4F5',
+                  color: '#09090B',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid #E4E4E7',
+                }}
+              >
+                Base: ₹{currentConfig.minPrice} · ₹{currentConfig.moneyPerKm}/km
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mode Status Banner */}
+      <div
+        style={{
+          padding: '10px 16px',
+          borderRadius: '10px',
+          backgroundColor: pricingBasis === 'UNIVERSAL' ? '#F4F4F5' : '#000000',
+          color: pricingBasis === 'UNIVERSAL' ? '#09090B' : '#FFFFFF',
+          fontSize: '0.8125rem',
+          fontWeight: 700,
+          marginBottom: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '8px',
+        }}
+      >
+        <span>
+          {pricingBasis === 'UNIVERSAL'
+            ? '🌍 Universal Global Pricing Active: Rules set here apply to all delivery partners and zones across the marketplace.'
+            : `📍 Zone Override Active for "${activeZone.name}": Custom payout multipliers apply specifically to deliveries originating in this zone.`}
+        </span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {pricingBasis === 'UNIVERSAL' ? 'Default Scope' : 'Zone Scope'}
+        </span>
+      </div>
+
+      {/* Alert Notification Toast */}
       {toastMsg && (
         <div
           style={{
@@ -331,7 +708,6 @@ export function DeliveryPricingSettingsCard() {
             borderRadius: '12px',
             backgroundColor: '#000000',
             color: '#FFFFFF',
-            border: '1px solid #000000',
             fontSize: '0.875rem',
             fontWeight: 700,
             display: 'flex',
@@ -352,7 +728,6 @@ export function DeliveryPricingSettingsCard() {
         <form onSubmit={handleSave}>
           {/* Main Pricing Rules Inputs */}
           <div className="pricing-grid-responsive" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '28px' }}>
-            
             {/* Input Card 1: Minimum Price per Delivery */}
             <div
               style={{
@@ -379,7 +754,7 @@ export function DeliveryPricingSettingsCard() {
                 <span>Minimum Price per Delivery</span>
                 <span style={{ fontSize: '0.75rem', color: '#09090B', fontWeight: 800 }}>Guaranteed Base</span>
               </label>
-              
+
               <div style={{ position: 'relative' }}>
                 <span
                   style={{
@@ -402,10 +777,10 @@ export function DeliveryPricingSettingsCard() {
                   type="number"
                   step="0.5"
                   min="0"
-                  value={minPrice}
+                  value={currentConfig.minPrice}
                   onFocus={() => setMinPriceFocused(true)}
                   onBlur={() => setMinPriceFocused(false)}
-                  onChange={(e) => setMinPrice(Number(e.target.value))}
+                  onChange={(e) => handleUpdateMinPrice(Number(e.target.value))}
                   style={{
                     width: '100%',
                     padding: '12px 14px 12px 48px',
@@ -417,7 +792,6 @@ export function DeliveryPricingSettingsCard() {
                     color: '#09090B',
                     outline: 'none',
                     boxSizing: 'border-box',
-                    transition: 'border-color 0.15s ease',
                   }}
                 />
               </div>
@@ -475,10 +849,10 @@ export function DeliveryPricingSettingsCard() {
                   type="number"
                   step="0.5"
                   min="0"
-                  value={moneyPerKm}
+                  value={currentConfig.moneyPerKm}
                   onFocus={() => setMoneyKmFocused(true)}
                   onBlur={() => setMoneyKmFocused(false)}
-                  onChange={(e) => setMoneyPerKm(Number(e.target.value))}
+                  onChange={(e) => handleUpdateMoneyPerKm(Number(e.target.value))}
                   style={{
                     width: '100%',
                     padding: '12px 14px 12px 48px',
@@ -490,7 +864,6 @@ export function DeliveryPricingSettingsCard() {
                     color: '#09090B',
                     outline: 'none',
                     boxSizing: 'border-box',
-                    transition: 'border-color 0.15s ease',
                   }}
                 />
               </div>
@@ -498,7 +871,6 @@ export function DeliveryPricingSettingsCard() {
                 Per-kilometer payout multiplier applied as distance increases.
               </p>
             </div>
-
           </div>
 
           {/* Section: Rider Incentives & Performance Bonus Matrix */}
@@ -515,10 +887,10 @@ export function DeliveryPricingSettingsCard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#09090B', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  Rider Incentives & Performance Bonus Matrix
+                  Rider Incentives & Performance Bonus Matrix ({pricingBasis === 'UNIVERSAL' ? 'Universal' : activeZone.name})
                 </h3>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#71717A' }}>
-                  Admin Operator Control: Edit titles, custom rule descriptions, amounts, and click Save to persist.
+                  Admin Operator Control: Configure custom rule conditions, toggle ON/OFF, and adjust compensation values.
                 </p>
               </div>
 
@@ -537,17 +909,17 @@ export function DeliveryPricingSettingsCard() {
                     cursor: 'pointer',
                   }}
                 >
-                  Add Custom Rule
+                  + Add Custom Rule
                 </button>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', padding: '6px 12px', borderRadius: '20px', border: '1px solid #E4E4E7' }}>
-                  {incentives.filter((i) => i.active).length} of {incentives.length} Active
+                  {currentConfig.incentives.filter((i) => i.active).length} of {currentConfig.incentives.length} Active
                 </div>
               </div>
             </div>
 
             {/* Grid of Incentive Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-              {incentives.map((item) => {
+              {currentConfig.incentives.map((item) => {
                 const isItemSaved = !!savedItemsMap[item.id];
                 return (
                   <div
@@ -568,7 +940,6 @@ export function DeliveryPricingSettingsCard() {
                     {/* Header */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                        <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
                         <input
                           type="text"
                           value={item.title}
@@ -584,13 +955,11 @@ export function DeliveryPricingSettingsCard() {
                             outline: 'none',
                             padding: '2px 0',
                           }}
-                          onFocus={(e) => (e.target.style.borderBottom = '1px solid #000000')}
-                          onBlur={(e) => (e.target.style.borderBottom = '1px solid transparent')}
                         />
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {incentives.length > 1 && item.id.startsWith('customBonus_') && (
+                        {currentConfig.incentives.length > 1 && item.id.startsWith('customBonus_') && (
                           <button
                             type="button"
                             onClick={() => handleRemoveIncentive(item.id)}
@@ -601,7 +970,7 @@ export function DeliveryPricingSettingsCard() {
                               fontSize: '12px',
                               cursor: 'pointer',
                             }}
-                            title="Remove custom bonus rule"
+                            title="Remove custom rule"
                           >
                             ✕
                           </button>
@@ -620,35 +989,9 @@ export function DeliveryPricingSettingsCard() {
                             fontSize: '0.675rem',
                             fontWeight: 800,
                             cursor: 'pointer',
-                            transition: 'backgroundColor 0.15s ease',
                           }}
                         >
                           {item.active ? 'ON' : 'OFF'}
-                        </button>
-
-                        {/* Interactive Save Button */}
-                        <button
-                          type="button"
-                          disabled={isUpdating}
-                          onClick={() => void handleSaveSingleRule(item)}
-                          style={{
-                            padding: '4px 12px',
-                            borderRadius: '20px',
-                            border: 'none',
-                            backgroundColor: isItemSaved ? '#18181B' : '#000000',
-                            color: '#FFFFFF',
-                            fontSize: '0.675rem',
-                            fontWeight: 800,
-                            cursor: isUpdating ? 'not-allowed' : 'pointer',
-                            opacity: isUpdating ? 0.6 : 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            transition: 'all 0.15s ease',
-                          }}
-                          title={`Save ${item.title} rule`}
-                        >
-                          <span>{isUpdating ? 'Saving...' : isItemSaved ? 'Saved' : 'Save'}</span>
                         </button>
                       </div>
                     </div>
@@ -717,7 +1060,7 @@ export function DeliveryPricingSettingsCard() {
             </div>
           </div>
 
-          {/* Fully Operational & Editable Payout Simulator Panel */}
+          {/* Interactive Payout Simulator Panel */}
           <div
             style={{
               backgroundColor: '#F4F4F5',
@@ -730,10 +1073,10 @@ export function DeliveryPricingSettingsCard() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
                 <div style={{ fontSize: '0.975rem', fontWeight: 800, color: '#09090B', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  Formula & Interactive Payout Simulator
+                  Formula & Interactive Payout Simulator ({pricingBasis === 'UNIVERSAL' ? 'Universal' : activeZone.name})
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#71717A', marginTop: '2px' }}>
-                  Admin Operator Control: Edit test distances below or try any custom trip distance
+                  Test real-time trip payouts with active rate multipliers
                 </div>
               </div>
 
@@ -760,7 +1103,7 @@ export function DeliveryPricingSettingsCard() {
             {/* Formula Banner */}
             <div style={{ fontSize: '0.8125rem', color: '#71717A', marginBottom: '16px', lineHeight: '1.5' }}>
               Payout = <code style={{ backgroundColor: '#FFFFFF', padding: '4px 10px', borderRadius: '6px', border: '1px solid #E4E4E7', fontWeight: 800, color: '#09090B' }}>
-                Max(₹{minPrice.toFixed(2)}, Distance × ₹{moneyPerKm.toFixed(2)}/km)
+                Max(₹{currentConfig.minPrice.toFixed(2)}, Distance × ₹{currentConfig.moneyPerKm.toFixed(2)}/km)
               </code>
             </div>
 
@@ -805,7 +1148,7 @@ export function DeliveryPricingSettingsCard() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: '0.8125rem', color: '#71717A' }}>
-                  {customResult.appliedRule === 'PER_KM' ? `(${customTestKm} km × ₹${moneyPerKm.toFixed(2)})` : `(Base Guaranteed)`}
+                  {customResult.appliedRule === 'PER_KM' ? `(${customTestKm} km × ₹${currentConfig.moneyPerKm.toFixed(2)})` : `(Base Guaranteed)`}
                 </span>
                 <strong style={{ fontSize: '1.125rem', fontWeight: 900, color: '#09090B' }}>
                   = ₹{customResult.payout.toFixed(2)}
@@ -844,7 +1187,6 @@ export function DeliveryPricingSettingsCard() {
                       position: 'relative',
                     }}
                   >
-                    {/* Header */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#71717A' }}>Trip:</span>
@@ -889,7 +1231,6 @@ export function DeliveryPricingSettingsCard() {
                       )}
                     </div>
 
-                    {/* Calculated Payout Value */}
                     <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#09090B', margin: '4px 0' }}>
                       ₹{payout.toFixed(2)}
                     </div>
@@ -910,7 +1251,7 @@ export function DeliveryPricingSettingsCard() {
                         {isPerKm ? 'Distance Incentive' : 'Base Guaranteed'}
                       </span>
                       <span style={{ fontSize: '0.675rem', color: '#71717A', fontWeight: 700 }}>
-                        {isPerKm ? `${dist}×₹${moneyPerKm}` : 'Base'}
+                        {isPerKm ? `${dist}×₹${currentConfig.moneyPerKm}` : 'Base'}
                       </span>
                     </div>
                   </div>
@@ -943,10 +1284,139 @@ export function DeliveryPricingSettingsCard() {
                 gap: '8px',
               }}
             >
-              <span>{isUpdating ? 'Saving...' : 'Save Incentive Rules'}</span>
+              <span>
+                {isUpdating
+                  ? 'Saving...'
+                  : pricingBasis === 'UNIVERSAL'
+                  ? 'Save Universal Payout Structure'
+                  : `Save ${activeZone.name} Payout Structure`}
+              </span>
             </button>
           </div>
         </form>
+      )}
+
+      {/* Add Custom Zone Modal */}
+      {isAddingZone && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              width: 440,
+              maxWidth: '90%',
+              padding: 24,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#09090B' }}>
+                Add New Delivery Zone / Location
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAddingZone(false)}
+                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#71717A' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddCustomZone} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 4 }}>
+                  Zone / Area Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Electronic City Phase 1 or HSR Layout"
+                  value={newZoneName}
+                  onChange={(e) => setNewZoneName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #E4E4E7',
+                    fontSize: 13,
+                    color: '#09090B',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 4 }}>
+                  City / Region
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Tumakuru or Bengaluru"
+                  value={newZoneCity}
+                  onChange={(e) => setNewZoneCity(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #E4E4E7',
+                    fontSize: 13,
+                    color: '#09090B',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingZone(false)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    border: '1px solid #E4E4E7',
+                    backgroundColor: '#F4F4F5',
+                    color: '#09090B',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 20px',
+                    borderRadius: 8,
+                    border: 'none',
+                    backgroundColor: '#000000',
+                    color: '#FFFFFF',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Create & Select Zone
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <style jsx global>{`

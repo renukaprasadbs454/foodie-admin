@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   clearSession,
   selectAdminRole,
+  selectAuthStatus,
   selectUserId,
   setSession,
 } from '@/features/auth/authSlice';
@@ -26,13 +27,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const pathname = usePathname();
+  const authStatus = useAppSelector(selectAuthStatus);
   const role = useAppSelector(selectAdminRole);
   const userId = useAppSelector(selectUserId);
   const [loggingOut, setLoggingOut] = React.useState(false);
 
   // Fetch current authenticated user profile from backend ME API
   const { data: meProfile, isError: isMeError, error: meError } = useGetAdminMeQuery(undefined, {
-    skip: false,
+    skip: authStatus === 'unauthenticated' && !role && !userId,
   });
 
   useEffect(() => {
@@ -48,12 +50,44 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       );
     } else if (isMeError) {
       const status = (meError as { status?: number })?.status;
-      if (status === 401 || status === 403) {
-        dispatch(clearSession());
-        router.replace('/login');
+      if (status === 401 || status === 403 || status === 502) {
+        if (!role && !userId) {
+          dispatch(clearSession());
+          router.replace('/login');
+        }
       }
     }
-  }, [meProfile, isMeError, meError, dispatch, router]);
+  }, [meProfile, isMeError, meError, dispatch, router, role, userId]);
+
+  useEffect(() => {
+    if (authStatus === 'unauthenticated' || (!role && !userId)) {
+      router.replace('/login');
+    }
+  }, [authStatus, role, userId, router]);
+
+  if (authStatus === 'unauthenticated' || (!role && !userId)) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          height: '100vh',
+          width: '100vw',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#000000',
+          color: '#FFFFFF',
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          flexDirection: 'column',
+          gap: 16,
+        }}
+      >
+        <div style={{ fontSize: 22, fontWeight: 800 }}>
+          Foodie <span style={{ color: '#A1A1AA' }}>Admin</span>
+        </div>
+        <div style={{ fontSize: 13, color: '#71717A' }}>Checking authentication session…</div>
+      </div>
+    );
+  }
 
   const nav = filterNavForRole(role);
   const isAllowedRoute = isRouteAllowedForRole(pathname, role);

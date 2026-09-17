@@ -21,6 +21,10 @@ describe('P2-ADM-03 restaurant / partner helpers', () => {
 
   it('formats commission percent', () => {
     expect(formatCommissionPct(12.5)).toBe('12.5%');
+    expect(formatCommissionPct(18)).toBe('18%');
     expect(formatCommissionPct(null)).toBe('—');
+    expect(formatCommissionPct(undefined)).toBe('—');
+    expect(formatCommissionPct('')).toBe('—');
   });
 });
+

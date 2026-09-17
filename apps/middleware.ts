@@ -33,19 +33,14 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/',
-    '/login',
-    '/restaurants/:path*',
-    '/delivery-partners/:path*',
-    '/coupons/:path*',
-    '/orders/:path*',
-    '/payments/:path*',
-    '/reviews/:path*',
-    '/analytics/:path*',
-    '/audit-log/:path*',
-    '/darkstore-admin/:path*',
-    '/finance-admin/:path*',
-    '/support-admin/:path*',
-    '/restaurant-admin/:path*',
+    /*
+     * Match all request paths except for:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - static files (.svg, .png, .jpg, .css, etc.)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js)$).*)',
   ],
 };

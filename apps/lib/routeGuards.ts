@@ -171,7 +171,6 @@ export const DASHBOARD_NAV: readonly NavItem[] = [
   { href: '/delivery-partners', label: 'Delivery Partners', category: 'BUSINESS MANAGERS', roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN'] },
   { href: '/other', label: 'Others', category: 'BUSINESS MANAGERS', highlighted: true, roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN'] },
   { href: '/location', label: 'Location Management', category: 'BUSINESS MANAGERS', roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN'] },
-  { href: '/social-media', label: 'Social Media', category: 'BUSINESS MANAGERS', icon: '', roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN', 'SUPPORT', 'SUPPORT_AGENT'] },
   { href: '/orders', label: 'Orders', category: 'ORDER HUB', icon: '', badge: 'LIVE', permission: 'order.view', roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN', 'SUPPORT', 'SUPPORT_AGENT', 'RESTAURANT_MANAGER', 'AUDITOR'] },
   {
     href: '/coupons',

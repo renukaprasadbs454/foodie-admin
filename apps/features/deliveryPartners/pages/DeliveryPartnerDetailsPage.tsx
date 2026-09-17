@@ -195,9 +195,9 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
         </h3>
         {partner.documents && partner.documents.length > 0 ? (
           <div style={{ display: 'grid', gap: '8px', marginBottom: '24px' }}>
-            {partner.documents.map((doc) => (
+            {partner.documents.map((doc, docIdx) => (
               <div
-                key={doc.id}
+                key={doc.id ? `doc-${doc.id}` : `doc-${doc.docType || 'doc'}-${docIdx}`}
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',

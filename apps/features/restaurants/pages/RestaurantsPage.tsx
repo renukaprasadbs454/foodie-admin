@@ -7,6 +7,7 @@ import { GAP_API_14_RESTAURANT_LIST } from '@/constants/gaps';
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
 import { useGetAdminRestaurantsQuery, useApproveRestaurantMutation, useSuspendRestaurantMutation } from '@/api/endpoints/restaurantsApi';
+import { RestaurantCommissionModal, CommissionSettingsData, SelectedRestaurantTarget } from '../components/RestaurantCommissionModal';
 
 export interface StoreItem {
   id: string;
@@ -99,6 +100,7 @@ export function RestaurantsPage() {
   const [selectedStore, setSelectedStore] = useState<StoreItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isCommissionModalOpen, setIsCommissionModalOpen] = useState(false);
 
   // New Vendor Form State
   const [newVendorName, setNewVendorName] = useState('');
@@ -185,6 +187,12 @@ export function RestaurantsPage() {
     setIsAddModalOpen(false);
   };
 
+  const handleSaveCommission = (settings: CommissionSettingsData, target: SelectedRestaurantTarget) => {
+    setIsCommissionModalOpen(false);
+    setToastMessage(`Commission settings updated for "${target.name}": ${settings.commissionPct}% food commission rate applied.`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Page Header */}
@@ -197,7 +205,29 @@ export function RestaurantsPage() {
             Manage, approve, and monitor stores & restaurants across all marketplace modules
           </Text>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setIsCommissionModalOpen(true)}
+            style={{
+              padding: '10px 18px',
+              backgroundColor: '#FFFFFF',
+              color: '#09090B',
+              border: '1px solid #E4E4E7',
+              borderRadius: 8,
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            Commission Settings
+          </button>
+
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
@@ -631,6 +661,17 @@ export function RestaurantsPage() {
           </div>
         </div>
       )}
+
+      {/* Commission Settings Modal */}
+      <RestaurantCommissionModal
+        open={isCommissionModalOpen}
+        restaurantName={filteredStores[0]?.name || stores[0]?.name || 'Select Restaurant'}
+        restaurantId={filteredStores[0]?.id || stores[0]?.id || ''}
+        initialCommission={filteredStores[0]?.commissionRate ?? 15}
+        showRestaurantSelector={true}
+        onClose={() => setIsCommissionModalOpen(false)}
+        onSave={handleSaveCommission}
+      />
 
       {toastMessage ? (
         <div

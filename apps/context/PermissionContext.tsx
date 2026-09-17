@@ -53,59 +53,57 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
           }
         }
         if (mounted) {
-          const storedRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role') || 'SUPER_ADMIN';
-          const rolePermissions: Record<string, string[]> = {
-            SUPER_ADMIN: [
-              'role.manage', 'admin_user.manage', 'payment.view', 'payment.create', 'payment.refund',
-              'refund.view', 'refund.request', 'refund.approve', 'refund.process',
-              'settlement.view', 'settlement.hold', 'settlement.release', 'settlement.retry',
-              'invoice.view', 'invoice.create', 'invoice.resend', 'invoice.reissue',
-              'ledger.view', 'ledger.adjust', 'reconciliation.view', 'reconciliation.run',
-              'commission.view', 'commission.update', 'order.view', 'order.update', 'order.cancel',
-              'restaurant.view', 'restaurant.update', 'audit_log.view'
-            ],
-            FINANCE_ADMIN: [
-              'payment.view', 'payment.create', 'payment.refund', 'refund.view', 'refund.request',
-              'refund.approve', 'refund.process', 'settlement.view', 'settlement.hold', 'settlement.release',
-              'settlement.retry', 'invoice.view', 'invoice.create', 'ledger.view', 'ledger.adjust',
-              'reconciliation.view', 'reconciliation.run', 'commission.view', 'commission.update',
-              'order.view', 'audit_log.view'
-            ],
-            OPERATIONS_ADMIN: [
-              'order.view', 'order.update', 'order.cancel', 'payment.view', 'refund.view',
-              'refund.request', 'restaurant.view', 'restaurant.update'
-            ],
-            RESTAURANT_MANAGER: [
-              'order.view', 'order.update', 'order.cancel', 'settlement.view', 'refund.view',
-              'refund.request', 'ledger.view', 'restaurant.view', 'restaurant.update'
-            ],
-            SUPPORT_AGENT: [
-              'payment.view', 'order.view', 'refund.view', 'refund.request', 'invoice.view', 'restaurant.view'
-            ],
-            AUDITOR: [
-              'payment.view', 'refund.view', 'settlement.view', 'invoice.view', 'ledger.view',
-              'reconciliation.view', 'commission.view', 'order.view', 'restaurant.view', 'audit_log.view'
-            ]
-          };
+          const token = localStorage.getItem('foodie_admin_token') || sessionStorage.getItem('foodie_admin_token');
+          const storedRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role');
+          if (token && storedRole) {
+            const rolePermissions: Record<string, string[]> = {
+              SUPER_ADMIN: [
+                'role.manage', 'admin_user.manage', 'payment.view', 'payment.create', 'payment.refund',
+                'refund.view', 'refund.request', 'refund.approve', 'refund.process',
+                'settlement.view', 'settlement.hold', 'settlement.release', 'settlement.retry',
+                'invoice.view', 'invoice.create', 'invoice.resend', 'invoice.reissue',
+                'ledger.view', 'ledger.adjust', 'reconciliation.view', 'reconciliation.run',
+                'commission.view', 'commission.update', 'order.view', 'order.update', 'order.cancel',
+                'restaurant.view', 'restaurant.update', 'audit_log.view'
+              ],
+              FINANCE_ADMIN: [
+                'payment.view', 'payment.create', 'payment.refund', 'refund.view', 'refund.request',
+                'refund.approve', 'refund.process', 'settlement.view', 'settlement.hold', 'settlement.release',
+                'settlement.retry', 'invoice.view', 'invoice.create', 'ledger.view', 'ledger.adjust',
+                'reconciliation.view', 'reconciliation.run', 'commission.view', 'commission.update',
+                'order.view', 'audit_log.view'
+              ],
+              OPERATIONS_ADMIN: [
+                'order.view', 'order.update', 'order.cancel', 'payment.view', 'refund.view',
+                'refund.request', 'restaurant.view', 'restaurant.update'
+              ],
+              RESTAURANT_MANAGER: [
+                'order.view', 'order.update', 'order.cancel', 'settlement.view', 'refund.view',
+                'refund.request', 'ledger.view', 'restaurant.view', 'restaurant.update'
+              ],
+              SUPPORT_AGENT: [
+                'payment.view', 'order.view', 'refund.view', 'refund.request', 'invoice.view', 'restaurant.view'
+              ],
+              AUDITOR: [
+                'payment.view', 'refund.view', 'settlement.view', 'invoice.view', 'ledger.view',
+                'reconciliation.view', 'commission.view', 'order.view', 'restaurant.view', 'audit_log.view'
+              ]
+            };
 
-          setProfile({
-            adminUserId: '44444444-4444-4444-4444-444444444001',
-            userCredentialId: '33333333-3333-3333-3333-333333333001',
-            fullName: `${storedRole.replace('_', ' ')} User`,
-            role: storedRole,
-            permissions: rolePermissions[storedRole] || rolePermissions.SUPER_ADMIN,
-          });
+            setProfile({
+              adminUserId: '44444444-4444-4444-4444-444444444001',
+              userCredentialId: '33333333-3333-3333-3333-333333333001',
+              fullName: `${storedRole.replace('_', ' ')} User`,
+              role: storedRole,
+              permissions: rolePermissions[storedRole] || rolePermissions.SUPER_ADMIN,
+            });
+          } else {
+            setProfile(null);
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch admin profile', err);
         if (mounted) {
-          setProfile({
-            adminUserId: '44444444-4444-4444-4444-444444444001',
-            userCredentialId: '33333333-3333-3333-3333-333333333001',
-            fullName: 'Super Admin',
-            role: 'SUPER_ADMIN',
-            permissions: ['role.manage', 'payment.view', 'settlement.release', 'order.view'],
-          });
+          setProfile(null);
         }
       } finally {
         if (mounted) setLoading(false);

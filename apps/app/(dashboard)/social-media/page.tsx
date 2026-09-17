@@ -1,4 +1,4 @@
-import { SocialMediaStudio } from '@/features/social-media/components/SocialMediaStudio';
+import { redirect } from 'next/navigation';
 
 export const metadata = {
   title: 'Social Media Management | Foodie Admin',
@@ -6,5 +6,6 @@ export const metadata = {
 };
 
 export default function SocialMediaPage() {
-  return <SocialMediaStudio />;
+  redirect('/settings?tab=social-media');
 }
+

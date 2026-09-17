@@ -5,9 +5,9 @@ describe('Admin Settings Page Expansion Contract', () => {
     const requiredSettingTabs: SettingsTab[] = [
       'admin-profile',
       'page-setup',
+      'social-media',
       'admin-users',
       'roles-permissions',
-      'commission-settings',
       'tax-gst',
       'payment-settings',
       'app-settings',
@@ -17,8 +17,10 @@ describe('Admin Settings Page Expansion Contract', () => {
     expect(requiredSettingTabs).toHaveLength(9);
     expect(requiredSettingTabs).toContain('admin-profile');
     expect(requiredSettingTabs).toContain('page-setup');
+    expect(requiredSettingTabs).toContain('social-media');
     expect(requiredSettingTabs).toContain('roles-permissions');
     expect(requiredSettingTabs).toContain('tax-gst');
     expect(requiredSettingTabs).toContain('payment-settings');
   });
 });
+

@@ -2,13 +2,12 @@ import { SOCIAL_MEDIA_OPTIONS } from '../features/social-media/types/socialMedia
 import { DASHBOARD_NAV } from '../lib/routeGuards';
 
 describe('Social Media Feature Contract', () => {
-  it('includes /social-media in DASHBOARD_NAV under BUSINESS MANAGERS', () => {
-    const socialNav = DASHBOARD_NAV.find((item) => item.href === '/social-media');
+  it('houses social media configuration under settings and includes /settings in navigation', () => {
+    const settingsNav = DASHBOARD_NAV.find((item) => item.href === '/settings');
 
-    expect(socialNav).toBeDefined();
-    expect(socialNav?.label).toBe('Social Media');
-    expect(socialNav?.category).toBe('BUSINESS MANAGERS');
-    expect(socialNav?.icon).toBe('');
+    expect(settingsNav).toBeDefined();
+    expect(settingsNav?.label).toBe('Settings');
+    expect(settingsNav?.category).toBe('SYSTEM');
   });
 
   it('supports essential social media platforms (Pinterest, LinkedIn, Facebook, Instagram, YouTube, Twitter, TikTok)', () => {
