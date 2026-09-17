@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--dns-result-order=ipv4first' next dev apps",
-    "dev:admin": "NODE_OPTIONS='--dns-result-order=ipv4first' next dev apps",
+    "dev": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev apps",
+    "dev:admin": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev apps",
     "build": "next build apps",
     "start": "next start apps",
     "typecheck": "tsc -p apps/tsconfig.json --noEmit",
@@ -28,6 +28,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/sockjs-client": "^1.5.4",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "15.5.22",
     "jest": "^29.7.0",
