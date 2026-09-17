@@ -3,13 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-<<<<<<< Updated upstream
     "dev": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev apps",
     "dev:admin": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev apps",
-=======
-    "dev": "next dev apps",
-    "dev:admin": "next dev apps",
->>>>>>> Stashed changes
     "build": "next build apps",
     "start": "next start apps",
     "typecheck": "tsc -p apps/tsconfig.json --noEmit",
