@@ -31,8 +31,8 @@ describe('networkUtils - timeout and error handling', () => {
 
   it('safeFetch catches ETIMEDOUT / network errors gracefully without crashing', async () => {
     const etimedoutErr = new Error('connect ETIMEDOUT 64:ff9b::c8ea:2539:443');
-    (etimedoutErr as Record<string, unknown>).code = 'ETIMEDOUT';
-    (etimedoutErr as Record<string, unknown>).errno = -60;
+    (etimedoutErr as any).code = 'ETIMEDOUT';
+    (etimedoutErr as any).errno = -60;
 
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockRejectedValue(etimedoutErr);

@@ -234,8 +234,8 @@ export async function PUT(request: Request, ctx: Ctx) {
 }
 
 export async function PATCH(request: Request, ctx: Ctx) {
-  const { path } = await ctx.path ?? ctx.params;
-  return proxy(request, (await ctx.params).path);
+  const { path } = await ctx.params;
+  return proxy(request, path);
 }
 
 export async function DELETE(request: Request, ctx: Ctx) {
