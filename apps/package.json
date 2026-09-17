@@ -3,8 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+<<<<<<< Updated upstream
     "dev": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev",
     "dev:admin": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev",
+=======
+    "dev": "next dev",
+    "dev:admin": "next dev",
+>>>>>>> Stashed changes
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc -p tsconfig.json --noEmit",
