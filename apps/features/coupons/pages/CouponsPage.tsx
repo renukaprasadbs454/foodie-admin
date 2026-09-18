@@ -149,7 +149,7 @@ export function CouponsPage() {
   const activeModule = useAppSelector(selectActiveModule);
 
   const [activeTab, setActiveTab] = useState<CouponTab>('PROMO_COUPONS');
-  const { data: serverCoupons = [], isLoading: isCouponsLoading } = useGetCouponsQuery();
+  const { data: serverCoupons, isLoading: isCouponsLoading } = useGetCouponsQuery();
   const [createCouponApi, { isLoading: isCreatingCoupon }] = useCreateCouponMutation();
   const [deactivateCouponApi, { isLoading: isDeactivatingCoupon }] = useDeactivateCouponMutation();
   const [activateCouponApi, { isLoading: isActivatingCoupon }] = useActivateCouponMutation();
