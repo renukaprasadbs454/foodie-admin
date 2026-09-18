@@ -155,7 +155,7 @@ export function CouponsPage() {
   const [activateCouponApi, { isLoading: isActivatingCoupon }] = useActivateCouponMutation();
   const [deleteCouponApi, { isLoading: isDeletingCoupon }] = useDeleteCouponMutation();
 
-  const [localCoupons, setLocalCoupons] = useState<CouponRecord[]>(MOCK_COUPONS);
+  const [localCoupons, setLocalCoupons] = useState<CouponRecord[]>([]);
 
   useEffect(() => {
     if (serverCoupons) {
@@ -177,8 +177,8 @@ export function CouponsPage() {
 
   const coupons: CouponRecord[] = localCoupons;
 
-  const [firstOrderOffers, setFirstOrderOffers] = useState<FirstOrderOfferRecord[]>(MOCK_FIRST_ORDER_OFFERS);
-  const [campaigns, setCampaigns] = useState<CampaignRecord[]>(MOCK_CAMPAIGNS);
+  const [firstOrderOffers, setFirstOrderOffers] = useState<FirstOrderOfferRecord[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
 
   // Form State - Coupon
   const [code, setCode] = useState('');
