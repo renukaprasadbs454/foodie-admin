@@ -158,7 +158,7 @@ export function CouponsPage() {
   const [localCoupons, setLocalCoupons] = useState<CouponRecord[]>(MOCK_COUPONS);
 
   useEffect(() => {
-    if (serverCoupons && serverCoupons.length > 0) {
+    if (serverCoupons) {
       const formatted: CouponRecord[] = serverCoupons.map((c: any) => ({
         id: c.couponId || c.id,
         code: c.code,
@@ -237,19 +237,21 @@ export function CouponsPage() {
       status: 'ACTIVE',
     };
 
-    setLocalCoupons((prev) => [newCoupon, ...prev]);
-
     try {
       await createCouponApi({
         code: cleanCode,
         discountType: discountType === 'FIXED' ? 'FLAT' : 'PERCENT',
         value: cleanVal,
         minOrderAmount: Number(minPurchase) || 0,
+        maxDiscountAmount: discountType === 'PERCENT' ? (cleanVal * 2) : undefined,
         expiryDate: '2099-12-31',
         usageLimitPerUser: 1,
       }).unwrap();
+
+      setLocalCoupons((prev) => [newCoupon, ...prev]);
     } catch {
-      // Local fallback handled above
+      alert('Failed to create coupon on the server. Please check your inputs.');
+      return;
     }
 
     setCode('');
