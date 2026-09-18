@@ -241,11 +241,14 @@ export function CouponsPage() {
       await createCouponApi({
         code: cleanCode,
         discountType: discountType === 'FIXED' ? 'FLAT' : 'PERCENT',
+        funderType: 'FOODIE', // Future: Add complete UI controls for these based on schema
+        couponType: 'GENERIC',
+        benefitMode: discountType === 'FIXED' ? 'FLAT' : 'PERCENTAGE',
         value: cleanVal,
         minOrderAmount: Number(minPurchase) || 0,
         maxDiscountAmount: discountType === 'PERCENT' ? (cleanVal * 2) : undefined,
         expiryDate: '2099-12-31',
-        usageLimitPerUser: 1,
+        usageLimitPerUser: 1, // Will be overridden or ignored by backend for GENERIC coupons
       }).unwrap();
 
       setLocalCoupons((prev) => [newCoupon, ...prev]);
