@@ -64,10 +64,24 @@ export const paymentsApi = baseApi.injectEndpoints({
       ],
     }),
 
-    getAdminPayouts: builder.query<PayoutRecord[], void>({
-      query: () => '/api/bff/admin/payments/payouts',
+    getAdminPayouts: builder.query<PayoutRecord[], { ownerType?: string } | void>({
+      query: (params) => {
+        let url = '/api/bff/admin/payments/payouts';
+        if (params && params.ownerType) url += `?ownerType=${params.ownerType}`;
+        return url;
+      },
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
       providesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
+    }),
+
+    approvePayouts: builder.mutation<string, { payoutIds: string[] }>({
+      query: (body) => ({
+        url: '/api/bff/admin/payments/payouts/approve',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
     }),
 
     getCommissionRules: builder.query<CommissionConfig, void>({
