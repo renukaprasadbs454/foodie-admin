@@ -142,4 +142,5 @@ export const {
   useUpdateCommissionRulesMutation,
   useCalculateSplitMutation,
   useRefundPaymentMutation,
+  useApprovePayoutsMutation,
 } = paymentsApi;
