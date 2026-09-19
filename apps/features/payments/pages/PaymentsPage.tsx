@@ -36,6 +36,7 @@ import { useGetAdminDeliveryPartnersQuery } from '../../../api/endpoints/deliver
 
 type TabKey =
   | 'OVERVIEW'
+  | 'TRANSACTIONS'
   | 'SETTLEMENTS'
   | 'RESTAURANT_SETTLEMENTS'
   | 'LEDGER'
@@ -1044,6 +1045,7 @@ export function PaymentsPage() {
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Bank & Account Details</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Status</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Requested Date</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700, textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -1088,19 +1090,42 @@ export function PaymentsPage() {
                       <td style={{ padding: '14px 16px' }}>
                         <span
                           style={{
-                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : '#FEF3C7',
-                            color: p.status === 'COMPLETED' ? '#166534' : '#B45309',
+                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : p.status === 'PROCESSING' ? '#EFF6FF' : '#FEF3C7',
+                            color: p.status === 'COMPLETED' ? '#166534' : p.status === 'PROCESSING' ? '#1D4ED8' : '#B45309',
                             fontSize: 11,
                             fontWeight: 700,
                             padding: '4px 10px',
                             borderRadius: 20,
                           }}
                         >
-                          ● {p.status || 'PENDING'}
+                          ● {p.status || 'REQUESTED'}
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
                         {p.createdAt ? String(p.createdAt).replace('T', ' ').slice(0, 16) : 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                        {(p.status === 'REQUESTED' || p.status === 'FAILED') ? (
+                          <button
+                            type="button"
+                            disabled={isApproving}
+                            onClick={() => approvePayouts({ payoutIds: [p.id] })}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#0F3D21',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: isApproving ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            Approve
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>{p.status}</span>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -1153,7 +1178,7 @@ export function PaymentsPage() {
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '4px 10px', borderRadius: 20 }}>
-              {serverPayouts.length} Requested Payouts
+              {deliveryPayouts.length} Requested Payouts
             </span>
           </div>
 
@@ -1181,6 +1206,7 @@ export function PaymentsPage() {
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Bank & Account Details</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Status</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Requested Date</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700, textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -1225,19 +1251,42 @@ export function PaymentsPage() {
                       <td style={{ padding: '14px 16px' }}>
                         <span
                           style={{
-                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : '#FEF3C7',
-                            color: p.status === 'COMPLETED' ? '#166534' : '#B45309',
+                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : p.status === 'PROCESSING' ? '#EFF6FF' : '#FEF3C7',
+                            color: p.status === 'COMPLETED' ? '#166534' : p.status === 'PROCESSING' ? '#1D4ED8' : '#B45309',
                             fontSize: 11,
                             fontWeight: 700,
                             padding: '4px 10px',
                             borderRadius: 20,
                           }}
                         >
-                          ● {p.status || 'PENDING'}
+                          ● {p.status || 'REQUESTED'}
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
                         {p.createdAt ? String(p.createdAt).replace('T', ' ').slice(0, 16) : 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                        {(p.status === 'REQUESTED' || p.status === 'FAILED') ? (
+                          <button
+                            type="button"
+                            disabled={isApproving}
+                            onClick={() => approvePayouts({ payoutIds: [p.id] })}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#0F3D21',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: isApproving ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            Approve
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>{p.status}</span>
+                        )}
                       </td>
                     </tr>
                   ))

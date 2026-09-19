@@ -80,7 +80,7 @@ export const paymentsApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
+      transformResponse: (res: any) => (typeof res === 'object' && res !== null && 'data' in res ? res.data : res),
       invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
     }),
 
