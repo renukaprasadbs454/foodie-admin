@@ -1108,7 +1108,7 @@ export function PaymentsPage() {
                         {(p.status === 'REQUESTED' || p.status === 'FAILED') ? (
                           <button
                             type="button"
-                            disabled={isApproving}
+                            disabled={isApproving || !selectedRestPayouts.has(p.id)}
                             onClick={() => approvePayouts({ payoutIds: [p.id] })}
                             style={{
                               padding: '6px 12px',
@@ -1118,7 +1118,7 @@ export function PaymentsPage() {
                               borderRadius: 6,
                               fontSize: 12,
                               fontWeight: 700,
-                              cursor: isApproving ? 'not-allowed' : 'pointer',
+                              cursor: (isApproving || !selectedRestPayouts.has(p.id)) ? 'not-allowed' : 'pointer',
                             }}
                           >
                             Approve
@@ -1269,7 +1269,7 @@ export function PaymentsPage() {
                         {(p.status === 'REQUESTED' || p.status === 'FAILED') ? (
                           <button
                             type="button"
-                            disabled={isApproving}
+                            disabled={isApproving || !selectedDelivPayouts.has(p.id)}
                             onClick={() => approvePayouts({ payoutIds: [p.id] })}
                             style={{
                               padding: '6px 12px',
@@ -1279,7 +1279,7 @@ export function PaymentsPage() {
                               borderRadius: 6,
                               fontSize: 12,
                               fontWeight: 700,
-                              cursor: isApproving ? 'not-allowed' : 'pointer',
+                              cursor: (isApproving || !selectedDelivPayouts.has(p.id)) ? 'not-allowed' : 'pointer',
                             }}
                           >
                             Approve
