@@ -206,8 +206,8 @@ export function PaymentsPage() {
         { key: 'TRANSACTIONS', label: `💳 Transactions (${serverTransactions.length})` },
         { key: 'SETTLEMENTS', label: `⚖️ Order Settlements (${serverSettlements.length})` },
         { key: 'LEDGER', label: `📖 Audit Ledger (${serverLedger.length})` },
-        { key: 'RESTAURANT_PAYOUTS', label: `🏪 Restaurant Payouts (${restaurantSettlements.length})` },
-        { key: 'DELIVERY_PAYOUTS', label: `🛵 Driver Payouts (${serverPayouts.length})` },
+        { key: 'RESTAURANT_PAYOUTS', label: `🏪 Restaurant Payouts (${serverPayouts.length})` },
+        { key: 'DELIVERY_PAYOUTS', label: `🛵 Driver Payouts (${restaurantSettlements.length})` },
         { key: 'EARNINGS', label: '💰 Admin Earnings' },
         { key: 'COMMISSION_RULES', label: '⚙️ Commission Rules' },
         { key: 'REFUNDS', label: '🔄 Refunds & Reversals' },
@@ -845,8 +845,8 @@ export function PaymentsPage() {
         </div>
       )}
 
-      {/* TAB 5: RESTAURANT PAYOUTS */}
-      {activeTab === 'RESTAURANT_PAYOUTS' && (
+      {/* TAB 5: DELIVERY PAYOUTS (Swapped as requested) */}
+      {activeTab === 'DELIVERY_PAYOUTS' && (
         <div
           style={{
             backgroundColor: '#FFFFFF',
@@ -965,8 +965,8 @@ export function PaymentsPage() {
         </div>
       )}
 
-      {/* TAB 6: DELIVERY PARTNER PAYOUTS */}
-      {activeTab === 'DELIVERY_PAYOUTS' && (
+      {/* TAB 6: RESTAURANT PAYOUTS (Swapped as requested) */}
+      {activeTab === 'RESTAURANT_PAYOUTS' && (
         <div
           style={{
             backgroundColor: '#FFFFFF',
