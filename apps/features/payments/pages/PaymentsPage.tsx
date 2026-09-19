@@ -133,9 +133,9 @@ export function PaymentsPage() {
   useEffect(() => {
     if (serverRules) {
       setCommissionConfig(serverRules);
-      setConfigRestRate(serverRules.restaurantCommissionRate.toString());
-      setConfigDelivRate(serverRules.deliveryCommissionRate.toString());
-      setConfigPlatformFee(serverRules.platformFixedFee.toString());
+      setConfigRestRate(serverRules.restaurantCommissionRate?.toString() || '');
+      setConfigDelivRate(serverRules.deliveryCommissionRate?.toString() || '');
+      setConfigPlatformFee(serverRules.platformFixedFee?.toString() || '');
     }
   }, [serverRules]);
 
