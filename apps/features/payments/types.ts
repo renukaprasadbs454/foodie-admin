@@ -113,6 +113,7 @@ export interface PayoutRecord {
   failureReason?: string;
   createdAt?: string;
   updatedAt?: string;
+  ownerName?: string;
 }
 
 /**

@@ -1058,7 +1058,7 @@ export function PaymentsPage() {
                     <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>No restaurant payout records.</td>
                   </tr>
                 ) : (
-                  restaurantPayouts.map((p: PayoutRecord) => (
+                  [...restaurantPayouts].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((p: PayoutRecord) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
                       <td style={{ padding: '14px 16px' }}>
                         <input
@@ -1076,7 +1076,7 @@ export function PaymentsPage() {
                         {p.id}
                       </td>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
-                        {p.accountHolderName || 'Partner Store'}
+                        {p.ownerName || p.accountHolderName || 'Partner Store'}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B', fontFamily: 'monospace' }}>
                         {p.walletAccountId || 'N/A'}
@@ -1219,7 +1219,7 @@ export function PaymentsPage() {
                     <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>No delivery partner payout records.</td>
                   </tr>
                 ) : (
-                  deliveryPayouts.map((p: PayoutRecord) => (
+                  [...deliveryPayouts].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((p: PayoutRecord) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
                       <td style={{ padding: '14px 16px' }}>
                         <input
@@ -1236,8 +1236,8 @@ export function PaymentsPage() {
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B', fontFamily: 'monospace' }}>
                         {p.id}
                       </td>
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
-                        {p.accountHolderName || 'Delivery Partner'}
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#1E40AF' }}>
+                        {p.ownerName || p.accountHolderName || 'Delivery Partner'}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B', fontFamily: 'monospace' }}>
                         {p.walletAccountId || 'N/A'}
