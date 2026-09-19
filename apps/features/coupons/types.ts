@@ -6,22 +6,30 @@
 export const DISCOUNT_TYPES = ['FLAT', 'PERCENT'] as const;
 export type DiscountType = (typeof DISCOUNT_TYPES)[number];
 
-export type CreateCouponBody = {
+export interface CreateCouponBody {
   code: string;
-  discountType: DiscountType;
+  discountType: 'FLAT' | 'PERCENT';
   value: number;
   minOrderAmount: number;
-  maxDiscountAmount?: number | null;
+  maxDiscountAmount?: number;
   expiryDate: string;
-  usageLimitTotal?: number | null;
-  usageLimitPerUser?: number | null;
-  restaurantId?: string | null;
-};
+  usageLimitTotal?: number;
+  usageLimitPerUser: number;
+  restaurantId?: string;
+  funderType?: string;
+  couponType?: string;
+  benefitMode?: string;
+  approvalStatus?: string;
+}
 
-export type Coupon = {
+export interface Coupon {
   couponId: string;
   code: string;
-  discountType: string;
+  discountType: 'FLAT' | 'PERCENT';
+  funderType?: string;
+  couponType?: string;
+  benefitMode?: string;
+  approvalStatus?: string;
   value: number | string;
   minOrderAmount: number | string;
   maxDiscountAmount?: number | string | null;
@@ -86,14 +94,14 @@ export function validateCreateCoupon(
     return { ok: false, message: 'Minimum order amount must be ≥ 0.' };
   }
 
-  let maxDiscountAmount: number | null | undefined;
+  let maxDiscountAmount: number | undefined;
   if (input.maxDiscountAmount.trim()) {
     maxDiscountAmount = Number(input.maxDiscountAmount);
     if (!Number.isFinite(maxDiscountAmount) || maxDiscountAmount <= 0) {
       return { ok: false, message: 'Max discount must be greater than 0 when set.' };
     }
   } else {
-    maxDiscountAmount = null;
+    maxDiscountAmount = undefined;
   }
   if (input.discountType === 'PERCENT') {
     if (maxDiscountAmount == null || maxDiscountAmount <= 0) {
@@ -122,24 +130,24 @@ export function validateCreateCoupon(
     return { ok: false, message: 'Usage limit per user must be an integer ≥ 1.' };
   }
 
-  let usageLimitTotal: number | null | undefined;
+  let usageLimitTotal: number | undefined;
   if (input.usageLimitTotal.trim()) {
     usageLimitTotal = Number(input.usageLimitTotal);
     if (!Number.isInteger(usageLimitTotal) || usageLimitTotal < 1) {
       return { ok: false, message: 'Usage limit total must be an integer ≥ 1.' };
     }
   } else {
-    usageLimitTotal = null;
+    usageLimitTotal = undefined;
   }
 
-  let restaurantId: string | null | undefined;
+  let restaurantId: string | undefined;
   if (input.restaurantId.trim()) {
     if (!UUID_RE.test(input.restaurantId.trim())) {
       return { ok: false, message: 'Restaurant ID must be a valid UUID when set.' };
     }
     restaurantId = input.restaurantId.trim();
   } else {
-    restaurantId = null;
+    restaurantId = undefined;
   }
 
   return {

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_19_COUPON_LIST } from '@/constants/gaps';
-import { useGetCouponsQuery, useCreateCouponMutation, useDeactivateCouponMutation, useDeleteCouponMutation, useActivateCouponMutation } from '@/api/endpoints/couponsApi';
+import { useGetCouponsQuery, useCreateCouponMutation, useDeactivateCouponMutation, useDeleteCouponMutation, useActivateCouponMutation, useApproveCouponMutation, useRejectCouponMutation } from '@/api/endpoints/couponsApi';
 
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
@@ -17,6 +17,7 @@ export interface CouponRecord {
   minPurchase: number;
   maxDiscount: number;
   module: string;
+  approvalStatus?: string;
   expiryDate: string;
   status: 'ACTIVE' | 'DEACTIVATED';
 }
@@ -142,7 +143,7 @@ const MOCK_CAMPAIGNS: CampaignRecord[] = [
   },
 ];
 
-type CouponTab = 'PROMO_COUPONS' | 'FIRST_ORDER_OFFERS' | 'REFERRAL_OFFERS' | 'CAMPAIGN_MANAGEMENT';
+type CouponTab = 'PROMO_COUPONS' | 'FIRST_ORDER_OFFERS' | 'REFERRAL_OFFERS' | 'CAMPAIGN_MANAGEMENT' | 'PENDING_APPROVALS';
 
 export function CouponsPage() {
   const { tokens } = useTheme();
@@ -154,6 +155,8 @@ export function CouponsPage() {
   const [deactivateCouponApi, { isLoading: isDeactivatingCoupon }] = useDeactivateCouponMutation();
   const [activateCouponApi, { isLoading: isActivatingCoupon }] = useActivateCouponMutation();
   const [deleteCouponApi, { isLoading: isDeletingCoupon }] = useDeleteCouponMutation();
+  const [approveCouponApi, { isLoading: isApprovingCoupon }] = useApproveCouponMutation();
+  const [rejectCouponApi, { isLoading: isRejectingCoupon }] = useRejectCouponMutation();
 
   const [localCoupons, setLocalCoupons] = useState<CouponRecord[]>([]);
 
@@ -168,6 +171,7 @@ export function CouponsPage() {
         minPurchase: c.minOrderAmount || c.minPurchase || 0,
         maxDiscount: c.maxDiscountAmount || c.maxDiscount || 0,
         module: c.restaurantId ? 'Specific Restaurant' : (c.module || 'All Food Delivery'),
+        approvalStatus: c.approvalStatus,
         expiryDate: c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : '1/1/2100',
         status: c.isActive || c.status === 'ACTIVE' ? 'ACTIVE' : 'DEACTIVATED'
       }));
@@ -348,6 +352,29 @@ export function CouponsPage() {
     setTimeout(() => setToastMsg(null), 3000);
   };
 
+  const handleApprove = async (id: string) => {
+    try {
+      await approveCouponApi(id).unwrap();
+      setToastMsg('Coupon approved successfully!');
+    } catch {
+      setToastMsg('Failed to approve coupon.');
+    }
+    setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await rejectCouponApi(id).unwrap();
+      setToastMsg('Coupon rejected successfully!');
+    } catch {
+      setToastMsg('Failed to reject coupon.');
+    }
+    setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const pendingCoupons = coupons.filter(c => c.approvalStatus === 'PENDING');
+  const activeCoupons = coupons.filter(c => c.approvalStatus !== 'PENDING');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
@@ -408,7 +435,25 @@ export function CouponsPage() {
             whiteSpace: 'nowrap',
           }}
         >
-          Promo Coupons ({coupons.length})
+          Promo Coupons ({activeCoupons.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('PENDING_APPROVALS')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 8,
+            border: 'none',
+            backgroundColor: activeTab === 'PENDING_APPROVALS' ? '#000000' : 'transparent',
+            color: activeTab === 'PENDING_APPROVALS' ? '#FFFFFF' : '#71717A',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Pending Approvals ({pendingCoupons.length})
         </button>
 
         <button
@@ -697,6 +742,107 @@ export function CouponsPage() {
                       </td>
                     </tr>
                   ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* PENDING APPROVALS */}
+      {activeTab === 'PENDING_APPROVALS' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 12,
+              border: '1px solid #E4E4E7',
+              overflow: 'hidden',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            }}
+          >
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#F4F4F5' }}>
+              <Text as="h2" variant="heading3" color="#09090B">
+                Restaurant Campaigns Pending Approval
+              </Text>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#09090B', backgroundColor: '#F4F4F5', fontSize: 12, fontWeight: 700 }}>
+                  <th style={{ padding: '12px 20px' }}>CODE</th>
+                  <th style={{ padding: '12px 20px' }}>TITLE</th>
+                  <th style={{ padding: '12px 20px' }}>RESTAURANT</th>
+                  <th style={{ padding: '12px 20px' }}>DISCOUNT</th>
+                  <th style={{ padding: '12px 20px' }}>MIN / MAX</th>
+                  <th style={{ padding: '12px 20px', textAlign: 'right' }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingCoupons.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#71717A' }}>
+                      No pending campaigns found.
+                    </td>
+                  </tr>
+                ) : (
+                  pendingCoupons.map((coupon) => (
+                    <tr key={coupon.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
+                      <td style={{ padding: '16px 20px', fontWeight: 600, color: '#09090B' }}>
+                        {coupon.code}
+                      </td>
+                      <td style={{ padding: '16px 20px', color: '#3F3F46' }}>
+                        {coupon.title}
+                      </td>
+                      <td style={{ padding: '16px 20px', color: '#09090B' }}>
+                        {coupon.module}
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <span style={{ backgroundColor: '#F0FDF4', color: '#166534', padding: '4px 8px', borderRadius: 4, fontSize: 12, fontWeight: 700 }}>
+                          {coupon.discountType === 'PERCENT' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px', color: '#71717A', fontSize: 13 }}>
+                        Min ₹{coupon.minPurchase}
+                        {coupon.maxDiscount > 0 && <span> <br />Max ₹{coupon.maxDiscount}</span>}
+                      </td>
+                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(coupon.id)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#DCFCE7',
+                              color: '#166534',
+                              border: '1px solid #BBF7D0',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReject(coupon.id)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#FEE2E2',
+                              color: '#991B1B',
+                              border: '1px solid #FECACA',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
