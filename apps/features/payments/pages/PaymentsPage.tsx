@@ -206,8 +206,8 @@ export function PaymentsPage() {
         { key: 'TRANSACTIONS', label: `💳 Transactions (${serverTransactions.length})` },
         { key: 'SETTLEMENTS', label: `⚖️ Order Settlements (${serverSettlements.length})` },
         { key: 'LEDGER', label: `📖 Audit Ledger (${serverLedger.length})` },
-        { key: 'RESTAURANT_PAYOUTS', label: `🏪 Restaurant Payouts (${restaurantSettlements.length})` },
-        { key: 'DELIVERY_PAYOUTS', label: `🛵 Driver Payouts (${serverPayouts.length})` },
+        { key: 'RESTAURANT_PAYOUTS', label: `🏪 Order Settlements (${restaurantSettlements.length})` },
+        { key: 'DELIVERY_PAYOUTS', label: `💸 Wallet Withdrawals (${serverPayouts.length})` },
         { key: 'EARNINGS', label: '💰 Admin Earnings' },
         { key: 'COMMISSION_RULES', label: '⚙️ Commission Rules' },
         { key: 'REFUNDS', label: '🔄 Refunds & Reversals' },
@@ -859,7 +859,7 @@ export function PaymentsPage() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
-                Restaurant Store Settlements & Bank Disbursals
+                Restaurant Order Settlements (14% Comm)
               </Text>
               <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
                 Accumulated net 86% food revenue payouts to restaurant partners with formal disbursement tracking.
@@ -979,14 +979,14 @@ export function PaymentsPage() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
-                Delivery Partner Payouts & Driver Earnings
+                Partner Wallet Payouts (Requested Disbursals)
               </Text>
               <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
-                Bank transfer disbursals for delivery partners after 10% platform commission deduction.
+                Bank transfer disbursals requested via application wallets by restaurants or delivery partners.
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '4px 10px', borderRadius: 20 }}>
-              {serverPayouts.length} Driver Payouts
+              {serverPayouts.length} Requested Payouts
             </span>
           </div>
 
@@ -995,7 +995,7 @@ export function PaymentsPage() {
               <thead>
                 <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#18181B', backgroundColor: '#F4F4F5' }}>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Payout ID</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Driver / Account Holder</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Account Holder</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Wallet Account</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Amount</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Bank & Account Details</th>
