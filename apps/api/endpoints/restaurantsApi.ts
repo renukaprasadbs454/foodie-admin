@@ -102,6 +102,14 @@ export const restaurantsApi = baseApi.injectEndpoints({
         'Admin',
       ],
     }),
+    updateAdminRestaurantPositions: builder.mutation<void, { restaurantId: string; position: number }[]>({
+      query: (positions) => ({
+        url: `/api/bff/admin/restaurants/positions`,
+        method: 'PATCH',
+        body: positions,
+      }),
+      invalidatesTags: ['Admin', 'Restaurant', { type: 'Admin', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -112,4 +120,5 @@ export const {
   useApproveRestaurantMutation,
   useSuspendRestaurantMutation,
   useDeleteRestaurantMutation,
+  useUpdateAdminRestaurantPositionsMutation,
 } = restaurantsApi;

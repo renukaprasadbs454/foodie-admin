@@ -1,0 +1,10 @@
+
+> foodie-admin@0.1.0 typecheck
+> tsc -p apps/tsconfig.json --noEmit
+
+apps/features/payments/pages/PaymentsPage.tsx(1093,85): error TS2367: This comparison appears to be unintentional because the types '"PENDING" | "FAILED"' and '"PROCESSING"' have no overlap.
+apps/features/payments/pages/PaymentsPage.tsx(1094,75): error TS2367: This comparison appears to be unintentional because the types '"PENDING" | "FAILED"' and '"PROCESSING"' have no overlap.
+apps/features/payments/pages/PaymentsPage.tsx(1108,27): error TS2367: This comparison appears to be unintentional because the types '"PENDING" | "FAILED" | "COMPLETED"' and '"REQUESTED"' have no overlap.
+apps/features/payments/pages/PaymentsPage.tsx(1254,85): error TS2367: This comparison appears to be unintentional because the types '"PENDING" | "FAILED"' and '"PROCESSING"' have no overlap.
+apps/features/payments/pages/PaymentsPage.tsx(1255,75): error TS2367: This comparison appears to be unintentional because the types '"PENDING" | "FAILED"' and '"PROCESSING"' have no overlap.
+apps/features/payments/pages/PaymentsPage.tsx(1269,27): error TS2367: This comparison appears to be unintentional because the types '"PENDING" | "FAILED" | "COMPLETED"' and '"REQUESTED"' have no overlap.
