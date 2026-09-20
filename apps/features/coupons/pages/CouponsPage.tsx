@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_19_COUPON_LIST } from '@/constants/gaps';
 import { useGetCouponsQuery, useCreateCouponMutation, useDeactivateCouponMutation, useDeleteCouponMutation, useActivateCouponMutation, useApproveCouponMutation, useRejectCouponMutation } from '@/api/endpoints/couponsApi';
+import { BannerManagement } from '../components/BannerManagement';
 
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
@@ -143,7 +144,7 @@ const MOCK_CAMPAIGNS: CampaignRecord[] = [
   },
 ];
 
-type CouponTab = 'PROMO_COUPONS' | 'FIRST_ORDER_OFFERS' | 'REFERRAL_OFFERS' | 'CAMPAIGN_MANAGEMENT' | 'PENDING_APPROVALS';
+type CouponTab = 'PROMO_COUPONS' | 'FIRST_ORDER_OFFERS' | 'REFERRAL_OFFERS' | 'CAMPAIGN_MANAGEMENT' | 'PENDING_APPROVALS' | 'BANNERS';
 
 export function CouponsPage() {
   const { tokens } = useTheme();
@@ -422,6 +423,24 @@ export function CouponsPage() {
       >
         <button
           type="button"
+          onClick={() => setActiveTab('BANNERS')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 8,
+            border: 'none',
+            backgroundColor: activeTab === 'BANNERS' ? '#000000' : 'transparent',
+            color: activeTab === 'BANNERS' ? '#FFFFFF' : '#71717A',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Promotional Banners
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('PROMO_COUPONS')}
           style={{
             padding: '10px 20px',
@@ -510,6 +529,9 @@ export function CouponsPage() {
           Campaign Management ({campaigns.length})
         </button>
       </div>
+
+      {/* TAB: BANNERS */}
+      {activeTab === 'BANNERS' && <BannerManagement />}
 
       {/* TAB 1: PROMO COUPONS */}
       {activeTab === 'PROMO_COUPONS' && (
