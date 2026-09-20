@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Text, useTheme } from 'foodie-shared-web';
 import type { StoreItem } from '../pages/RestaurantsPage';
 
@@ -31,18 +31,32 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
     const { tokens } = useTheme();
     const [arrangedStores, setArrangedStores] = useState<StoreItem[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [selectedToAdd, setSelectedToAdd] = useState<string>('');
 
     useEffect(() => {
-        // Sort by existing rank or keep current order
-        // But since topPosition is missing in StoreItem right now, we will add it to the type shortly
-        const sorted = [...stores].sort((a, b) => {
-            const posA = a.topPosition ?? 999;
-            const posB = b.topPosition ?? 999;
-            if (posA !== posB) return posA - posB;
-            return a.name.localeCompare(b.name);
-        });
-        setArrangedStores(sorted);
+        // Only load restaurants that currently have a stored topPosition
+        const initialTop = stores.filter(s => s.topPosition != null).sort((a, b) => a.topPosition! - b.topPosition!);
+        setArrangedStores(initialTop);
     }, [stores]);
+
+    // Available restaurants to add are those not already in the arranged list
+    const availableStores = useMemo(() => {
+        const arrangedIds = new Set(arrangedStores.map(s => s.id));
+        return stores.filter(s => !arrangedIds.has(s.id));
+    }, [stores, arrangedStores]);
+
+    const handleAdd = () => {
+        if (!selectedToAdd) return;
+        const storeToAdd = stores.find(s => s.id === selectedToAdd);
+        if (storeToAdd) {
+            setArrangedStores(prev => [...prev, storeToAdd]);
+            setSelectedToAdd('');
+        }
+    };
+
+    const handleRemove = (id: string) => {
+        setArrangedStores(prev => prev.filter(s => s.id !== id));
+    };
 
     const moveUp = (index: number) => {
         if (index === 0) return;
@@ -78,7 +92,7 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
                 <div>
                     <Text as="h3" variant="heading3">Arrange Top Restaurants</Text>
                     <Text variant="caption" color={tokens.color.textSecondary}>
-                        These restaurants will be displayed in the Customer App when "Top Restaurants" is selected. Use the up and down arrows to arrange them, then click Save.
+                        Configure explicit Top Restaurants for the Customer App. Unselected restaurants won't appear in the top list.
                     </Text>
                 </div>
                 <button
@@ -98,85 +112,102 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
                 </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
-                {arrangedStores.map((restaurant, index) => {
-                    const imageUrl = getRestaurantImage(restaurant);
-                    const isClosed = false; // We can adjust in the real app if needed
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: 16, backgroundColor: '#FAFAFA', borderRadius: 8, border: '1px solid #E4E4E7' }}>
+                <select
+                    value={selectedToAdd}
+                    onChange={(e) => setSelectedToAdd(e.target.value)}
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 14 }}
+                >
+                    <option value="" disabled>-- Select Restaurant to Add to Top List --</option>
+                    {availableStores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                </select>
+                <button
+                    onClick={handleAdd}
+                    disabled={!selectedToAdd}
+                    style={{
+                        padding: '10px 16px',
+                        backgroundColor: selectedToAdd ? '#000000' : '#A1A1AA',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: 8,
+                        fontWeight: 600,
+                        cursor: selectedToAdd ? 'pointer' : 'not-allowed'
+                    }}
+                >
+                    + Add to List
+                </button>
+            </div>
 
-                    return (
-                        <div key={restaurant.id} style={{ position: 'relative' }}>
-                            <div
-                                style={{
-                                    backgroundColor: tokens.color.surface,
-                                    borderRadius: tokens.radius.md,
-                                    border: '1px solid ' + tokens.color.border,
-                                    overflow: 'hidden',
-                                    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-                                    position: 'relative',
-                                    flex: 1,
-                                    display: 'flex',
-                                    flexDirection: 'column'
-                                }}
-                            >
-                                <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, display: 'flex', gap: 4 }}>
-                                    <button onClick={() => moveUp(index)} style={{ padding: 4, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>⬆️</button>
-                                    <button onClick={() => moveDown(index)} style={{ padding: 4, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>⬇️</button>
-                                </div>
+            {arrangedStores.length === 0 ? (
+                <div style={{ padding: 40, textAlign: 'center', backgroundColor: '#FAFAFA', border: '1px dashed #E4E4E7', borderRadius: 12 }}>
+                    <Text style={{ fontWeight: 600, color: '#A1A1AA' }}>No top restaurants selected.</Text>
+                </div>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+                    {arrangedStores.map((restaurant, index) => {
+                        const imageUrl = getRestaurantImage(restaurant);
+                        const isClosed = false;
 
-                                <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, background: '#14532D', color: '#FCD34D', padding: '4px 8px', borderRadius: 12, fontWeight: 800, fontSize: 12 }}>
-                                    #{index + 1}
-                                </div>
-
-                                <div style={{ height: 110, width: '100%', backgroundColor: '#F0ECE4', position: 'relative' }}>
-                                    <img
-                                        src={imageUrl}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: isClosed ? 0.3 : 1 }}
-                                    />
-                                </div>
-
-                                <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Text
-                                            variant="label"
-                                            style={{ flex: 1, fontWeight: '700', color: tokens.color.textPrimary, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                                        >
-                                            {restaurant.name}
-                                        </Text>
-                                        {restaurant.rating ? (
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                backgroundColor: '#14532D',
-                                                padding: '2px 5px',
-                                                borderRadius: tokens.radius.sm,
-                                                marginLeft: 4,
-                                            }}>
-                                                <span style={{ color: '#FCD34D', fontWeight: 'bold', fontSize: 10, marginRight: 2 }}>★</span>
-                                                <span style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 10 }}>
-                                                    {restaurant.rating.toFixed(1)}
-                                                </span>
-                                            </div>
-                                        ) : null}
+                        return (
+                            <div key={restaurant.id} style={{ position: 'relative' }}>
+                                <div
+                                    style={{
+                                        backgroundColor: tokens.color.surface,
+                                        borderRadius: tokens.radius.md,
+                                        border: '1px solid ' + tokens.color.border,
+                                        overflow: 'hidden',
+                                        boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                                        position: 'relative',
+                                        flex: 1,
+                                        display: 'flex',
+                                        flexDirection: 'column'
+                                    }}
+                                >
+                                    <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, display: 'flex', gap: 4 }}>
+                                        <button onClick={() => moveUp(index)} style={{ padding: 4, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>⬆️</button>
+                                        <button onClick={() => moveDown(index)} style={{ padding: 4, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>⬇️</button>
                                     </div>
 
-                                    {restaurant.module ? (
-                                        <Text variant="caption" color={tokens.color.textSecondary} style={{ fontWeight: '500', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {restaurant.module}
-                                        </Text>
-                                    ) : null}
+                                    <button
+                                        onClick={() => handleRemove(restaurant.id)}
+                                        style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, background: '#EF4444', color: '#FFFFFF', padding: '4px 8px', borderRadius: 12, fontWeight: 800, fontSize: 12, border: 'none', cursor: 'pointer' }}
+                                    >
+                                        Remove ✕
+                                    </button>
 
-                                    <div style={{ display: 'flex', alignItems: 'center', marginTop: 4, gap: 2 }}>
-                                        <span style={{ fontSize: 11 }}>⏱️</span>
-                                        <span style={{ fontSize: 11, color: '#14532D', fontWeight: '700' }}>20-25m</span>
-                                        <span style={{ color: '#D1D5DB', fontSize: 9, margin: '0 1px' }}>|</span>
-                                        <span style={{ fontSize: 11, color: '#6B7280', fontWeight: '600' }}>2.5 km</span>
+                                    <div style={{ height: 110, width: '100%', backgroundColor: '#F0ECE4', position: 'relative' }}>
+                                        <div style={{ position: 'absolute', zIndex: 5, bottom: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFF', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontWeight: 800 }}>
+                                            Pos: #{index + 1}
+                                        </div>
+                                        <img
+                                            src={imageUrl}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: isClosed ? 0.3 : 1 }}
+                                        />
+                                    </div>
+
+                                    <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Text
+                                                variant="label"
+                                                style={{ flex: 1, fontWeight: '700', color: tokens.color.textPrimary, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                                            >
+                                                {restaurant.name}
+                                            </Text>
+                                        </div>
+                                        {restaurant.module ? (
+                                            <Text variant="caption" color={tokens.color.textSecondary} style={{ fontWeight: '500', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {restaurant.module}
+                                            </Text>
+                                        ) : null}
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

@@ -128,35 +128,7 @@ async function proxy(request: Request, pathSegments: string[]) {
       });
     }
 
-    if (targetPath.includes('admin/coupons')) {
-      return NextResponse.json(
-        {
-          success: true,
-          data: targetPath.includes('activate') || targetPath.includes('deactivate')
-            ? { couponId: targetPath.split('/')[2] || 'coupon-1', isActive: targetPath.includes('activate') }
-            : [],
-          error: null,
-          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
-        },
-        { status: 200 }
-      );
-    }
 
-    if (targetPath.includes('admin/banners')) {
-      if (request.method === 'POST') {
-        const payload = JSON.parse(init.body ? init.body.toString() : '{}');
-        const newBanner = { id: crypto.randomUUID(), ...payload, status: 'ACTIVE' };
-        globalAny.MOCK_BANNERS.push(newBanner);
-        return NextResponse.json(
-          { success: true, data: newBanner, error: null, meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null } },
-          { status: 200 }
-        );
-      }
-      return NextResponse.json(
-        { success: true, data: globalAny.MOCK_BANNERS, error: null, meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null } },
-        { status: 200 }
-      );
-    }
 
     // Graceful fallback for GET endpoints when backend is unreachable or returns 404/500/502/503
     if (request.method === 'GET') {
@@ -228,35 +200,7 @@ async function proxy(request: Request, pathSegments: string[]) {
       { status: 502 }
     );
   } catch {
-    if (targetPath.includes('admin/coupons')) {
-      return NextResponse.json(
-        {
-          success: true,
-          data: targetPath.includes('activate') || targetPath.includes('deactivate')
-            ? { couponId: targetPath.split('/')[2] || 'coupon-1', isActive: targetPath.includes('activate') }
-            : [],
-          error: null,
-          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
-        },
-        { status: 200 }
-      );
-    }
 
-    if (targetPath.includes('admin/banners')) {
-      if (request.method === 'POST') {
-        const payload = JSON.parse(init.body ? init.body.toString() : '{}');
-        const newBanner = { id: crypto.randomUUID(), ...payload, status: 'ACTIVE' };
-        globalAny.MOCK_BANNERS.push(newBanner);
-        return NextResponse.json(
-          { success: true, data: newBanner, error: null, meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null } },
-          { status: 200 }
-        );
-      }
-      return NextResponse.json(
-        { success: true, data: globalAny.MOCK_BANNERS, error: null, meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null } },
-        { status: 200 }
-      );
-    }
 
     if (request.method === 'GET') {
       if (targetPath.includes('admin/delivery-pricing')) {
