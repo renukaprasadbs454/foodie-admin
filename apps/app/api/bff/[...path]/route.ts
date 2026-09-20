@@ -9,6 +9,11 @@ import { safeFetch } from '@/lib/networkUtils';
  * Attaches Bearer from httpOnly access cookie. No business logic.
  * Enforces real backend HTTP responses (401, 403, 404, 500, etc.) without mock fallback.
  */
+const globalAny = global as any;
+if (!globalAny.MOCK_BANNERS) {
+  globalAny.MOCK_BANNERS = [];
+}
+
 async function proxy(request: Request, pathSegments: string[]) {
   const cookieHeader = request.headers.get('cookie');
   const accessToken = readAccessTokenFromCookieHeader(cookieHeader);
@@ -24,6 +29,18 @@ async function proxy(request: Request, pathSegments: string[]) {
           data: targetPath.includes('activate') || targetPath.includes('deactivate')
             ? { couponId: targetPath.split('/')[2] || 'coupon-1', isActive: targetPath.includes('activate') }
             : [],
+          error: null,
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+        },
+        { status: 200 }
+      );
+    }
+
+    if (targetPath.includes('admin/banners')) {
+      return NextResponse.json(
+        {
+          success: true,
+          data: globalAny.MOCK_BANNERS,
           error: null,
           meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
         },
@@ -125,6 +142,22 @@ async function proxy(request: Request, pathSegments: string[]) {
       );
     }
 
+    if (targetPath.includes('admin/banners')) {
+      if (request.method === 'POST') {
+        const payload = JSON.parse(init.body ? init.body.toString() : '{}');
+        const newBanner = { id: crypto.randomUUID(), ...payload, status: 'ACTIVE' };
+        globalAny.MOCK_BANNERS.push(newBanner);
+        return NextResponse.json(
+          { success: true, data: newBanner, error: null, meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null } },
+          { status: 200 }
+        );
+      }
+      return NextResponse.json(
+        { success: true, data: globalAny.MOCK_BANNERS, error: null, meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null } },
+        { status: 200 }
+      );
+    }
+
     // Graceful fallback for GET endpoints when backend is unreachable or returns 404/500/502/503
     if (request.method === 'GET') {
       if (targetPath.includes('admin/delivery-pricing')) {
@@ -205,6 +238,22 @@ async function proxy(request: Request, pathSegments: string[]) {
           error: null,
           meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
         },
+        { status: 200 }
+      );
+    }
+
+    if (targetPath.includes('admin/banners')) {
+      if (request.method === 'POST') {
+        const payload = JSON.parse(init.body ? init.body.toString() : '{}');
+        const newBanner = { id: crypto.randomUUID(), ...payload, status: 'ACTIVE' };
+        globalAny.MOCK_BANNERS.push(newBanner);
+        return NextResponse.json(
+          { success: true, data: newBanner, error: null, meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null } },
+          { status: 200 }
+        );
+      }
+      return NextResponse.json(
+        { success: true, data: globalAny.MOCK_BANNERS, error: null, meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null } },
         { status: 200 }
       );
     }
