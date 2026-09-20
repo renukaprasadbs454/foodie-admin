@@ -104,7 +104,7 @@ export interface PayoutRecord {
   id: string;
   walletAccountId: string;
   amount: number;
-  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  status: 'PENDING' | 'PROCESSING' | 'REQUESTED' | 'COMPLETED' | 'FAILED';
   bankName?: string;
   accountNumber?: string;
   accountHolderName?: string;

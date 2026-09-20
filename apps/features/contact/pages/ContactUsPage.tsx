@@ -281,7 +281,7 @@ export function ContactUsPage() {
     };
   }, []);
 
-  const saveEnquiriesToStorage = (newList: EnquiryRecord[]) => {
+  const saveEnquiriesToStorage = (newList: EnquiryRecord[], replyEnquiryId?: string, replyText?: string) => {
     setEnquiries(newList);
     try {
       localStorage.setItem('foodie_support_enquiries', JSON.stringify(newList));
@@ -294,6 +294,14 @@ export function ContactUsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'sync_all', data: newList }),
       }).catch(() => {});
+
+      if (replyEnquiryId && replyText) {
+        void fetch('/api/support-tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reply', id: replyEnquiryId, replyMessage: replyText, sender: 'admin', senderName: 'Admin Support' }),
+        }).catch(() => {});
+      }
     } catch (e) {}
   };
 
@@ -393,7 +401,7 @@ export function ContactUsPage() {
       return item;
     });
 
-    saveEnquiriesToStorage(updatedList);
+    saveEnquiriesToStorage(updatedList, selectedEnquiry.id, adminMsgText);
 
     const updatedCurrent = updatedList.find(i => i.id === selectedEnquiry.id) || null;
     setSelectedEnquiry(updatedCurrent);
@@ -933,17 +941,63 @@ export function ContactUsPage() {
                   </div>
                 </div>
 
-                {/* Enquiry Message Content */}
-                <div style={{ backgroundColor: '#F4F4F5', padding: 14, borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', lineHeight: 1.5 }}>
-                  "{item.message}"
-                </div>
-
-                {/* Dispatch Reply Draft */}
-                {item.replyMessage && (
-                  <div style={{ backgroundColor: '#F4F4F5', padding: 12, borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 12, color: '#09090B' }}>
-                    <strong>Dispatch Draft Sent:</strong> {item.replyMessage}
+                {/* Live Customer & Admin Chat Thread */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
+                    Customer Chat Thread ({item.messages?.length || 1} messages):
                   </div>
-                )}
+                  <div
+                    style={{
+                      backgroundColor: '#F4F4F5',
+                      padding: 14,
+                      borderRadius: 10,
+                      border: '1px solid #E4E4E7',
+                      fontSize: 13,
+                      color: '#09090B',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      maxHeight: 180,
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {(item.messages && item.messages.length > 0
+                      ? item.messages.filter((m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support'))
+                      : [
+                          {
+                            id: `msg-orig-${item.id}`,
+                            enquiryId: item.id,
+                            sender: 'customer' as const,
+                            senderName: item.senderName,
+                            message: item.message,
+                            timestamp: item.timestamp,
+                          },
+                        ]
+                    ).map((msg) => {
+                      const isAdmin = msg.sender === 'admin';
+                      return (
+                        <div
+                          key={msg.id}
+                          style={{
+                            alignSelf: isAdmin ? 'flex-end' : 'flex-start',
+                            maxWidth: '90%',
+                            backgroundColor: isAdmin ? '#14532D' : '#FFFFFF',
+                            color: isAdmin ? '#FFFFFF' : '#09090B',
+                            padding: '8px 12px',
+                            borderRadius: 10,
+                            border: isAdmin ? 'none' : '1px solid #CBD5E1',
+                            fontSize: 13,
+                          }}
+                        >
+                          <div style={{ fontSize: 10, fontWeight: 700, color: isAdmin ? '#A7F3D0' : '#64748B', marginBottom: 2 }}>
+                            {msg.senderName} • {msg.timestamp}
+                          </div>
+                          <div>{msg.message}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             ))
           )}
@@ -1116,7 +1170,7 @@ export function ContactUsPage() {
                 }}
               >
                 {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0
-                  ? selectedEnquiry.messages
+                  ? selectedEnquiry.messages.filter((m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support'))
                   : [
                       {
                         id: `msg-orig-${selectedEnquiry.id}`,

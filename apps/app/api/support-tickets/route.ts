@@ -246,24 +246,26 @@ export async function POST(request: Request) {
     const rec = data[existingIndex] || INITIAL_ENQUIRIES[0];
     const userText = (body.message || body.replyMessage || '').trim();
 
-    if (body.action === 'reply') {
+    if (body.action === 'reply' || body.sender === 'admin') {
       const sender = body.sender || 'admin';
       const senderName = body.senderName || (sender === 'admin' ? 'Admin Support' : rec.senderName);
       const newMsg: ChatMessage = {
-        id: `msg-${Date.now()}`,
+        id: `msg-admin-${Date.now()}`,
         enquiryId: rec.id,
-        sender: sender,
+        sender: 'admin',
         senderName: senderName,
         message: userText,
         timestamp: nowTime,
       };
 
       const existingMsgs = rec.messages || [];
+      const hasAlready = existingMsgs.some(m => m.message === userText && m.sender === 'admin');
+
       data[existingIndex] = {
         ...rec,
-        replyMessage: sender === 'admin' ? userText : rec.replyMessage,
-        status: sender === 'admin' ? 'IN_PROGRESS' : rec.status,
-        messages: [...existingMsgs, newMsg],
+        replyMessage: userText || rec.replyMessage,
+        status: 'IN_PROGRESS',
+        messages: hasAlready ? existingMsgs : [...existingMsgs, newMsg],
       };
     } else if (body.action === 'status' || body.action === 'resolve') {
       data[existingIndex] = {
@@ -273,32 +275,28 @@ export async function POST(request: Request) {
       };
     } else {
       // Append customer message directly into ENQ-901
-      const newCustMsg: ChatMessage = {
-        id: `msg-cust-${Date.now()}`,
-        enquiryId: rec.id,
-        sender: 'customer',
-        senderName: rec.senderName || 'Ananya Sharma',
-        message: userText,
-        timestamp: nowTime,
-      };
+      if (userText) {
+        const newCustMsg: ChatMessage = {
+          id: `msg-cust-${Date.now()}`,
+          enquiryId: rec.id,
+          sender: 'customer',
+          senderName: rec.senderName || 'Ananya Sharma',
+          message: userText,
+          timestamp: nowTime,
+        };
 
-      const newSysAckMsg: ChatMessage = {
-        id: `msg-sys-${Date.now() + 1}`,
-        enquiryId: rec.id,
-        sender: 'admin',
-        senderName: 'Foodie Live Agent Desk',
-        message: `🎧 Message delivered to Admin Support → Customer Enquiries (Ticket #${rec.id}).`,
-        timestamp: nowTime,
-      };
+        const existingMsgs = (rec.messages || []).filter(
+          (m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support')
+        );
 
-      const existingMsgs = rec.messages || [];
-      data[existingIndex] = {
-        ...rec,
-        message: userText || rec.message,
-        timestamp: 'Just now',
-        status: rec.status === 'RESOLVED' ? 'IN_PROGRESS' : rec.status,
-        messages: [...existingMsgs, newCustMsg, newSysAckMsg],
-      };
+        data[existingIndex] = {
+          ...rec,
+          message: userText,
+          timestamp: 'Just now',
+          status: rec.status === 'RESOLVED' ? 'IN_PROGRESS' : rec.status,
+          messages: [...existingMsgs, newCustMsg],
+        };
+      }
     }
 
     writeStore(data);
