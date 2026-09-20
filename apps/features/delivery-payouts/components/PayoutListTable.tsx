@@ -8,6 +8,8 @@ interface PayoutListTableProps {
   onSelectPayout: (payout: DeliveryPartnerPayout) => void;
   onRetryPayout: (payout: DeliveryPartnerPayout) => void;
   onViewWalletLedger: (payout: DeliveryPartnerPayout) => void;
+  onApprovePayout?: (payout: DeliveryPartnerPayout) => void;
+  onRejectPayout?: (payout: DeliveryPartnerPayout) => void;
 }
 
 export function PayoutListTable({
@@ -15,6 +17,8 @@ export function PayoutListTable({
   onSelectPayout,
   onRetryPayout,
   onViewWalletLedger,
+  onApprovePayout,
+  onRejectPayout,
 }: PayoutListTableProps) {
   const getStatusBadge = (status: PayoutStatus) => {
     switch (status) {
@@ -74,6 +78,7 @@ export function PayoutListTable({
               payouts.map((p) => {
                 const sBadge = getStatusBadge(p.status);
                 const rBadge = getReconciliationBadge(p.reconciliationStatus);
+                const isPending = p.status === 'REQUESTED' || (p.status as string) === 'PENDING';
                 return (
                   <tr
                     key={p.id}
@@ -174,6 +179,44 @@ export function PayoutListTable({
                     {/* Actions */}
                     <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        {isPending && onApprovePayout && (
+                          <button
+                            type="button"
+                            onClick={() => onApprovePayout(p)}
+                            style={{
+                              padding: '5px 10px',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: '#FFFFFF',
+                              backgroundColor: '#15803D',
+                              border: 'none',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Approve
+                          </button>
+                        )}
+
+                        {isPending && onRejectPayout && (
+                          <button
+                            type="button"
+                            onClick={() => onRejectPayout(p)}
+                            style={{
+                              padding: '5px 10px',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: '#FFFFFF',
+                              backgroundColor: '#DC2626',
+                              border: 'none',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Reject
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => onSelectPayout(p)}
@@ -225,7 +268,7 @@ export function PayoutListTable({
                           }}
                           title="Inspect Partner Wallet Ledger"
                         >
-                          Wallet 
+                          Wallet
                         </button>
                       </div>
                     </td>

@@ -12,7 +12,11 @@ import type {
   ReconciliationOverview,
   WalletLedgerItem,
 } from '../types';
-import { useGetAdminPayoutsQuery } from '../../../api/endpoints/paymentsApi';
+import {
+  useGetAdminPayoutsQuery,
+  useApprovePayoutsMutation,
+  useRejectPayoutMutation,
+} from '../../../api/endpoints/paymentsApi';
 
 // Replaced INITIAL_MOCK_PAYOUTS with real API data
 
@@ -31,20 +35,23 @@ export function DeliveryPayoutsPage() {
   const { tokens } = useTheme();
 
   const { data: serverPayouts = [] } = useGetAdminPayoutsQuery();
+  const [approvePayouts] = useApprovePayoutsMutation();
+  const [rejectPayout] = useRejectPayoutMutation();
+
   const payouts: DeliveryPartnerPayout[] = React.useMemo(() => {
     return serverPayouts.map((p: any) => ({
       id: p.id || p.payoutId || `po-${Math.random()}`,
       walletAccountId: p.walletAccountId || '',
       partnerId: p.walletAccountId || '',
-      partnerName: p.accountHolderName || 'Partner',
+      partnerName: p.ownerName || p.accountHolderName || 'Delivery Partner',
       partnerPhone: '',
       amount: p.amount || 0,
       status: p.status === 'COMPLETED' ? 'SUCCESS' : (p.status || 'REQUESTED'),
       provider: p.provider || 'CASHFREE',
       bankRef: p.bankRef || p.providerReferenceId || '',
       failureReason: p.failureReason || '',
-      requestedAt: p.createdAt || '',
-      processedAt: p.processedAt || p.completedAt || '',
+      requestedAt: p.createdAt ? new Date(p.createdAt).toLocaleString('en-IN') : '',
+      processedAt: p.processedAt || p.completedAt ? new Date(p.processedAt || p.completedAt).toLocaleString('en-IN') : '',
       reconciliationStatus: 'MATCHED',
       retryEligible: p.status === 'FAILED',
       accountHolderName: p.accountHolderName || '',
@@ -95,6 +102,30 @@ export function DeliveryPayoutsPage() {
     missingProviderRecordCount: payouts.filter((p) => p.reconciliationStatus === 'MISSING_PROVIDER_RECORD').length,
     duplicateCount: payouts.filter((p) => p.reconciliationStatus === 'DUPLICATE').length,
     discrepancies: payouts.filter((p) => p.reconciliationStatus !== 'MATCHED'),
+  };
+
+  const handleApprovePayout = async (targetPayout: DeliveryPartnerPayout) => {
+    try {
+      await approvePayouts({ payoutIds: [targetPayout.id] }).unwrap();
+      showToast(`Payout ${targetPayout.id} approved successfully.`);
+      if (selectedPayout?.id === targetPayout.id) {
+        setSelectedPayout(null);
+      }
+    } catch (err: any) {
+      showToast(`Failed to approve payout: ${err?.data?.error?.message || err?.message || 'Error'}`);
+    }
+  };
+
+  const handleRejectPayout = async (targetPayout: DeliveryPartnerPayout) => {
+    try {
+      await rejectPayout({ payoutId: targetPayout.id, reason: 'Rejected by Admin' }).unwrap();
+      showToast(`Payout ${targetPayout.id} rejected.`);
+      if (selectedPayout?.id === targetPayout.id) {
+        setSelectedPayout(null);
+      }
+    } catch (err: any) {
+      showToast(`Failed to reject payout: ${err?.data?.error?.message || err?.message || 'Error'}`);
+    }
   };
 
   const handleRetryPayout = (targetPayout: DeliveryPartnerPayout) => {
@@ -318,6 +349,8 @@ export function DeliveryPayoutsPage() {
             onSelectPayout={(p) => handleOpenDetailModal(p, 'DETAILS')}
             onRetryPayout={handleRetryPayout}
             onViewWalletLedger={(p) => handleOpenDetailModal(p, 'WALLET')}
+            onApprovePayout={handleApprovePayout}
+            onRejectPayout={handleRejectPayout}
           />
         </>
       )}
@@ -422,6 +455,8 @@ export function DeliveryPayoutsPage() {
           ledgerHistory={[]}
           onClose={() => setSelectedPayout(null)}
           onRetry={handleRetryPayout}
+          onApprove={handleApprovePayout}
+          onReject={handleRejectPayout}
           initialTab={modalInitialTab}
         />
       )}

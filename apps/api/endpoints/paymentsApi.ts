@@ -84,6 +84,16 @@ export const paymentsApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
     }),
 
+    rejectPayout: builder.mutation<string, { payoutId: string; reason?: string }>({
+      query: (body) => ({
+        url: '/api/bff/admin/payments/payouts/reject',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (res: any) => (typeof res === 'object' && res !== null && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
+    }),
+
     getCommissionRules: builder.query<CommissionConfig, void>({
       query: () => '/api/bff/admin/payments/commission-rules',
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
@@ -143,4 +153,5 @@ export const {
   useCalculateSplitMutation,
   useRefundPaymentMutation,
   useApprovePayoutsMutation,
+  useRejectPayoutMutation,
 } = paymentsApi;

@@ -10,6 +10,8 @@ interface PayoutDetailModalProps {
   ledgerHistory: WalletLedgerItem[];
   onClose: () => void;
   onRetry: (payout: DeliveryPartnerPayout) => void;
+  onApprove?: (payout: DeliveryPartnerPayout) => void;
+  onReject?: (payout: DeliveryPartnerPayout) => void;
   initialTab?: 'DETAILS' | 'WALLET';
 }
 
@@ -20,6 +22,8 @@ export function PayoutDetailModal({
   ledgerHistory,
   onClose,
   onRetry,
+  onApprove,
+  onReject,
   initialTab = 'DETAILS',
 }: PayoutDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'DETAILS' | 'WALLET'>(initialTab);
@@ -30,6 +34,8 @@ export function PayoutDetailModal({
     await onRetry(payout);
     setIsRetrying(false);
   };
+
+  const isPending = payout.status === 'REQUESTED' || (payout.status as string) === 'PENDING';
 
   return (
     <div
@@ -93,7 +99,7 @@ export function PayoutDetailModal({
               padding: 4,
             }}
           >
-            
+            ×
           </button>
         </div>
 
