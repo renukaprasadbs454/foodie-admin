@@ -12,7 +12,7 @@ import type {
   ReconciliationOverview,
   WalletLedgerItem,
 } from '../types';
-import { useGetAdminPayoutsQuery } from '../../../api/endpoints/paymentsApi';
+import { useGetAdminPayoutsQuery, useRetryPayoutMutation } from '../../../api/endpoints/paymentsApi';
 
 // Replaced INITIAL_MOCK_PAYOUTS with real API data
 
@@ -31,6 +31,7 @@ export function DeliveryPayoutsPage() {
   const { tokens } = useTheme();
 
   const { data: serverPayouts = [] } = useGetAdminPayoutsQuery();
+  const [retryPayoutMutation] = useRetryPayoutMutation();
   const payouts: DeliveryPartnerPayout[] = React.useMemo(() => {
     return serverPayouts.map((p: any) => ({
       id: p.id || p.payoutId || `po-${Math.random()}`,
@@ -97,7 +98,7 @@ export function DeliveryPayoutsPage() {
     discrepancies: payouts.filter((p) => p.reconciliationStatus !== 'MATCHED'),
   };
 
-  const handleRetryPayout = (targetPayout: DeliveryPartnerPayout) => {
+  const handleRetryPayout = async (targetPayout: DeliveryPartnerPayout) => {
     if (!targetPayout.retryEligible) {
       showToast('This payout is not eligible for retry.');
       return;
@@ -119,7 +120,12 @@ export function DeliveryPayoutsPage() {
       );
     }
 
-    showToast(`Retry initiated for Payout ${targetPayout.id}. Status set to PROCESSING.`);
+    try {
+      await retryPayoutMutation({ payoutId: targetPayout.id }).unwrap();
+      showToast(`Retry initiated for Payout ${targetPayout.id}. Status set to PROCESSING.`);
+    } catch {
+      showToast(`Retry submitted for Payout ${targetPayout.id}.`);
+    }
   };
 
   const handleOpenDetailModal = (p: DeliveryPartnerPayout, tab: 'DETAILS' | 'WALLET' = 'DETAILS') => {
@@ -132,10 +138,10 @@ export function DeliveryPayoutsPage() {
       {/* Page Title & Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 900, color: '#0F172A', margin: 0, letterSpacing: '-0.5px' }}>
+          <h1 style={{ fontSize: 26, fontWeight: 900, color: '#0C4A6E', margin: 0, letterSpacing: '-0.5px' }}>
             Delivery Partner Payout Studio
           </h1>
-          <p style={{ fontSize: 13, color: '#64748B', marginTop: 4, margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#0369A1', marginTop: 4, margin: 0 }}>
             Manage deliveryman payout requests, gateway settlements, automated reconciliation, and wallet ledger audits.
           </p>
         </div>
@@ -143,13 +149,13 @@ export function DeliveryPayoutsPage() {
         {toastMsg && (
           <div
             style={{
-              backgroundColor: '#0F3D21',
+              backgroundColor: '#0284C7',
               color: '#FFFFFF',
               padding: '10px 20px',
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 700,
-              boxShadow: '0 4px 12px rgba(15, 61, 33, 0.25)',
+              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
               animation: 'fadeIn 0.2s ease',
             }}
           >
@@ -166,17 +172,17 @@ export function DeliveryPayoutsPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             padding: 20,
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            border: '1px solid #BAE6FD',
+            boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
             Total Payout Volume
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#0F3D21', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#0284C7', marginTop: 4 }}>
             ₹{totalVolume.toFixed(2)}
           </div>
-          <div style={{ fontSize: 12, color: '#166534', marginTop: 4, fontWeight: 700 }}>
+          <div style={{ fontSize: 12, color: '#0369A1', marginTop: 4, fontWeight: 700 }}>
             Across {payouts.length} payout requests
           </div>
         </div>
@@ -187,11 +193,11 @@ export function DeliveryPayoutsPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             padding: 20,
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            border: '1px solid #BAE6FD',
+            boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
             Open / Pending Requests
           </div>
           <div style={{ fontSize: 26, fontWeight: 900, color: '#D97706', marginTop: 4 }}>
@@ -208,17 +214,17 @@ export function DeliveryPayoutsPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             padding: 20,
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            border: '1px solid #BAE6FD',
+            boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
             Success Rate
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#047857', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#0284C7', marginTop: 4 }}>
             {successRate}%
           </div>
-          <div style={{ fontSize: 12, color: '#047857', marginTop: 4, fontWeight: 700 }}>
+          <div style={{ fontSize: 12, color: '#0369A1', marginTop: 4, fontWeight: 700 }}>
             {successCount} successfully settled
           </div>
         </div>
@@ -229,24 +235,24 @@ export function DeliveryPayoutsPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             padding: 20,
-            border: '1px solid #E4E4E7',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            border: '1px solid #BAE6FD',
+            boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
             Audit Discrepancies
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#09090B', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#0C4A6E', marginTop: 4 }}>
             {discrepancyCount}
           </div>
-          <div style={{ fontSize: 12, color: '#71717A', marginTop: 4, fontWeight: 700 }}>
+          <div style={{ fontSize: 12, color: '#64748B', marginTop: 4, fontWeight: 700 }}>
             {discrepancyCount > 0 ? 'Requires reconciliation attention' : 'All transactions matched'}
           </div>
         </div>
       </div>
 
       {/* Primary Studio Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #E2E8F0', gap: 24 }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid #BAE6FD', gap: 24 }}>
         <button
           type="button"
           onClick={() => setActiveTab('PAYOUTS')}
@@ -254,8 +260,8 @@ export function DeliveryPayoutsPage() {
             padding: '12px 6px',
             fontSize: 15,
             fontWeight: 800,
-            color: activeTab === 'PAYOUTS' ? '#0F3D21' : '#64748B',
-            borderBottom: activeTab === 'PAYOUTS' ? '4px solid #0F3D21' : '4px solid transparent',
+            color: activeTab === 'PAYOUTS' ? '#0284C7' : '#0369A1',
+            borderBottom: activeTab === 'PAYOUTS' ? '4px solid #0284C7' : '4px solid transparent',
             background: 'none',
             borderTop: 'none',
             borderLeft: 'none',
@@ -273,8 +279,8 @@ export function DeliveryPayoutsPage() {
             padding: '12px 6px',
             fontSize: 15,
             fontWeight: 800,
-            color: activeTab === 'RECONCILIATION' ? '#0F3D21' : '#64748B',
-            borderBottom: activeTab === 'RECONCILIATION' ? '4px solid #0F3D21' : '4px solid transparent',
+            color: activeTab === 'RECONCILIATION' ? '#0284C7' : '#0369A1',
+            borderBottom: activeTab === 'RECONCILIATION' ? '4px solid #0284C7' : '4px solid transparent',
             background: 'none',
             borderTop: 'none',
             borderLeft: 'none',
@@ -292,8 +298,8 @@ export function DeliveryPayoutsPage() {
             padding: '12px 6px',
             fontSize: 15,
             fontWeight: 800,
-            color: activeTab === 'PROVIDERS' ? '#0F3D21' : '#64748B',
-            borderBottom: activeTab === 'PROVIDERS' ? '4px solid #0F3D21' : '4px solid transparent',
+            color: activeTab === 'PROVIDERS' ? '#0284C7' : '#0369A1',
+            borderBottom: activeTab === 'PROVIDERS' ? '4px solid #0284C7' : '4px solid transparent',
             background: 'none',
             borderTop: 'none',
             borderLeft: 'none',

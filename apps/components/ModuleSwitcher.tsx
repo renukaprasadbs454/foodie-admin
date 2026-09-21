@@ -10,10 +10,10 @@ export interface ModuleSwitcherProps {
 }
 
 const MODULES: { id: MarketplaceModule; label: string; icon: string }[] = [
-  { id: 'FOOD', label: 'All Food Delivery', icon: '' },
-  { id: 'RESTAURANTS', label: 'Fine Dining & Pizzerias', icon: '' },
-  { id: 'CAFES', label: 'Cafes & Bakery', icon: '' },
-  { id: 'CLOUD_KITCHEN', label: 'Cloud Kitchens', icon: '' },
+  { id: 'FOOD', label: 'All Food Delivery', icon: '🍲' },
+  { id: 'RESTAURANTS', label: 'Fine Dining & Pizzerias', icon: '🍕' },
+  { id: 'CAFES', label: 'Cafes & Bakery', icon: '☕' },
+  { id: 'CLOUD_KITCHEN', label: 'Cloud Kitchens', icon: '🍳' },
 ];
 
 export function ModuleSwitcher({ activeModule: externalModule, onModuleChange }: ModuleSwitcherProps) {
@@ -37,11 +37,11 @@ export function ModuleSwitcher({ activeModule: externalModule, onModuleChange }:
         backgroundColor: '#FFFFFF',
         padding: '6px 10px',
         borderRadius: 10,
-        border: '1px solid #E4E4E7',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        border: '1px solid #BAE6FD',
+        boxShadow: '0 1px 3px rgba(2, 132, 199, 0.08)',
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase', paddingRight: 4 }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase', paddingRight: 4 }}>
         Module:
       </span>
       {MODULES.map((m) => {
@@ -55,14 +55,15 @@ export function ModuleSwitcher({ activeModule: externalModule, onModuleChange }:
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              padding: '6px 12px',
+              padding: '6px 14px',
               borderRadius: 6,
-              border: isActive ? '1px solid #000000' : '1px solid transparent',
-              backgroundColor: isActive ? '#000000' : 'transparent',
-              color: isActive ? '#FFFFFF' : '#71717A',
+              border: isActive ? '1px solid #0284C7' : '1px solid transparent',
+              backgroundColor: isActive ? '#0284C7' : 'transparent',
+              color: isActive ? '#FFFFFF' : '#0369A1',
               fontSize: 13,
               fontWeight: isActive ? 700 : 500,
               cursor: 'pointer',
+              boxShadow: isActive ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
               transition: 'all 0.15s ease-in-out',
             }}
           >

@@ -26,19 +26,19 @@ function KpiCard({
       className="card-hover"
       style={{
         padding: '20px 22px',
-        border: '1px solid #E4E4E7',
-        borderLeft: '4px solid #000000',
+        border: '1px solid #BAE6FD',
+        borderLeft: '4px solid #0284C7',
         borderRadius: 14,
         background: '#FFFFFF',
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
-        boxShadow: '0 4px 14px 0 rgba(0, 0, 0, 0.04)',
+        boxShadow: '0 4px 14px 0 rgba(2, 132, 199, 0.04)',
         cursor: 'pointer',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text as="span" variant="caption" color="#71717A" style={{ fontSize: 13, fontWeight: 600 }}>
+        <Text as="span" variant="caption" color="#0369A1" style={{ fontSize: 13, fontWeight: 600 }}>
           {label}
         </Text>
         {icon ? (
@@ -47,8 +47,8 @@ function KpiCard({
               width: 36,
               height: 36,
               borderRadius: 10,
-              backgroundColor: '#F4F4F5',
-              border: '1px solid #E4E4E7',
+              backgroundColor: '#E0F2FE',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -66,9 +66,9 @@ function KpiCard({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: '#09090B',
-              backgroundColor: '#F4F4F5',
-              border: '1px solid #E4E4E7',
+              color: '#0284C7',
+              backgroundColor: '#E0F2FE',
+              border: '1px solid #BAE6FD',
               padding: '2px 8px',
               borderRadius: 12,
             }}

@@ -393,9 +393,9 @@ export function RestaurantCommissionModal({
             checked={tcsDeductionEnabled}
             onChange={(e) => setTcsDeductionEnabled(e.target.checked)}
             disabled={loading}
-            style={{ width: 16, height: 16, accentColor: '#000000' }}
+            style={{ width: 16, height: 16, accentColor: '#0284C7' }}
           />
-          <label htmlFor="tcs-toggle" style={{ fontSize: 13, color: '#09090B', fontWeight: 600, cursor: 'pointer' }}>
+          <label htmlFor="tcs-toggle" style={{ fontSize: 13, color: '#0C4A6E', fontWeight: 600, cursor: 'pointer' }}>
             Auto-deduct 1% TCS & statutory GST on payouts
           </label>
         </div>
@@ -408,9 +408,9 @@ export function RestaurantCommissionModal({
             style={{
               padding: '8px 16px',
               borderRadius: 8,
-              border: '1px solid #E4E4E7',
-              backgroundColor: '#F4F4F5',
-              color: '#09090B',
+              border: '1px solid #BAE6FD',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
               fontSize: 13,
               fontWeight: 700,
               cursor: 'pointer',
@@ -425,12 +425,13 @@ export function RestaurantCommissionModal({
               padding: '8px 20px',
               borderRadius: 8,
               border: 'none',
-              backgroundColor: '#000000',
+              backgroundColor: '#0284C7',
               color: '#FFFFFF',
               fontSize: 13,
               fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.7 : 1,
+              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
             }}
           >
             {loading ? 'Saving...' : 'Save Commission Settings'}

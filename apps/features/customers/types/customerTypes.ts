@@ -36,8 +36,8 @@ export interface SupportTicket {
 }
 
 export function calculateCustomerLtvBadge(totalSpend: number): { tier: string; color: string; bg: string } {
-  if (totalSpend >= 1000) return { tier: 'PLATINUM VIP', color: '#FFFFFF', bg: '#000000' };
-  if (totalSpend >= 500) return { tier: 'GOLD', color: '#09090B', bg: '#F4F4F5' };
-  if (totalSpend >= 200) return { tier: 'SILVER', color: '#09090B', bg: '#F4F4F5' };
-  return { tier: 'BRONZE', color: '#71717A', bg: '#F4F4F5' };
+  if (totalSpend >= 1000) return { tier: 'PLATINUM VIP', color: '#FFFFFF', bg: '#0284C7' };
+  if (totalSpend >= 500) return { tier: 'GOLD', color: '#0284C7', bg: '#E0F2FE' };
+  if (totalSpend >= 200) return { tier: 'SILVER', color: '#0369A1', bg: '#F0F9FF' };
+  return { tier: 'BRONZE', color: '#64748B', bg: '#F1F5F9' };
 }

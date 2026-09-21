@@ -114,10 +114,10 @@ export function DarkstoreInventoryPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0C4A6E', margin: 0 }}>
            Darkstore Inventory Management
         </h1>
-        <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
+        <p style={{ fontSize: 13, color: '#0369A1', margin: '4px 0 0' }}>
           Real-time stock control, bin location mapping, reserved stock tracking, and stock-in/stock-out adjustments.
         </p>
       </div>
@@ -128,8 +128,8 @@ export function DarkstoreInventoryPage() {
           backgroundColor: '#FFFFFF',
           borderRadius: 12,
           padding: 16,
-          border: '1px solid #E5E7EB',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          border: '1px solid #BAE6FD',
+          boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)',
           marginBottom: 20,
           display: 'flex',
           gap: 16,
@@ -142,7 +142,7 @@ export function DarkstoreInventoryPage() {
           placeholder="Search by SKU, Product Name, Shelf Bin Location..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, minWidth: 320 }}
+          style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0C4A6E', fontSize: 13, minWidth: 320, outline: 'none' }}
         />
 
         <div style={{ display: 'flex', gap: 8 }}>
@@ -156,10 +156,10 @@ export function DarkstoreInventoryPage() {
                 borderRadius: 20,
                 fontSize: 12,
                 fontWeight: 800,
-                border: 'none',
+                border: stockFilter === st ? 'none' : '1px solid #BAE6FD',
                 cursor: 'pointer',
-                backgroundColor: stockFilter === st ? '#0F3D21' : '#F3F4F6',
-                color: stockFilter === st ? '#FFFFFF' : '#374151',
+                backgroundColor: stockFilter === st ? '#0284C7' : '#F0F9FF',
+                color: stockFilter === st ? '#FFFFFF' : '#0369A1',
               }}
             >
               {st === 'ALL' ? 'All Stock' : st === 'LOW' ? ' Low Stock' : ' Out of Stock'}
@@ -169,10 +169,10 @@ export function DarkstoreInventoryPage() {
       </div>
 
       {/* Inventory Table */}
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #BAE6FD', boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 700 }}>
+            <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '2px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
               <th style={{ padding: '14px 16px' }}>SKU</th>
               <th style={{ padding: '14px 16px' }}>Product Name</th>
               <th style={{ padding: '14px 16px' }}>Category</th>
@@ -187,15 +187,15 @@ export function DarkstoreInventoryPage() {
           </thead>
           <tbody>
             {filteredProducts.map((p) => (
-              <tr key={p.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.sku}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B' }}>{p.name}</td>
-                <td style={{ padding: '14px 16px', color: '#71717A' }}>{p.category}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.shelfLocation}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 900, color: '#09090B' }}>{p.currentStock} {p.unit}</td>
-                <td style={{ padding: '14px 16px', color: '#71717A' }}>{p.reservedStock}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.availableStock}</td>
-                <td style={{ padding: '14px 16px', color: '#71717A' }}>{p.minThreshold}</td>
+              <tr key={p.id} style={{ borderBottom: '1px solid #F0F9FF' }}>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0284C7' }}>{p.sku}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0C4A6E' }}>{p.name}</td>
+                <td style={{ padding: '14px 16px', color: '#0369A1' }}>{p.category}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0C4A6E' }}>{p.shelfLocation}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 900, color: '#0284C7' }}>{p.currentStock} {p.unit}</td>
+                <td style={{ padding: '14px 16px', color: '#64748B' }}>{p.reservedStock}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0C4A6E' }}>{p.availableStock}</td>
+                <td style={{ padding: '14px 16px', color: '#64748B' }}>{p.minThreshold}</td>
                 <td style={{ padding: '14px 16px' }}>
                   <span
                     style={{
@@ -203,8 +203,8 @@ export function DarkstoreInventoryPage() {
                       borderRadius: 12,
                       fontSize: 11,
                       fontWeight: 800,
-                      backgroundColor: p.isOutOfStock ? '#FEE2E2' : p.isLowStock ? '#FFEDD5' : '#DCFCE7',
-                      color: p.isOutOfStock ? '#991B1B' : p.isLowStock ? '#C2410C' : '#15803D',
+                      backgroundColor: p.isOutOfStock ? '#FEE2E2' : p.isLowStock ? '#FFEDD5' : '#E0F2FE',
+                      color: p.isOutOfStock ? '#DC2626' : p.isLowStock ? '#EA580C' : '#0284C7',
                     }}
                   >
                     {p.isOutOfStock ? 'OUT OF STOCK' : p.isLowStock ? 'LOW STOCK' : 'IN STOCK'}
@@ -218,7 +218,7 @@ export function DarkstoreInventoryPage() {
                       setStockDelta(10);
                     }}
                     style={{
-                      backgroundColor: '#0F3D21',
+                      backgroundColor: '#0284C7',
                       color: '#FFFFFF',
                       border: 'none',
                       padding: '6px 12px',
@@ -226,6 +226,7 @@ export function DarkstoreInventoryPage() {
                       fontSize: 11,
                       fontWeight: 700,
                       cursor: 'pointer',
+                      boxShadow: '0 2px 4px rgba(2, 132, 199, 0.2)',
                     }}
                   >
                     Stock Adjust 
@@ -239,36 +240,36 @@ export function DarkstoreInventoryPage() {
 
       {/* Stock Adjustment Modal */}
       {adjustingProduct && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24, maxWidth: 500, width: '100%' }}>
-            <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21', margin: '0 0 12px' }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(12, 74, 110, 0.4)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24, maxWidth: 500, width: '100%', border: '1px solid #BAE6FD', boxShadow: '0 20px 40px rgba(12, 74, 110, 0.2)' }}>
+            <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0C4A6E', margin: '0 0 12px' }}>
               Stock Adjustment — {adjustingProduct.name}
             </h2>
-            <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: '#0369A1', marginBottom: 16 }}>
               SKU: {adjustingProduct.sku} | Current Stock: <strong>{adjustingProduct.currentStock} {adjustingProduct.unit}</strong>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0C4A6E', marginBottom: 6 }}>
                 Adjustment Quantity (+ for Stock In, - for Stock Out):
               </label>
               <input
                 type="number"
                 value={stockDelta}
                 onChange={(e) => setStockDelta(Number(e.target.value))}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 14, fontWeight: 700 }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0C4A6E', fontSize: 14, fontWeight: 700, outline: 'none' }}
               />
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0C4A6E', marginBottom: 6 }}>
                 Reason for Stock Adjustment:
               </label>
               <input
                 type="text"
                 value={adjustReason}
                 onChange={(e) => setAdjustReason(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13 }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0C4A6E', fontSize: 13, outline: 'none' }}
               />
             </div>
 
@@ -276,14 +277,14 @@ export function DarkstoreInventoryPage() {
               <button
                 type="button"
                 onClick={() => setAdjustingProduct(null)}
-                style={{ backgroundColor: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                style={{ backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleApplyStockAdjustment}
-                style={{ backgroundColor: '#0F3D21', color: '#FFFFFF', border: 'none', padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                style={{ backgroundColor: '#0284C7', color: '#FFFFFF', border: 'none', padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}
               >
                 Confirm & Log Transaction
               </button>

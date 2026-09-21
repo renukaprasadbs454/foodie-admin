@@ -99,24 +99,25 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
                     onClick={handleSave}
                     disabled={isSaving}
                     style={{
-                        backgroundColor: '#14532D',
+                        backgroundColor: '#0284C7',
                         color: '#FFFFFF',
                         fontWeight: 700,
                         padding: '10px 16px',
                         borderRadius: 8,
                         border: 'none',
-                        cursor: isSaving ? 'not-allowed' : 'pointer'
+                        cursor: isSaving ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)'
                     }}
                 >
                     {isSaving ? 'Saving...' : 'Save Top Restaurants'}
                 </button>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: 16, backgroundColor: '#FAFAFA', borderRadius: 8, border: '1px solid #E4E4E7' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: 16, backgroundColor: '#F0F9FF', borderRadius: 8, border: '1px solid #BAE6FD' }}>
                 <select
                     value={selectedToAdd}
                     onChange={(e) => setSelectedToAdd(e.target.value)}
-                    style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 14 }}
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 14, color: '#0C4A6E', backgroundColor: '#FFFFFF' }}
                 >
                     <option value="" disabled>-- Select Restaurant to Add to Top List --</option>
                     {availableStores.map(store => (
@@ -128,12 +129,13 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
                     disabled={!selectedToAdd}
                     style={{
                         padding: '10px 16px',
-                        backgroundColor: selectedToAdd ? '#000000' : '#A1A1AA',
+                        backgroundColor: selectedToAdd ? '#0284C7' : '#94A3B8',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: 8,
-                        fontWeight: 600,
-                        cursor: selectedToAdd ? 'pointer' : 'not-allowed'
+                        fontWeight: 700,
+                        cursor: selectedToAdd ? 'pointer' : 'not-allowed',
+                        boxShadow: selectedToAdd ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
                     }}
                 >
                     + Add to List
@@ -141,8 +143,8 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
             </div>
 
             {arrangedStores.length === 0 ? (
-                <div style={{ padding: 40, textAlign: 'center', backgroundColor: '#FAFAFA', border: '1px dashed #E4E4E7', borderRadius: 12 }}>
-                    <Text style={{ fontWeight: 600, color: '#A1A1AA' }}>No top restaurants selected.</Text>
+                <div style={{ padding: 40, textAlign: 'center', backgroundColor: '#F0F9FF', border: '1px dashed #BAE6FD', borderRadius: 12 }}>
+                    <Text style={{ fontWeight: 600, color: '#0369A1' }}>No top restaurants selected.</Text>
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
