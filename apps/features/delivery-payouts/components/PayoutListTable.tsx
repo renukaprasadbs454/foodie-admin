@@ -19,23 +19,23 @@ export function PayoutListTable({
   const getStatusBadge = (status: PayoutStatus) => {
     switch (status) {
       case 'SUCCESS':
-        return { bg: '#000000', color: '#FFFFFF', border: '#000000', label: 'SUCCESS' };
+        return { bg: '#E0F2FE', color: '#0284C7', border: '#BAE6FD', label: 'SUCCESS' };
       case 'PROCESSING':
-        return { bg: '#F4F4F5', color: '#09090B', border: '#E4E4E7', label: 'PROCESSING' };
+        return { bg: '#F0F9FF', color: '#0369A1', border: '#BAE6FD', label: 'PROCESSING' };
       case 'REQUESTED':
-        return { bg: '#FAFAFA', color: '#09090B', border: '#E4E4E7', label: 'REQUESTED' };
+        return { bg: '#F8FAFC', color: '#64748B', border: '#E2E8F0', label: 'REQUESTED' };
       case 'FAILED':
-        return { bg: '#18181B', color: '#FFFFFF', border: '#27272A', label: 'FAILED' };
+        return { bg: '#FEE2E2', color: '#DC2626', border: '#FECACA', label: 'FAILED' };
       default:
-        return { bg: '#F4F4F5', color: '#71717A', border: '#E4E4E7', label: status };
+        return { bg: '#F0F9FF', color: '#0369A1', border: '#BAE6FD', label: status };
     }
   };
 
   const getReconciliationBadge = (reconcil: string) => {
     if (reconcil === 'MATCHED') {
-      return { bg: '#F4F4F5', color: '#000000', label: 'MATCHED' };
+      return { bg: '#E0F2FE', color: '#0284C7', label: 'MATCHED' };
     }
-    return { bg: '#FAFAFA', color: '#71717A', label: reconcil.replace(/_/g, ' ') };
+    return { bg: '#F0F9FF', color: '#0369A1', label: reconcil.replace(/_/g, ' ') };
   };
 
   return (
@@ -43,15 +43,15 @@ export function PayoutListTable({
       style={{
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
-        border: '1px solid #E4E4E7',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        border: '1px solid #BAE6FD',
+        boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)',
         overflow: 'hidden',
       }}
     >
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
           <thead>
-            <tr style={{ backgroundColor: '#FAFAFA', borderBottom: '1px solid #E4E4E7', color: '#71717A' }}>
+            <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1' }}>
               <th style={{ padding: '12px 16px', fontWeight: 700 }}>Payout ID</th>
               <th style={{ padding: '12px 16px', fontWeight: 700 }}>Delivery Partner</th>
               <th style={{ padding: '12px 16px', fontWeight: 700 }}>Amount</th>
@@ -66,7 +66,7 @@ export function PayoutListTable({
           <tbody>
             {payouts.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ padding: '36px 16px', textAlign: 'center', color: '#71717A' }}>
+                <td colSpan={9} style={{ padding: '36px 16px', textAlign: 'center', color: '#0369A1' }}>
                   No delivery partner payouts found matching current search and filter criteria.
                 </td>
               </tr>
@@ -78,28 +78,28 @@ export function PayoutListTable({
                   <tr
                     key={p.id}
                     style={{
-                      borderBottom: '1px solid #F4F4F5',
+                      borderBottom: '1px solid #F0F9FF',
                       transition: 'background-color 0.15s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAFAFA')}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F0F9FF')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
                   >
                     {/* Payout ID */}
-                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#09090B', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0C4A6E', whiteSpace: 'nowrap' }}>
                       {p.id}
                       {p.bankRef ? (
-                        <div style={{ fontSize: 11, color: '#71717A', fontWeight: 400 }}>Ref: {p.bankRef}</div>
+                        <div style={{ fontSize: 11, color: '#0369A1', fontWeight: 400 }}>Ref: {p.bankRef}</div>
                       ) : null}
                     </td>
 
                     {/* Delivery Partner */}
                     <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 700, color: '#09090B' }}>{p.partnerName}</div>
-                      <div style={{ fontSize: 11, color: '#71717A' }}>{p.partnerPhone}</div>
+                      <div style={{ fontWeight: 700, color: '#0C4A6E' }}>{p.partnerName}</div>
+                      <div style={{ fontSize: 11, color: '#0369A1' }}>{p.partnerPhone}</div>
                     </td>
 
                     {/* Amount */}
-                    <td style={{ padding: '12px 16px', fontWeight: 800, color: '#000000', fontSize: 14 }}>
+                    <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0284C7', fontSize: 14 }}>
                       ₹{p.amount.toFixed(2)}
                     </td>
 
@@ -120,7 +120,7 @@ export function PayoutListTable({
                         {sBadge.label}
                       </span>
                       {p.status === 'FAILED' && p.failureReason && (
-                        <div style={{ fontSize: 11, color: '#18181B', marginTop: 3, maxWidth: 160, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.failureReason}>
+                        <div style={{ fontSize: 11, color: '#DC2626', marginTop: 3, maxWidth: 160, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.failureReason}>
                           {p.failureReason}
                         </div>
                       )}
@@ -130,9 +130,9 @@ export function PayoutListTable({
                     <td style={{ padding: '12px 16px' }}>
                       <span
                         style={{
-                          backgroundColor: '#F4F4F5',
-                          color: '#09090B',
-                          border: '1px solid #E4E4E7',
+                          backgroundColor: '#E0F2FE',
+                          color: '#0284C7',
+                          border: '1px solid #BAE6FD',
                           padding: '2px 8px',
                           borderRadius: 6,
                           fontSize: 11,
@@ -149,7 +149,7 @@ export function PayoutListTable({
                         style={{
                           backgroundColor: rBadge.bg,
                           color: rBadge.color,
-                          border: '1px solid #E4E4E7',
+                          border: '1px solid #BAE6FD',
                           padding: '2px 8px',
                           borderRadius: 6,
                           fontSize: 10,
@@ -162,12 +162,12 @@ export function PayoutListTable({
                     </td>
 
                     {/* Requested Date */}
-                    <td style={{ padding: '12px 16px', color: '#71717A', fontSize: 12, whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '12px 16px', color: '#64748B', fontSize: 12, whiteSpace: 'nowrap' }}>
                       {p.requestedAt}
                     </td>
 
                     {/* Processed Date */}
-                    <td style={{ padding: '12px 16px', color: '#71717A', fontSize: 12, whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '12px 16px', color: '#64748B', fontSize: 12, whiteSpace: 'nowrap' }}>
                       {p.processedAt || '—'}
                     </td>
 
@@ -182,10 +182,11 @@ export function PayoutListTable({
                             fontSize: 12,
                             fontWeight: 700,
                             color: '#FFFFFF',
-                            backgroundColor: '#000000',
+                            backgroundColor: '#0284C7',
                             border: 'none',
                             borderRadius: 6,
                             cursor: 'pointer',
+                            boxShadow: '0 2px 4px rgba(2, 132, 199, 0.2)',
                           }}
                         >
                           View
@@ -199,9 +200,9 @@ export function PayoutListTable({
                               padding: '5px 10px',
                               fontSize: 12,
                               fontWeight: 700,
-                              color: '#09090B',
-                              backgroundColor: '#F4F4F5',
-                              border: '1px solid #E4E4E7',
+                              color: '#0284C7',
+                              backgroundColor: '#E0F2FE',
+                              border: '1px solid #BAE6FD',
                               borderRadius: 6,
                               cursor: 'pointer',
                             }}
@@ -217,9 +218,9 @@ export function PayoutListTable({
                             padding: '5px 10px',
                             fontSize: 12,
                             fontWeight: 600,
-                            color: '#52525B',
-                            backgroundColor: '#FAFAFA',
-                            border: '1px solid #E4E4E7',
+                            color: '#0369A1',
+                            backgroundColor: '#F0F9FF',
+                            border: '1px solid #BAE6FD',
                             borderRadius: 6,
                             cursor: 'pointer',
                           }}

@@ -5,11 +5,14 @@
 export const ENV = {
   /** Server-only. Used by app/api BFF routes — never expose via NEXT_PUBLIC. */
   apiBaseUrl:
-    process.env.FOODIE_API_BASE_URL ?? 'https://api.foodie.kwiko.org',
+    process.env.FOODIE_API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    process.env.NEXT_PUBLIC_BACKEND_URL ??
+    'http://localhost:8080',
   /** Client RTK Query hits same-origin BFF. */
   bffBaseUrl: '' as const,
   wsUrl:
-    process.env.NEXT_PUBLIC_WS_URL ?? 'wss://api.foodie.kwiko.org/ws',
+    process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8080/ws',
   cookieSecure: process.env.FOODIE_COOKIE_SECURE === 'true',
   appName: 'foodie-admin',
   appVersion: '0.1.0',

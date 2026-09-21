@@ -39,7 +39,7 @@ export function PayoutDetailModal({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
+        backgroundColor: 'rgba(12, 74, 110, 0.45)',
         backdropFilter: 'blur(4px)',
         zIndex: 1000,
         display: 'flex',
@@ -57,15 +57,16 @@ export function PayoutDetailModal({
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          boxShadow: '0 20px 35px -5px rgba(2, 132, 199, 0.2), 0 10px 10px -5px rgba(2, 132, 199, 0.04)',
           overflow: 'hidden',
+          border: '1px solid #BAE6FD',
         }}
       >
         {/* Modal Header */}
         <div
           style={{
             padding: '20px 24px',
-            backgroundColor: '#0F3D21',
+            background: 'linear-gradient(135deg, #075985 0%, #0C4A6E 100%)',
             color: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
@@ -76,7 +77,7 @@ export function PayoutDetailModal({
             <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.3px' }}>
               Payout Detail — {payout.id}
             </div>
-            <div style={{ fontSize: 12, color: '#A7F3D0', marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: '#BAE6FD', marginTop: 2 }}>
               Delivery Partner: {payout.partnerName}
             </div>
           </div>
@@ -93,7 +94,7 @@ export function PayoutDetailModal({
               padding: 4,
             }}
           >
-            
+            ✕
           </button>
         </div>
 
@@ -101,8 +102,8 @@ export function PayoutDetailModal({
         <div
           style={{
             display: 'flex',
-            borderBottom: '1px solid #E2E8F0',
-            backgroundColor: '#F8FAFC',
+            borderBottom: '1px solid #BAE6FD',
+            backgroundColor: '#F0F9FF',
             padding: '0 24px',
           }}
         >
@@ -113,13 +114,13 @@ export function PayoutDetailModal({
               padding: '12px 18px',
               fontSize: 13,
               fontWeight: 700,
-              color: activeTab === 'DETAILS' ? '#0F3D21' : '#64748B',
-              borderBottom: activeTab === 'DETAILS' ? '3px solid #0F3D21' : '3px solid transparent',
+              color: activeTab === 'DETAILS' ? '#0284C7' : '#64748B',
+              borderBottom: activeTab === 'DETAILS' ? '3px solid #0284C7' : '3px solid transparent',
               background: 'none',
               cursor: 'pointer',
             }}
           >
-             Payout Details
+            📋 Payout Details
           </button>
           <button
             type="button"
@@ -128,13 +129,13 @@ export function PayoutDetailModal({
               padding: '12px 18px',
               fontSize: 13,
               fontWeight: 700,
-              color: activeTab === 'WALLET' ? '#0F3D21' : '#64748B',
-              borderBottom: activeTab === 'WALLET' ? '3px solid #0F3D21' : '3px solid transparent',
+              color: activeTab === 'WALLET' ? '#0284C7' : '#64748B',
+              borderBottom: activeTab === 'WALLET' ? '3px solid #0284C7' : '3px solid transparent',
               background: 'none',
               cursor: 'pointer',
             }}
           >
-             Wallet & Ledger Investigation
+            👛 Wallet & Ledger Investigation
           </button>
         </div>
 
@@ -148,23 +149,23 @@ export function PayoutDetailModal({
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                   gap: 12,
-                  backgroundColor: '#F8FAFC',
+                  backgroundColor: '#F0F9FF',
                   borderRadius: 12,
                   padding: 16,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid #BAE6FD',
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                     Payout Amount
                   </div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', marginTop: 2 }}>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: '#0C4A6E', marginTop: 2 }}>
                     ₹{payout.amount.toFixed(2)}
                   </div>
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                     Status
                   </div>
                   <div style={{ marginTop: 4 }}>
@@ -178,7 +179,7 @@ export function PayoutDetailModal({
                           payout.status === 'SUCCESS'
                             ? '#DEF7EC'
                             : payout.status === 'PROCESSING'
-                            ? '#E1EFFE'
+                            ? '#E0F2FE'
                             : payout.status === 'REQUESTED'
                             ? '#FEF08A'
                             : '#FDE8E8',
@@ -186,7 +187,7 @@ export function PayoutDetailModal({
                           payout.status === 'SUCCESS'
                             ? '#03543F'
                             : payout.status === 'PROCESSING'
-                            ? '#1E429F'
+                            ? '#0369A1'
                             : payout.status === 'REQUESTED'
                             ? '#713F12'
                             : '#9B1C1C',
@@ -198,7 +199,7 @@ export function PayoutDetailModal({
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                     Reconciliation
                   </div>
                   <div style={{ marginTop: 4 }}>
@@ -229,15 +230,15 @@ export function PayoutDetailModal({
                     color: '#991B1B',
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 800 }}> Failure Reason:</div>
+                  <div style={{ fontSize: 13, fontWeight: 800 }}>⚠️ Failure Reason:</div>
                   <div style={{ fontSize: 13, marginTop: 2 }}>{payout.failureReason || 'Bank account detail validation failed or gateway timed out.'}</div>
                 </div>
               )}
 
               {/* Partner Bank Details Grid */}
               <div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', marginBottom: 10 }}>
-                   Partner Beneficiary Bank Account
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#0C4A6E', marginBottom: 10 }}>
+                  🏦 Partner Beneficiary Bank Account
                 </div>
                 <div
                   style={{
@@ -246,34 +247,34 @@ export function PayoutDetailModal({
                     gap: 12,
                     fontSize: 13,
                     backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid #BAE6FD',
                     borderRadius: 10,
                     padding: 14,
                   }}
                 >
                   <div>
-                    <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>ACCOUNT HOLDER NAME</span>
-                    <strong style={{ color: '#0F172A' }}>{payout.accountHolderName}</strong>
+                    <span style={{ color: '#0369A1', display: 'block', fontSize: 11, fontWeight: 700 }}>ACCOUNT HOLDER NAME</span>
+                    <strong style={{ color: '#0C4A6E' }}>{payout.accountHolderName}</strong>
                   </div>
                   <div>
-                    <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>ACCOUNT NUMBER</span>
-                    <strong style={{ color: '#0F172A' }}>{payout.accountNumber}</strong>
+                    <span style={{ color: '#0369A1', display: 'block', fontSize: 11, fontWeight: 700 }}>ACCOUNT NUMBER</span>
+                    <strong style={{ color: '#0C4A6E' }}>{payout.accountNumber}</strong>
                   </div>
                   <div>
-                    <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>IFSC CODE</span>
-                    <strong style={{ color: '#0F172A' }}>{payout.ifscCode}</strong>
+                    <span style={{ color: '#0369A1', display: 'block', fontSize: 11, fontWeight: 700 }}>IFSC CODE</span>
+                    <strong style={{ color: '#0C4A6E' }}>{payout.ifscCode}</strong>
                   </div>
                   <div>
-                    <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>BANK NAME</span>
-                    <strong style={{ color: '#0F172A' }}>{payout.bankName}</strong>
+                    <span style={{ color: '#0369A1', display: 'block', fontSize: 11, fontWeight: 700 }}>BANK NAME</span>
+                    <strong style={{ color: '#0C4A6E' }}>{payout.bankName}</strong>
                   </div>
                 </div>
               </div>
 
               {/* Provider & Transaction Info */}
               <div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', marginBottom: 10 }}>
-                   Gateway & Provider Metadata (Read-Only)
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#0C4A6E', marginBottom: 10 }}>
+                  🔗 Gateway & Provider Metadata (Read-Only)
                 </div>
                 <div
                   style={{
@@ -282,35 +283,35 @@ export function PayoutDetailModal({
                     gap: 12,
                     fontSize: 13,
                     backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid #BAE6FD',
                     borderRadius: 10,
                     padding: 14,
                   }}
                 >
                   <div>
-                    <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>PAYOUT PROVIDER</span>
-                    <span style={{ fontWeight: 800, color: payout.provider === 'RAZORPAY' ? '#1D4ED8' : '#C2410C' }}>
+                    <span style={{ color: '#0369A1', display: 'block', fontSize: 11, fontWeight: 700 }}>PAYOUT PROVIDER</span>
+                    <span style={{ fontWeight: 800, color: payout.provider === 'RAZORPAY' ? '#0284C7' : '#0369A1' }}>
                       {payout.provider}
                     </span>
                   </div>
                   <div>
-                    <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>PROVIDER REF / TXN ID</span>
-                    <span style={{ fontWeight: 700, color: '#0F172A' }}>{payout.bankRef || 'Pending assignment...'}</span>
+                    <span style={{ color: '#0369A1', display: 'block', fontSize: 11, fontWeight: 700 }}>PROVIDER REF / TXN ID</span>
+                    <span style={{ fontWeight: 700, color: '#0C4A6E' }}>{payout.bankRef || 'Pending assignment...'}</span>
                   </div>
                   <div>
-                    <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>REQUESTED TIME</span>
-                    <span style={{ color: '#0F172A' }}>{payout.requestedAt}</span>
+                    <span style={{ color: '#0369A1', display: 'block', fontSize: 11, fontWeight: 700 }}>REQUESTED TIME</span>
+                    <span style={{ color: '#0C4A6E' }}>{payout.requestedAt}</span>
                   </div>
                   <div>
-                    <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>PROCESSED TIME</span>
-                    <span style={{ color: '#0F172A' }}>{payout.processedAt || 'Not processed yet'}</span>
+                    <span style={{ color: '#0369A1', display: 'block', fontSize: 11, fontWeight: 700 }}>PROCESSED TIME</span>
+                    <span style={{ color: '#0C4A6E' }}>{payout.processedAt || 'Not processed yet'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Read-only Security Guarantee Notice */}
-              <div style={{ fontSize: 11, color: '#64748B', backgroundColor: '#F8FAFC', padding: '10px 12px', borderRadius: 8, border: '1px solid #E2E8F0' }}>
-                 <strong>Security Policy:</strong> Provider authentication keys and webhook secrets are kept encrypted and never exposed in admin responses.
+              <div style={{ fontSize: 11, color: '#0369A1', backgroundColor: '#F0F9FF', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD' }}>
+                🔒 <strong>Security Policy:</strong> Provider authentication keys and webhook secrets are kept encrypted and never exposed in admin responses.
               </div>
             </div>
           ) : (
@@ -321,25 +322,25 @@ export function PayoutDetailModal({
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
                   gap: 14,
-                  backgroundColor: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
+                  backgroundColor: '#F0F9FF',
+                  border: '1px solid #BAE6FD',
                   borderRadius: 12,
                   padding: 16,
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                     Current Wallet Balance
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: '#09090B', marginTop: 2 }}>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#0C4A6E', marginTop: 2 }}>
                     ₹{walletBalance.toFixed(2)}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                     Total Earnings Credited
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: '#09090B', marginTop: 2 }}>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#0C4A6E', marginTop: 2 }}>
                     ₹{totalEarned.toFixed(2)}
                   </div>
                 </div>
@@ -347,13 +348,13 @@ export function PayoutDetailModal({
 
               {/* Ledger Entries Table */}
               <div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', marginBottom: 8 }}>
-                   Recent Wallet Ledger Entries
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#0C4A6E', marginBottom: 8 }}>
+                  📖 Recent Wallet Ledger Entries
                 </div>
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ border: '1px solid #BAE6FD', borderRadius: 10, overflow: 'hidden' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
                     <thead>
-                      <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569' }}>
+                      <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0C4A6E' }}>
                         <th style={{ padding: '8px 12px' }}>Type</th>
                         <th style={{ padding: '8px 12px' }}>Amount</th>
                         <th style={{ padding: '8px 12px' }}>Reference</th>
@@ -369,7 +370,7 @@ export function PayoutDetailModal({
                         </tr>
                       ) : (
                         ledgerHistory.map((item) => (
-                          <tr key={item.ledgerEntryId} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <tr key={item.ledgerEntryId} style={{ borderBottom: '1px solid #F0F9FF' }}>
                             <td style={{ padding: '8px 12px' }}>
                               <span
                                 style={{
@@ -377,14 +378,14 @@ export function PayoutDetailModal({
                                   borderRadius: 4,
                                   fontSize: 10,
                                   fontWeight: 800,
-                                  backgroundColor: item.entryType === 'CREDIT' ? '#DCFCE7' : '#FEE2E2',
-                                  color: item.entryType === 'CREDIT' ? '#15803D' : '#B91C1C',
+                                  backgroundColor: item.entryType === 'CREDIT' ? '#E0F2FE' : '#FEE2E2',
+                                  color: item.entryType === 'CREDIT' ? '#0369A1' : '#B91C1C',
                                 }}
                               >
                                 {item.entryType}
                               </span>
                             </td>
-                            <td style={{ padding: '8px 12px', fontWeight: 700 }}>₹{item.amount.toFixed(2)}</td>
+                            <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0C4A6E' }}>₹{item.amount.toFixed(2)}</td>
                             <td style={{ padding: '8px 12px', color: '#475569' }}>
                               {item.referenceType} — {item.referenceId}
                             </td>
@@ -404,8 +405,8 @@ export function PayoutDetailModal({
         <div
           style={{
             padding: '16px 24px',
-            backgroundColor: '#F8FAFC',
-            borderTop: '1px solid #E2E8F0',
+            backgroundColor: '#F0F9FF',
+            borderTop: '1px solid #BAE6FD',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -422,15 +423,15 @@ export function PayoutDetailModal({
                   fontSize: 13,
                   fontWeight: 800,
                   color: '#FFFFFF',
-                  backgroundColor: '#D97706',
+                  backgroundColor: '#0284C7',
                   border: 'none',
                   borderRadius: 8,
                   cursor: isRetrying ? 'not-allowed' : 'pointer',
                   opacity: isRetrying ? 0.7 : 1,
-                  boxShadow: '0 2px 4px rgba(217, 119, 6, 0.3)',
+                  boxShadow: '0 2px 4px rgba(2, 132, 199, 0.3)',
                 }}
               >
-                {isRetrying ? 'Retrying Payout...' : ' Retry Failed Payout'}
+                {isRetrying ? 'Retrying Payout...' : '🔄 Retry Failed Payout'}
               </button>
             )}
           </div>
@@ -442,9 +443,9 @@ export function PayoutDetailModal({
               padding: '9px 20px',
               fontSize: 13,
               fontWeight: 700,
-              color: '#334155',
+              color: '#0C4A6E',
               backgroundColor: '#FFFFFF',
-              border: '1px solid #CBD5E1',
+              border: '1px solid #BAE6FD',
               borderRadius: 8,
               cursor: 'pointer',
             }}
@@ -456,3 +457,4 @@ export function PayoutDetailModal({
     </div>
   );
 }
+

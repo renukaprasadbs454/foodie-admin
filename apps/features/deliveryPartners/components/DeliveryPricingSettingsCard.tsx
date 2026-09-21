@@ -458,21 +458,21 @@ export function DeliveryPricingSettingsCard() {
       style={{
         backgroundColor: tokens?.color?.surface || '#FFFFFF',
         borderRadius: tokens?.radius?.lg || '16px',
-        border: `1px solid ${tokens?.color?.border || '#E4E4E7'}`,
-        borderTop: '4px solid #000000',
+        border: `1px solid ${tokens?.color?.border || '#BAE6FD'}`,
+        borderTop: '4px solid #0284C7',
         padding: '28px',
         marginBottom: '28px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.03)',
+        boxShadow: '0 10px 30px rgba(2, 132, 199, 0.05), 0 2px 6px rgba(2, 132, 199, 0.03)',
         transition: 'all 0.2s ease',
       }}
     >
       {/* Card Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#09090B', letterSpacing: '-0.02em' }}>
+          <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0C4A6E', letterSpacing: '-0.02em' }}>
             Delivery Partner Payout Structure & Incentives
           </h2>
-          <p style={{ margin: '6px 0 0 0', fontSize: '0.875rem', color: '#71717A', lineHeight: '1.5' }}>
+          <p style={{ margin: '6px 0 0 0', fontSize: '0.875rem', color: '#0369A1', lineHeight: '1.5' }}>
             Configure guaranteed base payouts, distance rates, and incentives on a universal platform-wide or zone-specific location basis.
           </p>
         </div>
@@ -481,10 +481,10 @@ export function DeliveryPricingSettingsCard() {
         <div
           style={{
             display: 'flex',
-            backgroundColor: '#F4F4F5',
+            backgroundColor: '#F0F9FF',
             padding: '4px',
             borderRadius: '10px',
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             gap: '4px',
           }}
         >
@@ -495,8 +495,8 @@ export function DeliveryPricingSettingsCard() {
               padding: '8px 16px',
               borderRadius: '8px',
               border: 'none',
-              backgroundColor: pricingBasis === 'UNIVERSAL' ? '#000000' : 'transparent',
-              color: pricingBasis === 'UNIVERSAL' ? '#FFFFFF' : '#09090B',
+              backgroundColor: pricingBasis === 'UNIVERSAL' ? '#0284C7' : 'transparent',
+              color: pricingBasis === 'UNIVERSAL' ? '#FFFFFF' : '#0369A1',
               fontSize: '0.8125rem',
               fontWeight: 800,
               cursor: 'pointer',
@@ -504,6 +504,7 @@ export function DeliveryPricingSettingsCard() {
               alignItems: 'center',
               gap: '6px',
               transition: 'all 0.15s ease',
+              boxShadow: pricingBasis === 'UNIVERSAL' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
             }}
           >
             <span>🌍</span> Universal Basis
@@ -516,8 +517,8 @@ export function DeliveryPricingSettingsCard() {
               padding: '8px 16px',
               borderRadius: '8px',
               border: 'none',
-              backgroundColor: pricingBasis === 'ZONE' ? '#000000' : 'transparent',
-              color: pricingBasis === 'ZONE' ? '#FFFFFF' : '#09090B',
+              backgroundColor: pricingBasis === 'ZONE' ? '#0284C7' : 'transparent',
+              color: pricingBasis === 'ZONE' ? '#FFFFFF' : '#0369A1',
               fontSize: '0.8125rem',
               fontWeight: 800,
               cursor: 'pointer',
@@ -525,6 +526,7 @@ export function DeliveryPricingSettingsCard() {
               alignItems: 'center',
               gap: '6px',
               transition: 'all 0.15s ease',
+              boxShadow: pricingBasis === 'ZONE' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
             }}
           >
             <span>📍</span> Zone Basis
@@ -536,11 +538,11 @@ export function DeliveryPricingSettingsCard() {
       {pricingBasis === 'ZONE' && (
         <div
           style={{
-            backgroundColor: '#FAFAFA',
+            backgroundColor: '#F0F9FF',
             borderRadius: '14px',
             padding: '18px 20px',
             marginBottom: '24px',
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             display: 'flex',
             flexDirection: 'column',
             gap: '14px',
@@ -548,8 +550,8 @@ export function DeliveryPricingSettingsCard() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1rem', fontWeight: 800, color: '#09090B' }}>📍 Select Operating Zone / Location</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#000000', color: '#FFFFFF', padding: '2px 8px', borderRadius: '12px' }}>
+              <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0C4A6E' }}>📍 Select Operating Zone / Location</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#0284C7', color: '#FFFFFF', padding: '2px 8px', borderRadius: '12px' }}>
                 {zones.length} Zones Available
               </span>
             </div>
@@ -560,12 +562,13 @@ export function DeliveryPricingSettingsCard() {
               style={{
                 padding: '6px 14px',
                 borderRadius: '8px',
-                backgroundColor: '#000000',
+                backgroundColor: '#0284C7',
                 color: '#FFFFFF',
                 border: 'none',
                 fontSize: '0.75rem',
                 fontWeight: 800,
                 cursor: 'pointer',
+                boxShadow: '0 2px 4px rgba(2, 132, 199, 0.25)',
               }}
             >
               + Add Custom Location
@@ -583,10 +586,10 @@ export function DeliveryPricingSettingsCard() {
                 width: '100%',
                 padding: '10px 14px',
                 borderRadius: '8px',
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 fontSize: '0.875rem',
                 backgroundColor: '#FFFFFF',
-                color: '#09090B',
+                color: '#0C4A6E',
                 outline: 'none',
                 boxSizing: 'border-box',
               }}
@@ -606,9 +609,9 @@ export function DeliveryPricingSettingsCard() {
                   style={{
                     padding: '8px 14px',
                     borderRadius: '8px',
-                    border: isSelected ? '2px solid #000000' : '1px solid #E4E4E7',
-                    backgroundColor: isSelected ? '#000000' : '#FFFFFF',
-                    color: isSelected ? '#FFFFFF' : '#09090B',
+                    border: isSelected ? '2px solid #0284C7' : '1px solid #BAE6FD',
+                    backgroundColor: isSelected ? '#0284C7' : '#FFFFFF',
+                    color: isSelected ? '#FFFFFF' : '#0C4A6E',
                     fontSize: '0.8125rem',
                     fontWeight: isSelected ? 800 : 600,
                     cursor: 'pointer',
@@ -623,7 +626,7 @@ export function DeliveryPricingSettingsCard() {
                     ({z.city})
                   </span>
                   {hasCustomConfig && (
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isSelected ? '#FFFFFF' : '#000000' }} />
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isSelected ? '#FFFFFF' : '#0284C7' }} />
                   )}
                 </button>
               );
@@ -636,7 +639,7 @@ export function DeliveryPricingSettingsCard() {
               backgroundColor: '#FFFFFF',
               borderRadius: '10px',
               padding: '12px 16px',
-              border: '1px solid #E4E4E7',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -645,10 +648,10 @@ export function DeliveryPricingSettingsCard() {
             }}
           >
             <div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#09090B' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#0C4A6E' }}>
                 📍 Configuring Zone: <span style={{ textDecoration: 'underline' }}>{activeZone.name}</span> ({activeZone.code})
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#71717A', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#0369A1', marginTop: '2px' }}>
                 {activeZone.description} · City: {activeZone.city}
               </div>
             </div>
@@ -658,11 +661,11 @@ export function DeliveryPricingSettingsCard() {
                 style={{
                   fontSize: '0.75rem',
                   fontWeight: 800,
-                  backgroundColor: '#F4F4F5',
-                  color: '#09090B',
+                  backgroundColor: '#E0F2FE',
+                  color: '#0284C7',
                   padding: '4px 10px',
                   borderRadius: '6px',
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                 }}
               >
                 Base: ₹{currentConfig.minPrice} · ₹{currentConfig.moneyPerKm}/km
@@ -677,8 +680,8 @@ export function DeliveryPricingSettingsCard() {
         style={{
           padding: '10px 16px',
           borderRadius: '10px',
-          backgroundColor: pricingBasis === 'UNIVERSAL' ? '#F4F4F5' : '#000000',
-          color: pricingBasis === 'UNIVERSAL' ? '#09090B' : '#FFFFFF',
+          backgroundColor: pricingBasis === 'UNIVERSAL' ? '#E0F2FE' : '#0284C7',
+          color: pricingBasis === 'UNIVERSAL' ? '#0284C7' : '#FFFFFF',
           fontSize: '0.8125rem',
           fontWeight: 700,
           marginBottom: '20px',
@@ -687,6 +690,7 @@ export function DeliveryPricingSettingsCard() {
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '8px',
+          border: '1px solid #BAE6FD',
         }}
       >
         <span>
@@ -706,14 +710,15 @@ export function DeliveryPricingSettingsCard() {
             marginBottom: '20px',
             padding: '14px 18px',
             borderRadius: '12px',
-            backgroundColor: '#000000',
+            backgroundColor: '#0C4A6E',
             color: '#FFFFFF',
             fontSize: '0.875rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
+            border: '1px solid #0284C7',
           }}
         >
           <span>{toastMsg.text}</span>
@@ -721,7 +726,7 @@ export function DeliveryPricingSettingsCard() {
       )}
 
       {isLoading ? (
-        <div style={{ padding: '30px', textAlign: 'center', color: '#71717A', fontWeight: 600 }}>
+        <div style={{ padding: '30px', textAlign: 'center', color: '#0369A1', fontWeight: 600 }}>
           Loading delivery payout & incentive rules...
         </div>
       ) : (
@@ -731,11 +736,11 @@ export function DeliveryPricingSettingsCard() {
             {/* Input Card 1: Minimum Price per Delivery */}
             <div
               style={{
-                backgroundColor: '#F4F4F5',
+                backgroundColor: '#F0F9FF',
                 padding: '20px',
                 borderRadius: '14px',
-                border: minPriceFocused ? '1px solid #000000' : '1px solid #E4E4E7',
-                boxShadow: minPriceFocused ? '0 0 0 3px rgba(0, 0, 0, 0.1)' : 'none',
+                border: minPriceFocused ? '1px solid #0284C7' : '1px solid #BAE6FD',
+                boxShadow: minPriceFocused ? '0 0 0 3px rgba(2, 132, 199, 0.15)' : 'none',
                 transition: 'all 0.2s ease',
               }}
             >
@@ -747,12 +752,12 @@ export function DeliveryPricingSettingsCard() {
                   justifyContent: 'space-between',
                   fontSize: '0.875rem',
                   fontWeight: 700,
-                  color: '#09090B',
+                  color: '#0C4A6E',
                   marginBottom: '10px',
                 }}
               >
                 <span>Minimum Price per Delivery</span>
-                <span style={{ fontSize: '0.75rem', color: '#09090B', fontWeight: 800 }}>Guaranteed Base</span>
+                <span style={{ fontSize: '0.75rem', color: '#0284C7', fontWeight: 800, backgroundColor: '#E0F2FE', padding: '2px 8px', borderRadius: '12px' }}>Guaranteed Base</span>
               </label>
 
               <div style={{ position: 'relative' }}>
@@ -765,7 +770,7 @@ export function DeliveryPricingSettingsCard() {
                     fontWeight: 800,
                     fontSize: '1rem',
                     color: '#FFFFFF',
-                    backgroundColor: '#000000',
+                    backgroundColor: '#0284C7',
                     padding: '2px 8px',
                     borderRadius: '6px',
                   }}
@@ -785,17 +790,17 @@ export function DeliveryPricingSettingsCard() {
                     width: '100%',
                     padding: '12px 14px 12px 48px',
                     borderRadius: '10px',
-                    border: '1px solid #E4E4E7',
+                    border: '1px solid #BAE6FD',
                     fontSize: '1.125rem',
                     fontWeight: 800,
                     backgroundColor: '#FFFFFF',
-                    color: '#09090B',
+                    color: '#0C4A6E',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
                 />
               </div>
-              <p style={{ margin: '10px 0 0 0', fontSize: '0.775rem', color: '#71717A', lineHeight: '1.4' }}>
+              <p style={{ margin: '10px 0 0 0', fontSize: '0.775rem', color: '#0369A1', lineHeight: '1.4' }}>
                 Minimum payout assigned to delivery partners even for very short trips.
               </p>
             </div>
@@ -803,11 +808,11 @@ export function DeliveryPricingSettingsCard() {
             {/* Input Card 2: Money per KM */}
             <div
               style={{
-                backgroundColor: '#F4F4F5',
+                backgroundColor: '#F0F9FF',
                 padding: '20px',
                 borderRadius: '14px',
-                border: moneyKmFocused ? '1px solid #000000' : '1px solid #E4E4E7',
-                boxShadow: moneyKmFocused ? '0 0 0 3px rgba(0, 0, 0, 0.1)' : 'none',
+                border: moneyKmFocused ? '1px solid #0284C7' : '1px solid #BAE6FD',
+                boxShadow: moneyKmFocused ? '0 0 0 3px rgba(2, 132, 199, 0.15)' : 'none',
                 transition: 'all 0.2s ease',
               }}
             >
@@ -819,12 +824,12 @@ export function DeliveryPricingSettingsCard() {
                   justifyContent: 'space-between',
                   fontSize: '0.875rem',
                   fontWeight: 700,
-                  color: '#09090B',
+                  color: '#0C4A6E',
                   marginBottom: '10px',
                 }}
               >
                 <span>Money per KM</span>
-                <span style={{ fontSize: '0.75rem', color: '#09090B', fontWeight: 800 }}>Distance Rate</span>
+                <span style={{ fontSize: '0.75rem', color: '#0284C7', fontWeight: 800, backgroundColor: '#E0F2FE', padding: '2px 8px', borderRadius: '12px' }}>Distance Rate</span>
               </label>
 
               <div style={{ position: 'relative' }}>
@@ -837,7 +842,7 @@ export function DeliveryPricingSettingsCard() {
                     fontWeight: 800,
                     fontSize: '1rem',
                     color: '#FFFFFF',
-                    backgroundColor: '#000000',
+                    backgroundColor: '#0284C7',
                     padding: '2px 8px',
                     borderRadius: '6px',
                   }}
@@ -857,17 +862,17 @@ export function DeliveryPricingSettingsCard() {
                     width: '100%',
                     padding: '12px 14px 12px 48px',
                     borderRadius: '10px',
-                    border: '1px solid #E4E4E7',
+                    border: '1px solid #BAE6FD',
                     fontSize: '1.125rem',
                     fontWeight: 800,
                     backgroundColor: '#FFFFFF',
-                    color: '#09090B',
+                    color: '#0C4A6E',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
                 />
               </div>
-              <p style={{ margin: '10px 0 0 0', fontSize: '0.775rem', color: '#71717A', lineHeight: '1.4' }}>
+              <p style={{ margin: '10px 0 0 0', fontSize: '0.775rem', color: '#0369A1', lineHeight: '1.4' }}>
                 Per-kilometer payout multiplier applied as distance increases.
               </p>
             </div>
@@ -878,18 +883,18 @@ export function DeliveryPricingSettingsCard() {
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: '14px',
-              border: '1px solid #E4E4E7',
+              border: '1px solid #BAE6FD',
               padding: '20px',
               marginBottom: '28px',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.02)',
+              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.04)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#09090B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0C4A6E', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   Rider Incentives & Performance Bonus Matrix ({pricingBasis === 'UNIVERSAL' ? 'Universal' : activeZone.name})
                 </h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#71717A' }}>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#0369A1' }}>
                   Admin Operator Control: Configure custom rule conditions, toggle ON/OFF, and adjust compensation values.
                 </p>
               </div>
@@ -901,17 +906,18 @@ export function DeliveryPricingSettingsCard() {
                   style={{
                     padding: '6px 14px',
                     borderRadius: '8px',
-                    border: '1px solid #000000',
-                    backgroundColor: '#000000',
+                    border: 'none',
+                    backgroundColor: '#0284C7',
                     color: '#FFFFFF',
                     fontSize: '0.75rem',
                     fontWeight: 800,
                     cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                   }}
                 >
                   + Add Custom Rule
                 </button>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', padding: '6px 12px', borderRadius: '20px', border: '1px solid #E4E4E7' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0284C7', backgroundColor: '#E0F2FE', padding: '6px 12px', borderRadius: '20px', border: '1px solid #BAE6FD' }}>
                   {currentConfig.incentives.filter((i) => i.active).length} of {currentConfig.incentives.length} Active
                 </div>
               </div>
@@ -925,13 +931,13 @@ export function DeliveryPricingSettingsCard() {
                   <div
                     key={item.id}
                     style={{
-                      backgroundColor: item.active ? '#F4F4F5' : '#E4E4E7',
+                      backgroundColor: item.active ? '#F0F9FF' : '#F8FAFC',
                       borderRadius: '12px',
                       border: isItemSaved
-                        ? '2px solid #000000'
+                        ? '2px solid #0284C7'
                         : item.active
-                        ? '1px solid #E4E4E7'
-                        : '1px dashed #71717A',
+                        ? '1px solid #BAE6FD'
+                        : '1px dashed #CBD5E1',
                       padding: '16px',
                       opacity: item.active ? 1 : 0.65,
                       transition: 'all 0.2s ease',
@@ -948,7 +954,7 @@ export function DeliveryPricingSettingsCard() {
                           style={{
                             fontSize: '0.875rem',
                             fontWeight: 800,
-                            color: '#09090B',
+                            color: '#0C4A6E',
                             border: '1px solid transparent',
                             backgroundColor: 'transparent',
                             width: '100%',
@@ -966,7 +972,7 @@ export function DeliveryPricingSettingsCard() {
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: '#71717A',
+                              color: '#64748B',
                               fontSize: '12px',
                               cursor: 'pointer',
                             }}
@@ -984,7 +990,7 @@ export function DeliveryPricingSettingsCard() {
                             padding: '4px 10px',
                             borderRadius: '20px',
                             border: 'none',
-                            backgroundColor: item.active ? '#000000' : '#71717A',
+                            backgroundColor: item.active ? '#0284C7' : '#94A3B8',
                             color: '#FFFFFF',
                             fontSize: '0.675rem',
                             fontWeight: 800,
@@ -998,7 +1004,7 @@ export function DeliveryPricingSettingsCard() {
 
                     {/* Rule Description Textarea */}
                     <div style={{ marginBottom: '12px' }}>
-                      <label style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#71717A', display: 'block', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: '4px' }}>
                         Rule Condition & Description:
                       </label>
                       <textarea
@@ -1010,12 +1016,12 @@ export function DeliveryPricingSettingsCard() {
                         style={{
                           width: '100%',
                           fontSize: '0.75rem',
-                          color: item.active ? '#09090B' : '#71717A',
+                          color: item.active ? '#0C4A6E' : '#64748B',
                           lineHeight: '1.4',
                           padding: '6px 8px',
                           borderRadius: '6px',
-                          border: '1px solid #E4E4E7',
-                          backgroundColor: item.active ? '#FFFFFF' : '#F4F4F5',
+                          border: '1px solid #BAE6FD',
+                          backgroundColor: item.active ? '#FFFFFF' : '#F0F9FF',
                           outline: 'none',
                           resize: 'vertical',
                           fontFamily: 'inherit',
@@ -1027,7 +1033,7 @@ export function DeliveryPricingSettingsCard() {
                     {/* Input value */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ position: 'relative', flex: 1 }}>
-                        <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.875rem', color: '#71717A' }}>
+                        <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, fontSize: '0.875rem', color: '#0284C7' }}>
                           ₹
                         </span>
                         <input
@@ -1040,17 +1046,17 @@ export function DeliveryPricingSettingsCard() {
                             width: '100%',
                             padding: '8px 10px 8px 24px',
                             borderRadius: '8px',
-                            border: '1px solid #E4E4E7',
+                            border: '1px solid #BAE6FD',
                             fontSize: '0.875rem',
                             fontWeight: 700,
-                            backgroundColor: item.active ? '#FFFFFF' : '#F4F4F5',
-                            color: '#09090B',
+                            backgroundColor: item.active ? '#FFFFFF' : '#F0F9FF',
+                            color: '#0C4A6E',
                             outline: 'none',
                             boxSizing: 'border-box',
                           }}
                         />
                       </div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#71717A', minWidth: '70px' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0369A1', minWidth: '70px' }}>
                         {item.unit}
                       </span>
                     </div>
@@ -1063,19 +1069,19 @@ export function DeliveryPricingSettingsCard() {
           {/* Interactive Payout Simulator Panel */}
           <div
             style={{
-              backgroundColor: '#F4F4F5',
+              backgroundColor: '#F0F9FF',
               borderRadius: '14px',
               padding: '20px 24px',
               marginBottom: '24px',
-              border: '1px solid #E4E4E7',
+              border: '1px solid #BAE6FD',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <div style={{ fontSize: '0.975rem', fontWeight: 800, color: '#09090B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ fontSize: '0.975rem', fontWeight: 800, color: '#0C4A6E', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   Formula & Interactive Payout Simulator ({pricingBasis === 'UNIVERSAL' ? 'Universal' : activeZone.name})
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#71717A', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.75rem', color: '#0369A1', marginTop: '2px' }}>
                   Test real-time trip payouts with active rate multipliers
                 </div>
               </div>
@@ -1087,22 +1093,22 @@ export function DeliveryPricingSettingsCard() {
                   style={{
                     padding: '4px 12px',
                     borderRadius: '8px',
-                    border: '1px solid #E4E4E7',
+                    border: '1px solid #BAE6FD',
                     backgroundColor: '#FFFFFF',
-                    color: '#09090B',
+                    color: '#0284C7',
                     fontSize: '0.75rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
-                  Add Test Distance
+                  + Add Test Distance
                 </button>
               </div>
             </div>
 
             {/* Formula Banner */}
-            <div style={{ fontSize: '0.8125rem', color: '#71717A', marginBottom: '16px', lineHeight: '1.5' }}>
-              Payout = <code style={{ backgroundColor: '#FFFFFF', padding: '4px 10px', borderRadius: '6px', border: '1px solid #E4E4E7', fontWeight: 800, color: '#09090B' }}>
+            <div style={{ fontSize: '0.8125rem', color: '#0369A1', marginBottom: '16px', lineHeight: '1.5' }}>
+              Payout = <code style={{ backgroundColor: '#FFFFFF', padding: '4px 10px', borderRadius: '6px', border: '1px solid #BAE6FD', fontWeight: 800, color: '#0284C7' }}>
                 Max(₹{currentConfig.minPrice.toFixed(2)}, Distance × ₹{currentConfig.moneyPerKm.toFixed(2)}/km)
               </code>
             </div>
@@ -1114,7 +1120,7 @@ export function DeliveryPricingSettingsCard() {
                 borderRadius: '10px',
                 padding: '12px 16px',
                 marginBottom: '16px',
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -1122,7 +1128,7 @@ export function DeliveryPricingSettingsCard() {
                 gap: '12px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', fontWeight: 700, color: '#09090B' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', fontWeight: 700, color: '#0C4A6E' }}>
                 <span>Operator Quick Test:</span>
                 <input
                   type="number"
@@ -1134,23 +1140,23 @@ export function DeliveryPricingSettingsCard() {
                     width: '70px',
                     padding: '4px 8px',
                     borderRadius: '6px',
-                    border: '1px solid #000000',
+                    border: '1px solid #0284C7',
                     fontSize: '0.875rem',
                     fontWeight: 800,
-                    color: '#09090B',
+                    color: '#0C4A6E',
                     outline: 'none',
                     textAlign: 'center',
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: '#F0F9FF',
                   }}
                 />
                 <span>km distance</span>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '0.8125rem', color: '#71717A' }}>
+                <span style={{ fontSize: '0.8125rem', color: '#0369A1' }}>
                   {customResult.appliedRule === 'PER_KM' ? `(${customTestKm} km × ₹${currentConfig.moneyPerKm.toFixed(2)})` : `(Base Guaranteed)`}
                 </span>
-                <strong style={{ fontSize: '1.125rem', fontWeight: 900, color: '#09090B' }}>
+                <strong style={{ fontSize: '1.125rem', fontWeight: 900, color: '#0284C7' }}>
                   = ₹{customResult.payout.toFixed(2)}
                 </strong>
                 <span
@@ -1159,9 +1165,9 @@ export function DeliveryPricingSettingsCard() {
                     fontWeight: 800,
                     padding: '3px 8px',
                     borderRadius: '6px',
-                    backgroundColor: '#F4F4F5',
-                    border: '1px solid #E4E4E7',
-                    color: '#09090B',
+                    backgroundColor: '#E0F2FE',
+                    border: '1px solid #BAE6FD',
+                    color: '#0284C7',
                   }}
                 >
                   {customResult.appliedRule === 'PER_KM' ? 'Per KM Rate' : 'Base Guaranteed'}
@@ -1181,15 +1187,15 @@ export function DeliveryPricingSettingsCard() {
                       backgroundColor: '#FFFFFF',
                       borderRadius: '12px',
                       padding: '12px 14px',
-                      border: '1px solid #E4E4E7',
-                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)',
+                      border: '1px solid #BAE6FD',
+                      boxShadow: '0 2px 6px rgba(2, 132, 199, 0.05)',
                       transition: 'transform 0.15s ease',
                       position: 'relative',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#71717A' }}>Trip:</span>
+                        <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#0369A1' }}>Trip:</span>
                         <input
                           type="number"
                           min="0.1"
@@ -1200,16 +1206,16 @@ export function DeliveryPricingSettingsCard() {
                             width: '48px',
                             padding: '2px 4px',
                             borderRadius: '4px',
-                            border: '1px solid #E4E4E7',
+                            border: '1px solid #BAE6FD',
                             fontSize: '0.75rem',
                             fontWeight: 800,
-                            color: '#09090B',
-                            backgroundColor: '#FFFFFF',
+                            color: '#0C4A6E',
+                            backgroundColor: '#F0F9FF',
                             textAlign: 'center',
                             outline: 'none',
                           }}
                         />
-                        <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#71717A' }}>km</span>
+                        <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#0369A1' }}>km</span>
                       </div>
 
                       {simDistances.length > 1 && (
@@ -1219,7 +1225,7 @@ export function DeliveryPricingSettingsCard() {
                           style={{
                             background: 'none',
                             border: 'none',
-                            color: '#71717A',
+                            color: '#64748B',
                             fontSize: '12px',
                             cursor: 'pointer',
                             padding: '0 2px',
@@ -1231,7 +1237,7 @@ export function DeliveryPricingSettingsCard() {
                       )}
                     </div>
 
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#09090B', margin: '4px 0' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0284C7', margin: '4px 0' }}>
                       ₹{payout.toFixed(2)}
                     </div>
 
@@ -1242,15 +1248,15 @@ export function DeliveryPricingSettingsCard() {
                           fontWeight: 800,
                           padding: '3px 8px',
                           borderRadius: '6px',
-                          backgroundColor: '#F4F4F5',
-                          border: '1px solid #E4E4E7',
-                          color: '#09090B',
+                          backgroundColor: '#E0F2FE',
+                          border: '1px solid #BAE6FD',
+                          color: '#0284C7',
                           display: 'inline-block',
                         }}
                       >
                         {isPerKm ? 'Distance Incentive' : 'Base Guaranteed'}
                       </span>
-                      <span style={{ fontSize: '0.675rem', color: '#71717A', fontWeight: 700 }}>
+                      <span style={{ fontSize: '0.675rem', color: '#0369A1', fontWeight: 700 }}>
                         {isPerKm ? `${dist}×₹${currentConfig.moneyPerKm}` : 'Base'}
                       </span>
                     </div>
@@ -1267,7 +1273,7 @@ export function DeliveryPricingSettingsCard() {
               disabled={isUpdating}
               className="save-button-responsive"
               style={{
-                backgroundColor: '#000000',
+                backgroundColor: '#0284C7',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: '10px',
@@ -1276,7 +1282,7 @@ export function DeliveryPricingSettingsCard() {
                 fontWeight: 800,
                 cursor: isUpdating ? 'not-allowed' : 'pointer',
                 opacity: isUpdating ? 0.7 : 1,
-                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
+                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
@@ -1302,7 +1308,8 @@ export function DeliveryPricingSettingsCard() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
+            backgroundColor: 'rgba(12, 74, 110, 0.4)',
+            backdropFilter: 'blur(3px)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
@@ -1317,20 +1324,21 @@ export function DeliveryPricingSettingsCard() {
               width: 440,
               maxWidth: '90%',
               padding: 24,
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              border: '1px solid #BAE6FD',
+              boxShadow: '0 20px 40px rgba(12, 74, 110, 0.2)',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#09090B' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0C4A6E' }}>
                 Add New Delivery Zone / Location
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAddingZone(false)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#71717A' }}
+                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748B' }}
               >
                 ✕
               </button>
@@ -1338,7 +1346,7 @@ export function DeliveryPricingSettingsCard() {
 
             <form onSubmit={handleAddCustomZone} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 4 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0C4A6E', marginBottom: 4 }}>
                   Zone / Area Name
                 </label>
                 <input
@@ -1350,9 +1358,10 @@ export function DeliveryPricingSettingsCard() {
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: 8,
-                    border: '1px solid #E4E4E7',
+                    border: '1px solid #BAE6FD',
                     fontSize: 13,
-                    color: '#09090B',
+                    color: '#0C4A6E',
+                    backgroundColor: '#F0F9FF',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
@@ -1360,7 +1369,7 @@ export function DeliveryPricingSettingsCard() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 4 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0C4A6E', marginBottom: 4 }}>
                   City / Region
                 </label>
                 <input
@@ -1372,9 +1381,10 @@ export function DeliveryPricingSettingsCard() {
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: 8,
-                    border: '1px solid #E4E4E7',
+                    border: '1px solid #BAE6FD',
                     fontSize: 13,
-                    color: '#09090B',
+                    color: '#0C4A6E',
+                    backgroundColor: '#F0F9FF',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
@@ -1388,9 +1398,9 @@ export function DeliveryPricingSettingsCard() {
                   style={{
                     padding: '8px 16px',
                     borderRadius: 8,
-                    border: '1px solid #E4E4E7',
-                    backgroundColor: '#F4F4F5',
-                    color: '#09090B',
+                    border: '1px solid #BAE6FD',
+                    backgroundColor: '#F0F9FF',
+                    color: '#0369A1',
                     fontSize: 13,
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -1404,11 +1414,12 @@ export function DeliveryPricingSettingsCard() {
                     padding: '8px 20px',
                     borderRadius: 8,
                     border: 'none',
-                    backgroundColor: '#000000',
+                    backgroundColor: '#0284C7',
                     color: '#FFFFFF',
                     fontSize: 13,
                     fontWeight: 700,
                     cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                   }}
                 >
                   Create & Select Zone

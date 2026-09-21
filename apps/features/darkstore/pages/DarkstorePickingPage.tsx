@@ -153,11 +153,11 @@ export function DarkstorePickingPage() {
     <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0C4A6E', margin: 0 }}>
              Picker Execution Station
           </h1>
-          <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
-            Active Pick Order: <strong style={{ color: '#09090B' }}>{activeOrderId}</strong> | Assigned Picker: <strong>Karan Verma</strong> | Total Items: <strong>{items.length} SKUs ({totalRequested} units)</strong>
+          <p style={{ fontSize: 13, color: '#0369A1', margin: '4px 0 0' }}>
+            Active Pick Order: <strong style={{ color: '#0284C7' }}>{activeOrderId}</strong> | Assigned Picker: <strong>Karan Verma</strong> | Total Items: <strong>{items.length} SKUs ({totalRequested} units)</strong>
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -166,7 +166,7 @@ export function DarkstorePickingPage() {
               type="button"
               onClick={handleBatchPickAll}
               style={{
-                backgroundColor: '#000000',
+                backgroundColor: '#0284C7',
                 color: '#FFFFFF',
                 border: 'none',
                 padding: '8px 16px',
@@ -174,27 +174,27 @@ export function DarkstorePickingPage() {
                 fontSize: 12,
                 fontWeight: 800,
                 cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
               }}
             >
               Fast Pick All
             </button>
           )}
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '6px 14px', borderRadius: 20 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#0284C7', backgroundColor: '#E0F2FE', border: '1px solid #BAE6FD', padding: '6px 14px', borderRadius: 20 }}>
             Pick Progress: {pickProgress}% Complete ({totalPicked}/{totalRequested} units)
           </span>
         </div>
       </div>
 
       {toastMessage && (
-        <div style={{ backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', padding: '12px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, marginBottom: 16 }}>
+        <div style={{ backgroundColor: '#F0F9FF', color: '#0284C7', border: '1px solid #BAE6FD', padding: '12px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, marginBottom: 16 }}>
           {toastMessage}
         </div>
       )}
 
       {/* Progress Bar */}
-      <div style={{ height: 10, width: '100%', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', borderRadius: 5, overflow: 'hidden', marginBottom: 20 }}>
-        <div style={{ height: '100%', width: `${pickProgress}%`, backgroundColor: '#000000', transition: 'width 0.3s ease' }} />
+      <div style={{ height: 10, width: '100%', backgroundColor: '#E0F2FE', border: '1px solid #BAE6FD', borderRadius: 5, overflow: 'hidden', marginBottom: 20 }}>
+        <div style={{ height: '100%', width: `${pickProgress}%`, backgroundColor: '#0284C7', transition: 'width 0.3s ease' }} />
       </div>
 
       {/* Shelf Zone Filters */}
@@ -214,9 +214,9 @@ export function DarkstorePickingPage() {
               borderRadius: 8,
               fontSize: 12,
               fontWeight: zoneFilter === tab.key ? 800 : 600,
-              backgroundColor: zoneFilter === tab.key ? '#000000' : '#FFFFFF',
-              color: zoneFilter === tab.key ? '#FFFFFF' : '#71717A',
-              border: zoneFilter === tab.key ? '1px solid #000000' : '1px solid #E4E4E7',
+              backgroundColor: zoneFilter === tab.key ? '#0284C7' : '#FFFFFF',
+              color: zoneFilter === tab.key ? '#FFFFFF' : '#0369A1',
+              border: zoneFilter === tab.key ? '1px solid #0284C7' : '1px solid #BAE6FD',
               cursor: 'pointer',
             }}
           >
@@ -234,8 +234,8 @@ export function DarkstorePickingPage() {
               backgroundColor: '#FFFFFF',
               borderRadius: 12,
               padding: 20,
-              border: item.status === 'PICKED' ? '2px solid #000000' : item.status === 'UNAVAILABLE' ? '2px solid #71717A' : '1px solid #E4E4E7',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              border: item.status === 'PICKED' ? '2px solid #0284C7' : item.status === 'UNAVAILABLE' ? '2px solid #94A3B8' : '1px solid #BAE6FD',
+              boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -246,15 +246,15 @@ export function DarkstorePickingPage() {
                 <img
                   src={item.imageUrl}
                   alt={item.productName}
-                  style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid #E4E4E7' }}
+                  style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid #BAE6FD' }}
                 />
               )}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#71717A', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#0369A1', textTransform: 'uppercase' }}>
                   Shelf Location: {item.shelfLocation}
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#09090B', marginTop: 2 }}>{item.productName}</div>
-                <div style={{ fontSize: 12, color: '#71717A' }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#0C4A6E', marginTop: 2 }}>{item.productName}</div>
+                <div style={{ fontSize: 12, color: '#64748B' }}>
                   SKU: {item.sku} | Unit Price: ₹{item.unitPrice.toFixed(2)}
                 </div>
               </div>
@@ -262,10 +262,10 @@ export function DarkstorePickingPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#09090B' }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#0284C7' }}>
                   {item.quantityPicked} / {item.quantityRequested}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 800, color: item.status === 'PICKED' ? '#09090B' : item.status === 'UNAVAILABLE' ? '#71717A' : '#71717A' }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: item.status === 'PICKED' ? '#0284C7' : item.status === 'UNAVAILABLE' ? '#DC2626' : '#64748B' }}>
                   STATUS: {item.status}
                 </div>
               </div>
@@ -276,7 +276,7 @@ export function DarkstorePickingPage() {
                   onClick={() => handlePickIncrement(item.id)}
                   disabled={item.quantityPicked >= item.quantityRequested}
                   style={{
-                    backgroundColor: '#000000',
+                    backgroundColor: '#0284C7',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -285,6 +285,7 @@ export function DarkstorePickingPage() {
                     fontWeight: 800,
                     cursor: item.quantityPicked >= item.quantityRequested ? 'not-allowed' : 'pointer',
                     opacity: item.quantityPicked >= item.quantityRequested ? 0.5 : 1,
+                    boxShadow: '0 2px 4px rgba(2, 132, 199, 0.2)',
                   }}
                 >
                   + Pick Item
@@ -293,9 +294,9 @@ export function DarkstorePickingPage() {
                   type="button"
                   onClick={() => handleMarkUnavailable(item.id)}
                   style={{
-                    backgroundColor: '#F4F4F5',
-                    color: '#09090B',
-                    border: '1px solid #E4E4E7',
+                    backgroundColor: '#F0F9FF',
+                    color: '#0369A1',
+                    border: '1px solid #BAE6FD',
                     borderRadius: 8,
                     padding: '10px 14px',
                     fontSize: 12,
@@ -313,17 +314,17 @@ export function DarkstorePickingPage() {
 
       {/* Completion Action */}
       {isComplete && (
-        <div style={{ marginTop: 32, padding: 20, backgroundColor: '#F4F4F5', borderRadius: 12, border: '1px solid #E4E4E7', textAlign: 'center' }}>
-          <h3 style={{ fontSize: 18, fontWeight: 900, color: '#09090B', margin: '0 0 8px' }}>
+        <div style={{ marginTop: 32, padding: 20, backgroundColor: '#F0F9FF', borderRadius: 12, border: '1px solid #BAE6FD', textAlign: 'center' }}>
+          <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0C4A6E', margin: '0 0 8px' }}>
             All {items.length} Items Picked!
           </h3>
-          <p style={{ fontSize: 13, color: '#71717A', margin: '0 0 16px' }}>
+          <p style={{ fontSize: 13, color: '#0369A1', margin: '0 0 16px' }}>
             Order {activeOrderId} picking is complete. Please hand over the crate ({totalRequested} items) to the packing station.
           </p>
           <a
             href="/darkstore-admin/packing"
             style={{
-              backgroundColor: '#000000',
+              backgroundColor: '#0284C7',
               color: '#FFFFFF',
               padding: '12px 24px',
               borderRadius: 8,
@@ -331,6 +332,7 @@ export function DarkstorePickingPage() {
               fontWeight: 800,
               textDecoration: 'none',
               display: 'inline-block',
+              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
             }}
           >
             Send to Packing Station →

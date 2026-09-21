@@ -78,12 +78,13 @@ class RootErrorBoundary extends React.Component<
 }
 
 import { PermissionProvider } from '@/context/PermissionContext';
+import { createAdminTheme } from '@/theme';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <RootErrorBoundary>
       <Provider store={store}>
-        <ThemeProvider initialMode="light" applyToDocument>
+        <ThemeProvider initialMode="light" themeOverride={createAdminTheme} applyToDocument>
           <PermissionProvider>
             <ConnectivityBridge>
               <ConnectivityBanner />

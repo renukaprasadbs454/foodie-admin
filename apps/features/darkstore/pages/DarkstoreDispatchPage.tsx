@@ -35,10 +35,10 @@ export function DarkstoreDispatchPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#09090B', margin: 0 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0C4A6E', margin: 0 }}>
           Dispatch Bay & Delivery Partner Coordination
         </h1>
-        <p style={{ fontSize: 13, color: '#71717A', margin: '4px 0 0' }}>
+        <p style={{ fontSize: 13, color: '#0369A1', margin: '4px 0 0' }}>
           Monitor orders ready for pickup and manage delivery partner handoff at the gate.
         </p>
       </div>
@@ -51,8 +51,8 @@ export function DarkstoreDispatchPage() {
               backgroundColor: '#FFFFFF',
               borderRadius: 12,
               padding: 20,
-              border: o.status === 'DISPATCHED' ? '2px solid #000000' : '1px solid #E4E4E7',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              border: o.status === 'DISPATCHED' ? '2px solid #0284C7' : '1px solid #BAE6FD',
+              boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -60,18 +60,18 @@ export function DarkstoreDispatchPage() {
           >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 18, fontWeight: 900, color: '#09090B' }}>{o.orderNumber}</span>
-                <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', padding: '2px 8px', borderRadius: 4 }}>
+                <span style={{ fontSize: 18, fontWeight: 900, color: '#0C4A6E' }}>{o.orderNumber}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#E0F2FE', color: '#0284C7', border: '1px solid #BAE6FD', padding: '2px 8px', borderRadius: 4 }}>
                   {o.priority} PRIORITY
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#000000', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#0284C7', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4 }}>
                   {o.status}
                 </span>
               </div>
-              <div style={{ fontSize: 13, color: '#374151', marginTop: 6 }}>
+              <div style={{ fontSize: 13, color: '#0C4A6E', marginTop: 6 }}>
                 Customer: <strong>{o.customerName}</strong> ({o.customerPhone}) | Address: {o.deliveryAddress}
               </div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: '#0369A1', marginTop: 4 }}>
                 Delivery Partner: <strong>{o.deliveryPartnerName}</strong> ({o.deliveryPartnerPhone}) | Status:{' '}
                 <strong style={{ color: '#D97706' }}>{o.pickupStatus}</strong>
               </div>
@@ -83,7 +83,7 @@ export function DarkstoreDispatchPage() {
                   type="button"
                   onClick={() => handleHandover(o.id)}
                   style={{
-                    backgroundColor: '#0F3D21',
+                    backgroundColor: '#0284C7',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -91,12 +91,13 @@ export function DarkstoreDispatchPage() {
                     fontSize: 13,
                     fontWeight: 800,
                     cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                   }}
                 >
                   Confirm Handoff & Dispatch 
                 </button>
               ) : (
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#15803D', backgroundColor: '#DCFCE7', padding: '8px 16px', borderRadius: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#0284C7', backgroundColor: '#E0F2FE', border: '1px solid #BAE6FD', padding: '8px 16px', borderRadius: 8 }}>
                    DISPATCHED AT GATE
                 </div>
               )}

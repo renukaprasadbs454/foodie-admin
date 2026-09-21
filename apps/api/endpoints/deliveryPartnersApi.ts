@@ -42,13 +42,21 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
           sort: params?.sort ?? 'createdAt,desc',
         },
       }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.items.map(({ id }) => ({ type: 'Delivery' as const, id })),
-              { type: 'Admin', id: 'DELIVERY_LIST' },
-            ]
-          : [{ type: 'Admin', id: 'DELIVERY_LIST' }],
+      transformResponse: (res: any) => {
+        if (!res) return { items: [], total: 0, page: 0, size: 50 };
+        if (Array.isArray(res)) return { items: res, total: res.length, page: 0, size: res.length };
+        if (Array.isArray(res.items)) return res;
+        if (Array.isArray(res.content)) return { items: res.content, total: res.totalElements ?? res.content.length, page: res.number ?? 0, size: res.size ?? res.content.length };
+        if (Array.isArray(res.data)) return { items: res.data, total: res.data.length, page: 0, size: res.data.length };
+        return { items: [], total: 0, page: 0, size: 50 };
+      },
+      providesTags: (result) => {
+        const items = result?.items || (Array.isArray(result) ? result : []);
+        return [
+          ...items.map((item: any) => ({ type: 'Delivery' as const, id: item.id })),
+          { type: 'Admin', id: 'DELIVERY_LIST' },
+        ];
+      },
     }),
     approveDeliveryPartnerKyc: builder.mutation<DeliveryPartnerProfile, string>({
       query: (partnerId) => ({

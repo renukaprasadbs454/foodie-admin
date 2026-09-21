@@ -74,7 +74,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           width: '100vw',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#000000',
+          backgroundColor: '#082F49',
+          backgroundImage: 'radial-gradient(circle at 50% 30%, #0369A1 0%, #082F49 70%)',
           color: '#FFFFFF',
           fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           flexDirection: 'column',
@@ -82,9 +83,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         }}
       >
         <div style={{ fontSize: 22, fontWeight: 800 }}>
-          Foodie <span style={{ color: '#A1A1AA' }}>Admin</span>
+          Foodie <span style={{ color: '#38BDF8' }}>Admin</span>
         </div>
-        <div style={{ fontSize: 13, color: '#71717A' }}>Checking authentication session…</div>
+        <div style={{ fontSize: 13, color: '#BAE6FD' }}>Checking authentication session…</div>
       </div>
     );
   }
@@ -110,7 +111,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         width: '100vw',
         overflow: 'hidden',
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        backgroundColor: '#FAFAFA',
+        backgroundColor: '#F0F9FF',
       }}
     >
       <div
@@ -136,14 +137,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             width: isCompact ? 0 : 270,
             opacity: isCompact ? 0 : 1,
             visibility: isCompact ? 'hidden' : 'visible',
-            backgroundColor: '#000000',
+            backgroundColor: '#0C4A6E',
+            backgroundImage: 'linear-gradient(180deg, #075985 0%, #0C4A6E 60%, #082F49 100%)',
             color: '#FFFFFF',
             padding: isCompact ? 0 : '24px 16px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            boxShadow: isCompact ? 'none' : '4px 0 16px rgba(0,0,0,0.1)',
-            borderRight: isCompact ? 'none' : '1px solid #27272A',
+            boxShadow: isCompact ? 'none' : '4px 0 20px rgba(2, 132, 199, 0.15)',
+            borderRight: isCompact ? 'none' : '1px solid rgba(56, 189, 248, 0.2)',
             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             overflowX: 'hidden',
             overflowY: 'auto',
@@ -155,7 +157,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-                  Admin <span style={{ color: '#A1A1AA' }}>Panel</span>
+                  Foodie <span style={{ color: '#38BDF8' }}>Admin</span>
                 </div>
               </div>
             </div>
@@ -164,8 +166,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             {role ? (
               <div
                 style={{
-                  backgroundColor: '#18181B',
-                  border: '1px solid #27272A',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
                   borderRadius: 10,
                   padding: '10px 14px',
                   display: 'flex',
@@ -175,12 +177,12 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 title={`Active Role: ${role}`}
               >
                 <div>
-                  <div style={{ fontSize: 10, color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
+                  <div style={{ fontSize: 10, color: '#BAE6FD', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
                     Active Role
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap' }}>{role}</div>
                 </div>
-                <span style={{ height: 8, width: 8, borderRadius: '50%', backgroundColor: '#FFFFFF' }} className="pulse-live" />
+                <span style={{ height: 8, width: 8, borderRadius: '50%', backgroundColor: '#38BDF8' }} className="pulse-live" />
               </div>
             ) : null}
 
@@ -218,20 +220,21 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                           fontSize: 13,
                           fontWeight: isActive || isHighlighted ? 800 : 500,
                           color: isActive
-                            ? '#000000'
+                            ? '#0369A1'
                             : isHighlighted
                               ? '#FFFFFF'
-                              : '#A1A1AA',
+                              : '#BAE6FD',
                           backgroundColor: isActive
                             ? '#FFFFFF'
                             : isHighlighted
-                              ? '#27272A'
+                              ? 'rgba(56, 189, 248, 0.25)'
                               : 'transparent',
                           borderLeft: isActive
-                            ? '4px solid #000000'
+                            ? '4px solid #38BDF8'
                             : isHighlighted
-                              ? '4px solid #FFFFFF'
+                              ? '4px solid #38BDF8'
                               : '4px solid transparent',
+                          boxShadow: isActive ? '0 2px 8px rgba(0, 0, 0, 0.12)' : 'none',
                           textDecoration: 'none',
                           transition: 'all 0.15s ease-in-out',
                         }}
@@ -244,8 +247,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                             style={{
                               fontSize: 10,
                               fontWeight: 800,
-                              color: isActive ? '#000000' : '#FFFFFF',
-                              backgroundColor: isActive ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
+                              color: isActive ? '#0369A1' : '#FFFFFF',
+                              backgroundColor: isActive ? '#E0F2FE' : 'rgba(56, 189, 248, 0.35)',
                               padding: '2px 6px',
                               borderRadius: 6,
                             }}
@@ -312,7 +315,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   aria-label={`Navigate to ${role ? role : 'Home'} dashboard`}
                   onClick={() => router.push(getHomeRouteForRole(role))}
                   style={{
-                    backgroundColor: '#000000',
+                    backgroundColor: '#0284C7',
                     color: '#FFFFFF',
                     padding: '10px 20px',
                     fontWeight: 700,
