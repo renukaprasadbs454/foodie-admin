@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Button,
   Text,
@@ -11,8 +12,8 @@ import {
   useTheme,
 } from 'foodie-shared-web';
 import { useLoginMutation } from '@/api/endpoints/authApi';
-import { useAppDispatch } from '@/store/hooks';
-import { setSession } from './authSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectAdminRole, selectAuthStatus, setSession } from './authSlice';
 import { isNonEmptyPassword, isValidAdminEmail } from './validation';
 import { getHomeRouteForRole } from '@/lib/routeGuards';
 
@@ -45,6 +46,10 @@ export function AdminLoginForm({
   const { tokens } = useTheme();
   const { isConnected } = useConnectivity();
   const dispatch = useAppDispatch();
+  const router = useRouter();
+  const authStatus = useAppSelector(selectAuthStatus);
+  const currentRole = useAppSelector(selectAdminRole);
+
   const [login, { isLoading }] = useLoginMutation();
   const [selectedRole, setSelectedRole] = useState<string>('SUPER_ADMIN');
   const [email, setEmail] = useState(initialEmail);
@@ -52,10 +57,19 @@ export function AdminLoginForm({
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState<string | undefined>();
   const [passwordError, setPasswordError] = useState<string | undefined>();
+  const [authError, setAuthError] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     variant: 'error' | 'info';
   } | null>(null);
+
+  // Automatically enter admin panel if user is already authenticated
+  useEffect(() => {
+    if (authStatus === 'authenticated' && currentRole) {
+      const targetPath = getHomeRouteForRole(currentRole);
+      router.replace(targetPath);
+    }
+  }, [authStatus, currentRole, router]);
 
   const ROLE_OPTIONS = [
     {
@@ -92,12 +106,14 @@ export function AdminLoginForm({
     setSelectedRole(roleKey);
     setEmailError(undefined);
     setPasswordError(undefined);
+    setAuthError(null);
   };
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setEmailError(undefined);
     setPasswordError(undefined);
+    setAuthError(null);
     setToast(null);
 
     if (!isConnected) {
@@ -142,11 +158,18 @@ export function AdminLoginForm({
 
       trackAnalyticsEvent('admin_auth_succeeded', { role: backendRole });
       const redirectPath = getHomeRouteForRole(backendRole);
-      window.location.href = redirectPath;
+      router.push(redirectPath);
+      // Fallback in case Next.js client router requires hard navigation
+      setTimeout(() => {
+        if (window.location.pathname === '/login') {
+          window.location.href = redirectPath;
+        }
+      }, 100);
     } catch (err: any) {
       trackAnalyticsEvent('admin_auth_failed');
       const errorCode = err?.data?.error?.code || err?.error;
       const message = err?.data?.error?.message || loginErrorMessage(errorCode);
+      setAuthError(message);
       setToast({
         message,
         variant: 'error',
@@ -235,7 +258,11 @@ export function AdminLoginForm({
           autoComplete="username"
           placeholder=""
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setEmailError(undefined);
+            setAuthError(null);
+          }}
           errorText={emailError}
           aria-label="Email"
           disabled={isLoading}
@@ -249,7 +276,11 @@ export function AdminLoginForm({
             autoComplete="current-password"
             placeholder=""
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPasswordError(undefined);
+              setAuthError(null);
+            }}
             errorText={passwordError}
             aria-label="Password"
             disabled={isLoading}
@@ -272,6 +303,44 @@ export function AdminLoginForm({
             {showPassword ? 'Hide' : 'Show'}
           </button>
         </div>
+
+        {/* Display alert message below the password textfield on incorrect credentials */}
+        {authError && (
+          <div
+            style={{
+              padding: '12px 14px',
+              backgroundColor: '#FEF2F2',
+              border: '1.5px solid #EF4444',
+              borderRadius: 10,
+              color: '#991B1B',
+              fontSize: 13,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 2,
+            }}
+            role="alert"
+            aria-live="assertive"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#DC2626"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ flexShrink: 0 }}
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{authError}</span>
+          </div>
+        )}
       </div>
 
       <Button

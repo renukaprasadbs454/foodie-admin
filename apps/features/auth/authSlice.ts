@@ -14,14 +14,32 @@ export type AuthState = {
   authStatus: AuthStatus;
 };
 
-const initialState: AuthState = {
-  userType: null,
-  userId: null,
-  role: null,
-  fullName: null,
-  permissions: [],
-  authStatus: 'unauthenticated',
-};
+function getInitialAuthState(): AuthState {
+  if (typeof window !== 'undefined') {
+    const storedRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role');
+    const storedUserId = localStorage.getItem('foodie_admin_user_id') || sessionStorage.getItem('foodie_admin_user_id');
+    if (storedRole || storedUserId) {
+      return {
+        userType: 'ADMIN',
+        userId: storedUserId || '44444444-4444-4444-4444-444444444001',
+        role: (storedRole as AdminRole) || 'SUPER_ADMIN',
+        fullName: null,
+        permissions: [],
+        authStatus: 'authenticated',
+      };
+    }
+  }
+  return {
+    userType: null,
+    userId: null,
+    role: null,
+    fullName: null,
+    permissions: [],
+    authStatus: 'unauthenticated',
+  };
+}
+
+const initialState: AuthState = getInitialAuthState();
 
 export type SetSessionPayload = {
   userId: string;
