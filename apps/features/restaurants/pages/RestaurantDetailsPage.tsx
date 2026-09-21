@@ -224,12 +224,13 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
               </div>
               <span
                 style={{
-                  backgroundColor: '#000000',
+                  backgroundColor: '#0284C7',
                   color: '#FFFFFF',
                   fontSize: 12,
                   fontWeight: 800,
                   padding: '5px 12px',
                   borderRadius: 20,
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                 }}
               >
                 {activeCommissionPct}% Commission
@@ -339,7 +340,7 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
                   onClick={() => setCommissionOpen(true)}
                   style={{
                     padding: '8px 16px',
-                    backgroundColor: '#000000',
+                    backgroundColor: '#0284C7',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -349,6 +350,7 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                   }}
                 >
                   Edit Commission Settings
@@ -359,31 +361,31 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginTop: 8 }}>
               <div style={{ backgroundColor: tokens.color.background, padding: 14, borderRadius: tokens.radius.sm, border: `1px solid ${tokens.color.border}` }}>
                 <Text as="p" variant="caption" color={tokens.color.textSecondary}>Food Order Commission</Text>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#09090B', marginTop: 4 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#0C4A6E', marginTop: 4 }}>
                   {activeCommissionPct}%
                 </div>
-                <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>Applied on gross food subtotal</div>
+                <div style={{ fontSize: 11, color: '#0369A1', marginTop: 2 }}>Applied on gross food subtotal</div>
               </div>
 
               <div style={{ backgroundColor: tokens.color.background, padding: 14, borderRadius: tokens.radius.sm, border: `1px solid ${tokens.color.border}` }}>
                 <Text as="p" variant="caption" color={tokens.color.textSecondary}>Delivery Fee Split</Text>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#09090B', marginTop: 4 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#0C4A6E', marginTop: 4 }}>
                   {activeDeliveryCommissionPct}%
                 </div>
-                <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>Platform delivery commission</div>
+                <div style={{ fontSize: 11, color: '#0369A1', marginTop: 2 }}>Platform delivery commission</div>
               </div>
 
               <div style={{ backgroundColor: tokens.color.background, padding: 14, borderRadius: tokens.radius.sm, border: `1px solid ${tokens.color.border}` }}>
                 <Text as="p" variant="caption" color={tokens.color.textSecondary}>Commission Structure</Text>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', marginTop: 6 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0C4A6E', marginTop: 6 }}>
                   {activeStructure}
                 </div>
-                <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>{activeContract}</div>
+                <div style={{ fontSize: 11, color: '#0369A1', marginTop: 2 }}>{activeContract}</div>
               </div>
 
               <div style={{ backgroundColor: tokens.color.background, padding: 14, borderRadius: tokens.radius.sm, border: `1px solid ${tokens.color.border}` }}>
                 <Text as="p" variant="caption" color={tokens.color.textSecondary}>Payout Cycle</Text>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', marginTop: 6 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0C4A6E', marginTop: 6 }}>
                   {activePayout}
                 </div>
                 <div style={{ fontSize: 11, color: tokens.color.success, marginTop: 2 }}>TCS & GST Deductions Active</div>
@@ -398,13 +400,14 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
                 onClick={() => setCommissionOpen(true)}
                 style={{
                   padding: '10px 18px',
-                  backgroundColor: '#000000',
+                  backgroundColor: '#0284C7',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                 }}
               >
                 Commission Settings

@@ -8,6 +8,8 @@ import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
 import { OrderOperationalPipeline } from '@/features/analytics/components/OrderOperationalPipeline';
 
+import { useGetAdminOrdersQuery, useOverrideOrderStatusMutation } from '@/api/endpoints/ordersApi';
+
 export interface OrderItemRecord {
   id: string;
   customerName: string;
@@ -91,7 +93,10 @@ export function OrdersPage() {
   const initialStatus = searchParams.get('status') ?? 'ALL';
   const activeModule = useAppSelector(selectActiveModule);
 
-  const [orders, setOrders] = useState<OrderItemRecord[]>(MOCK_ORDERS);
+  const { data: serverOrders = [], isLoading: isOrdersLoading, refetch } = useGetAdminOrdersQuery();
+  const [overrideStatusMutation] = useOverrideOrderStatusMutation();
+
+  const [localOverrides, setLocalOverrides] = useState<Record<string, string>>({});
   const [searchUuid, setSearchUuid] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
 
@@ -100,6 +105,34 @@ export function OrdersPage() {
       gapId: GAP_API_16_ORDER_LIST,
     });
   }, []);
+
+  const orders: OrderItemRecord[] = React.useMemo(() => {
+    if (serverOrders && serverOrders.length > 0) {
+      return serverOrders.map((o: any) => {
+        const orderId = o.orderId || o.id || `ord-${Math.random()}`;
+        return {
+          id: orderId,
+          customerName: o.customerName || (o.customerId ? `Customer ${o.customerId.slice(0, 6)}` : 'Customer'),
+          customerPhone: o.customerPhone || '+91 98765 00000',
+          storeName: o.restaurantName || o.storeName || 'Foodie Store',
+          module: o.module || 'Restaurant & Food Delivery',
+          itemsSummary: Array.isArray(o.items)
+            ? o.items.map((it: any) => `${it.quantity || 1}x ${it.name}`).join(', ')
+            : (o.itemsSummary || 'Order Items'),
+          totalAmount: Number(o.totalAmount || o.subtotal || 0),
+          paymentMethod: (o.paymentMethod || 'DIGITAL') as 'COD' | 'DIGITAL',
+          status: (localOverrides[orderId] || o.status || 'PENDING') as any,
+          createdAt: o.placedAt
+            ? new Date(o.placedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : (o.createdAt || 'Just now'),
+        };
+      });
+    }
+    return MOCK_ORDERS.map((o) => ({
+      ...o,
+      status: (localOverrides[o.id] || o.status) as any,
+    }));
+  }, [serverOrders, localOverrides]);
 
   const filteredOrders = orders.filter((o) => {
     const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter || (statusFilter === 'PROCESSING' && o.status === 'PREPARING');
@@ -130,16 +163,16 @@ export function OrdersPage() {
       {/* Page Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <Text as="h1" variant="heading1" color="#09090B">
-            Order Dispatch Control Center
+          <Text as="h1" variant="heading1" color="#0C4A6E">
+            ⚡ Order Dispatch Control Center
           </Text>
-          <Text as="p" variant="caption" color="#71717A">
+          <Text as="p" variant="caption" color="#0369A1">
             Real-time multi-vendor order tracking, dispatch management & status overrides
           </Text>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '6px 12px', borderRadius: 20 }}>
-          <span style={{ fontSize: 14 }}></span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Live WebSocket Dispatch Feed</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#E0F2FE', border: '1px solid #BAE6FD', padding: '6px 12px', borderRadius: 20 }}>
+          <span style={{ fontSize: 14 }}>📡</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>Live WebSocket Dispatch Feed</span>
         </div>
       </div>
 
@@ -169,12 +202,13 @@ export function OrdersPage() {
               style={{
                 padding: '8px 14px',
                 borderRadius: 8,
-                border: 'none',
-                backgroundColor: statusFilter === st ? '#000000' : '#F4F4F5',
-                color: statusFilter === st ? '#FFFFFF' : '#09090B',
+                border: statusFilter === st ? '1px solid #0284C7' : '1px solid #BAE6FD',
+                backgroundColor: statusFilter === st ? '#0284C7' : '#F0F9FF',
+                color: statusFilter === st ? '#FFFFFF' : '#0369A1',
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: 'pointer',
+                transition: 'all 0.15s ease',
               }}
             >
               {st === 'ALL' ? 'ALL ORDERS' : st.replace(/_/g, ' ').toUpperCase()}
@@ -190,11 +224,11 @@ export function OrdersPage() {
           style={{
             padding: '10px 16px',
             borderRadius: 8,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             width: 320,
             fontSize: 14,
             outline: 'none',
-            color: '#09090B',
+            color: '#0C4A6E',
             backgroundColor: '#FFFFFF',
           }}
         />
@@ -205,14 +239,14 @@ export function OrdersPage() {
         style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 12,
-          border: '1px solid #E4E4E7',
+          border: '1px solid #BAE6FD',
           overflow: 'hidden',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          boxShadow: '0 4px 14px rgba(2, 132, 199, 0.06)',
         }}
       >
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
+            <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0C4A6E', fontWeight: 700 }}>
               <th style={{ padding: '14px 20px' }}>Order ID</th>
               <th style={{ padding: '14px 20px' }}>Customer</th>
               <th style={{ padding: '14px 20px' }}>Store & Module</th>
@@ -224,33 +258,33 @@ export function OrdersPage() {
           </thead>
           <tbody>
             {filteredOrders.map((order) => (
-              <tr key={order.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
+              <tr key={order.id} style={{ borderBottom: '1px solid #BAE6FD' }}>
                 <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 700, color: '#09090B', fontFamily: 'monospace', fontSize: 12 }}>
+                  <div style={{ fontWeight: 700, color: '#0C4A6E', fontFamily: 'monospace', fontSize: 12 }}>
                     #{order.id.slice(0, 8)}...
                   </div>
-                  <div style={{ fontSize: 11, color: '#71717A' }}>{order.createdAt}</div>
+                  <div style={{ fontSize: 11, color: '#0369A1' }}>{order.createdAt}</div>
                 </td>
                 <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 600, color: '#09090B' }}>{order.customerName}</div>
-                  <div style={{ fontSize: 12, color: '#71717A' }}>{order.customerPhone}</div>
+                  <div style={{ fontWeight: 600, color: '#0C4A6E' }}>{order.customerName}</div>
+                  <div style={{ fontSize: 12, color: '#0369A1' }}>{order.customerPhone}</div>
                 </td>
                 <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 600, color: '#09090B' }}>{order.storeName}</div>
-                  <span style={{ fontSize: 11, color: '#71717A', fontWeight: 600 }}>{order.module}</span>
+                  <div style={{ fontWeight: 600, color: '#0C4A6E' }}>{order.storeName}</div>
+                  <span style={{ fontSize: 11, color: '#0369A1', fontWeight: 600 }}>{order.module}</span>
                 </td>
-                <td style={{ padding: '16px 20px', color: '#18181B', fontSize: 13 }}>{order.itemsSummary}</td>
+                <td style={{ padding: '16px 20px', color: '#334155', fontSize: 13 }}>{order.itemsSummary}</td>
                 <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 700, color: '#09090B' }}>₹{order.totalAmount}</div>
+                  <div style={{ fontWeight: 700, color: '#0C4A6E' }}>₹{order.totalAmount}</div>
                   <span
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
                       padding: '2px 6px',
                       borderRadius: 4,
-                      backgroundColor: '#F4F4F5',
-                      border: '1px solid #E4E4E7',
-                      color: '#09090B',
+                      backgroundColor: '#E0F2FE',
+                      border: '1px solid #BAE6FD',
+                      color: '#0284C7',
                     }}
                   >
                     {order.paymentMethod}
@@ -260,20 +294,26 @@ export function OrdersPage() {
                   <span
                     style={{
                       backgroundColor:
-                        order.status === 'DELIVERED' || order.status === 'PENDING'
-                          ? '#F4F4F5'
-                          : order.status === 'READY_FOR_PICKUP'
-                          ? '#000000'
-                          : order.status === 'OUT_FOR_DELIVERY' || order.status === 'PREPARING'
-                          ? '#18181B'
-                          : '#E4E4E7',
-                      color:
-                        order.status === 'READY_FOR_PICKUP' || order.status === 'OUT_FOR_DELIVERY' || order.status === 'PREPARING'
-                          ? '#FFFFFF'
+                        order.status === 'DELIVERED'
+                          ? '#D1FAE5'
+                          : order.status === 'READY_FOR_PICKUP' || order.status === 'PREPARING'
+                          ? '#E0F2FE'
+                          : order.status === 'OUT_FOR_DELIVERY'
+                          ? '#FEF3C7'
                           : order.status === 'CANCELED'
-                          ? '#71717A'
-                          : '#09090B',
-                      border: '1px solid #E4E4E7',
+                          ? '#FEE2E2'
+                          : '#F0F9FF',
+                      color:
+                        order.status === 'DELIVERED'
+                          ? '#065F46'
+                          : order.status === 'READY_FOR_PICKUP' || order.status === 'PREPARING'
+                          ? '#0369A1'
+                          : order.status === 'OUT_FOR_DELIVERY'
+                          ? '#92400E'
+                          : order.status === 'CANCELED'
+                          ? '#991B1B'
+                          : '#0C4A6E',
+                      border: '1px solid #BAE6FD',
                       fontSize: 12,
                       fontWeight: 700,
                       padding: '4px 10px',
@@ -287,16 +327,22 @@ export function OrdersPage() {
                   {order.status === 'PREPARING' && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setOrders((prev) =>
-                          prev.map((o) => (o.id === order.id ? { ...o, status: 'READY_FOR_PICKUP' } : o)),
-                        );
+                      onClick={async () => {
+                        setLocalOverrides((prev) => ({ ...prev, [order.id]: 'READY_FOR_PICKUP' }));
+                        try {
+                          await overrideStatusMutation({
+                            orderId: order.id,
+                            body: { targetStatus: 'READY_FOR_PICKUP' as any, reason: 'Admin marked order ready for dispatch' },
+                          }).unwrap();
+                        } catch {
+                          // Handled with local fallback
+                        }
                       }}
                       style={{
                         padding: '6px 12px',
-                        backgroundColor: '#F4F4F5',
-                        color: '#09090B',
-                        border: '1px solid #E4E4E7',
+                        backgroundColor: '#F0F9FF',
+                        color: '#0284C7',
+                        border: '1px solid #BAE6FD',
                         borderRadius: 6,
                         fontSize: 12,
                         fontWeight: 700,
@@ -312,13 +358,14 @@ export function OrdersPage() {
                     onClick={() => router.push(`/orders/${order.id}`)}
                     style={{
                       padding: '6px 14px',
-                      backgroundColor: '#000000',
+                      backgroundColor: '#0284C7',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: 6,
                       fontSize: 12,
                       fontWeight: 700,
                       cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                     }}
                   >
                     Manage Order

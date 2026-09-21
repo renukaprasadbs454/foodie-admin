@@ -1,18 +1,21 @@
 :root {
   color-scheme: light;
-  --color-brand-green: #000000;
-  --color-brand-green-dark: #000000;
-  --color-brand-green-light: #F4F4F5;
-  --color-brand-gold: #18181B;
-  --color-brand-gold-hover: #000000;
-  --color-brand-gold-light: #E4E4E7;
+  --color-brand-green: #0284C7;
+  --color-brand-green-dark: #0369A1;
+  --color-brand-green-light: #E0F2FE;
+  --color-brand-gold: #38BDF8;
+  --color-brand-gold-hover: #0284C7;
+  --color-brand-gold-light: #BAE6FD;
   --color-surface-cream: #FFFFFF;
-  --color-accent: #000000;
-  --color-background: #FAFAFA;
-  --color-text-primary: #09090B;
-  --color-border-subtle: #E4E4E7;
-  --shadow-card: 0 4px 14px 0 rgba(0, 0, 0, 0.05);
-  --shadow-card-hover: 0 8px 24px 0 rgba(0, 0, 0, 0.08);
+  --color-accent: #0284C7;
+  --color-accent-hover: #0369A1;
+  --color-accent-light: #E0F2FE;
+  --color-background: #F0F9FF;
+  --color-text-primary: #0C4A6E;
+  --color-text-secondary: #0369A1;
+  --color-border-subtle: #BAE6FD;
+  --shadow-card: 0 4px 14px 0 rgba(2, 132, 199, 0.08);
+  --shadow-card-hover: 0 8px 24px 0 rgba(2, 132, 199, 0.16);
 }
 
 * {
@@ -41,7 +44,7 @@ a:hover {
 
 /* P2-OPT-01 — Admin visible focus outline */
 :focus-visible {
-  outline: 2px solid #000000;
+  outline: 2px solid #0284C7;
   outline-offset: 2px;
 }
 
@@ -51,14 +54,14 @@ a:hover {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #F4F4F5;
+  background: #E0F2FE;
 }
 ::-webkit-scrollbar-thumb {
-  background: #71717A;
+  background: #38BDF8;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #000000;
+  background: #0284C7;
 }
 
 /* 6amMart Utility Classes */

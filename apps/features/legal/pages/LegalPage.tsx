@@ -18,10 +18,10 @@ export function LegalPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#09090B">
+          <Text as="h1" variant="heading1" color="#0C4A6E">
             Legal & Compliance Governance Center
           </Text>
-          <Text as="p" variant="caption" color="#71717A">
+          <Text as="p" variant="caption" color="#0369A1">
             Platform terms, privacy compliance, refund rules, delivery standards & cookie consent policies
           </Text>
         </div>
@@ -35,7 +35,7 @@ export function LegalPage() {
           backgroundColor: '#FFFFFF',
           padding: '8px',
           borderRadius: 12,
-          border: '1px solid #E4E4E7',
+          border: '1px solid #BAE6FD',
           overflowX: 'auto',
         }}
       >
@@ -56,8 +56,8 @@ export function LegalPage() {
                 padding: '12px 20px',
                 borderRadius: 8,
                 border: 'none',
-                backgroundColor: isActive ? '#000000' : 'transparent',
-                color: isActive ? '#FFFFFF' : '#71717A',
+                backgroundColor: isActive ? '#0284C7' : 'transparent',
+                color: isActive ? '#FFFFFF' : '#0369A1',
                 fontSize: 13,
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -73,28 +73,28 @@ export function LegalPage() {
 
       {/* TAB 1: TERMS & CONDITIONS */}
       {activeTab === 'TERMS' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #E4E4E7', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0C4A6E', margin: 0 }}>
             Master Platform Terms & Conditions
           </h2>
-          <div style={{ fontSize: 14, color: '#09090B', lineHeight: 1.7, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#09090B', margin: 0 }}>1. Platform Operational Framework</h3>
-              <div style={{ color: '#71717A' }}>
+          <div style={{ fontSize: 14, color: '#0C4A6E', lineHeight: 1.7, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0C4A6E', margin: 0 }}>1. Platform Operational Framework</h3>
+              <div style={{ color: '#0369A1' }}>
                 Foodie Hyperlocal operates as an intermediary marketplace connecting customers, multi-vendor food merchants, cloud kitchens, and independent delivery partners. All users agree to adhere to platform code of conduct.
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#09090B', margin: 0 }}>2. Merchant Agreement & Hygiene Compliance</h3>
-              <div style={{ color: '#71717A' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0C4A6E', margin: 0 }}>2. Merchant Agreement & Hygiene Compliance</h3>
+              <div style={{ color: '#0369A1' }}>
                 Restaurants and food partners agree to maintain active FSSAI licenses, update real-time item availability, and ensure food preparation adheres to strict health & safety standards.
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#09090B', margin: 0 }}>3. Delivery Partner Conduct & Payout Rights</h3>
-              <div style={{ color: '#71717A' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0C4A6E', margin: 0 }}>3. Delivery Partner Conduct & Payout Rights</h3>
+              <div style={{ color: '#0369A1' }}>
                 Delivery partners function as independent gig dispatchers entitled to transparent per-kilometer and surge earnings. Zero-tolerance policy applies for order tampering or unverified KYC profiles.
               </div>
             </div>
@@ -104,28 +104,28 @@ export function LegalPage() {
 
       {/* TAB 2: PRIVACY POLICY */}
       {activeTab === 'PRIVACY' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #E4E4E7', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0C4A6E', margin: 0 }}>
             Data Protection & Privacy Policy Guidelines
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#09090B' }}>256-Bit SSL Encryption</div>
-              <div style={{ fontSize: 13, color: '#71717A' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#0C4A6E' }}>256-Bit SSL Encryption</div>
+              <div style={{ fontSize: 13, color: '#0369A1' }}>
                 All mobile app & web traffic is encrypted using TLS 1.3 protocol. User credentials and transaction logs are stored in encrypted database clusters.
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#09090B' }}>Driver KYC Confidentiality</div>
-              <div style={{ fontSize: 13, color: '#71717A' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#0C4A6E' }}>Driver KYC Confidentiality</div>
+              <div style={{ fontSize: 13, color: '#0369A1' }}>
                 Delivery partner Aadhaar, Driving License, and vehicle Registration documents are stored in secure AWS S3 buckets accessible only via short-lived signed URLs.
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#09090B' }}>PCI-DSS Payment Standards</div>
-              <div style={{ fontSize: 13, color: '#71717A' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#0C4A6E' }}>PCI-DSS Payment Standards</div>
+              <div style={{ fontSize: 13, color: '#0369A1' }}>
                 Credit/Debit card details and UPI payment hashes are processed via PCI-DSS Level 1 certified gateways (Razorpay, Stripe, Paytm).
               </div>
             </div>
@@ -135,28 +135,28 @@ export function LegalPage() {
 
       {/* TAB 3: REFUND & CANCELLATION POLICY */}
       {activeTab === 'REFUND' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #E4E4E7', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0C4A6E', margin: 0 }}>
             Customer Refund & Order Cancellation Policy
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <strong style={{ color: '#09090B' }}>Instant Wallet Refunds</strong>
-              <div style={{ fontSize: 13, color: '#71717A' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <strong style={{ color: '#0C4A6E' }}>Instant Wallet Refunds</strong>
+              <div style={{ fontSize: 13, color: '#0369A1' }}>
                 Cancellation refunds requested before kitchen food preparation starts are credited to Foodie Pay Wallet within 60 seconds.
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <strong style={{ color: '#09090B' }}>Post-Preparation Cancellations</strong>
-              <div style={{ fontSize: 13, color: '#71717A' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <strong style={{ color: '#0C4A6E' }}>Post-Preparation Cancellations</strong>
+              <div style={{ fontSize: 13, color: '#0369A1' }}>
                 Cancellation requests after food preparation has commenced incur a nominal 50% kitchen compensation charge.
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <strong style={{ color: '#09090B' }}>Missing or Damaged Items</strong>
-              <div style={{ fontSize: 13, color: '#71717A' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <strong style={{ color: '#0C4A6E' }}>Missing or Damaged Items</strong>
+              <div style={{ fontSize: 13, color: '#0369A1' }}>
                 Customers reporting missing items with photo proof receive pro-rata partial refunds or instant replacement vouchers.
               </div>
             </div>
@@ -166,21 +166,21 @@ export function LegalPage() {
 
       {/* TAB 4: DELIVERY POLICY */}
       {activeTab === 'DELIVERY' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #E4E4E7', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0C4A6E', margin: 0 }}>
             Hyperlocal Delivery Policy & Dispatch SLAs
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontWeight: 800, color: '#09090B', fontSize: 14 }}>Service Radius Limits</div>
-              <div style={{ fontSize: 13, color: '#71717A' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontWeight: 800, color: '#0C4A6E', fontSize: 14 }}>Service Radius Limits</div>
+              <div style={{ fontSize: 13, color: '#0369A1' }}>
                 Standard delivery radius is capped at 12 km from restaurant location to ensure food fresh-temperature standards.
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontWeight: 800, color: '#09090B', fontSize: 14 }}>On-Time SLA Guarantee</div>
-              <div style={{ fontSize: 13, color: '#71717A' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontWeight: 800, color: '#0C4A6E', fontSize: 14 }}>On-Time SLA Guarantee</div>
+              <div style={{ fontSize: 13, color: '#0369A1' }}>
                 Target delivery time is calculated dynamically based on Google Maps traffic API + 15 min kitchen preparation buffer.
               </div>
             </div>
@@ -190,37 +190,37 @@ export function LegalPage() {
 
       {/* TAB 5: COOKIE POLICY */}
       {activeTab === 'COOKIE' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #E4E4E7', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0C4A6E', margin: 0 }}>
             Cookie Consent & Tracking Preferences
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 800, color: '#09090B', fontSize: 14 }}>Essential System Cookies</div>
-                <input type="checkbox" checked={essentialCookies} disabled style={{ width: 18, height: 18, accentColor: '#000000' }} />
+                <div style={{ fontWeight: 800, color: '#0C4A6E', fontSize: 14 }}>Essential System Cookies</div>
+                <input type="checkbox" checked={essentialCookies} disabled style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
               </div>
-              <div style={{ fontSize: 12, color: '#71717A' }}>
+              <div style={{ fontSize: 12, color: '#0369A1' }}>
                 Required for user authentication, session security, and cart persistence.
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 800, color: '#09090B', fontSize: 14 }}>Analytics & Performance Cookies</div>
-                <input type="checkbox" checked={analyticsCookies} onChange={(e) => setAnalyticsCookies(e.target.checked)} style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#000000' }} />
+                <div style={{ fontWeight: 800, color: '#0C4A6E', fontSize: 14 }}>Analytics & Performance Cookies</div>
+                <input type="checkbox" checked={analyticsCookies} onChange={(e) => setAnalyticsCookies(e.target.checked)} style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#0284C7' }} />
               </div>
-              <div style={{ fontSize: 12, color: '#71717A' }}>
+              <div style={{ fontSize: 12, color: '#0369A1' }}>
                 Allows us to measure app performance, page load speed, and checkout bottlenecks.
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 800, color: '#09090B', fontSize: 14 }}>Marketing & Promotional Cookies</div>
-                <input type="checkbox" checked={marketingCookies} onChange={(e) => setMarketingCookies(e.target.checked)} style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#000000' }} />
+                <div style={{ fontWeight: 800, color: '#0C4A6E', fontSize: 14 }}>Marketing & Promotional Cookies</div>
+                <input type="checkbox" checked={marketingCookies} onChange={(e) => setMarketingCookies(e.target.checked)} style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#0284C7' }} />
               </div>
-              <div style={{ fontSize: 12, color: '#71717A' }}>
+              <div style={{ fontSize: 12, color: '#0369A1' }}>
                 Used for personalized coupon recommendations and discount push messages.
               </div>
             </div>

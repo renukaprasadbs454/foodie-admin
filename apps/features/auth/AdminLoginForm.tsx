@@ -182,11 +182,11 @@ export function AdminLoginForm({
           display: 'flex',
           flexDirection: 'column',
           gap: 8,
-          backgroundColor: '#F4F4F5',
+          backgroundColor: '#F0F9FF',
           padding: 16,
           borderRadius: 14,
-          border: '1.5px solid #000000',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          border: '1.5px solid #BAE6FD',
+          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.08)',
         }}
       >
         <label
@@ -194,7 +194,7 @@ export function AdminLoginForm({
           style={{
             fontSize: 12,
             fontWeight: 800,
-            color: '#09090B',
+            color: '#0369A1',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
           }}
@@ -209,14 +209,14 @@ export function AdminLoginForm({
             width: '100%',
             padding: '12px 14px',
             borderRadius: 10,
-            border: '1.5px solid #000000',
+            border: '1.5px solid #38BDF8',
             backgroundColor: '#FFFFFF',
             fontSize: 14,
             fontWeight: 800,
-            color: '#09090B',
+            color: '#0C4A6E',
             cursor: 'pointer',
             outline: 'none',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            boxShadow: '0 2px 4px rgba(2, 132, 199, 0.08)',
           }}
         >
           {ROLE_OPTIONS.map((item) => (
@@ -263,7 +263,7 @@ export function AdminLoginForm({
               top: 36,
               background: 'none',
               border: 'none',
-              color: '#71717A',
+              color: '#0369A1',
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
@@ -283,12 +283,14 @@ export function AdminLoginForm({
         style={{
           marginTop: 4,
           padding: '12px 20px',
-          backgroundColor: '#000000',
+          backgroundColor: '#0284C7',
+          backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
           color: '#FFFFFF',
           borderRadius: 10,
           fontWeight: 800,
           fontSize: 14,
           cursor: isLoading ? 'not-allowed' : 'pointer',
+          boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)',
         }}
       />
 

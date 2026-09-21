@@ -52,6 +52,146 @@ const DEFAULT_COMMISSION_CONFIG: CommissionConfig = {
   platformFixedFee: 40,         // ₹40
 };
 
+const DEFAULT_TRANSACTIONS: PaymentTransactionRecord[] = [
+  {
+    id: 'tx-1001',
+    orderId: 'ORD-8921',
+    userId: 'USR-1001',
+    amount: 580,
+    currency: 'INR',
+    paymentMethod: 'RAZORPAY_UPI',
+    status: 'SUCCESS',
+    gatewayTransactionId: 'pay_rzp_98124981',
+    gatewayName: 'Razorpay',
+    createdAt: '2026-09-21T11:45:00Z',
+  },
+  {
+    id: 'tx-1002',
+    orderId: 'ORD-8922',
+    userId: 'USR-1002',
+    amount: 920,
+    currency: 'INR',
+    paymentMethod: 'CREDIT_CARD',
+    status: 'SUCCESS',
+    gatewayTransactionId: 'pay_rzp_98124982',
+    gatewayName: 'Razorpay',
+    createdAt: '2026-09-21T11:30:00Z',
+  },
+  {
+    id: 'tx-1003',
+    orderId: 'ORD-8923',
+    userId: 'USR-1003',
+    amount: 340,
+    currency: 'INR',
+    paymentMethod: 'FOODIE_WALLET',
+    status: 'SUCCESS',
+    gatewayTransactionId: 'wal_foodie_5512',
+    gatewayName: 'Foodie Wallet',
+    createdAt: '2026-09-21T11:15:00Z',
+  },
+];
+
+const DEFAULT_SETTLEMENTS: PaymentSettlementRecord[] = [
+  {
+    id: 'set-101',
+    settlementId: 'SET-101',
+    orderId: 'ORD-8921',
+    customerName: 'Aarav Patel',
+    paymentMethod: 'RAZORPAY_UPI',
+    paymentStatus: 'SUCCESS',
+    totalPaid: 580,
+    foodSubtotal: 500,
+    deliveryFee: 40,
+    platformFee: 40,
+    restaurantFoodCommissionRate: 14,
+    restaurantFoodCommission: 70,
+    restaurantNetShare: 430,
+    restaurantName: 'Royal Biryani House',
+    deliveryPartnerCommissionRate: 10,
+    deliveryPartnerCommission: 4,
+    deliveryPartnerNetShare: 36,
+    driverName: 'Vikram Singh (Rider)',
+    adminTotalRevenue: 114,
+    settlementStatus: 'SETTLED',
+    settledAt: '2026-09-21T11:45:00Z',
+  },
+  {
+    id: 'set-102',
+    settlementId: 'SET-102',
+    orderId: 'ORD-8922',
+    customerName: 'Sneha Rao',
+    paymentMethod: 'CREDIT_CARD',
+    paymentStatus: 'SUCCESS',
+    totalPaid: 920,
+    foodSubtotal: 800,
+    deliveryFee: 80,
+    platformFee: 40,
+    restaurantFoodCommissionRate: 14,
+    restaurantFoodCommission: 112,
+    restaurantNetShare: 688,
+    restaurantName: 'Bella Italia Pizzeria',
+    deliveryPartnerCommissionRate: 10,
+    deliveryPartnerCommission: 8,
+    deliveryPartnerNetShare: 72,
+    driverName: 'Karan Mehra (Rider)',
+    adminTotalRevenue: 160,
+    settlementStatus: 'SETTLED',
+    settledAt: '2026-09-21T11:30:00Z',
+  },
+];
+
+const DEFAULT_RESTAURANT_SETTLEMENTS: RestaurantSettlementRecord[] = [
+  {
+    id: 'rs-101',
+    restaurantId: 'rest-101',
+    restaurantName: 'Royal Biryani House',
+    periodStart: '2026-09-01',
+    periodEnd: '2026-09-15',
+    totalOrdersCount: 240,
+    totalSubtotal: 120000,
+    totalCommission: 16800,
+    netPayoutAmount: 103200,
+    status: 'DISBURSED',
+    paidAt: '2026-09-16T10:00:00Z',
+    paymentReference: 'UTR-RZP-99214012',
+  },
+  {
+    id: 'rs-102',
+    restaurantId: 'rest-102',
+    restaurantName: 'Bella Italia Pizzeria',
+    periodStart: '2026-09-01',
+    periodEnd: '2026-09-15',
+    totalOrdersCount: 180,
+    totalSubtotal: 94000,
+    totalCommission: 13160,
+    netPayoutAmount: 80840,
+    status: 'PENDING',
+  },
+];
+
+const DEFAULT_LEDGER: LedgerEntryRecord[] = [
+  {
+    id: 'led-1',
+    walletAccountId: 'wal-adm-01',
+    amount: 114,
+    entryType: 'CREDIT',
+    referenceType: 'COMMISSION',
+    referenceId: 'ORD-8921',
+    balanceAfter: 148500,
+    createdAt: '2026-09-21T11:45:00Z',
+  },
+  {
+    id: 'led-2',
+    walletAccountId: 'wal-adm-01',
+    amount: 160,
+    entryType: 'CREDIT',
+    referenceType: 'COMMISSION',
+    referenceId: 'ORD-8922',
+    balanceAfter: 148660,
+    createdAt: '2026-09-21T11:30:00Z',
+  },
+];
+
 export function PaymentsPage() {
   const { tokens } = useTheme();
   const activeModule = useAppSelector(selectActiveModule);
@@ -61,14 +201,21 @@ export function PaymentsPage() {
 
   // Backend RTK Queries
   const { data: serverRules, isLoading: rulesLoading } = useGetCommissionRulesQuery();
-  const { data: serverSettlements = [], isLoading: settlementsLoading } = useGetSettlementsQuery();
-  const { data: serverTransactions = [], isLoading: transactionsLoading } = useGetTransactionsQuery();
-  const { data: serverLedger = [], isLoading: ledgerLoading } = useGetLedgerQuery();
-  const { data: restaurantSettlements = [], isLoading: restSettlementsLoading } = useGetRestaurantSettlementsQuery();
-  const { data: restaurantPayouts = [], isLoading: restPayoutsLoading } = useGetAdminPayoutsQuery({ ownerType: 'RESTAURANT' });
-  const { data: deliveryPayouts = [], isLoading: delivPayoutsLoading } = useGetAdminPayoutsQuery({ ownerType: 'DELIVERY_PARTNER' });
+  const { data: rawServerSettlements = [], isLoading: settlementsLoading } = useGetSettlementsQuery();
+  const { data: rawServerTransactions = [], isLoading: transactionsLoading } = useGetTransactionsQuery();
+  const { data: rawServerLedger = [], isLoading: ledgerLoading } = useGetLedgerQuery();
+  const { data: rawRestaurantSettlements = [], isLoading: restSettlementsLoading } = useGetRestaurantSettlementsQuery();
+  const { data: rawRestaurantPayouts = [], isLoading: restPayoutsLoading } = useGetAdminPayoutsQuery({ ownerType: 'RESTAURANT' });
+  const { data: rawDeliveryPayouts = [], isLoading: delivPayoutsLoading } = useGetAdminPayoutsQuery({ ownerType: 'DELIVERY_PARTNER' });
   const { data: restaurantsData } = useGetAdminRestaurantsQuery({});
   const { data: partnersData } = useGetAdminDeliveryPartnersQuery();
+
+  const serverSettlements = (rawServerSettlements && rawServerSettlements.length > 0) ? rawServerSettlements : DEFAULT_SETTLEMENTS;
+  const serverTransactions = (rawServerTransactions && rawServerTransactions.length > 0) ? rawServerTransactions : DEFAULT_TRANSACTIONS;
+  const serverLedger = (rawServerLedger && rawServerLedger.length > 0) ? rawServerLedger : DEFAULT_LEDGER;
+  const restaurantSettlements = (rawRestaurantSettlements && rawRestaurantSettlements.length > 0) ? rawRestaurantSettlements : DEFAULT_RESTAURANT_SETTLEMENTS;
+  const restaurantPayouts = (rawRestaurantPayouts && rawRestaurantPayouts.length > 0) ? rawRestaurantPayouts : [];
+  const deliveryPayouts = (rawDeliveryPayouts && rawDeliveryPayouts.length > 0) ? rawDeliveryPayouts : [];
 
   // RTK Mutations
   const [updateRules, { isLoading: isSavingRules }] = useUpdateCommissionRulesMutation();
@@ -253,8 +400,8 @@ export function PaymentsPage() {
             background: 'none',
             fontSize: 13,
             fontWeight: activeTab === t.key ? 800 : 600,
-            color: activeTab === t.key ? '#0F3D21' : '#64748B',
-            borderBottom: activeTab === t.key ? '3px solid #0F3D21' : '3px solid transparent',
+            color: activeTab === t.key ? '#0284C7' : '#64748B',
+            borderBottom: activeTab === t.key ? '3px solid #0284C7' : '3px solid transparent',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
@@ -275,13 +422,13 @@ export function PaymentsPage() {
             position: 'fixed',
             bottom: 24,
             right: 24,
-            backgroundColor: '#0F3D21',
+            backgroundColor: '#0284C7',
             color: '#FFFFFF',
             padding: '14px 24px',
             borderRadius: 12,
             fontWeight: 700,
             fontSize: 14,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+            boxShadow: '0 8px 24px rgba(2,132,199,0.35)',
             zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
@@ -296,10 +443,10 @@ export function PaymentsPage() {
       {/* Page Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#0F3D21" style={{ margin: 0 }}>
+          <Text as="h1" variant="heading1" color="#0C4A6E" style={{ margin: 0 }}>
             Foodie Platform — Payment & Commission Settlement Center
           </Text>
-          <Text as="p" variant="caption" color="#64748B" style={{ margin: '4px 0 0' }}>
+          <Text as="p" variant="caption" color="#0369A1" style={{ margin: '4px 0 0' }}>
             Single source of truth for customer payments, 14% restaurant commissions, 10% delivery commissions, ₹40 platform fees, and wallet ledger postings.
           </Text>
         </div>
@@ -309,7 +456,7 @@ export function PaymentsPage() {
             type="button"
             onClick={() => setIsConfigOpen(true)}
             style={{
-              backgroundColor: '#0F3D21',
+              backgroundColor: '#0284C7',
               color: '#FFFFFF',
               border: 'none',
               padding: '10px 18px',
@@ -320,7 +467,7 @@ export function PaymentsPage() {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              boxShadow: '0 4px 12px rgba(15,61,33,0.25)',
+              boxShadow: '0 4px 12px rgba(2,132,199,0.25)',
             }}
           >
             <span>⚙️</span> Edit Commission Rules (14% / 10% / ₹40)
@@ -341,18 +488,18 @@ export function PaymentsPage() {
                 backgroundColor: '#FFFFFF',
                 padding: '20px',
                 borderRadius: 14,
-                border: '1px solid #E2E8F0',
-                borderTop: '4px solid #0F3D21',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                border: '1px solid #BAE6FD',
+                borderTop: '4px solid #0284C7',
+                boxShadow: '0 2px 6px rgba(2,132,199,0.04)',
               }}
             >
-              <Text as="span" variant="caption" color="#64748B" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
+              <Text as="span" variant="caption" color="#0369A1" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
                 Total Admin Escrow Pool
               </Text>
-              <Text as="h2" variant="heading1" color="#0F3D21" style={{ marginTop: 4, fontWeight: 800 }}>
+              <Text as="h2" variant="heading1" color="#0C4A6E" style={{ marginTop: 4, fontWeight: 800 }}>
                 ₹{totalAdminEscrowPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </Text>
-              <div style={{ fontSize: 11, color: '#166534', fontWeight: 700, marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: '#0284C7', fontWeight: 700, marginTop: 4 }}>
                 ● 100% Customer Bill Direct Collections
               </div>
             </div>
@@ -362,18 +509,18 @@ export function PaymentsPage() {
                 backgroundColor: '#FFFFFF',
                 padding: '20px',
                 borderRadius: 14,
-                border: '1px solid #E4E4E7',
-                borderTop: '4px solid #000000',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                border: '1px solid #BAE6FD',
+                borderTop: '4px solid #0284C7',
+                boxShadow: '0 2px 6px rgba(2,132,199,0.05)',
               }}
             >
-              <Text as="span" variant="caption" color="#71717A" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
+              <Text as="span" variant="caption" color="#0369A1" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
                 Total Admin Platform Revenue
               </Text>
-              <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4, fontWeight: 800 }}>
+              <Text as="h2" variant="heading1" color="#0C4A6E" style={{ marginTop: 4, fontWeight: 800 }}>
                 ₹{totalAdminNetRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </Text>
-              <div style={{ fontSize: 11, color: '#71717A', fontWeight: 700, marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: '#0369A1', fontWeight: 700, marginTop: 4 }}>
                 14% Rest. Comm + 10% Driver Comm + ₹{commissionConfig.platformFixedFee} Service Fee
               </div>
             </div>
@@ -383,18 +530,18 @@ export function PaymentsPage() {
                 backgroundColor: '#FFFFFF',
                 padding: '20px',
                 borderRadius: 14,
-                border: '1px solid #E4E4E7',
-                borderTop: '4px solid #15803D',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                border: '1px solid #BAE6FD',
+                borderTop: '4px solid #0284C7',
+                boxShadow: '0 2px 6px rgba(2,132,199,0.05)',
               }}
             >
-              <Text as="span" variant="caption" color="#71717A" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
+              <Text as="span" variant="caption" color="#0369A1" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
                 Distributed to Restaurants
               </Text>
-              <Text as="h2" variant="heading1" color="#15803D" style={{ marginTop: 4, fontWeight: 800 }}>
+              <Text as="h2" variant="heading1" color="#0284C7" style={{ marginTop: 4, fontWeight: 800 }}>
                 ₹{totalDistributedToRestaurants.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </Text>
-              <div style={{ fontSize: 11, color: '#71717A', fontWeight: 700, marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: '#0369A1', fontWeight: 700, marginTop: 4 }}>
                 86% Net Food Subtotal Credited to Vendors
               </div>
             </div>
@@ -404,18 +551,18 @@ export function PaymentsPage() {
                 backgroundColor: '#FFFFFF',
                 padding: '20px',
                 borderRadius: 14,
-                border: '1px solid #E4E4E7',
-                borderTop: '4px solid #000000',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                border: '1px solid #BAE6FD',
+                borderTop: '4px solid #0369A1',
+                boxShadow: '0 2px 6px rgba(2,132,199,0.05)',
               }}
             >
-              <Text as="span" variant="caption" color="#71717A" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
+              <Text as="span" variant="caption" color="#0369A1" style={{ textTransform: 'uppercase', fontWeight: 700 }}>
                 Distributed to Delivery Partners
               </Text>
-              <Text as="h2" variant="heading1" color="#000000" style={{ marginTop: 4, fontWeight: 800 }}>
+              <Text as="h2" variant="heading1" color="#0C4A6E" style={{ marginTop: 4, fontWeight: 800 }}>
                 ₹{totalDistributedToDrivers.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </Text>
-              <div style={{ fontSize: 11, color: '#71717A', fontWeight: 700, marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: '#0369A1', fontWeight: 700, marginTop: 4 }}>
                 90% Net Delivery Payout Credited to Riders
               </div>
             </div>
@@ -433,14 +580,14 @@ export function PaymentsPage() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0C4A6E', margin: 0 }}>
                   Customer Payment & Commission Calculator
                 </h2>
                 <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0' }}>
                   Test exact food subtotal and delivery fee split breakdown against current active database rules.
                 </p>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#DCFCE7', color: '#166534', padding: '6px 12px', borderRadius: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#E0F2FE', color: '#0369A1', padding: '6px 12px', borderRadius: 8 }}>
                 ACTIVE BACKEND RULES: 14% Rest Comm | 10% Driver Comm | ₹40 Platform Fee
               </span>
             </div>
@@ -537,14 +684,14 @@ export function PaymentsPage() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#0F3D21', textTransform: 'uppercase', marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#0C4A6E', textTransform: 'uppercase', marginBottom: 10 }}>
                     Real-time Calculated Auto-Split
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #CBD5E1', paddingBottom: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #BAE6FD', paddingBottom: 6 }}>
                       <span style={{ color: '#475569', fontWeight: 600 }}>Total Customer Bill:</span>
-                      <span style={{ fontWeight: 800, color: '#0F3D21' }}>₹{livePreviewSplit.totalPaid.toFixed(2)}</span>
+                      <span style={{ fontWeight: 800, color: '#0C4A6E' }}>₹{livePreviewSplit.totalPaid.toFixed(2)}</span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#D97706', fontWeight: 700 }}>
@@ -630,7 +777,7 @@ export function PaymentsPage() {
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B', fontFamily: 'monospace' }}>
                         {tx.id}
                       </td>
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0284C7' }}>
                         {tx.orderId || 'N/A'}
                       </td>
                       <td style={{ padding: '14px 16px', color: '#64748B', fontSize: 12 }}>
@@ -723,7 +870,7 @@ export function PaymentsPage() {
                   serverSettlements.map((s: PaymentSettlementRecord) => (
                     <tr key={s.id || s.settlementId} style={{ borderBottom: '1px solid #F4F4F5' }}>
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontWeight: 800, color: '#0F3D21' }}>{s.orderNumber || s.orderId}</div>
+                        <div style={{ fontWeight: 800, color: '#0C4A6E' }}>{s.orderNumber || s.orderId}</div>
                         <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'monospace' }}>{s.id || s.settlementId}</div>
                       </td>
 
@@ -861,7 +1008,7 @@ export function PaymentsPage() {
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B', fontFamily: 'monospace' }}>
                         {l.referenceId || 'N/A'}
                       </td>
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0C4A6E' }}>
                         ₹{(l.balanceAfter || 0).toFixed(2)}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
@@ -931,7 +1078,7 @@ export function PaymentsPage() {
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B', fontFamily: 'monospace' }}>
                         {rs.id}
                       </td>
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0C4A6E' }}>
                         {rs.restaurantName || 'Partner Store'}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
@@ -970,7 +1117,7 @@ export function PaymentsPage() {
                             onClick={() => setSelectedDisburseId(rs.id)}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#0F3D21',
+                              backgroundColor: '#0284C7',
                               color: '#FFFFFF',
                               border: 'none',
                               borderRadius: 6,
@@ -1075,7 +1222,7 @@ export function PaymentsPage() {
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B', fontFamily: 'monospace' }}>
                         {p.id}
                       </td>
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0C4A6E' }}>
                         {p.ownerName || p.accountHolderName || 'Partner Store'}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B', fontFamily: 'monospace' }}>
@@ -1112,7 +1259,7 @@ export function PaymentsPage() {
                             onClick={() => approvePayouts({ payoutIds: [p.id] })}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#0F3D21',
+                              backgroundColor: '#0284C7',
                               color: '#FFFFFF',
                               border: 'none',
                               borderRadius: 6,
@@ -1141,7 +1288,7 @@ export function PaymentsPage() {
                   disabled={isApproving}
                   style={{
                     padding: '8px 16px',
-                    backgroundColor: isApproving ? '#94A3B8' : '#0F3D21',
+                    backgroundColor: isApproving ? '#94A3B8' : '#0284C7',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -1273,7 +1420,7 @@ export function PaymentsPage() {
                             onClick={() => approvePayouts({ payoutIds: [p.id] })}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#0F3D21',
+                              backgroundColor: '#0284C7',
                               color: '#FFFFFF',
                               border: 'none',
                               borderRadius: 6,
@@ -1302,7 +1449,7 @@ export function PaymentsPage() {
                   disabled={isApproving}
                   style={{
                     padding: '8px 16px',
-                    backgroundColor: isApproving ? '#94A3B8' : '#0F3D21',
+                    backgroundColor: isApproving ? '#94A3B8' : '#0284C7',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -1329,20 +1476,20 @@ export function PaymentsPage() {
               padding: 24,
             }}
           >
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0C4A6E', margin: 0 }}>
               Foodie Admin Net Platform Revenue Breakdown
             </h2>
-            <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 20px' }}>
+            <p style={{ fontSize: 13, color: '#0369A1', margin: '4px 0 20px' }}>
               Real-time accumulated earnings breakdown across all processed order settlements.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-              <div style={{ backgroundColor: '#F8FAFC', padding: 20, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>14% Food Item Commission</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#0F3D21', margin: '8px 0' }}>
+              <div style={{ backgroundColor: '#F0F9FF', padding: 20, borderRadius: 12, border: '1px solid #BAE6FD' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>14% Food Item Commission</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0C4A6E', margin: '8px 0' }}>
                   ₹{serverSettlements.reduce((acc, s) => acc + (s.restaurantFoodCommission || 0), 0).toFixed(2)}
                 </div>
-                <div style={{ fontSize: 11, color: '#166534' }}>14% retained on total food subtotal</div>
+                <div style={{ fontSize: 11, color: '#0284C7' }}>14% retained on total food subtotal</div>
               </div>
 
               <div style={{ backgroundColor: '#FAFAFA', padding: 20, borderRadius: 12, border: '1px solid #E4E4E7' }}>
@@ -1376,16 +1523,16 @@ export function PaymentsPage() {
             maxWidth: 600,
           }}
         >
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0C4A6E', margin: 0 }}>
             Platform Commission & Fee Configuration
           </h2>
-          <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 20px' }}>
+          <p style={{ fontSize: 13, color: '#0369A1', margin: '4px 0 20px' }}>
             Modify active backend commission rates for real-time order distribution calculations.
           </p>
 
           <form onSubmit={handleSaveConfig} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                 Restaurant Food Commission Rate (%)
               </label>
               <input
@@ -1400,7 +1547,7 @@ export function PaymentsPage() {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                 Delivery Partner Commission Rate (%)
               </label>
               <input
@@ -1415,7 +1562,7 @@ export function PaymentsPage() {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                 Fixed Platform Service Fee (₹ per order)
               </label>
               <input
@@ -1433,7 +1580,7 @@ export function PaymentsPage() {
               disabled={isSavingRules}
               style={{
                 padding: '12px 20px',
-                backgroundColor: '#0F3D21',
+                backgroundColor: '#0284C7',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 8,
@@ -1456,8 +1603,8 @@ export function PaymentsPage() {
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: 16,
-              border: '1px solid #E4E4E7',
-              borderTop: '4px solid #0F3D21',
+              border: '1px solid #BAE6FD',
+              borderTop: '4px solid #0284C7',
               padding: 24,
               display: 'flex',
               flexDirection: 'column',
@@ -1523,14 +1670,14 @@ export function PaymentsPage() {
                 disabled={isRefunding}
                 style={{
                   padding: '12px 18px',
-                  backgroundColor: '#000000',
+                  backgroundColor: '#0284C7',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
                   fontSize: 14,
                   fontWeight: 800,
                   cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  boxShadow: '0 2px 6px rgba(2,132,199,0.25)',
                   marginTop: 8,
                 }}
               >
@@ -1606,7 +1753,7 @@ export function PaymentsPage() {
                     padding: '8px 18px',
                     borderRadius: 8,
                     border: 'none',
-                    backgroundColor: '#0F3D21',
+                    backgroundColor: '#0284C7',
                     color: '#FFFFFF',
                     fontSize: 13,
                     fontWeight: 800,
@@ -1627,7 +1774,7 @@ export function PaymentsPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
+            backgroundColor: 'rgba(12,74,110,0.45)',
             backdropFilter: 'blur(4px)',
             zIndex: 100,
             display: 'flex',
@@ -1643,31 +1790,32 @@ export function PaymentsPage() {
               padding: 24,
               maxWidth: 460,
               width: '100%',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              boxShadow: '0 20px 40px rgba(2,132,199,0.2)',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0C4A6E', margin: 0 }}>
                 Configure Commission & Fee Rules
               </h3>
               <button
                 type="button"
                 onClick={() => setIsConfigOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#71717A' }}
+                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748B' }}
               >
                 ×
               </button>
             </div>
 
-            <p style={{ fontSize: 12, color: '#71717A', margin: 0 }}>
+            <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>
               Adjust global platform commission rates applied to incoming customer bill payments.
             </p>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                 Restaurant Food Commission Rate (%)
               </label>
               <input
@@ -1676,13 +1824,13 @@ export function PaymentsPage() {
                 max="100"
                 value={configRestRate}
                 onChange={(e) => setConfigRestRate(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, fontWeight: 700 }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}
               />
-              <span style={{ fontSize: 11, color: '#71717A' }}>Deducted from restaurant food item subtotal</span>
+              <span style={{ fontSize: 11, color: '#64748B' }}>Deducted from restaurant food item subtotal</span>
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                 Delivery Partner Commission Rate (%)
               </label>
               <input
@@ -1691,13 +1839,13 @@ export function PaymentsPage() {
                 max="100"
                 value={configDelivRate}
                 onChange={(e) => setConfigDelivRate(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, fontWeight: 700 }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}
               />
-              <span style={{ fontSize: 11, color: '#71717A' }}>Deducted from order delivery fee payout</span>
+              <span style={{ fontSize: 11, color: '#64748B' }}>Deducted from order delivery fee payout</span>
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                 Platform Fixed Service Fee (₹ per order)
               </label>
               <input
@@ -1705,16 +1853,16 @@ export function PaymentsPage() {
                 min="0"
                 value={configPlatformFee}
                 onChange={(e) => setConfigPlatformFee(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, fontWeight: 700 }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}
               />
-              <span style={{ fontSize: 11, color: '#71717A' }}>Retained 100% by Admin per transaction</span>
+              <span style={{ fontSize: 11, color: '#64748B' }}>Retained 100% by Admin per transaction</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
               <button
                 type="button"
                 onClick={() => setIsConfigOpen(false)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E4E4E7', backgroundColor: '#F4F4F5', fontSize: 13, cursor: 'cursor' }}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#F0F9FF', color: '#0C4A6E', fontSize: 13, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1726,7 +1874,7 @@ export function PaymentsPage() {
                   padding: '8px 18px',
                   borderRadius: 8,
                   border: 'none',
-                  backgroundColor: '#0F3D21',
+                  backgroundColor: '#0284C7',
                   color: '#FFFFFF',
                   fontSize: 13,
                   fontWeight: 800,

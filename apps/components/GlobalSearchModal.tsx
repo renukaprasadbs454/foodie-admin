@@ -226,8 +226,8 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
           maxWidth: '620px',
           backgroundColor: '#FFFFFF',
           borderRadius: 16,
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          border: '1px solid #E4E4E7',
+          boxShadow: '0 20px 25px -5px rgba(2, 132, 199, 0.2), 0 10px 10px -5px rgba(2, 132, 199, 0.1)',
+          border: '1px solid #BAE6FD',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -235,8 +235,8 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Header Input */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E4E4E7', gap: 12 }}>
-          <span style={{ fontSize: 18, color: '#71717A' }}></span>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #BAE6FD', gap: 12 }}>
+          <span style={{ fontSize: 18, color: '#0284C7' }}>🔍</span>
           <input
             type="text"
             autoFocus
@@ -249,7 +249,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               outline: 'none',
               fontSize: 15,
               fontWeight: 500,
-              color: '#09090B',
+              color: '#0C4A6E',
               backgroundColor: 'transparent',
             }}
           />
@@ -260,17 +260,17 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#A1A1AA',
+                color: '#0369A1',
                 fontSize: 16,
                 cursor: 'pointer',
                 padding: '0 4px',
               }}
               title="Clear search"
             >
-
+              ✕
             </button>
           ) : null}
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#71717A', backgroundColor: '#F4F4F5', padding: '3px 8px', borderRadius: 6 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', backgroundColor: '#E0F2FE', padding: '3px 8px', borderRadius: 6, border: '1px solid #BAE6FD' }}>
             ESC
           </span>
         </div>
@@ -278,20 +278,20 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
         {/* Results Body */}
         <div style={{ maxHeight: '380px', overflowY: 'auto', padding: '12px 8px' }}>
           {query.trim() === '' ? (
-            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#71717A', fontSize: 13, lineHeight: 1.6 }}>
+            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#0369A1', fontSize: 13, lineHeight: 1.6 }}>
               Type a keyword to search live backend records across <strong>Orders</strong>, <strong>Restaurants</strong>, <strong>Food Items</strong>, and more.
             </div>
           ) : isFetching ? (
-            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#000000', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <span className="pulse-live" style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#000000' }} />
+            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#0284C7', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <span className="pulse-live" style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#0284C7' }} />
               Fetching backend search results...
             </div>
           ) : isGlobalError ? (
-            <div style={{ padding: '24px 16px', textAlign: 'center', color: '#000000', fontSize: 13, backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', borderRadius: 8, margin: '8px' }}>
+            <div style={{ padding: '24px 16px', textAlign: 'center', color: '#EF4444', fontSize: 13, backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, margin: '8px' }}>
               Failed to fetch search results from server. Please check your backend connection.
             </div>
           ) : results.length === 0 ? (
-            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#71717A', fontSize: 14 }}>
+            <div style={{ padding: '32px 16px', textAlign: 'center', color: '#0369A1', fontSize: 14 }}>
               No results matching &quot;{debouncedQuery}&quot;
             </div>
           ) : (
@@ -309,8 +309,8 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                     padding: '12px 16px',
                     borderRadius: 10,
                     cursor: 'pointer',
-                    backgroundColor: isSelected ? '#F4F4F5' : 'transparent',
-                    border: isSelected ? '1px solid #000000' : '1px solid transparent',
+                    backgroundColor: isSelected ? '#E0F2FE' : 'transparent',
+                    border: isSelected ? '1px solid #38BDF8' : '1px solid transparent',
                     transition: 'background-color 0.12s ease, border-color 0.12s ease',
                   }}
                 >
@@ -319,8 +319,8 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                       width: 36,
                       height: 36,
                       borderRadius: 10,
-                      backgroundColor: isSelected ? '#FFFFFF' : '#FAFAFA',
-                      border: '1px solid #E4E4E7',
+                      backgroundColor: isSelected ? '#FFFFFF' : '#F0F9FF',
+                      border: '1px solid #BAE6FD',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -331,14 +331,14 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: '#09090B' }}>{item.title}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#0C4A6E' }}>{item.title}</span>
                       <span
                         style={{
                           fontSize: 10,
-                          fontWeight: 700,
-                          color: '#000000',
-                          backgroundColor: '#F4F4F5',
-                          border: '1px solid #E4E4E7',
+                          fontWeight: 800,
+                          color: '#0284C7',
+                          backgroundColor: '#E0F2FE',
+                          border: '1px solid #BAE6FD',
                           padding: '2px 6px',
                           borderRadius: 4,
                           textTransform: 'uppercase',
@@ -347,9 +347,9 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                         {item.category}
                       </span>
                     </div>
-                    <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>{item.subtitle}</div>
+                    <div style={{ fontSize: 12, color: '#0369A1', marginTop: 2 }}>{item.subtitle}</div>
                   </div>
-                  <span style={{ fontSize: 16, color: isSelected ? '#000000' : '#A1A1AA' }}></span>
+                  <span style={{ fontSize: 16, color: isSelected ? '#0284C7' : '#BAE6FD' }}>→</span>
                 </div>
               );
             })
@@ -357,7 +357,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
         </div>
 
         {/* Footer shortcuts */}
-        <div style={{ padding: '10px 20px', backgroundColor: '#FAFAFA', borderTop: '1px solid #E4E4E7', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#71717A' }}>
+        <div style={{ padding: '10px 20px', backgroundColor: '#F0F9FF', borderTop: '1px solid #BAE6FD', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#0369A1' }}>
           <span>Real-time Backend Console Search</span>
           <span style={{ display: 'flex', gap: 12 }}>
             <span><strong>↑↓</strong> Navigate</span>

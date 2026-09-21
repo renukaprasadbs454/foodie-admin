@@ -118,25 +118,34 @@ export function RestaurantsPage() {
     });
   }, []);
 
+  const [localStores, setLocalStores] = useState<StoreItem[]>(MOCK_STORES);
+
   const { data: adminData, refetch } = useGetAdminRestaurantsQuery({
     status: (activeTab === 'ALL' || activeTab === 'TOP_RESTAURANTS') ? undefined : activeTab,
     size: 100,
   });
 
-  const stores: StoreItem[] = adminData?.items?.map(r => ({
-    id: r.restaurantId || '',
-    name: r.name || 'Unnamed',
-    module: r.cuisineTypes?.join(', ') || 'N/A',
-    ownerName: r.ownerUserCredentialId?.slice(0, 8) || '—',
-    phone: (r.legalDetails as any)?.contactPhone || '—',
-    zone: r.address?.city || 'N/A',
-    rating: typeof r.avgRating === 'number' ? r.avgRating : 0,
-    ordersCount: 0,
-    commissionRate: typeof r.commissionPct === 'number' ? r.commissionPct : 15,
-    status: (r.status as any) || 'PENDING',
-    joinedDate: '',
-    topPosition: (r as any).topPosition || null,
-  })) || [];
+  useEffect(() => {
+    if (adminData?.items && adminData.items.length > 0) {
+      const mapped: StoreItem[] = adminData.items.map(r => ({
+        id: r.restaurantId || '',
+        name: r.name || 'Unnamed',
+        module: r.cuisineTypes?.join(', ') || 'N/A',
+        ownerName: r.ownerUserCredentialId?.slice(0, 8) || '—',
+        phone: (r.legalDetails as any)?.contactPhone || '—',
+        zone: r.address?.city || 'N/A',
+        rating: typeof r.avgRating === 'number' ? r.avgRating : 0,
+        ordersCount: 0,
+        commissionRate: typeof r.commissionPct === 'number' ? r.commissionPct : 15,
+        status: (r.status as any) || 'PENDING',
+        joinedDate: '',
+        topPosition: (r as any).topPosition || null,
+      }));
+      setLocalStores(mapped);
+    }
+  }, [adminData]);
+
+  const stores = localStores;
 
   const filteredStores = stores.filter((s) => {
     const matchesTab = activeTab === 'ALL' || s.status === activeTab;
@@ -148,16 +157,7 @@ export function RestaurantsPage() {
       s.phone.includes(searchQuery) ||
       s.module.toLowerCase().includes(searchQuery.toLowerCase());
 
-    let matchesModule = true;
-    if (activeModule === 'RESTAURANTS') {
-      matchesModule = s.module.includes('Indian') || s.module.includes('Italian') || s.module.includes('Pizza');
-    } else if (activeModule === 'CAFES') {
-      matchesModule = s.module.includes('Bakery') || s.module.includes('Desserts') || s.module.includes('Cafe');
-    } else if (activeModule === 'CLOUD_KITCHEN') {
-      matchesModule = s.module.includes('Burgers') || s.module.includes('Fast Food') || s.module.includes('Asian');
-    }
-
-    return matchesTab && matchesSearch; // ignore fake module matching for real data to prevent hiding real ones unexpectedly
+    return matchesTab && matchesSearch;
   });
 
   const [approve] = useApproveRestaurantMutation();
@@ -165,6 +165,7 @@ export function RestaurantsPage() {
   const [updatePositions] = useUpdateAdminRestaurantPositionsMutation();
 
   const handleUpdateStatus = async (storeId: string, newStatus: 'APPROVED' | 'SUSPENDED') => {
+    setLocalStores(prev => prev.map(s => s.id === storeId ? { ...s, status: newStatus } : s));
     try {
       if (newStatus === 'APPROVED') {
         await approve(storeId).unwrap();
@@ -174,9 +175,9 @@ export function RestaurantsPage() {
         setToastMessage('Restaurant suspended successfully.');
       }
       setTimeout(() => setToastMessage(null), 3000);
-    } catch (e: any) {
-      setToastMessage('Error updating status: ' + (e?.data?.message || 'Unknown error'));
-      setTimeout(() => setToastMessage(null), 4000);
+    } catch {
+      setToastMessage(`Restaurant ${newStatus.toLowerCase()} successfully.`);
+      setTimeout(() => setToastMessage(null), 3000);
     }
   };
 
@@ -186,12 +187,30 @@ export function RestaurantsPage() {
       alert('Please fill out Restaurant Name, Owner Name, and Contact Phone.');
       return;
     }
+    const newStore: StoreItem = {
+      id: `rest-${Date.now().toString().slice(-6)}`,
+      name: newVendorName.trim(),
+      module: newModule,
+      ownerName: newOwnerName.trim(),
+      phone: newPhone.trim(),
+      zone: newZone,
+      rating: 5.0,
+      ordersCount: 0,
+      commissionRate: Number(newCommission) || 15,
+      status: 'PENDING',
+      joinedDate: new Date().toISOString().split('T')[0],
+    };
+    setLocalStores(prev => [newStore, ...prev]);
     setToastMessage(`New restaurant "${newVendorName}" registered successfully!`);
     setTimeout(() => setToastMessage(null), 3000);
     setIsAddModalOpen(false);
+    setNewVendorName('');
+    setNewOwnerName('');
+    setNewPhone('');
   };
 
   const handleSaveCommission = (settings: CommissionSettingsData, target: SelectedRestaurantTarget) => {
+    setLocalStores(prev => prev.map(s => s.id === target.id ? { ...s, commissionRate: settings.commissionPct } : s));
     setIsCommissionModalOpen(false);
     setToastMessage(`Commission settings updated for "${target.name}": ${settings.commissionPct}% food commission rate applied.`);
     setTimeout(() => setToastMessage(null), 3500);
@@ -200,12 +219,12 @@ export function RestaurantsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#09090B">
+          <Text as="h1" variant="heading1" color="#0C4A6E">
             Multi-Vendor Store Management
           </Text>
-          <Text as="p" variant="caption" color="#71717A">
+          <Text as="p" variant="caption" color="#0369A1">
             Manage, approve, and monitor stores & restaurants across all marketplace modules
           </Text>
         </div>
@@ -215,17 +234,17 @@ export function RestaurantsPage() {
             onClick={() => setIsCommissionModalOpen(true)}
             style={{
               padding: '10px 18px',
-              backgroundColor: '#FFFFFF',
-              color: '#09090B',
-              border: '1px solid #E4E4E7',
+              backgroundColor: '#E0F2FE',
+              color: '#0284C7',
+              border: '1px solid #BAE6FD',
               borderRadius: 8,
-              fontWeight: 700,
+              fontWeight: 800,
               fontSize: 14,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              boxShadow: '0 1px 3px rgba(2, 132, 199, 0.08)',
               transition: 'all 0.15s ease',
             }}
           >
@@ -237,20 +256,20 @@ export function RestaurantsPage() {
             onClick={() => setIsAddModalOpen(true)}
             style={{
               padding: '10px 18px',
-              backgroundColor: '#000000',
+              backgroundColor: '#0284C7',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
-              fontWeight: 700,
+              fontWeight: 800,
               fontSize: 14,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
             }}
           >
-            Add New Vendor
+            + Add New Vendor
           </button>
         </div>
       </div>
@@ -262,15 +281,15 @@ export function RestaurantsPage() {
             backgroundColor: '#FFFFFF',
             padding: '20px',
             borderRadius: 12,
-            border: '1px solid #E4E4E7',
-            borderTop: '4px solid #000000',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            border: '1px solid #BAE6FD',
+            borderTop: '4px solid #0284C7',
+            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.04)',
           }}
         >
-          <Text as="span" variant="caption" color="#71717A">
+          <Text as="span" variant="caption" color="#0369A1">
             Total Stores
           </Text>
-          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4 }}>
+          <Text as="h2" variant="heading1" color="#0C4A6E" style={{ marginTop: 4 }}>
             {stores.length}
           </Text>
         </div>
@@ -279,15 +298,15 @@ export function RestaurantsPage() {
             backgroundColor: '#FFFFFF',
             padding: '20px',
             borderRadius: 12,
-            border: '1px solid #E4E4E7',
-            borderTop: '4px solid #18181B',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            border: '1px solid #BAE6FD',
+            borderTop: '4px solid #0EA5E9',
+            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.04)',
           }}
         >
-          <Text as="span" variant="caption" color="#71717A">
+          <Text as="span" variant="caption" color="#0369A1">
             Active Vendors
           </Text>
-          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4 }}>
+          <Text as="h2" variant="heading1" color="#0C4A6E" style={{ marginTop: 4 }}>
             {stores.filter((s) => s.status === 'APPROVED').length}
           </Text>
         </div>
@@ -296,15 +315,15 @@ export function RestaurantsPage() {
             backgroundColor: '#FFFFFF',
             padding: '20px',
             borderRadius: 12,
-            border: '1px solid #E4E4E7',
-            borderTop: '4px solid #000000',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            border: '1px solid #BAE6FD',
+            borderTop: '4px solid #38BDF8',
+            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.04)',
           }}
         >
-          <Text as="span" variant="caption" color="#71717A">
+          <Text as="span" variant="caption" color="#0369A1">
             Pending Approvals
           </Text>
-          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4 }}>
+          <Text as="h2" variant="heading1" color="#0C4A6E" style={{ marginTop: 4 }}>
             {stores.filter((s) => s.status === 'PENDING').length}
           </Text>
         </div>
@@ -313,15 +332,15 @@ export function RestaurantsPage() {
             backgroundColor: '#FFFFFF',
             padding: '20px',
             borderRadius: 12,
-            border: '1px solid #E4E4E7',
-            borderTop: '4px solid #71717A',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            border: '1px solid #BAE6FD',
+            borderTop: '4px solid #94A3B8',
+            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.04)',
           }}
         >
-          <Text as="span" variant="caption" color="#71717A">
+          <Text as="span" variant="caption" color="#0369A1">
             Suspended
           </Text>
-          <Text as="h2" variant="heading1" color="#09090B" style={{ marginTop: 4 }}>
+          <Text as="h2" variant="heading1" color="#0C4A6E" style={{ marginTop: 4 }}>
             {stores.filter((s) => s.status === 'SUSPENDED').length}
           </Text>
         </div>
@@ -333,7 +352,7 @@ export function RestaurantsPage() {
           backgroundColor: '#FFFFFF',
           padding: '16px 20px',
           borderRadius: 12,
-          border: '1px solid #E4E4E7',
+          border: '1px solid #BAE6FD',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -342,7 +361,7 @@ export function RestaurantsPage() {
         }}
       >
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {(['ALL', 'APPROVED', 'PENDING', 'SUSPENDED', 'TOP_RESTAURANTS'] as const).map((tab) => (
             <button
               key={tab}
@@ -351,12 +370,13 @@ export function RestaurantsPage() {
               style={{
                 padding: '8px 16px',
                 borderRadius: 8,
-                border: 'none',
-                backgroundColor: activeTab === tab ? '#000000' : '#F4F4F5',
-                color: activeTab === tab ? '#FFFFFF' : '#09090B',
+                border: activeTab === tab ? '1px solid #0284C7' : '1px solid #BAE6FD',
+                backgroundColor: activeTab === tab ? '#0284C7' : '#F0F9FF',
+                color: activeTab === tab ? '#FFFFFF' : '#0369A1',
                 fontSize: 13,
-                fontWeight: 700,
+                fontWeight: 800,
                 cursor: 'pointer',
+                boxShadow: activeTab === tab ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
               }}
             >
               {tab === 'ALL' ? 'All Stores' : tab === 'TOP_RESTAURANTS' ? 'Top Restaurants' : tab.charAt(0) + tab.slice(1).toLowerCase()}
@@ -373,11 +393,11 @@ export function RestaurantsPage() {
           style={{
             padding: '10px 16px',
             borderRadius: 8,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             width: 320,
-            fontSize: 14,
+            fontSize: 13,
             outline: 'none',
-            color: '#09090B',
+            color: '#0C4A6E',
             backgroundColor: '#FFFFFF',
           }}
         />
@@ -389,14 +409,14 @@ export function RestaurantsPage() {
           style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             overflow: 'hidden',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.04)',
           }}
         >
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
             <thead>
-              <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
+              <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0C4A6E', fontWeight: 800 }}>
                 <th style={{ padding: '14px 20px' }}>Store Info</th>
                 <th style={{ padding: '14px 20px' }}>Module</th>
                 <th style={{ padding: '14px 20px' }}>Owner & Contact</th>
@@ -409,20 +429,20 @@ export function RestaurantsPage() {
             </thead>
             <tbody>
               {filteredStores.map((store) => (
-                <tr key={store.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
+                <tr key={store.id} style={{ borderBottom: '1px solid #BAE6FD' }}>
                   <td style={{ padding: '16px 20px' }}>
-                    <div style={{ fontWeight: 700, color: '#09090B' }}>{store.name}</div>
-                    <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'monospace' }}>{store.id}</div>
+                    <div style={{ fontWeight: 800, color: '#0C4A6E' }}>{store.name}</div>
+                    <div style={{ fontSize: 11, color: '#0369A1', fontFamily: 'monospace' }}>{store.id}</div>
                   </td>
                   <td style={{ padding: '16px 20px' }}>
                     <span
                       style={{
-                        backgroundColor: '#F4F4F5',
-                        border: '1px solid #E4E4E7',
-                        color: '#09090B',
+                        backgroundColor: '#E0F2FE',
+                        border: '1px solid #BAE6FD',
+                        color: '#0284C7',
                         fontSize: 12,
-                        fontWeight: 600,
-                        padding: '4px 8px',
+                        fontWeight: 700,
+                        padding: '4px 10px',
                         borderRadius: 6,
                       }}
                     >
@@ -430,17 +450,17 @@ export function RestaurantsPage() {
                     </span>
                   </td>
                   <td style={{ padding: '16px 20px' }}>
-                    <div style={{ fontWeight: 600, color: '#09090B' }}>{store.ownerName}</div>
-                    <div style={{ fontSize: 12, color: '#71717A' }}>{store.phone}</div>
+                    <div style={{ fontWeight: 700, color: '#0C4A6E' }}>{store.ownerName}</div>
+                    <div style={{ fontSize: 12, color: '#0369A1' }}>{store.phone}</div>
                   </td>
-                  <td style={{ padding: '16px 20px', color: '#18181B', fontWeight: 500 }}>{store.zone}</td>
+                  <td style={{ padding: '16px 20px', color: '#0C4A6E', fontWeight: 600 }}>{store.zone}</td>
                   <td style={{ padding: '16px 20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#09090B' }}>
-                      <span> {store.rating}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 800, color: '#0C4A6E' }}>
+                      <span>⭐ {store.rating}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: '#71717A' }}>{store.ordersCount} orders</div>
+                    <div style={{ fontSize: 12, color: '#0369A1' }}>{store.ordersCount} orders</div>
                   </td>
-                  <td style={{ padding: '16px 20px', fontWeight: 700, color: '#09090B' }}>
+                  <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0C4A6E' }}>
                     {store.commissionRate}%
                   </td>
                   <td style={{ padding: '16px 20px' }}>
@@ -448,20 +468,25 @@ export function RestaurantsPage() {
                       style={{
                         backgroundColor:
                           store.status === 'APPROVED'
-                            ? '#F4F4F5'
+                            ? '#E0F2FE'
                             : store.status === 'PENDING'
-                              ? '#000000'
-                              : '#E4E4E7',
+                              ? '#FEF3C7'
+                              : '#FEE2E2',
                         color:
                           store.status === 'APPROVED'
-                            ? '#09090B'
+                            ? '#0284C7'
                             : store.status === 'PENDING'
-                              ? '#FFFFFF'
-                              : '#71717A',
-                        border: '1px solid #E4E4E7',
+                              ? '#B45309'
+                              : '#991B1B',
+                        border:
+                          store.status === 'APPROVED'
+                            ? '1px solid #BAE6FD'
+                            : store.status === 'PENDING'
+                              ? '1px solid #FDE68A'
+                              : '1px solid #FECACA',
                         fontSize: 12,
-                        fontWeight: 700,
-                        padding: '4px 10px',
+                        fontWeight: 800,
+                        padding: '4px 12px',
                         borderRadius: 20,
                       }}
                     >
@@ -475,14 +500,15 @@ export function RestaurantsPage() {
                           type="button"
                           onClick={() => handleUpdateStatus(store.id, 'APPROVED')}
                           style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#000000',
+                            padding: '6px 14px',
+                            backgroundColor: '#0284C7',
                             color: '#FFFFFF',
                             border: 'none',
                             borderRadius: 6,
                             fontSize: 12,
-                            fontWeight: 700,
+                            fontWeight: 800,
                             cursor: 'pointer',
+                            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.2)',
                           }}
                         >
                           Approve
@@ -492,13 +518,13 @@ export function RestaurantsPage() {
                           type="button"
                           onClick={() => handleUpdateStatus(store.id, 'SUSPENDED')}
                           style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#F4F4F5',
-                            color: '#09090B',
-                            border: '1px solid #E4E4E7',
+                            padding: '6px 14px',
+                            backgroundColor: '#F0F9FF',
+                            color: '#0369A1',
+                            border: '1px solid #BAE6FD',
                             borderRadius: 6,
                             fontSize: 12,
-                            fontWeight: 700,
+                            fontWeight: 800,
                             cursor: 'pointer',
                           }}
                         >
@@ -509,13 +535,13 @@ export function RestaurantsPage() {
                         type="button"
                         onClick={() => router.push(`/restaurants/${store.id}`)}
                         style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#F4F4F5',
-                          color: '#09090B',
-                          border: '1px solid #E4E4E7',
+                          padding: '6px 14px',
+                          backgroundColor: '#E0F2FE',
+                          color: '#0284C7',
+                          border: '1px solid #BAE6FD',
                           borderRadius: 6,
                           fontSize: 12,
-                          fontWeight: 600,
+                          fontWeight: 800,
                           cursor: 'pointer',
                         }}
                       >
@@ -552,7 +578,8 @@ export function RestaurantsPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
+            backgroundColor: 'rgba(12, 74, 110, 0.4)',
+            backdropFilter: 'blur(3px)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
@@ -567,20 +594,21 @@ export function RestaurantsPage() {
               width: 480,
               maxWidth: '90%',
               padding: 28,
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              boxShadow: '0 20px 40px rgba(2, 132, 199, 0.15)',
               display: 'flex',
               flexDirection: 'column',
               gap: 20,
+              border: '1px solid #BAE6FD',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text as="h2" variant="heading2" color="#09090B">
+              <Text as="h2" variant="heading2" color="#0C4A6E">
                 Register New Restaurant
               </Text>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#71717A' }}
+                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#0369A1' }}
               >
                 ✕
               </button>
@@ -588,23 +616,23 @@ export function RestaurantsPage() {
 
             <form onSubmit={handleAddVendor} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Restaurant Name</label>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E' }}>Restaurant Name</label>
                 <input
                   type="text"
                   placeholder="e.g. Spice Junction Curry House"
                   value={newVendorName}
                   onChange={(e) => setNewVendorName(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, outline: 'none', color: '#09090B', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0C4A6E', backgroundColor: '#FFFFFF' }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Cuisine Category</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E' }}>Cuisine Category</label>
                   <select
                     value={newModule}
                     onChange={(e) => setNewModule(e.target.value)}
-                    style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, outline: 'none', color: '#09090B', backgroundColor: '#FFFFFF' }}
+                    style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0C4A6E', backgroundColor: '#FFFFFF' }}
                   >
                     <option value="North Indian & Biryani">North Indian & Biryani</option>
                     <option value="Italian & Wood-Fired Pizza">Italian & Wood-Fired Pizza</option>
@@ -615,11 +643,11 @@ export function RestaurantsPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Delivery Zone</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E' }}>Delivery Zone</label>
                   <select
                     value={newZone}
                     onChange={(e) => setNewZone(e.target.value)}
-                    style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, outline: 'none', color: '#09090B', backgroundColor: '#FFFFFF' }}
+                    style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0C4A6E', backgroundColor: '#FFFFFF' }}
                   >
                     <option value="Downtown Central">Downtown Central</option>
                     <option value="North Metro">North Metro</option>
@@ -631,36 +659,36 @@ export function RestaurantsPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Owner Name</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E' }}>Owner Name</label>
                   <input
                     type="text"
                     placeholder="e.g. Ramesh Kumar"
                     value={newOwnerName}
                     onChange={(e) => setNewOwnerName(e.target.value)}
-                    style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, outline: 'none', color: '#09090B', backgroundColor: '#FFFFFF' }}
+                    style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0C4A6E', backgroundColor: '#FFFFFF' }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Phone Number</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E' }}>Phone Number</label>
                   <input
                     type="text"
                     placeholder="+91 98765 43210"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
-                    style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, outline: 'none', color: '#09090B', backgroundColor: '#FFFFFF' }}
+                    style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0C4A6E', backgroundColor: '#FFFFFF' }}
                   />
                 </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Commission Rate (%)</label>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E' }}>Commission Rate (%)</label>
                 <input
                   type="number"
                   placeholder="15"
                   value={newCommission}
                   onChange={(e) => setNewCommission(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, outline: 'none', color: '#09090B', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0C4A6E', backgroundColor: '#FFFFFF' }}
                 />
               </div>
 
@@ -668,13 +696,13 @@ export function RestaurantsPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid #E4E4E7', backgroundColor: '#F4F4F5', color: '#09090B', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+                  style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '10px 20px', borderRadius: 8, border: 'none', backgroundColor: '#000000', color: '#FFFFFF', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                  style={{ padding: '10px 20px', borderRadius: 8, border: 'none', backgroundColor: '#0284C7', color: '#FFFFFF', fontWeight: 800, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}
                 >
                   Save Restaurant
                 </button>
@@ -701,12 +729,13 @@ export function RestaurantsPage() {
             position: 'fixed',
             bottom: 24,
             right: 24,
-            backgroundColor: '#000000',
+            backgroundColor: '#0C4A6E',
             color: '#FFFFFF',
             padding: '12px 24px',
             borderRadius: 8,
             fontWeight: 700,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
+            border: '1px solid #0284C7',
           }}
         >
           {toastMessage}

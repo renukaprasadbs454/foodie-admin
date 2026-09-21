@@ -490,14 +490,14 @@ export function ContactUsPage() {
             position: 'fixed',
             top: 24,
             right: 24,
-            backgroundColor: '#000000',
+            background: 'linear-gradient(135deg, #075985 0%, #0C4A6E 100%)',
             color: '#FFFFFF',
-            border: '1px solid #27272A',
+            border: '1px solid #BAE6FD',
             padding: '14px 24px',
             borderRadius: 12,
             fontWeight: 800,
             fontSize: 14,
-            boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+            boxShadow: '0 12px 30px rgba(2, 132, 199, 0.35)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
@@ -511,10 +511,10 @@ export function ContactUsPage() {
       {/* Header & Quick Action */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#09090B', margin: '0 0 6px 0' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0C4A6E', margin: '0 0 6px 0' }}>
             Contact Us & Support Operations Desk
           </h1>
-          <p style={{ fontSize: 13, color: '#71717A', margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#0369A1', margin: 0 }}>
             Manage customer, restaurant, delivery partner & general enquiries with direct message replies and resolution tracking
           </p>
         </div>
@@ -524,7 +524,7 @@ export function ContactUsPage() {
           onClick={() => setIsCreateModalOpen(true)}
           style={{
             padding: '10px 20px',
-            backgroundColor: '#000000',
+            backgroundColor: '#0284C7',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: 10,
@@ -534,7 +534,7 @@ export function ContactUsPage() {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
             transition: 'transform 0.15s ease',
           }}
         >
@@ -779,8 +779,8 @@ export function ContactUsPage() {
                 padding: '12px 20px',
                 borderRadius: 8,
                 border: 'none',
-                backgroundColor: isActive ? '#000000' : 'transparent',
-                color: isActive ? '#FFFFFF' : '#71717A',
+                backgroundColor: isActive ? '#0284C7' : 'transparent',
+                color: isActive ? '#FFFFFF' : '#0369A1',
                 fontSize: 13,
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -796,9 +796,9 @@ export function ContactUsPage() {
                 style={{
                   fontSize: 11,
                   fontWeight: 800,
-                  backgroundColor: isActive ? '#FFFFFF' : '#F4F4F5',
-                  color: isActive ? '#000000' : '#71717A',
-                  border: isActive ? 'none' : '1px solid #E4E4E7',
+                  backgroundColor: isActive ? '#FFFFFF' : '#E0F2FE',
+                  color: isActive ? '#0284C7' : '#0369A1',
+                  border: isActive ? 'none' : '1px solid #BAE6FD',
                   padding: '2px 8px',
                   borderRadius: 10,
                 }}
@@ -820,13 +820,13 @@ export function ContactUsPage() {
                 padding: 48,
                 borderRadius: 14,
                 textAlign: 'center',
-                border: '1px solid #E4E4E7',
-                color: '#71717A',
+                border: '1px solid #BAE6FD',
+                color: '#0369A1',
               }}
             >
               <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#09090B' }}>No active enquiries matching your filters</div>
-              <div style={{ fontSize: 13, color: '#71717A', marginTop: 4 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0C4A6E' }}>No active enquiries matching your filters</div>
+              <div style={{ fontSize: 13, color: '#0369A1', marginTop: 4 }}>
                 All support tickets in this view have been resolved or reset search filters.
               </div>
             </div>
@@ -837,36 +837,36 @@ export function ContactUsPage() {
                 style={{
                   backgroundColor: '#FFFFFF',
                   borderRadius: 14,
-                  border: '1px solid #E4E4E7',
-                  borderLeft: '5px solid #000000',
+                  border: '1px solid #BAE6FD',
+                  borderLeft: '5px solid #0284C7',
                   padding: '24px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 14,
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                  boxShadow: '0 2px 6px rgba(2,132,199,0.05)',
                 }}
               >
                 {/* Header Row */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#000000', color: '#FFFFFF', padding: '2px 6px', borderRadius: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#0284C7', color: '#FFFFFF', padding: '2px 6px', borderRadius: 4 }}>
                         {item.id}
                       </span>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: '#09090B' }}>{item.subject}</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#0C4A6E' }}>{item.subject}</span>
                       
                       <span
                         style={{
                           fontSize: 10,
                           fontWeight: 800,
-                          backgroundColor: '#F4F4F5',
-                          color: '#09090B',
-                          border: '1px solid #E4E4E7',
+                          backgroundColor: '#E0F2FE',
+                          color: '#0284C7',
+                          border: '1px solid #BAE6FD',
                           padding: '3px 8px',
                           borderRadius: 4,
                         }}
                       >
-                        ● {item.status}
+                        {item.category}
                       </span>
 
                       {item.priority && (
@@ -874,9 +874,9 @@ export function ContactUsPage() {
                           style={{
                             fontSize: 10,
                             fontWeight: 800,
-                            backgroundColor: '#F4F4F5',
-                            color: '#09090B',
-                            border: '1px solid #E4E4E7',
+                            backgroundColor: '#E0F2FE',
+                            color: '#0C4A6E',
+                            border: '1px solid #BAE6FD',
                             padding: '3px 8px',
                             borderRadius: 4,
                           }}
@@ -886,9 +886,9 @@ export function ContactUsPage() {
                       )}
                     </div>
 
-                    <div style={{ fontSize: 12, color: '#71717A', marginTop: 6 }}>
-                      From: <strong style={{ color: '#09090B' }}>{item.senderName}</strong> ({item.senderEmail} • {item.senderPhone}) | Recd: {item.timestamp}
-                      {item.orderId ? <span style={{ marginLeft: 8, color: '#09090B', fontWeight: 700 }}>• Order Ref: #{item.orderId}</span> : null}
+                    <div style={{ fontSize: 12, color: '#0369A1', marginTop: 6 }}>
+                      From: <strong style={{ color: '#0C4A6E' }}>{item.senderName}</strong> ({item.senderEmail} • {item.senderPhone}) | Recd: {item.timestamp}
+                      {item.orderId ? <span style={{ marginLeft: 8, color: '#0284C7', fontWeight: 700 }}>• Order Ref: #{item.orderId}</span> : null}
                     </div>
                   </div>
 
@@ -902,9 +902,9 @@ export function ContactUsPage() {
                       }}
                       style={{
                         padding: '8px 16px',
-                        backgroundColor: '#FFFFFF',
-                        color: '#09090B',
-                        border: '1px solid #E4E4E7',
+                        backgroundColor: '#F0F9FF',
+                        color: '#0369A1',
+                        border: '1px solid #BAE6FD',
                         borderRadius: 8,
                         fontSize: 12,
                         fontWeight: 800,
@@ -923,7 +923,7 @@ export function ContactUsPage() {
                       onClick={() => handleMarkAsResolved(item.id)}
                       style={{
                         padding: '8px 16px',
-                        backgroundColor: '#000000',
+                        backgroundColor: '#0284C7',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: 8,
@@ -933,6 +933,7 @@ export function ContactUsPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
+                        boxShadow: '0 2px 6px rgba(2,132,199,0.25)',
                       }}
                     >
                       <span>✓</span>
@@ -981,15 +982,15 @@ export function ContactUsPage() {
                           style={{
                             alignSelf: isAdmin ? 'flex-end' : 'flex-start',
                             maxWidth: '90%',
-                            backgroundColor: isAdmin ? '#14532D' : '#FFFFFF',
-                            color: isAdmin ? '#FFFFFF' : '#09090B',
+                            backgroundColor: isAdmin ? '#0284C7' : '#FFFFFF',
+                            color: isAdmin ? '#FFFFFF' : '#0C4A6E',
                             padding: '8px 12px',
                             borderRadius: 10,
-                            border: isAdmin ? 'none' : '1px solid #CBD5E1',
+                            border: isAdmin ? 'none' : '1px solid #BAE6FD',
                             fontSize: 13,
                           }}
                         >
-                          <div style={{ fontSize: 10, fontWeight: 700, color: isAdmin ? '#A7F3D0' : '#64748B', marginBottom: 2 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: isAdmin ? '#BAE6FD' : '#64748B', marginBottom: 2 }}>
                             {msg.senderName} • {msg.timestamp}
                           </div>
                           <div>{msg.message}</div>
@@ -1189,12 +1190,12 @@ export function ContactUsPage() {
                       style={{
                         alignSelf: isAdmin ? 'flex-end' : 'flex-start',
                         maxWidth: '85%',
-                        backgroundColor: isAdmin ? '#14532D' : '#FFFFFF',
-                        color: isAdmin ? '#FFFFFF' : '#09090B',
+                        backgroundColor: isAdmin ? '#0284C7' : '#FFFFFF',
+                        color: isAdmin ? '#FFFFFF' : '#0C4A6E',
                         padding: '10px 14px',
                         borderRadius: 12,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                        border: isAdmin ? 'none' : '1px solid #E4E4E7',
+                        boxShadow: '0 1px 3px rgba(2,132,199,0.08)',
+                        border: isAdmin ? 'none' : '1px solid #BAE6FD',
                         borderTopRightRadius: isAdmin ? 2 : 12,
                         borderTopLeftRadius: isAdmin ? 12 : 2,
                       }}
@@ -1203,7 +1204,7 @@ export function ContactUsPage() {
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
-                          color: isAdmin ? '#A7F3D0' : '#71717A',
+                          color: isAdmin ? '#BAE6FD' : '#64748B',
                           marginBottom: 4,
                           display: 'flex',
                           justifyContent: 'space-between',
@@ -1268,9 +1269,9 @@ export function ContactUsPage() {
                 onClick={() => setSelectedEnquiry(null)}
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#09090B',
-                  border: '1px solid #E4E4E7',
+                  backgroundColor: '#F0F9FF',
+                  color: '#0369A1',
+                  border: '1px solid #BAE6FD',
                   borderRadius: 8,
                   fontWeight: 700,
                   fontSize: 13,
@@ -1283,13 +1284,14 @@ export function ContactUsPage() {
                 type="submit"
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#000000',
+                  backgroundColor: '#0284C7',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
                   fontWeight: 800,
                   fontSize: 13,
                   cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(2,132,199,0.25)',
                 }}
               >
                 Dispatch Response Now
@@ -1305,7 +1307,7 @@ export function ContactUsPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(9, 9, 11, 0.6)',
+            backgroundColor: 'rgba(12, 74, 110, 0.45)',
             backdropFilter: 'blur(4px)',
             zIndex: 9999,
             display: 'flex',
@@ -1323,8 +1325,8 @@ export function ContactUsPage() {
               maxWidth: 540,
               width: '100%',
               padding: 28,
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-              border: '1px solid #E4E4E7',
+              boxShadow: '0 20px 40px rgba(2,132,199,0.2)',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
@@ -1332,13 +1334,13 @@ export function ContactUsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0C4A6E', margin: 0 }}>
                 Log New Support Enquiry Ticket
               </h3>
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#71717A' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#0369A1' }}
               >
                 ✕
               </button>
@@ -1346,13 +1348,13 @@ export function ContactUsPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                   Category *
                 </label>
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value as any)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0C4A6E' }}
                 >
                   <option value="CUSTOMER">Customer Enquiry</option>
                   <option value="RESTAURANT">Restaurant Enquiry</option>
@@ -1362,13 +1364,13 @@ export function ContactUsPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                   Priority Urgency *
                 </label>
                 <select
                   value={newPriority}
                   onChange={(e) => setNewPriority(e.target.value as any)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0C4A6E' }}
                 >
                   <option value="HIGH">🔥 High Urgency</option>
                   <option value="MEDIUM">⚡ Medium Urgency</option>
@@ -1378,7 +1380,7 @@ export function ContactUsPage() {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                 Sender Name *
               </label>
               <input
@@ -1386,14 +1388,14 @@ export function ContactUsPage() {
                 value={newSenderName}
                 onChange={(e) => setNewSenderName(e.target.value)}
                 placeholder="e.g. Ramesh Chandra"
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0C4A6E' }}
                 required
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                   Sender Email *
                 </label>
                 <input
@@ -1401,13 +1403,13 @@ export function ContactUsPage() {
                   value={newSenderEmail}
                   onChange={(e) => setNewSenderEmail(e.target.value)}
                   placeholder="ramesh@gmail.com"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0C4A6E' }}
                   required
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                   Sender Phone
                 </label>
                 <input
@@ -1415,13 +1417,13 @@ export function ContactUsPage() {
                   value={newSenderPhone}
                   onChange={(e) => setNewSenderPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0C4A6E' }}
                 />
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                 Subject *
               </label>
               <input
@@ -1429,13 +1431,13 @@ export function ContactUsPage() {
                 value={newSubject}
                 onChange={(e) => setNewSubject(e.target.value)}
                 placeholder="Brief title of enquiry..."
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0C4A6E' }}
                 required
               />
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0C4A6E', display: 'block', marginBottom: 4 }}>
                 Detailed Enquiry Description *
               </label>
               <textarea
@@ -1443,7 +1445,7 @@ export function ContactUsPage() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 rows={4}
                 placeholder="Enter details of customer/partner inquiry..."
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, resize: 'vertical', backgroundColor: '#FFFFFF', color: '#09090B' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, resize: 'vertical', backgroundColor: '#FFFFFF', color: '#0C4A6E' }}
                 required
               />
             </div>
@@ -1454,9 +1456,9 @@ export function ContactUsPage() {
                 onClick={() => setIsCreateModalOpen(false)}
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#09090B',
-                  border: '1px solid #E4E4E7',
+                  backgroundColor: '#F0F9FF',
+                  color: '#0369A1',
+                  border: '1px solid #BAE6FD',
                   borderRadius: 8,
                   fontWeight: 700,
                   fontSize: 13,
@@ -1469,13 +1471,14 @@ export function ContactUsPage() {
                 type="submit"
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#000000',
+                  backgroundColor: '#0284C7',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
                   fontWeight: 800,
                   fontSize: 13,
                   cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(2,132,199,0.25)',
                 }}
               >
                 Save & Open Ticket
