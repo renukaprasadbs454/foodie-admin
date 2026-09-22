@@ -62,7 +62,7 @@ export function getHomeRouteForRole(role: string | null): string {
   if (r.includes('FINANCE')) return '/finance-admin/dashboard';
   if (r.includes('RESTAURANT')) return '/restaurant-admin/dashboard';
   if (r.includes('SUPPORT')) return '/support-admin/dashboard';
-  if (r.includes('AUDITOR')) return '/audit-log';
+  if (r.includes('AUDITOR')) return '/compliance-auditor/dashboard';
   return '/dashboard';
 }
 
@@ -132,10 +132,21 @@ export function isRouteAllowedForRole(pathname: string, role: string | null): bo
 
   // Compliance Auditor access
   if (r.includes('AUDITOR')) {
-    if (pathname.startsWith('/users') || pathname.startsWith('/roles') || pathname.startsWith('/darkstore-admin') || pathname.startsWith('/approvals')) {
+    if (pathname.startsWith('/roles') || pathname.startsWith('/darkstore-admin') || pathname.startsWith('/approvals') || pathname.startsWith('/finance-admin') || pathname.startsWith('/restaurant-admin') || pathname.startsWith('/support-admin')) {
       return false;
     }
-    return true;
+    return (
+      pathname === '/' ||
+      pathname.startsWith('/dashboard') ||
+      pathname.startsWith('/compliance-auditor') ||
+      pathname.startsWith('/reviews') ||
+      pathname.startsWith('/audit-log') ||
+      pathname.startsWith('/legal') ||
+      pathname.startsWith('/settings') ||
+      pathname.startsWith('/users') ||
+      pathname.startsWith('/orders') ||
+      pathname === '/login'
+    );
   }
 
   // Operations Admin default
@@ -202,7 +213,20 @@ export const DASHBOARD_NAV: readonly NavItem[] = [
   { href: '/settings', label: 'Settings', category: 'SYSTEM', icon: '' },
 ] as const;
 
-export function filterNavForRole(role: string | null): NavItem[] {
+export function filterNavForRole(role: string | null, pathname?: string): NavItem[] {
+  const isAuditor = (role && role.toUpperCase().includes('AUDITOR')) || (pathname && pathname.startsWith('/compliance-auditor'));
+  if (isAuditor) {
+    return [
+      { href: '/compliance-auditor/dashboard', label: 'Home', icon: 'home' },
+      { href: '/compliance-auditor/reviews', label: 'Reviews & Complaints', icon: 'star' },
+      { href: '/compliance-auditor/audit-log', label: 'Audit Log', icon: 'file-text' },
+      { href: '/compliance-auditor/terms', label: 'Terms & Conditions', icon: 'file-lines' },
+      { href: '/compliance-auditor/privacy', label: 'Privacy Policy', icon: 'shield' },
+      { href: '/compliance-auditor/settings', label: 'Settings', icon: 'gear' },
+      { href: '/compliance-auditor/users', label: 'Users', icon: 'users' },
+    ];
+  }
+
   return DASHBOARD_NAV.filter((item) => {
     if (!item.roles) return true;
     if (!role) return false;

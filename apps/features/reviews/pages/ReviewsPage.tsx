@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_20_GLOBAL_REVIEWS } from '@/constants/gaps';
-import { useAppSelector } from '@/store/hooks';
-import { selectActiveModule } from '@/store/moduleSlice';
+import { useGetSupportTicketsQuery, useUpdateTicketStatusMutation } from '@/api/endpoints/customersApi';
+import { useGetAdminReviewsQuery, useFlagReviewMutation } from '@/api/endpoints/reviewsApi';
 
 export interface CustomerReviewRecord {
   id: string;
@@ -35,123 +35,28 @@ export interface SupportTicketRecord {
   refundAmount?: number;
 }
 
-const MOCK_REVIEWS: CustomerReviewRecord[] = [
-  {
-    id: 'rev-101',
-    customerName: 'Siddharth V.',
-    restaurantName: 'Royal Biryani House',
-    deliveryManName: 'Ramesh Kumar',
-    module: 'North Indian & Biryani',
-    rating: 5,
-    deliveryRating: 5,
-    comment: 'Exceptional aromatic biryani! Arrived piping hot in pristine packaging.',
-    createdAt: '10 mins ago',
-    status: 'PUBLISHED',
-    isReported: false,
-  },
-  {
-    id: 'rev-102',
-    customerName: 'Meera Kapoor',
-    restaurantName: 'Bella Italia Pizzeria',
-    deliveryManName: 'Vikram Singh',
-    module: 'Italian & Pizza',
-    rating: 5,
-    deliveryRating: 5,
-    comment: 'Crispy wood-fired crust with rich melted mozzarella! Delivered in under 20 mins.',
-    createdAt: '35 mins ago',
-    status: 'PUBLISHED',
-    isReported: false,
-  },
-  {
-    id: 'rev-103',
-    customerName: 'Rahul Sharma',
-    restaurantName: 'Sweet Dreams Bakery',
-    deliveryManName: 'Suresh Raina',
-    module: 'Desserts & Bakery',
-    rating: 4,
-    deliveryRating: 4,
-    comment: 'Delicious chocolate lava cake! Super rich and moist.',
-    createdAt: '1 hour ago',
-    status: 'PUBLISHED',
-    isReported: false,
-  },
-  {
-    id: 'rev-104',
-    customerName: 'Pooja Nair',
-    restaurantName: 'Dragon Bowl Asian Kitchen',
-    deliveryManName: 'Anil Yadav',
-    module: 'Pan-Asian',
-    rating: 2,
-    deliveryRating: 3,
-    comment: 'Noodles were cold and container lid was cracked on arrival.',
-    createdAt: '2 hours ago',
-    status: 'FLAGGED',
-    isReported: true,
-  },
-];
-
-const MOCK_TICKETS: SupportTicketRecord[] = [
-  {
-    id: 'tck-101',
-    ticketNumber: 'TCK-8901',
-    customerName: 'Ananya Sharma',
-    customerPhone: '+91 98765 00005',
-    category: 'RESTAURANT_ISSUE',
-    issueTitle: 'Missing Extra Butter Naan & Spilled Curry',
-    details: 'Ordered Paneer Tikka Thali. 2x Naan missing and packaging leaked into brown bag.',
-    assignedAgent: 'Preethi Shree D (Admin)',
-    priority: 'HIGH',
-    status: 'OPEN',
-    createdAt: '15 mins ago',
-    refundAmount: 180,
-  },
-  {
-    id: 'tck-102',
-    ticketNumber: 'TCK-8902',
-    customerName: 'Rohan Gupta',
-    customerPhone: '+91 98123 44556',
-    category: 'DELIVERY_ISSUE',
-    issueTitle: 'Delivery Partner Delayed by 45 Minutes',
-    details: 'Driver took wrong route and delivered cold food 45 mins after scheduled ETA.',
-    assignedAgent: 'Rajesh Kumar (Ops)',
-    priority: 'HIGH',
-    status: 'IN_PROGRESS',
-    createdAt: '40 mins ago',
-    refundAmount: 120,
-  },
-  {
-    id: 'tck-103',
-    ticketNumber: 'TCK-8903',
-    customerName: 'Kavita Sundaram',
-    customerPhone: '+91 97788 11223',
-    category: 'REFUND_REQUEST',
-    issueTitle: 'Full Order Cancellation Refund Claim',
-    details: 'Order canceled due to store outage. Customer requesting ₹450 Razorpay refund.',
-    assignedAgent: 'Ananya Varma (Finance)',
-    priority: 'MEDIUM',
-    status: 'RESOLVED',
-    createdAt: '2 hours ago',
-    refundAmount: 450,
-  },
-];
-
 type MainTab = 'REVIEWS_RATINGS' | 'CUSTOMER_COMPLAINTS';
 type ReviewSubTab = 'ALL' | 'RESTAURANT_RATINGS' | 'DELIVERY_RATINGS' | 'REPORTED_REVIEWS' | 'MODERATION';
 type TicketSubTab = 'ALL' | 'RESTAURANT_ISSUES' | 'DELIVERY_ISSUES' | 'REFUND_REQUESTS' | 'SUPPORT_TICKETS';
 
 export function ReviewsPage() {
   const { tokens } = useTheme();
-  const activeModule = useAppSelector(selectActiveModule);
 
   const [mainTab, setMainTab] = useState<MainTab>('REVIEWS_RATINGS');
   const [reviewSubTab, setReviewSubTab] = useState<ReviewSubTab>('ALL');
   const [ticketSubTab, setTicketSubTab] = useState<TicketSubTab>('ALL');
   const [ticketStatusFilter, setTicketStatusFilter] = useState<'ALL' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'>('ALL');
 
-  const [reviews, setReviews] = useState<CustomerReviewRecord[]>(MOCK_REVIEWS);
-  const [tickets, setTickets] = useState<SupportTicketRecord[]>(MOCK_TICKETS);
+  const [reviews, setReviews] = useState<CustomerReviewRecord[]>([]);
+  const [tickets, setTickets] = useState<SupportTicketRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Fetch live support tickets and restaurant reviews directly from backend
+  const { data: ticketsData, isLoading: isTicketsLoading } = useGetSupportTicketsQuery();
+  const { data: adminReviewsData, isLoading: isReviewsLoading } = useGetAdminReviewsQuery();
+  const [updateTicketStatus] = useUpdateTicketStatusMutation();
+  const [flagReviewMutation] = useFlagReviewMutation();
 
   useEffect(() => {
     trackAnalyticsEvent('admin_reviews_viewed', {
@@ -159,47 +64,143 @@ export function ReviewsPage() {
     });
   }, []);
 
-  const handleModeration = (id: string, newStatus: 'PUBLISHED' | 'HIDDEN' | 'FLAGGED') => {
+  // Map real database support tickets
+  useEffect(() => {
+    if (Array.isArray(ticketsData)) {
+      const liveTickets: SupportTicketRecord[] = ticketsData.map((t: any) => {
+        let cat: SupportTicketRecord['category'] = 'GENERAL_SUPPORT';
+        if (t.category === 'RESTAURANT_ISSUE' || t.category === 'RESTAURANT' || t.category === 'FOOD_QUALITY') cat = 'RESTAURANT_ISSUE';
+        else if (t.category === 'DELIVERY_ISSUE' || t.category === 'DELIVERY') cat = 'DELIVERY_ISSUE';
+        else if (t.category === 'REFUND_REQUEST' || t.category === 'REFUND') cat = 'REFUND_REQUEST';
+
+        const priority: SupportTicketRecord['priority'] =
+          t.priority === 'HIGH' || t.priority === 'URGENT' ? 'HIGH' : t.priority === 'LOW' ? 'LOW' : 'MEDIUM';
+
+        const status: SupportTicketRecord['status'] =
+          t.status === 'RESOLVED'
+            ? 'RESOLVED'
+            : t.status === 'CLOSED'
+            ? 'CLOSED'
+            : t.status === 'IN_PROGRESS'
+            ? 'IN_PROGRESS'
+            : 'OPEN';
+
+        return {
+          id: String(t.id),
+          ticketNumber: t.ticketNumber || `TCK-${String(t.id).slice(0, 6).toUpperCase()}`,
+          customerName: t.customerName || t.userName || 'Customer',
+          customerPhone: t.customerPhone || t.phone || 'N/A',
+          category: cat,
+          issueTitle: t.issueTitle || t.subject || 'Support Inquiry',
+          details: t.details || t.description || 'Customer request logged in database.',
+          assignedAgent: t.assignedAgent || 'Compliance Auditor',
+          priority,
+          status,
+          createdAt: t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
+          refundAmount: t.refundAmount || undefined,
+        };
+      });
+      setTickets(liveTickets);
+    } else {
+      setTickets([]);
+    }
+  }, [ticketsData]);
+
+  // Map real database reviews
+  useEffect(() => {
+    if (Array.isArray(adminReviewsData)) {
+      const liveReviews: CustomerReviewRecord[] = adminReviewsData.map((rev: any, idx: number) => {
+        const status: 'PUBLISHED' | 'FLAGGED' | 'HIDDEN' =
+          rev.status === 'FLAGGED' ? 'FLAGGED' : rev.status === 'HIDDEN' ? 'HIDDEN' : 'PUBLISHED';
+        return {
+          id: rev.id ? String(rev.id) : `rev-${idx + 1}`,
+          customerName: rev.customerName || 'Customer',
+          restaurantName: rev.restaurantName || 'Restaurant',
+          deliveryManName: rev.deliveryPartnerName || 'Delivery Partner',
+          module: 'Food Quality',
+          rating: typeof rev.restaurantRating === 'number' ? rev.restaurantRating : (typeof rev.rating === 'number' ? rev.rating : 5),
+          deliveryRating: typeof rev.deliveryRating === 'number' ? rev.deliveryRating : 5,
+          comment: rev.comment || 'Customer submitted review.',
+          createdAt: rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
+          status,
+          isReported: Boolean(rev.isReported || rev.status === 'FLAGGED'),
+        };
+      });
+      setReviews(liveReviews);
+    } else {
+      setReviews([]);
+    }
+  }, [adminReviewsData]);
+
+  const handleModeration = async (id: string, newStatus: 'PUBLISHED' | 'HIDDEN' | 'FLAGGED') => {
     setReviews((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)),
     );
+    try {
+      if (newStatus === 'FLAGGED') {
+        await flagReviewMutation({ id, reason: 'Flagged for moderation' }).unwrap();
+      }
+    } catch {
+      // optimistic
+    }
     setToastMsg(`Review status updated to ${newStatus}`);
     setTimeout(() => setToastMsg(null), 3000);
   };
 
-  const handleTicketStatusChange = (id: string, newStatus: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED') => {
+  const handleTicketStatusChange = async (id: string, newStatus: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED') => {
     setTickets((prev) =>
       prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t)),
     );
-    setToastMsg(`Ticket ${id} status set to ${newStatus}`);
+    try {
+      await updateTicketStatus({ id, status: newStatus as any, agentNotes: 'Updated by Compliance Auditor' }).unwrap();
+    } catch {
+      // update state optimistic
+    }
+    setToastMsg(`Ticket ${id.slice(0, 8)} status set to ${newStatus}`);
     setTimeout(() => setToastMsg(null), 3000);
   };
 
-  const filteredReviews = reviews.filter((r) => {
-    const matchesSearch =
-      searchQuery === '' ||
-      r.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.restaurantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.comment.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredReviews = useMemo(() => {
+    return reviews.filter((r) => {
+      const matchesSearch =
+        searchQuery === '' ||
+        r.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.restaurantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.comment.toLowerCase().includes(searchQuery.toLowerCase());
 
-    if (reviewSubTab === 'REPORTED_REVIEWS') return r.isReported && matchesSearch;
-    if (reviewSubTab === 'MODERATION') return r.status === 'FLAGGED' && matchesSearch;
-    return matchesSearch;
-  });
+      if (reviewSubTab === 'REPORTED_REVIEWS') return r.isReported && matchesSearch;
+      if (reviewSubTab === 'MODERATION') return r.status === 'FLAGGED' && matchesSearch;
+      return matchesSearch;
+    });
+  }, [reviews, reviewSubTab, searchQuery]);
 
-  const filteredTickets = tickets.filter((t) => {
-    const matchesStatus = ticketStatusFilter === 'ALL' || t.status === ticketStatusFilter;
-    const matchesSearch =
-      searchQuery === '' ||
-      t.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.issueTitle.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredTickets = useMemo(() => {
+    return tickets.filter((t) => {
+      const matchesStatus = ticketStatusFilter === 'ALL' || t.status === ticketStatusFilter;
+      const matchesSearch =
+        searchQuery === '' ||
+        t.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.issueTitle.toLowerCase().includes(searchQuery.toLowerCase());
 
-    if (ticketSubTab === 'RESTAURANT_ISSUES') return t.category === 'RESTAURANT_ISSUE' && matchesStatus && matchesSearch;
-    if (ticketSubTab === 'DELIVERY_ISSUES') return t.category === 'DELIVERY_ISSUE' && matchesStatus && matchesSearch;
-    if (ticketSubTab === 'REFUND_REQUESTS') return t.category === 'REFUND_REQUEST' && matchesStatus && matchesSearch;
-    return matchesStatus && matchesSearch;
-  });
+      if (ticketSubTab === 'RESTAURANT_ISSUES') return t.category === 'RESTAURANT_ISSUE' && matchesStatus && matchesSearch;
+      if (ticketSubTab === 'DELIVERY_ISSUES') return t.category === 'DELIVERY_ISSUE' && matchesStatus && matchesSearch;
+      if (ticketSubTab === 'REFUND_REQUESTS') return t.category === 'REFUND_REQUEST' && matchesStatus && matchesSearch;
+      return matchesStatus && matchesSearch;
+    });
+  }, [tickets, ticketSubTab, ticketStatusFilter, searchQuery]);
+
+  const avgRestaurantRating = useMemo(() => {
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+    return (sum / reviews.length).toFixed(1);
+  }, [reviews]);
+
+  const avgDeliveryRating = useMemo(() => {
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce((acc, r) => acc + (r.deliveryRating || 0), 0);
+    return (sum / reviews.length).toFixed(1);
+  }, [reviews]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -289,8 +290,8 @@ export function ReviewsPage() {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[
               { id: 'ALL', label: 'Customer Reviews' },
-              { id: 'RESTAURANT_RATINGS', label: 'Restaurant Ratings (4.8)' },
-              { id: 'DELIVERY_RATINGS', label: 'Delivery Partner Ratings (4.9)' },
+              { id: 'RESTAURANT_RATINGS', label: `Restaurant Ratings ${Number(avgRestaurantRating) > 0 ? `(${avgRestaurantRating})` : ''}` },
+              { id: 'DELIVERY_RATINGS', label: `Delivery Partner Ratings ${Number(avgDeliveryRating) > 0 ? `(${avgDeliveryRating})` : ''}` },
               { id: 'REPORTED_REVIEWS', label: 'Reported Reviews' },
               { id: 'MODERATION', label: 'Review Moderation' },
             ].map((tab) => (
@@ -315,39 +316,7 @@ export function ReviewsPage() {
             ))}
           </div>
 
-          {/* Restaurant Ratings Feature Overview Card */}
-          {reviewSubTab === 'RESTAURANT_RATINGS' && (
-            <div style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E4E4E7', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 12, color: '#71717A' }}>Top Rated Restaurant</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#09090B' }}>Royal Biryani House (4.9)</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: '#71717A' }}>Total 5-Star Outlets</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#09090B' }}>148 Restaurants</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: '#71717A' }}>Low Rating Warnings (&lt;3.5)</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#09090B' }}>2 Outlets Under Review</div>
-              </div>
-            </div>
-          )}
-
-          {/* Delivery Partner Ratings Feature Overview Card */}
-          {reviewSubTab === 'DELIVERY_RATINGS' && (
-            <div style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #E4E4E7', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 12, color: '#71717A' }}>Fleet Dispatch Average</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#09090B' }}>4.92 (On-Time 98.4%)</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: '#71717A' }}>Top Delivery Partner</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#09090B' }}>Ramesh Kumar (5.0 - 420 deliveries)</div>
-              </div>
-            </div>
-          )}
-
-          {/* Reviews Directory Table */}
+          {/* Reviews Table */}
           <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #E4E4E7', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
               <thead>
@@ -361,43 +330,99 @@ export function ReviewsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredReviews.map((r) => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 700, color: '#09090B' }}>{r.customerName}</div>
-                      <div style={{ fontSize: 12, color: '#71717A' }}>{r.restaurantName} • <span style={{ color: '#09090B', fontWeight: 600 }}>{r.module}</span></div>
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 800, color: '#09090B' }}>Store: {r.rating}</div>
-                      <div style={{ fontSize: 11, color: '#71717A' }}>Delivery: {r.deliveryRating}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px', color: '#18181B', maxWidth: 360, lineHeight: 1.4 }}>
-                      &ldquo;{r.comment}&rdquo;
-                    </td>
-                    <td style={{ padding: '16px 20px', fontSize: 13, fontWeight: 600, color: '#09090B' }}>
-                      {r.deliveryManName}
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span style={{ backgroundColor: r.status === 'PUBLISHED' ? '#F4F4F5' : r.status === 'FLAGGED' ? '#000000' : '#E4E4E7', color: r.status === 'FLAGGED' ? '#FFFFFF' : '#09090B', border: '1px solid #E4E4E7', fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 20 }}>
-                        {r.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                        {r.status !== 'PUBLISHED' && (
-                          <button type="button" onClick={() => handleModeration(r.id, 'PUBLISHED')} style={{ padding: '5px 10px', backgroundColor: '#000000', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                            Approve
-                          </button>
-                        )}
-                        {r.status !== 'HIDDEN' && (
-                          <button type="button" onClick={() => handleModeration(r.id, 'HIDDEN')} style={{ padding: '5px 10px', backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                            Hide
-                          </button>
-                        )}
+                {filteredReviews.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#94A3B8' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#334155' }}>
+                          No customer reviews found in database
+                        </div>
+                        <div style={{ fontSize: 13 }}>
+                          Live customer reviews and ratings submitted in the platform will appear here.
+                        </div>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredReviews.map((r) => (
+                    <tr key={r.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
+                      <td style={{ padding: '16px 20px' }}>
+                        <div style={{ fontWeight: 800, color: '#0F172A' }}>{r.customerName}</div>
+                        <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>{r.restaurantName}</div>
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ color: '#F59E0B', fontSize: 14 }}>★</span>
+                          <span style={{ fontWeight: 800, color: '#0F172A' }}>{r.rating}.0</span>
+                          <span style={{ fontSize: 11, color: '#71717A' }}>(Rest.)</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                          <span style={{ color: '#0284C7', fontSize: 13 }}>★</span>
+                          <span style={{ fontWeight: 700, color: '#0F172A', fontSize: 12 }}>{r.deliveryRating}.0</span>
+                          <span style={{ fontSize: 11, color: '#71717A' }}>(Delivery)</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px 20px', maxWidth: 320 }}>
+                        <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.5 }}>"{r.comment}"</div>
+                        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>{r.createdAt}</div>
+                      </td>
+                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#09090B', fontWeight: 600 }}>
+                        {r.deliveryManName}
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <span
+                          style={{
+                            backgroundColor: r.status === 'PUBLISHED' ? '#F4F4F5' : '#000000',
+                            color: r.status === 'PUBLISHED' ? '#09090B' : '#FFFFFF',
+                            border: '1px solid #E4E4E7',
+                            fontSize: 11,
+                            fontWeight: 800,
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                          }}
+                        >
+                          {r.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                          <button
+                            type="button"
+                            onClick={() => handleModeration(r.id, r.status === 'FLAGGED' ? 'PUBLISHED' : 'FLAGGED')}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: r.status === 'FLAGGED' ? '#000000' : '#F4F4F5',
+                              color: r.status === 'FLAGGED' ? '#FFFFFF' : '#09090B',
+                              border: '1px solid #E4E4E7',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {r.status === 'FLAGGED' ? 'Unflag' : 'Flag'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleModeration(r.id, r.status === 'HIDDEN' ? 'PUBLISHED' : 'HIDDEN')}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#FFFFFF',
+                              color: '#DC2626',
+                              border: '1px solid #FECACA',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {r.status === 'HIDDEN' ? 'Show' : 'Hide'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -407,11 +432,11 @@ export function ReviewsPage() {
       {/* SECTION 2: CUSTOMER COMPLAINTS & TICKETS */}
       {mainTab === 'CUSTOMER_COMPLAINTS' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Sub Feature Tabs */}
+          {/* Ticket Sub Tabs */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[
-              { id: 'ALL', label: 'Support Tickets' },
-              { id: 'RESTAURANT_ISSUES', label: 'Restaurant Issues' },
+              { id: 'ALL', label: 'All Complaints' },
+              { id: 'RESTAURANT_ISSUES', label: 'Restaurant Quality Issues' },
               { id: 'DELIVERY_ISSUES', label: 'Delivery Issues' },
               { id: 'REFUND_REQUESTS', label: 'Refund Requests' },
             ].map((tab) => (
@@ -474,65 +499,80 @@ export function ReviewsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredTickets.map((t) => (
-                  <tr key={t.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 800, color: '#09090B', fontFamily: 'monospace' }}>{t.ticketNumber}</div>
-                      <div style={{ fontSize: 12, color: '#09090B', fontWeight: 600 }}>{t.customerName}</div>
-                      <div style={{ fontSize: 11, color: '#71717A' }}>{t.customerPhone}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px', maxWidth: 340 }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '2px 6px', borderRadius: 4, width: 'fit-content', marginBottom: 4 }}>
-                        {t.category.replace(/_/g, ' ')}
-                      </div>
-                      <div style={{ fontWeight: 700, color: '#09090B', fontSize: 13 }}>{t.issueTitle}</div>
-                      <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>{t.details}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontSize: 13, color: '#09090B', fontWeight: 600 }}>
-                      {t.assignedAgent}
-                    </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 800, color: '#09090B' }}>
-                      {t.refundAmount ? `₹${t.refundAmount}` : 'N/A'}
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span
-                        style={{
-                          backgroundColor: t.status === 'OPEN' ? '#000000' : t.status === 'IN_PROGRESS' ? '#18181B' : '#F4F4F5',
-                          color: t.status === 'OPEN' || t.status === 'IN_PROGRESS' ? '#FFFFFF' : '#09090B',
-                          border: '1px solid #E4E4E7',
-                          fontSize: 11,
-                          fontWeight: 800,
-                          padding: '4px 10px',
-                          borderRadius: 20,
-                        }}
-                      >
-                        {t.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                        {t.status !== 'RESOLVED' && (
-                          <button
-                            type="button"
-                            onClick={() => handleTicketStatusChange(t.id, 'RESOLVED')}
-                            style={{ padding: '6px 12px', backgroundColor: '#000000', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                          >
-                            Resolve
-                          </button>
-                        )}
-                        {t.status !== 'CLOSED' && (
-                          <button
-                            type="button"
-                            onClick={() => handleTicketStatusChange(t.id, 'CLOSED')}
-                            style={{ padding: '6px 12px', backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                          >
-                            Close
-                          </button>
-                        )}
+                {filteredTickets.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#94A3B8' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#334155' }}>
+                          No support complaints found in database
+                        </div>
+                        <div style={{ fontSize: 13 }}>
+                          Customer complaints and escalation tickets logged in the platform will appear here.
+                        </div>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredTickets.map((t) => (
+                    <tr key={t.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
+                      <td style={{ padding: '16px 20px' }}>
+                        <div style={{ fontWeight: 800, color: '#0F172A', fontFamily: 'monospace' }}>{t.ticketNumber}</div>
+                        <div style={{ fontSize: 12, color: '#09090B', fontWeight: 600 }}>{t.customerName}</div>
+                        <div style={{ fontSize: 11, color: '#71717A' }}>{t.customerPhone}</div>
+                      </td>
+                      <td style={{ padding: '16px 20px', maxWidth: 340 }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '2px 6px', borderRadius: 4, width: 'fit-content', marginBottom: 4 }}>
+                          {t.category.replace(/_/g, ' ')}
+                        </div>
+                        <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 13 }}>{t.issueTitle}</div>
+                        <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>{t.details}</div>
+                      </td>
+                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#09090B', fontWeight: 600 }}>
+                        {t.assignedAgent}
+                      </td>
+                      <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0F172A' }}>
+                        {t.refundAmount ? `₹${t.refundAmount}` : 'N/A'}
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <span
+                          style={{
+                            backgroundColor: t.status === 'OPEN' ? '#000000' : t.status === 'IN_PROGRESS' ? '#18181B' : '#F4F4F5',
+                            color: t.status === 'OPEN' || t.status === 'IN_PROGRESS' ? '#FFFFFF' : '#09090B',
+                            border: '1px solid #E4E4E7',
+                            fontSize: 11,
+                            fontWeight: 800,
+                            padding: '4px 10px',
+                            borderRadius: 20,
+                          }}
+                        >
+                          {t.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                          {t.status !== 'RESOLVED' && (
+                            <button
+                              type="button"
+                              onClick={() => handleTicketStatusChange(t.id, 'RESOLVED')}
+                              style={{ padding: '6px 12px', backgroundColor: '#000000', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              Resolve
+                            </button>
+                          )}
+                          {t.status !== 'CLOSED' && (
+                            <button
+                              type="button"
+                              onClick={() => handleTicketStatusChange(t.id, 'CLOSED')}
+                              style={{ padding: '6px 12px', backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              Close
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -551,6 +591,7 @@ export function ReviewsPage() {
             borderRadius: 8,
             fontWeight: 700,
             boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+            zIndex: 9999,
           }}
         >
           {toastMsg}
@@ -559,4 +600,3 @@ export function ReviewsPage() {
     </div>
   );
 }
-

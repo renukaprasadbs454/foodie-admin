@@ -43,6 +43,54 @@ export async function POST(request: Request) {
     return response;
   }
 
+  // Handle demo refresh token without calling backend
+  if (refreshToken.startsWith('demo-') || refreshToken === 'demo-admin-refresh-token') {
+    let role = 'SUPER_ADMIN';
+    if (refreshToken.includes('auditor') || refreshToken.includes('audit')) {
+      role = 'AUDITOR';
+    } else if (refreshToken.includes('finance')) {
+      role = 'FINANCE_ADMIN';
+    } else if (refreshToken.includes('operations') || refreshToken.includes('ops')) {
+      role = 'OPERATIONS_ADMIN';
+    } else if (refreshToken.includes('restaurant') || refreshToken.includes('manager')) {
+      role = 'RESTAURANT_MANAGER';
+    } else if (refreshToken.includes('support')) {
+      role = 'SUPPORT_AGENT';
+    } else if (refreshToken.includes('darkstore')) {
+      role = 'DARKSTORE_ADMIN';
+    }
+
+    const response = NextResponse.json({
+      success: true,
+      data: {
+        userId: '44444444-4444-4444-4444-444444444001',
+        userType: 'ADMIN',
+        role,
+      },
+      error: null,
+      meta: {
+        timestamp: new Date().toISOString(),
+        requestId: crypto.randomUUID(),
+        pagination: null,
+      },
+    }, { status: 200 });
+
+    const tokenSlug = role.toLowerCase().replace(/_/g, '-');
+    for (const header of buildAuthSetCookieHeaders(
+      {
+        accessToken: `demo-admin-${tokenSlug}-access-token`,
+        refreshToken: `demo-admin-${tokenSlug}-refresh-token`,
+      },
+      {
+        access: { secure: false },
+        refresh: { secure: false },
+      },
+    )) {
+      response.headers.append('Set-Cookie', header);
+    }
+    return response;
+  }
+
   try {
     const { response: upstream, error: fetchErr } = await safeFetch(
       `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/auth/refresh`,

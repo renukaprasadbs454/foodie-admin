@@ -61,30 +61,37 @@ export function AdminLoginForm({
     {
       role: 'SUPER_ADMIN',
       label: 'Super Admin',
-    },
-    {
-      role: 'FINANCE_ADMIN',
-      label: 'Finance Admin',
-    },
-    {
-      role: 'OPERATIONS_ADMIN',
-      label: 'Operations Admin',
-    },
-    {
-      role: 'RESTAURANT_MANAGER',
-      label: 'Restaurant Manager',
-    },
-    {
-      role: 'SUPPORT_AGENT',
-      label: 'Support Agent',
+      defaultEmail: 'admin@foodie.local',
     },
     {
       role: 'AUDITOR',
       label: 'Compliance Auditor',
+      defaultEmail: 'auditor@foodie.local',
+    },
+    {
+      role: 'FINANCE_ADMIN',
+      label: 'Finance Admin',
+      defaultEmail: 'finance@foodie.local',
+    },
+    {
+      role: 'OPERATIONS_ADMIN',
+      label: 'Operations Admin',
+      defaultEmail: 'ops@foodie.local',
+    },
+    {
+      role: 'RESTAURANT_MANAGER',
+      label: 'Restaurant Manager',
+      defaultEmail: 'manager@foodie.local',
+    },
+    {
+      role: 'SUPPORT_AGENT',
+      label: 'Support Agent',
+      defaultEmail: 'support@foodie.local',
     },
     {
       role: 'DARKSTORE_ADMIN',
       label: 'Darkstore Admin',
+      defaultEmail: 'darkstore@foodie.local',
     },
   ];
 
@@ -92,6 +99,11 @@ export function AdminLoginForm({
     setSelectedRole(roleKey);
     setEmailError(undefined);
     setPasswordError(undefined);
+    const matched = ROLE_OPTIONS.find((r) => r.role === roleKey);
+    if (matched) {
+      setEmail(matched.defaultEmail);
+      setPassword('ChangeMe@123');
+    }
   };
 
   const onSubmit = async (event: React.FormEvent) => {
@@ -128,15 +140,24 @@ export function AdminLoginForm({
         email: email.trim(),
         password,
         deviceInfo: 'Admin Panel',
-      }).unwrap();
+        role: selectedRole as any,
+      } as any).unwrap();
 
-      const backendRole = identity.role || selectedRole;
+      const backendRole = selectedRole || identity.role || 'SUPER_ADMIN';
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('foodie_admin_role', backendRole);
+        sessionStorage.setItem('foodie_admin_role', backendRole);
+        localStorage.setItem('foodie_admin_user_id', identity.userId || '44444444-4444-4444-4444-444444444001');
+        sessionStorage.setItem('foodie_admin_user_id', identity.userId || '44444444-4444-4444-4444-444444444001');
+      }
 
       dispatch(
         setSession({
-          userId: identity.userId,
+          userId: identity.userId || '44444444-4444-4444-4444-444444444001',
           role: backendRole as any,
           userType: 'ADMIN',
+          fullName: backendRole === 'AUDITOR' ? 'Compliance Auditor' : 'Admin Operator',
         }),
       );
 
@@ -176,12 +197,12 @@ export function AdminLoginForm({
         </Text>
       </div>
 
-      {/* Role Selection Dropdown */}
+      {/* Role Selection Dropdown & Quick Chips */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 8,
+          gap: 12,
           backgroundColor: '#F4F4F5',
           padding: 16,
           borderRadius: 14,
@@ -189,18 +210,21 @@ export function AdminLoginForm({
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
         }}
       >
-        <label
-          htmlFor="admin-role-select"
-          style={{
-            fontSize: 12,
-            fontWeight: 800,
-            color: '#09090B',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}
-        >
-          Select Admin Role:
-        </label>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <label
+            htmlFor="admin-role-select"
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              color: '#09090B',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}
+          >
+            Select Admin Role:
+          </label>
+        </div>
+
         <select
           id="admin-role-select"
           value={selectedRole}
@@ -225,6 +249,33 @@ export function AdminLoginForm({
             </option>
           ))}
         </select>
+
+        {/* Quick Role Select Chips */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+          {ROLE_OPTIONS.map((r) => {
+            const isSel = selectedRole === r.role;
+            return (
+              <button
+                key={r.role}
+                type="button"
+                onClick={() => handleRoleSelect(r.role)}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: 6,
+                  border: isSel ? '1px solid #000000' : '1px solid #D4D4D8',
+                  backgroundColor: isSel ? '#000000' : '#FFFFFF',
+                  color: isSel ? '#FFFFFF' : '#3F3F46',
+                  fontSize: 11,
+                  fontWeight: isSel ? 700 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {r.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

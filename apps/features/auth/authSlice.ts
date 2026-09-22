@@ -14,14 +14,36 @@ export type AuthState = {
   authStatus: AuthStatus;
 };
 
-const initialState: AuthState = {
-  userType: null,
-  userId: null,
-  role: null,
-  fullName: null,
-  permissions: [],
-  authStatus: 'unauthenticated',
-};
+function getInitialAuthState(): AuthState {
+  if (typeof window !== 'undefined') {
+    try {
+      const savedRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role');
+      const savedUserId = localStorage.getItem('foodie_admin_user_id') || sessionStorage.getItem('foodie_admin_user_id');
+      if (savedRole && savedUserId) {
+        return {
+          userType: 'ADMIN',
+          userId: savedUserId,
+          role: savedRole as AdminRole,
+          fullName: savedRole === 'AUDITOR' ? 'Compliance Auditor' : 'Admin Operator',
+          permissions: [],
+          authStatus: 'authenticated',
+        };
+      }
+    } catch {
+      // ignore storage access errors
+    }
+  }
+  return {
+    userType: null,
+    userId: null,
+    role: null,
+    fullName: null,
+    permissions: [],
+    authStatus: 'unauthenticated',
+  };
+}
+
+const initialState: AuthState = getInitialAuthState();
 
 export type SetSessionPayload = {
   userId: string;

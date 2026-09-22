@@ -5,8 +5,8 @@ import { Text } from 'foodie-shared-web';
 
 type LegalTab = 'TERMS' | 'PRIVACY' | 'REFUND' | 'DELIVERY' | 'COOKIE';
 
-export function LegalPage() {
-  const [activeTab, setActiveTab] = useState<LegalTab>('TERMS');
+export function LegalPage({ initialTab = 'TERMS' }: { initialTab?: LegalTab }) {
+  const [activeTab, setActiveTab] = useState<LegalTab>(initialTab);
 
   // Cookie settings state
   const [essentialCookies] = useState(true);
