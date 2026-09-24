@@ -10,6 +10,8 @@ interface PayoutDetailModalProps {
   ledgerHistory: WalletLedgerItem[];
   onClose: () => void;
   onRetry: (payout: DeliveryPartnerPayout) => void;
+  onApprove?: (payout: DeliveryPartnerPayout) => void;
+  onReject?: (payout: DeliveryPartnerPayout) => void;
   initialTab?: 'DETAILS' | 'WALLET';
 }
 
@@ -20,10 +22,13 @@ export function PayoutDetailModal({
   ledgerHistory,
   onClose,
   onRetry,
+  onApprove,
+  onReject,
   initialTab = 'DETAILS',
 }: PayoutDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'DETAILS' | 'WALLET'>(initialTab);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleRetryClick = async () => {
     setIsRetrying(true);
@@ -411,7 +416,58 @@ export function PayoutDetailModal({
             alignItems: 'center',
           }}
         >
-          <div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {payout.status === 'REQUESTED' && onApprove && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsProcessing(true);
+                  await onApprove(payout);
+                  setIsProcessing(false);
+                }}
+                disabled={isProcessing}
+                style={{
+                  padding: '9px 18px',
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: '#FFFFFF',
+                  backgroundColor: '#0F3D21',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  opacity: isProcessing ? 0.7 : 1,
+                  boxShadow: '0 2px 4px rgba(15, 61, 33, 0.3)',
+                }}
+              >
+                {isProcessing ? 'Approving...' : 'Approve Payout'}
+              </button>
+            )}
+
+            {payout.status === 'REQUESTED' && onReject && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsProcessing(true);
+                  await onReject(payout);
+                  setIsProcessing(false);
+                }}
+                disabled={isProcessing}
+                style={{
+                  padding: '9px 18px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#991B1B',
+                  backgroundColor: '#FEE2E2',
+                  border: '1px solid #FCA5A5',
+                  borderRadius: 8,
+                  cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  opacity: isProcessing ? 0.7 : 1,
+                }}
+              >
+                {isProcessing ? 'Rejecting...' : 'Reject Payout'}
+              </button>
+            )}
+
             {payout.retryEligible && (
               <button
                 type="button"

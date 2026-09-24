@@ -29,6 +29,7 @@ import {
   useGetTransactionsQuery,
   useRefundPaymentMutation,
   useUpdateCommissionRulesMutation,
+  useApprovePayoutsMutation,
 } from '../../../api/endpoints/paymentsApi';
 import { useGetAdminRestaurantsQuery } from '../../../api/endpoints/restaurantsApi';
 import { useGetAdminDeliveryPartnersQuery } from '../../../api/endpoints/deliveryPartnersApi';
@@ -37,6 +38,7 @@ type TabKey =
   | 'OVERVIEW'
   | 'TRANSACTIONS'
   | 'SETTLEMENTS'
+  | 'RESTAURANT_SETTLEMENTS'
   | 'LEDGER'
   | 'RESTAURANT_PAYOUTS'
   | 'DELIVERY_PAYOUTS'
@@ -63,7 +65,8 @@ export function PaymentsPage() {
   const { data: serverTransactions = [], isLoading: transactionsLoading } = useGetTransactionsQuery();
   const { data: serverLedger = [], isLoading: ledgerLoading } = useGetLedgerQuery();
   const { data: restaurantSettlements = [], isLoading: restSettlementsLoading } = useGetRestaurantSettlementsQuery();
-  const { data: serverPayouts = [], isLoading: payoutsLoading } = useGetAdminPayoutsQuery();
+  const { data: restaurantPayouts = [], isLoading: restPayoutsLoading } = useGetAdminPayoutsQuery({ ownerType: 'RESTAURANT' });
+  const { data: deliveryPayouts = [], isLoading: delivPayoutsLoading } = useGetAdminPayoutsQuery({ ownerType: 'DELIVERY_PARTNER' });
   const { data: restaurantsData } = useGetAdminRestaurantsQuery({});
   const { data: partnersData } = useGetAdminDeliveryPartnersQuery();
 
@@ -72,6 +75,7 @@ export function PaymentsPage() {
   const [disburseSettlement, { isLoading: isDisbursing }] = useDisburseRestaurantSettlementMutation();
   const [executeRefund, { isLoading: isRefunding }] = useRefundPaymentMutation();
   const [calculateSplitApi] = useCalculateSplitMutation();
+  const [approvePayouts, { isLoading: isApproving }] = useApprovePayoutsMutation();
 
   // Local State
   const [commissionConfig, setCommissionConfig] = useState<CommissionConfig>(DEFAULT_COMMISSION_CONFIG);
@@ -100,12 +104,38 @@ export function PaymentsPage() {
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
 
+  // Bulk Approval State
+  const [selectedRestPayouts, setSelectedRestPayouts] = useState<Set<string>>(new Set());
+  const [selectedDelivPayouts, setSelectedDelivPayouts] = useState<Set<string>>(new Set());
+
+  const handleApproveRestPayouts = async () => {
+    if (selectedRestPayouts.size === 0) return;
+    try {
+      await approvePayouts({ payoutIds: Array.from(selectedRestPayouts) }).unwrap();
+      showToast(`Successfully initiated disbursal via Cashfree for ${selectedRestPayouts.size} Restaurant Payouts!`);
+      setSelectedRestPayouts(new Set());
+    } catch (err) {
+      showToast('Failed to approve restaurant payouts.');
+    }
+  };
+
+  const handleApproveDelivPayouts = async () => {
+    if (selectedDelivPayouts.size === 0) return;
+    try {
+      await approvePayouts({ payoutIds: Array.from(selectedDelivPayouts) }).unwrap();
+      showToast(`Successfully initiated disbursal via Cashfree for ${selectedDelivPayouts.size} Delivery Partner Payouts!`);
+      setSelectedDelivPayouts(new Set());
+    } catch (err) {
+      showToast('Failed to approve delivery partner payouts.');
+    }
+  };
+
   useEffect(() => {
     if (serverRules) {
       setCommissionConfig(serverRules);
-      setConfigRestRate(serverRules.restaurantCommissionRate.toString());
-      setConfigDelivRate(serverRules.deliveryCommissionRate.toString());
-      setConfigPlatformFee(serverRules.platformFixedFee.toString());
+      setConfigRestRate(serverRules.restaurantCommissionRate?.toString() || '');
+      setConfigDelivRate(serverRules.deliveryCommissionRate?.toString() || '');
+      setConfigPlatformFee(serverRules.platformFixedFee?.toString() || '');
     }
   }, [serverRules]);
 
@@ -204,10 +234,11 @@ export function PaymentsPage() {
       {[
         { key: 'OVERVIEW', label: '📊 Executive Overview' },
         { key: 'TRANSACTIONS', label: `💳 Transactions (${serverTransactions.length})` },
-        { key: 'SETTLEMENTS', label: `⚖️ Order Settlements (${serverSettlements.length})` },
+        { key: 'SETTLEMENTS', label: `⚖️ Master Order Settlements (${serverSettlements.length})` },
+        { key: 'RESTAURANT_SETTLEMENTS', label: `🏪 Restaurant Order Settlements (${restaurantSettlements.length})` },
         { key: 'LEDGER', label: `📖 Audit Ledger (${serverLedger.length})` },
-        { key: 'RESTAURANT_PAYOUTS', label: `🏪 Restaurant Payouts (${restaurantSettlements.length})` },
-        { key: 'DELIVERY_PAYOUTS', label: `🛵 Driver Payouts (${serverPayouts.length})` },
+        { key: 'RESTAURANT_PAYOUTS', label: `🏪 Restaurant Wallet Payouts (${restaurantPayouts.length})` },
+        { key: 'DELIVERY_PAYOUTS', label: `� Delivery Partner Payouts (${deliveryPayouts.length})` },
         { key: 'EARNINGS', label: '💰 Admin Earnings' },
         { key: 'COMMISSION_RULES', label: '⚙️ Commission Rules' },
         { key: 'REFUNDS', label: '🔄 Refunds & Reversals' },
@@ -845,8 +876,8 @@ export function PaymentsPage() {
         </div>
       )}
 
-      {/* TAB 5: RESTAURANT PAYOUTS */}
-      {activeTab === 'RESTAURANT_PAYOUTS' && (
+      {/* TAB 4.5: RESTAURANT SETTLEMENTS */}
+      {activeTab === 'RESTAURANT_SETTLEMENTS' && (
         <div
           style={{
             backgroundColor: '#FFFFFF',
@@ -859,7 +890,7 @@ export function PaymentsPage() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
-                Restaurant Store Settlements & Bank Disbursals
+                Restaurant Order Settlements (14% Comm)
               </Text>
               <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
                 Accumulated net 86% food revenue payouts to restaurant partners with formal disbursement tracking.
@@ -965,6 +996,167 @@ export function PaymentsPage() {
         </div>
       )}
 
+      {/* TAB 5.5: RESTAURANT PAYOUTS */}
+      {activeTab === 'RESTAURANT_PAYOUTS' && (
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            border: '1px solid #E4E4E7',
+            overflow: 'hidden',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          }}
+        >
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
+                Restaurant Wallet Payouts (Requested Disbursals)
+              </Text>
+              <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
+                Bank transfer disbursals requested via application wallets by restaurants.
+              </Text>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '4px 10px', borderRadius: 20 }}>
+              {restaurantPayouts.length} Requested Payouts
+            </span>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#18181B', backgroundColor: '#F4F4F5' }}>
+                  <th style={{ padding: '12px 16px', width: 40 }}>
+                    <input
+                      type="checkbox"
+                      checked={restaurantPayouts.length > 0 && selectedRestPayouts.size === restaurantPayouts.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedRestPayouts(new Set(restaurantPayouts.map((p: PayoutRecord) => p.id)));
+                        } else {
+                          setSelectedRestPayouts(new Set());
+                        }
+                      }}
+                    />
+                  </th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Payout ID</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Restaurant Account Name</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Wallet Account</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Amount</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Bank & Account Details</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Status</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Requested Date</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700, textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {restPayoutsLoading ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>Loading restaurant payouts...</td>
+                  </tr>
+                ) : restaurantPayouts.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>No restaurant payout records.</td>
+                  </tr>
+                ) : (
+                  [...restaurantPayouts].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((p: PayoutRecord) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
+                      <td style={{ padding: '14px 16px' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedRestPayouts.has(p.id)}
+                          onChange={(e) => {
+                            const newSet = new Set(selectedRestPayouts);
+                            if (e.target.checked) newSet.add(p.id);
+                            else newSet.delete(p.id);
+                            setSelectedRestPayouts(newSet);
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B', fontFamily: 'monospace' }}>
+                        {p.id}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
+                        {p.ownerName || p.accountHolderName || 'Partner Store'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B', fontFamily: 'monospace' }}>
+                        {p.walletAccountId || 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>
+                        ₹{(p.amount || 0).toFixed(2)}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#334155' }}>
+                        {p.bankName || 'Bank'} • {p.accountNumber ? `•• ${p.accountNumber.slice(-4)}` : '••••'} ({p.ifscCode || 'IFSC'})
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : p.status === 'PROCESSING' ? '#EFF6FF' : '#FEF3C7',
+                            color: p.status === 'COMPLETED' ? '#166534' : p.status === 'PROCESSING' ? '#1D4ED8' : '#B45309',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: 20,
+                          }}
+                        >
+                          ● {p.status || 'REQUESTED'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
+                        {p.createdAt ? String(p.createdAt).replace('T', ' ').slice(0, 16) : 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                        {(p.status === 'REQUESTED' || p.status === 'FAILED') ? (
+                          <button
+                            type="button"
+                            disabled={isApproving || !selectedRestPayouts.has(p.id)}
+                            onClick={() => approvePayouts({ payoutIds: [p.id] })}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#0F3D21',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: (isApproving || !selectedRestPayouts.has(p.id)) ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            Approve
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>{p.status}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            {selectedRestPayouts.size > 0 && (
+              <div style={{ padding: '16px 20px', backgroundColor: '#F8FAFC', borderTop: '1px solid #E4E4E7', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={handleApproveRestPayouts}
+                  disabled={isApproving}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: isApproving ? '#94A3B8' : '#0F3D21',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontWeight: 700,
+                    cursor: isApproving ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {isApproving ? 'Processing...' : `Approve & Disburse ${selectedRestPayouts.size} Selected`}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* TAB 6: DELIVERY PARTNER PAYOUTS */}
       {activeTab === 'DELIVERY_PAYOUTS' && (
         <div
@@ -979,14 +1171,14 @@ export function PaymentsPage() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#FAFAFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <Text as="h2" variant="heading3" color="#09090B" style={{ margin: 0 }}>
-                Delivery Partner Payouts & Driver Earnings
+                Partner Wallet Payouts (Requested Disbursals)
               </Text>
               <Text as="p" variant="caption" color="#71717A" style={{ margin: '2px 0 0' }}>
-                Bank transfer disbursals for delivery partners after 10% platform commission deduction.
+                Bank transfer disbursals requested via application wallets by restaurants or delivery partners.
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '4px 10px', borderRadius: 20 }}>
-              {serverPayouts.length} Driver Payouts
+              {deliveryPayouts.length} Requested Payouts
             </span>
           </div>
 
@@ -994,32 +1186,58 @@ export function PaymentsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#18181B', backgroundColor: '#F4F4F5' }}>
+                  <th style={{ padding: '12px 16px', width: 40 }}>
+                    <input
+                      type="checkbox"
+                      checked={deliveryPayouts.length > 0 && selectedDelivPayouts.size === deliveryPayouts.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedDelivPayouts(new Set(deliveryPayouts.map(p => p.id)));
+                        } else {
+                          setSelectedDelivPayouts(new Set());
+                        }
+                      }}
+                    />
+                  </th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Payout ID</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Driver / Account Holder</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Delivery Partner Name</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Wallet Account</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Amount</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Bank & Account Details</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Status</th>
                   <th style={{ padding: '12px 16px', fontWeight: 700 }}>Requested Date</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700, textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {payoutsLoading ? (
+                {delivPayoutsLoading ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>Loading driver payouts...</td>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>Loading driver payouts...</td>
                   </tr>
-                ) : serverPayouts.length === 0 ? (
+                ) : deliveryPayouts.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>No delivery partner payout records.</td>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#64748B' }}>No delivery partner payout records.</td>
                   </tr>
                 ) : (
-                  serverPayouts.map((p: PayoutRecord) => (
+                  [...deliveryPayouts].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((p: PayoutRecord) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
+                      <td style={{ padding: '14px 16px' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedDelivPayouts.has(p.id)}
+                          onChange={(e) => {
+                            const newSet = new Set(selectedDelivPayouts);
+                            if (e.target.checked) newSet.add(p.id);
+                            else newSet.delete(p.id);
+                            setSelectedDelivPayouts(newSet);
+                          }}
+                        />
+                      </td>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B', fontFamily: 'monospace' }}>
                         {p.id}
                       </td>
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F3D21' }}>
-                        {p.accountHolderName || 'Delivery Partner'}
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#1E40AF' }}>
+                        {p.ownerName || p.accountHolderName || 'Delivery Partner'}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B', fontFamily: 'monospace' }}>
                         {p.walletAccountId || 'N/A'}
@@ -1033,25 +1251,69 @@ export function PaymentsPage() {
                       <td style={{ padding: '14px 16px' }}>
                         <span
                           style={{
-                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : '#FEF3C7',
-                            color: p.status === 'COMPLETED' ? '#166534' : '#B45309',
+                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : p.status === 'PROCESSING' ? '#EFF6FF' : '#FEF3C7',
+                            color: p.status === 'COMPLETED' ? '#166534' : p.status === 'PROCESSING' ? '#1D4ED8' : '#B45309',
                             fontSize: 11,
                             fontWeight: 700,
                             padding: '4px 10px',
                             borderRadius: 20,
                           }}
                         >
-                          ● {p.status || 'PENDING'}
+                          ● {p.status || 'REQUESTED'}
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#64748B' }}>
                         {p.createdAt ? String(p.createdAt).replace('T', ' ').slice(0, 16) : 'N/A'}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                        {(p.status === 'REQUESTED' || p.status === 'FAILED') ? (
+                          <button
+                            type="button"
+                            disabled={isApproving || !selectedDelivPayouts.has(p.id)}
+                            onClick={() => approvePayouts({ payoutIds: [p.id] })}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#0F3D21',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: (isApproving || !selectedDelivPayouts.has(p.id)) ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            Approve
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>{p.status}</span>
+                        )}
                       </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
+
+            {selectedDelivPayouts.size > 0 && (
+              <div style={{ padding: '16px 20px', backgroundColor: '#F8FAFC', borderTop: '1px solid #E4E4E7', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={handleApproveDelivPayouts}
+                  disabled={isApproving}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: isApproving ? '#94A3B8' : '#0F3D21',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontWeight: 700,
+                    cursor: isApproving ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {isApproving ? 'Processing...' : `Approve & Disburse ${selectedDelivPayouts.size} Selected`}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

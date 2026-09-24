@@ -6,8 +6,9 @@ import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_14_RESTAURANT_LIST } from '@/constants/gaps';
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
-import { useGetAdminRestaurantsQuery, useApproveRestaurantMutation, useSuspendRestaurantMutation } from '@/api/endpoints/restaurantsApi';
+import { useGetAdminRestaurantsQuery, useApproveRestaurantMutation, useSuspendRestaurantMutation, useUpdateAdminRestaurantPositionsMutation } from '@/api/endpoints/restaurantsApi';
 import { RestaurantCommissionModal, CommissionSettingsData, SelectedRestaurantTarget } from '../components/RestaurantCommissionModal';
+import { TopRestaurantsManager } from '../components/TopRestaurantsManager';
 
 export interface StoreItem {
   id: string;
@@ -21,6 +22,7 @@ export interface StoreItem {
   commissionRate: number;
   status: 'APPROVED' | 'PENDING' | 'SUSPENDED';
   joinedDate: string;
+  topPosition?: number | null;
 }
 
 const MOCK_STORES: StoreItem[] = [
@@ -96,7 +98,7 @@ export function RestaurantsPage() {
   const router = useRouter();
   const activeModule = useAppSelector(selectActiveModule);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'SUSPENDED'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'SUSPENDED' | 'TOP_RESTAURANTS'>('ALL');
   const [selectedStore, setSelectedStore] = useState<StoreItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -117,7 +119,7 @@ export function RestaurantsPage() {
   }, []);
 
   const { data: adminData, refetch } = useGetAdminRestaurantsQuery({
-    status: activeTab === 'ALL' ? undefined : activeTab,
+    status: (activeTab === 'ALL' || activeTab === 'TOP_RESTAURANTS') ? undefined : activeTab,
     size: 100,
   });
 
@@ -133,6 +135,7 @@ export function RestaurantsPage() {
     commissionRate: typeof r.commissionPct === 'number' ? r.commissionPct : 15,
     status: (r.status as any) || 'PENDING',
     joinedDate: '',
+    topPosition: (r as any).topPosition || null,
   })) || [];
 
   const filteredStores = stores.filter((s) => {
@@ -159,6 +162,7 @@ export function RestaurantsPage() {
 
   const [approve] = useApproveRestaurantMutation();
   const [suspend] = useSuspendRestaurantMutation();
+  const [updatePositions] = useUpdateAdminRestaurantPositionsMutation();
 
   const handleUpdateStatus = async (storeId: string, newStatus: 'APPROVED' | 'SUSPENDED') => {
     try {
@@ -339,7 +343,7 @@ export function RestaurantsPage() {
       >
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 8 }}>
-          {(['ALL', 'APPROVED', 'PENDING', 'SUSPENDED'] as const).map((tab) => (
+          {(['ALL', 'APPROVED', 'PENDING', 'SUSPENDED', 'TOP_RESTAURANTS'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -355,7 +359,7 @@ export function RestaurantsPage() {
                 cursor: 'pointer',
               }}
             >
-              {tab === 'ALL' ? 'All Stores' : tab.charAt(0) + tab.slice(1).toLowerCase()}
+              {tab === 'ALL' ? 'All Stores' : tab === 'TOP_RESTAURANTS' ? 'Top Restaurants' : tab.charAt(0) + tab.slice(1).toLowerCase()}
             </button>
           ))}
         </div>
@@ -380,112 +384,130 @@ export function RestaurantsPage() {
       </div>
 
       {/* Stores Data Table */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: 12,
-          border: '1px solid #E4E4E7',
-          overflow: 'hidden',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-        }}
-      >
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
-          <thead>
-            <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
-              <th style={{ padding: '14px 20px' }}>Store Info</th>
-              <th style={{ padding: '14px 20px' }}>Module</th>
-              <th style={{ padding: '14px 20px' }}>Owner & Contact</th>
-              <th style={{ padding: '14px 20px' }}>Zone</th>
-              <th style={{ padding: '14px 20px' }}>Rating & Orders</th>
-              <th style={{ padding: '14px 20px' }}>Commission</th>
-              <th style={{ padding: '14px 20px' }}>Status</th>
-              <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredStores.map((store) => (
-              <tr key={store.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 700, color: '#09090B' }}>{store.name}</div>
-                  <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'monospace' }}>{store.id}</div>
-                </td>
-                <td style={{ padding: '16px 20px' }}>
-                  <span
-                    style={{
-                      backgroundColor: '#F4F4F5',
-                      border: '1px solid #E4E4E7',
-                      color: '#09090B',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                    }}
-                  >
-                    {store.module}
-                  </span>
-                </td>
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 600, color: '#09090B' }}>{store.ownerName}</div>
-                  <div style={{ fontSize: 12, color: '#71717A' }}>{store.phone}</div>
-                </td>
-                <td style={{ padding: '16px 20px', color: '#18181B', fontWeight: 500 }}>{store.zone}</td>
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#09090B' }}>
-                    <span> {store.rating}</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: '#71717A' }}>{store.ordersCount} orders</div>
-                </td>
-                <td style={{ padding: '16px 20px', fontWeight: 700, color: '#09090B' }}>
-                  {store.commissionRate}%
-                </td>
-                <td style={{ padding: '16px 20px' }}>
-                  <span
-                    style={{
-                      backgroundColor:
-                        store.status === 'APPROVED'
-                          ? '#F4F4F5'
-                          : store.status === 'PENDING'
-                            ? '#000000'
-                            : '#E4E4E7',
-                      color:
-                        store.status === 'APPROVED'
-                          ? '#09090B'
-                          : store.status === 'PENDING'
-                            ? '#FFFFFF'
-                            : '#71717A',
-                      border: '1px solid #E4E4E7',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      padding: '4px 10px',
-                      borderRadius: 20,
-                    }}
-                  >
-                    {store.status}
-                  </span>
-                </td>
-                <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                    {store.status !== 'APPROVED' ? (
+      {activeTab !== 'TOP_RESTAURANTS' && (
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 12,
+            border: '1px solid #E4E4E7',
+            overflow: 'hidden',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          }}
+        >
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
+            <thead>
+              <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
+                <th style={{ padding: '14px 20px' }}>Store Info</th>
+                <th style={{ padding: '14px 20px' }}>Module</th>
+                <th style={{ padding: '14px 20px' }}>Owner & Contact</th>
+                <th style={{ padding: '14px 20px' }}>Zone</th>
+                <th style={{ padding: '14px 20px' }}>Rating & Orders</th>
+                <th style={{ padding: '14px 20px' }}>Commission</th>
+                <th style={{ padding: '14px 20px' }}>Status</th>
+                <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStores.map((store) => (
+                <tr key={store.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
+                  <td style={{ padding: '16px 20px' }}>
+                    <div style={{ fontWeight: 700, color: '#09090B' }}>{store.name}</div>
+                    <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'monospace' }}>{store.id}</div>
+                  </td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <span
+                      style={{
+                        backgroundColor: '#F4F4F5',
+                        border: '1px solid #E4E4E7',
+                        color: '#09090B',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                      }}
+                    >
+                      {store.module}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <div style={{ fontWeight: 600, color: '#09090B' }}>{store.ownerName}</div>
+                    <div style={{ fontSize: 12, color: '#71717A' }}>{store.phone}</div>
+                  </td>
+                  <td style={{ padding: '16px 20px', color: '#18181B', fontWeight: 500 }}>{store.zone}</td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#09090B' }}>
+                      <span> {store.rating}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#71717A' }}>{store.ordersCount} orders</div>
+                  </td>
+                  <td style={{ padding: '16px 20px', fontWeight: 700, color: '#09090B' }}>
+                    {store.commissionRate}%
+                  </td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <span
+                      style={{
+                        backgroundColor:
+                          store.status === 'APPROVED'
+                            ? '#F4F4F5'
+                            : store.status === 'PENDING'
+                              ? '#000000'
+                              : '#E4E4E7',
+                        color:
+                          store.status === 'APPROVED'
+                            ? '#09090B'
+                            : store.status === 'PENDING'
+                              ? '#FFFFFF'
+                              : '#71717A',
+                        border: '1px solid #E4E4E7',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        borderRadius: 20,
+                      }}
+                    >
+                      {store.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                      {store.status !== 'APPROVED' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(store.id, 'APPROVED')}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#000000',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Approve
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(store.id, 'SUSPENDED')}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#F4F4F5',
+                            color: '#09090B',
+                            border: '1px solid #E4E4E7',
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Suspend
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => handleUpdateStatus(store.id, 'APPROVED')}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#000000',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: 6,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Approve
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateStatus(store.id, 'SUSPENDED')}
+                        onClick={() => router.push(`/restaurants/${store.id}`)}
                         style={{
                           padding: '6px 12px',
                           backgroundColor: '#F4F4F5',
@@ -493,36 +515,36 @@ export function RestaurantsPage() {
                           border: '1px solid #E4E4E7',
                           borderRadius: 6,
                           fontSize: 12,
-                          fontWeight: 700,
+                          fontWeight: 600,
                           cursor: 'pointer',
                         }}
                       >
-                        Suspend
+                        Details
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/restaurants/${store.id}`)}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#F4F4F5',
-                        color: '#09090B',
-                        border: '1px solid #E4E4E7',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Details
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === 'TOP_RESTAURANTS' && (
+        <TopRestaurantsManager
+          stores={stores.filter(s => s.status === 'APPROVED')}
+          onSavePositions={async (positions) => {
+            try {
+              await updatePositions(positions).unwrap();
+              setToastMessage('Top restaurants updated successfully!');
+              setTimeout(() => setToastMessage(null), 3000);
+            } catch (e: any) {
+              setToastMessage('Error saving top restaurants: ' + (e?.message || 'Unknown error'));
+              setTimeout(() => setToastMessage(null), 3000);
+            }
+          }}
+        />
+      )}
 
       {/* Add New Vendor Modal */}
       {isAddModalOpen && (

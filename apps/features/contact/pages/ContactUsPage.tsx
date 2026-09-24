@@ -1,7 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text } from 'foodie-shared-web';
+
+export interface ChatMessage {
+  id: string;
+  enquiryId: string;
+  sender: 'customer' | 'admin';
+  senderName: string;
+  message: string;
+  timestamp: string;
+}
 
 export interface EnquiryRecord {
   id: string;
@@ -15,6 +24,7 @@ export interface EnquiryRecord {
   status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   replyMessage?: string;
+  messages?: ChatMessage[];
   resolvedAt?: string;
   orderId?: string;
 }
@@ -32,6 +42,16 @@ const INITIAL_ENQUIRIES: EnquiryRecord[] = [
     status: 'OPEN',
     priority: 'HIGH',
     orderId: 'ORD-9821',
+    messages: [
+      {
+        id: 'msg-101',
+        enquiryId: 'ENQ-901',
+        sender: 'customer',
+        senderName: 'Ananya Sharma',
+        message: 'I was debited ₹450 for a cancelled order yesterday but haven\'t received refund in my bank account.',
+        timestamp: '15 mins ago',
+      },
+    ],
   },
   {
     id: 'ENQ-902',
@@ -45,6 +65,24 @@ const INITIAL_ENQUIRIES: EnquiryRecord[] = [
     status: 'IN_PROGRESS',
     priority: 'MEDIUM',
     replyMessage: 'Our tech team is validating your first order eligibility status.',
+    messages: [
+      {
+        id: 'msg-201',
+        enquiryId: 'ENQ-902',
+        sender: 'customer',
+        senderName: 'Vikram Mehta',
+        message: 'The promo code states invalid even though I am placing my first order.',
+        timestamp: '40 mins ago',
+      },
+      {
+        id: 'msg-202',
+        enquiryId: 'ENQ-902',
+        sender: 'admin',
+        senderName: 'Admin Support',
+        message: 'Our tech team is validating your first order eligibility status.',
+        timestamp: '25 mins ago',
+      },
+    ],
   },
   {
     id: 'ENQ-903',
@@ -57,6 +95,16 @@ const INITIAL_ENQUIRIES: EnquiryRecord[] = [
     timestamp: '1 hour ago',
     status: 'OPEN',
     priority: 'MEDIUM',
+    messages: [
+      {
+        id: 'msg-301',
+        enquiryId: 'ENQ-903',
+        sender: 'customer',
+        senderName: 'Rajesh Gupta (Royal Biryani)',
+        message: 'We have updated our GST details and require our weekly commission payout report.',
+        timestamp: '1 hour ago',
+      },
+    ],
   },
   {
     id: 'ENQ-904',
@@ -69,6 +117,16 @@ const INITIAL_ENQUIRIES: EnquiryRecord[] = [
     timestamp: '2 hours ago',
     status: 'OPEN',
     priority: 'HIGH',
+    messages: [
+      {
+        id: 'msg-401',
+        enquiryId: 'ENQ-904',
+        sender: 'customer',
+        senderName: 'Ramesh Kumar (Rider #DRV-402)',
+        message: 'I completed 12 orders during rain surge hours in Indiranagar yesterday. Rain bonus ₹300 is missing.',
+        timestamp: '2 hours ago',
+      },
+    ],
   },
   {
     id: 'ENQ-905',
@@ -81,6 +139,16 @@ const INITIAL_ENQUIRIES: EnquiryRecord[] = [
     timestamp: '3 hours ago',
     status: 'OPEN',
     priority: 'LOW',
+    messages: [
+      {
+        id: 'msg-501',
+        enquiryId: 'ENQ-905',
+        sender: 'customer',
+        senderName: 'Sanjay Kapoor',
+        message: 'Interested in featuring Foodie Hyperlocal Platform in our upcoming startup ecosystem report.',
+        timestamp: '3 hours ago',
+      },
+    ],
   },
 ];
 
@@ -149,6 +217,94 @@ export function ContactUsPage() {
   const [enquiries, setEnquiries] = useState<EnquiryRecord[]>(INITIAL_ENQUIRIES);
   const [history, setHistory] = useState<EnquiryRecord[]>(INITIAL_HISTORY);
 
+  // Persistence, Online Backend API sync, and live cross-app polling
+  const fetchTickets = async () => {
+    try {
+      const res = await fetch('/api/support-tickets');
+      if (res.ok) {
+        const json = await res.json();
+        const dataList = json.data || json;
+        if (Array.isArray(dataList) && dataList.length > 0) {
+          setEnquiries(dataList);
+          try {
+            localStorage.setItem('foodie_support_enquiries', JSON.stringify(dataList));
+          } catch {}
+          return;
+        }
+      }
+    } catch (e) {}
+
+    try {
+      const res = await fetch('https://api.foodie.kwiko.org/api/v1/admin/support-tickets', {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const dataList = json.data || json;
+        if (Array.isArray(dataList) && dataList.length > 0) {
+          setEnquiries(dataList);
+          try {
+            localStorage.setItem('foodie_support_enquiries', JSON.stringify(dataList));
+          } catch {}
+          return;
+        }
+      }
+    } catch (e) {}
+
+    try {
+      const stored = localStorage.getItem('foodie_support_enquiries');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setEnquiries(parsed);
+        }
+      } else {
+        localStorage.setItem('foodie_support_enquiries', JSON.stringify(INITIAL_ENQUIRIES));
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchTickets();
+    const intervalId = setInterval(fetchTickets, 1500);
+
+    const handleSync = () => {
+      fetchTickets();
+    };
+
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('foodie_enquiry_updated', handleSync);
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('foodie_enquiry_updated', handleSync);
+    };
+  }, []);
+
+  const saveEnquiriesToStorage = (newList: EnquiryRecord[], replyEnquiryId?: string, replyText?: string) => {
+    setEnquiries(newList);
+    try {
+      localStorage.setItem('foodie_support_enquiries', JSON.stringify(newList));
+      window.dispatchEvent(new Event('foodie_enquiry_updated'));
+    } catch {}
+
+    try {
+      void fetch('/api/support-tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync_all', data: newList }),
+      }).catch(() => {});
+
+      if (replyEnquiryId && replyText) {
+        void fetch('/api/support-tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reply', id: replyEnquiryId, replyMessage: replyText, sender: 'admin', senderName: 'Admin Support' }),
+        }).catch(() => {});
+      }
+    } catch (e) {}
+  };
+
   // Reply Modal State
   const [selectedEnquiry, setSelectedEnquiry] = useState<EnquiryRecord | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -180,7 +336,8 @@ export function ContactUsPage() {
       replyMessage: target.replyMessage || 'Issue investigated and marked as resolved by Support team.',
     };
 
-    setEnquiries((prev) => prev.filter((item) => item.id !== enquiryId));
+    const nextEnquiries = enquiries.filter((item) => item.id !== enquiryId);
+    saveEnquiriesToStorage(nextEnquiries);
     setHistory((prev) => [resolvedRecord, ...prev]);
 
     showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and moved to History!`);
@@ -197,7 +354,7 @@ export function ContactUsPage() {
     };
 
     setHistory((prev) => prev.filter((item) => item.id !== enquiryId));
-    setEnquiries((prev) => [reopenedRecord, ...prev]);
+    saveEnquiriesToStorage([reopenedRecord, ...enquiries]);
 
     showToast(`↺ Ticket ${enquiryId} reopened and restored to active support queue.`);
   };
@@ -209,17 +366,47 @@ export function ContactUsPage() {
       return;
     }
 
-    setEnquiries((prev) =>
-      prev.map((item) =>
-        item.id === selectedEnquiry.id
-          ? { ...item, replyMessage: replyText.trim(), status: 'IN_PROGRESS' }
-          : item
-      )
-    );
+    const adminMsgText = replyText.trim();
+    const newReply: ChatMessage = {
+      id: `MSG-${Date.now()}`,
+      enquiryId: selectedEnquiry.id,
+      sender: 'admin',
+      senderName: 'Admin Support',
+      message: adminMsgText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
 
-    showToast(`✉ Response dispatched to ${selectedEnquiry.senderEmail}!`);
-    setSelectedEnquiry(null);
+    const updatedList = enquiries.map((item) => {
+      if (item.id === selectedEnquiry.id) {
+        const existingMsgs = item.messages && item.messages.length > 0
+          ? item.messages
+          : [{
+              id: `msg-orig-${item.id}`,
+              enquiryId: item.id,
+              sender: 'customer' as const,
+              senderName: item.senderName,
+              message: item.message,
+              timestamp: item.timestamp,
+            }];
+
+        const updatedMsgs = [...existingMsgs, newReply];
+
+        return {
+          ...item,
+          replyMessage: adminMsgText,
+          status: 'IN_PROGRESS' as const,
+          messages: updatedMsgs,
+        };
+      }
+      return item;
+    });
+
+    saveEnquiriesToStorage(updatedList, selectedEnquiry.id, adminMsgText);
+
+    const updatedCurrent = updatedList.find(i => i.id === selectedEnquiry.id) || null;
+    setSelectedEnquiry(updatedCurrent);
     setReplyText('');
+    showToast(`✉ Response sent & delivered to ${selectedEnquiry.senderName}'s app chat!`);
   };
 
   const handleCreateEnquiry = (e: React.FormEvent) => {
@@ -754,17 +941,63 @@ export function ContactUsPage() {
                   </div>
                 </div>
 
-                {/* Enquiry Message Content */}
-                <div style={{ backgroundColor: '#F4F4F5', padding: 14, borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', lineHeight: 1.5 }}>
-                  "{item.message}"
-                </div>
-
-                {/* Dispatch Reply Draft */}
-                {item.replyMessage && (
-                  <div style={{ backgroundColor: '#F4F4F5', padding: 12, borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 12, color: '#09090B' }}>
-                    <strong>Dispatch Draft Sent:</strong> {item.replyMessage}
+                {/* Live Customer & Admin Chat Thread */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
+                    Customer Chat Thread ({item.messages?.length || 1} messages):
                   </div>
-                )}
+                  <div
+                    style={{
+                      backgroundColor: '#F4F4F5',
+                      padding: 14,
+                      borderRadius: 10,
+                      border: '1px solid #E4E4E7',
+                      fontSize: 13,
+                      color: '#09090B',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      maxHeight: 180,
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {(item.messages && item.messages.length > 0
+                      ? item.messages.filter((m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support'))
+                      : [
+                          {
+                            id: `msg-orig-${item.id}`,
+                            enquiryId: item.id,
+                            sender: 'customer' as const,
+                            senderName: item.senderName,
+                            message: item.message,
+                            timestamp: item.timestamp,
+                          },
+                        ]
+                    ).map((msg) => {
+                      const isAdmin = msg.sender === 'admin';
+                      return (
+                        <div
+                          key={msg.id}
+                          style={{
+                            alignSelf: isAdmin ? 'flex-end' : 'flex-start',
+                            maxWidth: '90%',
+                            backgroundColor: isAdmin ? '#14532D' : '#FFFFFF',
+                            color: isAdmin ? '#FFFFFF' : '#09090B',
+                            padding: '8px 12px',
+                            borderRadius: 10,
+                            border: isAdmin ? 'none' : '1px solid #CBD5E1',
+                            fontSize: 13,
+                          }}
+                        >
+                          <div style={{ fontSize: 10, fontWeight: 700, color: isAdmin ? '#A7F3D0' : '#64748B', marginBottom: 2 }}>
+                            {msg.senderName} • {msg.timestamp}
+                          </div>
+                          <div>{msg.message}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             ))
           )}
@@ -916,6 +1149,75 @@ export function ContactUsPage() {
             <div style={{ backgroundColor: '#F4F4F5', padding: 12, borderRadius: 8, fontSize: 12, color: '#09090B', lineHeight: 1.4, border: '1px solid #E4E4E7' }}>
               <strong>Subject:</strong> {selectedEnquiry.subject}<br />
               <strong>Recipient Email:</strong> {selectedEnquiry.senderEmail} ({selectedEnquiry.senderPhone})
+            </div>
+
+            {/* Live 2-Way Chat Thread */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
+                Conversation History ({(selectedEnquiry.messages && selectedEnquiry.messages.length) || 1} messages)
+              </label>
+              <div
+                style={{
+                  maxHeight: 220,
+                  overflowY: 'auto',
+                  backgroundColor: '#F4F4F5',
+                  borderRadius: 10,
+                  padding: 12,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                  border: '1px solid #E4E4E7',
+                }}
+              >
+                {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0
+                  ? selectedEnquiry.messages.filter((m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support'))
+                  : [
+                      {
+                        id: `msg-orig-${selectedEnquiry.id}`,
+                        enquiryId: selectedEnquiry.id,
+                        sender: 'customer' as const,
+                        senderName: selectedEnquiry.senderName,
+                        message: selectedEnquiry.message,
+                        timestamp: selectedEnquiry.timestamp,
+                      },
+                    ]
+                ).map((msg) => {
+                  const isAdmin = msg.sender === 'admin';
+                  return (
+                    <div
+                      key={msg.id}
+                      style={{
+                        alignSelf: isAdmin ? 'flex-end' : 'flex-start',
+                        maxWidth: '85%',
+                        backgroundColor: isAdmin ? '#14532D' : '#FFFFFF',
+                        color: isAdmin ? '#FFFFFF' : '#09090B',
+                        padding: '10px 14px',
+                        borderRadius: 12,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                        border: isAdmin ? 'none' : '1px solid #E4E4E7',
+                        borderTopRightRadius: isAdmin ? 2 : 12,
+                        borderTopLeftRadius: isAdmin ? 12 : 2,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: isAdmin ? '#A7F3D0' : '#71717A',
+                          marginBottom: 4,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                        }}
+                      >
+                        <span>{msg.senderName}</span>
+                        <span>{msg.timestamp}</span>
+                      </div>
+                      <div style={{ fontSize: 13, lineHeight: 1.4 }}>{msg.message}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Quick Templates */}

@@ -8,6 +8,8 @@ interface PayoutListTableProps {
   onSelectPayout: (payout: DeliveryPartnerPayout) => void;
   onRetryPayout: (payout: DeliveryPartnerPayout) => void;
   onViewWalletLedger: (payout: DeliveryPartnerPayout) => void;
+  onApprovePayout?: (payout: DeliveryPartnerPayout) => void;
+  onRejectPayout?: (payout: DeliveryPartnerPayout) => void;
 }
 
 export function PayoutListTable({
@@ -15,15 +17,22 @@ export function PayoutListTable({
   onSelectPayout,
   onRetryPayout,
   onViewWalletLedger,
+  onApprovePayout,
+  onRejectPayout,
 }: PayoutListTableProps) {
   const getStatusBadge = (status: PayoutStatus) => {
     switch (status) {
       case 'SUCCESS':
-        return { bg: '#000000', color: '#FFFFFF', border: '#000000', label: 'SUCCESS' };
+      case 'COMPLETED':
+        return { bg: '#000000', color: '#FFFFFF', border: '#000000', label: 'COMPLETED' };
+      case 'APPROVED':
+        return { bg: '#E0F2FE', color: '#0369A1', border: '#BAE6FD', label: 'APPROVED' };
       case 'PROCESSING':
         return { bg: '#F4F4F5', color: '#09090B', border: '#E4E4E7', label: 'PROCESSING' };
       case 'REQUESTED':
-        return { bg: '#FAFAFA', color: '#09090B', border: '#E4E4E7', label: 'REQUESTED' };
+        return { bg: '#FEF08A', color: '#713F12', border: '#FDE047', label: 'REQUESTED' };
+      case 'REJECTED':
+        return { bg: '#FEE2E2', color: '#991B1B', border: '#FCA5A5', label: 'REJECTED' };
       case 'FAILED':
         return { bg: '#18181B', color: '#FFFFFF', border: '#27272A', label: 'FAILED' };
       default:
@@ -174,6 +183,44 @@ export function PayoutListTable({
                     {/* Actions */}
                     <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        {p.status === 'REQUESTED' && onApprovePayout && (
+                          <button
+                            type="button"
+                            onClick={() => onApprovePayout(p)}
+                            style={{
+                              padding: '5px 10px',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: '#FFFFFF',
+                              backgroundColor: '#0F3D21',
+                              border: 'none',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Approve
+                          </button>
+                        )}
+
+                        {p.status === 'REQUESTED' && onRejectPayout && (
+                          <button
+                            type="button"
+                            onClick={() => onRejectPayout(p)}
+                            style={{
+                              padding: '5px 10px',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: '#991B1B',
+                              backgroundColor: '#FEE2E2',
+                              border: '1px solid #FCA5A5',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Reject
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => onSelectPayout(p)}

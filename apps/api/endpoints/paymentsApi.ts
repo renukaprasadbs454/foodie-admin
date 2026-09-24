@@ -64,10 +64,43 @@ export const paymentsApi = baseApi.injectEndpoints({
       ],
     }),
 
-    getAdminPayouts: builder.query<PayoutRecord[], void>({
-      query: () => '/api/bff/admin/payments/payouts',
+    getAdminPayouts: builder.query<PayoutRecord[], { ownerType?: string } | void>({
+      query: (params) => {
+        let url = '/api/bff/admin/payments/payouts';
+        if (params && params.ownerType) url += `?ownerType=${params.ownerType}`;
+        return url;
+      },
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
       providesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
+    }),
+
+    approvePayouts: builder.mutation<string, { payoutIds: string[] }>({
+      query: (body) => ({
+        url: '/api/bff/admin/payments/payouts/approve',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (res: any) => (typeof res === 'object' && res !== null && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
+    }),
+
+    approveSinglePayout: builder.mutation<any, { payoutId: string }>({
+      query: ({ payoutId }) => ({
+        url: `/api/bff/admin/payments/payouts/${payoutId}/approve`,
+        method: 'POST',
+      }),
+      transformResponse: (res: any) => (typeof res === 'object' && res !== null && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
+    }),
+
+    rejectPayout: builder.mutation<any, { payoutId: string; reason?: string }>({
+      query: ({ payoutId, reason }) => ({
+        url: `/api/bff/admin/payments/payouts/${payoutId}/reject`,
+        method: 'POST',
+        body: { reason: reason || 'Rejected by Admin' },
+      }),
+      transformResponse: (res: any) => (typeof res === 'object' && res !== null && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
     }),
 
     getCommissionRules: builder.query<CommissionConfig, void>({
@@ -128,4 +161,8 @@ export const {
   useUpdateCommissionRulesMutation,
   useCalculateSplitMutation,
   useRefundPaymentMutation,
+  useApprovePayoutsMutation,
+  useApproveSinglePayoutMutation,
+  useRejectPayoutMutation,
 } = paymentsApi;
+
