@@ -31,6 +31,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const role = useAppSelector(selectAdminRole);
   const userId = useAppSelector(selectUserId);
   const [loggingOut, setLoggingOut] = React.useState(false);
+  const [isCompact, setIsCompact] = React.useState(false);
 
   // Fetch current authenticated user profile from backend ME API
   const { data: meProfile, isError: isMeError, error: meError } = useGetAdminMeQuery(undefined, {
@@ -65,6 +66,16 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     }
   }, [authStatus, role, userId, router]);
 
+  const nav = filterNavForRole(role);
+  const isAllowedRoute = isRouteAllowedForRole(pathname, role);
+
+  const onLogout = async () => {
+    setLoggingOut(true);
+    await logoutAdmin(dispatch);
+    router.replace('/login');
+    setLoggingOut(false);
+  };
+
   if (authStatus === 'unauthenticated' || (!role && !userId)) {
     return (
       <div
@@ -88,19 +99,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       </div>
     );
   }
-
-  const nav = filterNavForRole(role);
-  const isAllowedRoute = isRouteAllowedForRole(pathname, role);
-
-  // Sidebar collapsed state
-  const [isCompact, setIsCompact] = React.useState(false);
-
-  const onLogout = async () => {
-    setLoggingOut(true);
-    await logoutAdmin(dispatch);
-    router.replace('/login');
-    setLoggingOut(false);
-  };
 
   return (
     <div

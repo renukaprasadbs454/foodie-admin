@@ -303,29 +303,6 @@ export function PaymentsPage() {
             Single source of truth for customer payments, 14% restaurant commissions, 10% delivery commissions, ₹40 platform fees, and wallet ledger postings.
           </Text>
         </div>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => setIsConfigOpen(true)}
-            style={{
-              backgroundColor: '#0F3D21',
-              color: '#FFFFFF',
-              border: 'none',
-              padding: '10px 18px',
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              boxShadow: '0 4px 12px rgba(15,61,33,0.25)',
-            }}
-          >
-            <span>⚙️</span> Edit Commission Rules (14% / 10% / ₹40)
-          </button>
-        </div>
       </div>
 
       {/* Sub-Tabs Bar */}

@@ -250,7 +250,7 @@ async function proxy(request: Request, pathSegments: string[]) {
   }
 }
 
-type Ctx = { params: Promise<{ path: string[] }> };
+type Ctx = { params: Promise<any> };
 
 export async function GET(request: Request, ctx: Ctx) {
   const { path } = await ctx.params;
