@@ -197,7 +197,7 @@ export function AdminLoginForm({
         </Text>
       </div>
 
-      {/* Role Selection Dropdown & Quick Chips */}
+      {/* Role Selection Dropdown */}
       <div
         style={{
           display: 'flex',
@@ -249,33 +249,6 @@ export function AdminLoginForm({
             </option>
           ))}
         </select>
-
-        {/* Quick Role Select Chips */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-          {ROLE_OPTIONS.map((r) => {
-            const isSel = selectedRole === r.role;
-            return (
-              <button
-                key={r.role}
-                type="button"
-                onClick={() => handleRoleSelect(r.role)}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: 6,
-                  border: isSel ? '1px solid #000000' : '1px solid #D4D4D8',
-                  backgroundColor: isSel ? '#000000' : '#FFFFFF',
-                  color: isSel ? '#FFFFFF' : '#3F3F46',
-                  fontSize: 11,
-                  fontWeight: isSel ? 700 : 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {r.label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

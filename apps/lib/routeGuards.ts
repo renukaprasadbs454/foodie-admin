@@ -132,7 +132,16 @@ export function isRouteAllowedForRole(pathname: string, role: string | null): bo
 
   // Compliance Auditor access
   if (r.includes('AUDITOR')) {
-    if (pathname.startsWith('/roles') || pathname.startsWith('/darkstore-admin') || pathname.startsWith('/approvals') || pathname.startsWith('/finance-admin') || pathname.startsWith('/restaurant-admin') || pathname.startsWith('/support-admin')) {
+    if (
+      pathname.startsWith('/roles') ||
+      pathname.startsWith('/darkstore-admin') ||
+      pathname.startsWith('/approvals') ||
+      pathname.startsWith('/finance-admin') ||
+      pathname.startsWith('/restaurant-admin') ||
+      pathname.startsWith('/support-admin') ||
+      pathname.startsWith('/users') ||
+      pathname.startsWith('/settings')
+    ) {
       return false;
     }
     return (
@@ -142,8 +151,6 @@ export function isRouteAllowedForRole(pathname: string, role: string | null): bo
       pathname.startsWith('/reviews') ||
       pathname.startsWith('/audit-log') ||
       pathname.startsWith('/legal') ||
-      pathname.startsWith('/settings') ||
-      pathname.startsWith('/users') ||
       pathname.startsWith('/orders') ||
       pathname === '/login'
     );
@@ -221,9 +228,6 @@ export function filterNavForRole(role: string | null, pathname?: string): NavIte
       { href: '/compliance-auditor/reviews', label: 'Reviews & Complaints', icon: 'star' },
       { href: '/compliance-auditor/audit-log', label: 'Audit Log', icon: 'file-text' },
       { href: '/compliance-auditor/terms', label: 'Terms & Conditions', icon: 'file-lines' },
-      { href: '/compliance-auditor/privacy', label: 'Privacy Policy', icon: 'shield' },
-      { href: '/compliance-auditor/settings', label: 'Settings', icon: 'gear' },
-      { href: '/compliance-auditor/users', label: 'Users', icon: 'users' },
     ];
   }
 
