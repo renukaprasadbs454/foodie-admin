@@ -13,6 +13,20 @@ import {
 import type { AdminDeliveryPartner, DeliverymanRecord } from '../types';
 export type { DeliverymanRecord };
 
+function formatLastSeen(lastSeenAt?: string) {
+  if (!lastSeenAt) return 'Never';
+  const diffMs = Date.now() - new Date(lastSeenAt).getTime();
+  if (isNaN(diffMs)) return 'Recently';
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 10) return 'Just now';
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  return new Date(lastSeenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export function DeliveryPartnersPage() {
   const { tokens } = useTheme();
   const router = useRouter();
@@ -368,7 +382,7 @@ export function DeliveryPartnersPage() {
                       <div style={{ fontSize: 12, color: '#71717A' }}>{p.zone || 'Downtown Central'}</div>
                     </td>
                     <td style={{ padding: '16px 20px' }}>
-                      {docCount > 0 ? (
+                      {(docCount > 0 || p.bankDetails) ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {p.documents.map((d, dIdx) => (
                             <div
@@ -391,6 +405,24 @@ export function DeliveryPartnersPage() {
                               </span>
                             </div>
                           ))}
+                          {p.bankDetails && (
+                            <div style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontWeight: 600, color: '#09090B' }}>🏦 BANK ({p.bankDetails.bankName})</span>
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  padding: '1px 6px',
+                                  borderRadius: 4,
+                                  backgroundColor: p.bankDetails.verificationStatus === 'VERIFIED' ? '#ECFDF5' : p.bankDetails.verificationStatus === 'REJECTED' ? '#FEF2F2' : '#FFFBEB',
+                                  border: '1px solid #E4E4E7',
+                                  color: p.bankDetails.verificationStatus === 'VERIFIED' ? '#059669' : p.bankDetails.verificationStatus === 'REJECTED' ? '#DC2626' : '#D97706',
+                                }}
+                              >
+                                {p.bankDetails.verificationStatus}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div style={{ fontSize: 12, color: '#71717A' }}>
@@ -399,26 +431,31 @@ export function DeliveryPartnersPage() {
                       )}
                     </td>
                     <td style={{ padding: '16px 20px' }}>
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: p.isOnline ? '#09090B' : '#71717A',
-                        }}
-                      >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <span
                           style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            backgroundColor: p.isOnline ? '#000000' : '#71717A',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: p.isOnline ? '#09090B' : '#71717A',
                           }}
-                        />
-                        {p.isOnline ? 'ONLINE' : 'OFFLINE'}
-                      </span>
+                        >
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              backgroundColor: p.isOnline ? '#000000' : '#71717A',
+                            }}
+                          />
+                          {p.isOnline ? 'ONLINE' : 'OFFLINE'}
+                        </span>
+                        <span style={{ fontSize: 11, color: '#71717A' }}>
+                          Last seen: {formatLastSeen(p.lastSeenAt)}
+                        </span>
+                      </div>
                     </td>
                     <td style={{ padding: '16px 20px', fontWeight: 700, color: '#09090B' }}>
                       ₹{p.cashInHand ?? 0}
