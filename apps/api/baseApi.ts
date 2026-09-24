@@ -46,7 +46,14 @@ export function bindBaseApiAuthHandlers(dispatch: (action: unknown) => void) {
     dispatch(baseApi.util.resetApiState());
   };
   sessionHandlers.onRefreshFailed = () => {
-    dispatch(clearSession());
-    dispatch(baseApi.util.resetApiState());
+    const isAuditor = typeof window !== 'undefined' && (
+      window.location.pathname.startsWith('/compliance-auditor') ||
+      localStorage.getItem('foodie_admin_role') === 'AUDITOR' ||
+      sessionStorage.getItem('foodie_admin_role') === 'AUDITOR'
+    );
+    if (!isAuditor) {
+      dispatch(clearSession());
+      dispatch(baseApi.util.resetApiState());
+    }
   };
 }

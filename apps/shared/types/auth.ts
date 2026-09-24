@@ -4,7 +4,17 @@
  */
 export type UserType = 'ADMIN';
 
-export type AdminRole = 'OPS' | 'FINANCE' | 'SUPPORT' | 'SUPER_ADMIN' | 'DARKSTORE_ADMIN';
+export type AdminRole =
+  | 'OPS'
+  | 'OPERATIONS_ADMIN'
+  | 'FINANCE'
+  | 'FINANCE_ADMIN'
+  | 'SUPPORT'
+  | 'SUPPORT_AGENT'
+  | 'SUPER_ADMIN'
+  | 'AUDITOR'
+  | 'RESTAURANT_MANAGER'
+  | 'DARKSTORE_ADMIN';
 
 export type AuthStatus =
   | 'idle'

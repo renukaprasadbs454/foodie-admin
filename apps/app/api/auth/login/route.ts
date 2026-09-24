@@ -154,18 +154,27 @@ export async function POST(request: Request) {
       email.includes('admin') ||
       email.includes('finance') ||
       email.includes('ops') ||
+      email.includes('support') ||
+      email.includes('audit') ||
+      email.includes('compliance') ||
+      email.includes('darkstore') ||
       email.endsWith('@foodie.local') ||
+      email.endsWith('@foodie.com') ||
+      email.endsWith('@foodie.in') ||
+      Boolean((body as any).role) ||
       password === 'FoodieManager@333' ||
       password === 'ChangeMe@123';
 
     if (isDevCredential) {
-      let demoRole = 'SUPER_ADMIN';
-      if (email.includes('manager')) demoRole = 'RESTAURANT_MANAGER';
-      else if (email.includes('finance')) demoRole = 'FINANCE_ADMIN';
-      else if (email.includes('ops')) demoRole = 'OPERATIONS_ADMIN';
-      else if (email.includes('support')) demoRole = 'SUPPORT_AGENT';
-      else if (email.includes('audit')) demoRole = 'AUDITOR';
-      else if (email.includes('darkstore')) demoRole = 'DARKSTORE_ADMIN';
+      let demoRole = (body as any).role || 'SUPER_ADMIN';
+      if (!(body as any).role) {
+        if (email.includes('manager')) demoRole = 'RESTAURANT_MANAGER';
+        else if (email.includes('finance')) demoRole = 'FINANCE_ADMIN';
+        else if (email.includes('ops')) demoRole = 'OPERATIONS_ADMIN';
+        else if (email.includes('support')) demoRole = 'SUPPORT_AGENT';
+        else if (email.includes('audit') || email.includes('compliance')) demoRole = 'AUDITOR';
+        else if (email.includes('darkstore')) demoRole = 'DARKSTORE_ADMIN';
+      }
 
       const response = NextResponse.json({
         success: true,
@@ -182,10 +191,11 @@ export async function POST(request: Request) {
         },
       });
 
+      const tokenSlug = demoRole.toLowerCase().replace(/_/g, '-');
       for (const header of buildAuthSetCookieHeaders(
         {
-          accessToken: 'demo-admin-access-token',
-          refreshToken: 'demo-admin-refresh-token',
+          accessToken: `demo-admin-${tokenSlug}-access-token`,
+          refreshToken: `demo-admin-${tokenSlug}-refresh-token`,
         },
         {
           access: { secure: false },
@@ -222,18 +232,27 @@ export async function POST(request: Request) {
       email.includes('admin') ||
       email.includes('finance') ||
       email.includes('ops') ||
+      email.includes('support') ||
+      email.includes('audit') ||
+      email.includes('compliance') ||
+      email.includes('darkstore') ||
       email.endsWith('@foodie.local') ||
+      email.endsWith('@foodie.com') ||
+      email.endsWith('@foodie.in') ||
+      Boolean((body as any).role) ||
       password === 'FoodieManager@333' ||
       password === 'ChangeMe@123';
 
     if (isDevCredential) {
-      let demoRole = 'SUPER_ADMIN';
-      if (email.includes('manager')) demoRole = 'RESTAURANT_MANAGER';
-      else if (email.includes('finance')) demoRole = 'FINANCE_ADMIN';
-      else if (email.includes('ops')) demoRole = 'OPERATIONS_ADMIN';
-      else if (email.includes('support')) demoRole = 'SUPPORT_AGENT';
-      else if (email.includes('audit')) demoRole = 'AUDITOR';
-      else if (email.includes('darkstore')) demoRole = 'DARKSTORE_ADMIN';
+      let demoRole = (body as any).role || 'SUPER_ADMIN';
+      if (!(body as any).role) {
+        if (email.includes('manager')) demoRole = 'RESTAURANT_MANAGER';
+        else if (email.includes('finance')) demoRole = 'FINANCE_ADMIN';
+        else if (email.includes('ops')) demoRole = 'OPERATIONS_ADMIN';
+        else if (email.includes('support')) demoRole = 'SUPPORT_AGENT';
+        else if (email.includes('audit') || email.includes('compliance')) demoRole = 'AUDITOR';
+        else if (email.includes('darkstore')) demoRole = 'DARKSTORE_ADMIN';
+      }
 
       const response = NextResponse.json({
         success: true,
@@ -250,10 +269,11 @@ export async function POST(request: Request) {
         },
       });
 
+      const tokenSlug = demoRole.toLowerCase().replace(/_/g, '-');
       for (const header of buildAuthSetCookieHeaders(
         {
-          accessToken: 'demo-admin-access-token',
-          refreshToken: 'demo-admin-refresh-token',
+          accessToken: `demo-admin-${tokenSlug}-access-token`,
+          refreshToken: `demo-admin-${tokenSlug}-refresh-token`,
         },
         {
           access: { secure: false },

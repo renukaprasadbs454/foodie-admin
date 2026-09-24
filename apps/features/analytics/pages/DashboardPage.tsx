@@ -30,6 +30,7 @@ import {
 } from '../types';
 
 import { RoleLandingHub } from '@/components/RoleLandingHub';
+import { ComplianceAuditorDashboardPage } from '@/features/compliance-auditor/pages/ComplianceAuditorDashboardPage';
 
 function toUnwrappedApiError(err: unknown): {
   code: string;
@@ -56,6 +57,12 @@ export function DashboardPage() {
   const { tokens } = useTheme();
   const { isConnected } = useConnectivity();
   const role = useAppSelector(selectAdminRole);
+  const effectiveRole = role || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') as any) : null);
+
+  if (effectiveRole === 'AUDITOR') {
+    return <ComplianceAuditorDashboardPage />;
+  }
+
   const allowed = canAccessAnalyticsSummary(role);
 
   const [draft, setDraft] = useState<AnalyticsDateRange>(() => defaultDateRange());

@@ -26,13 +26,19 @@ export const auditLogsApi = baseApi.injectEndpoints({
         url: '/api/bff/admin/audit-logs',
         params,
       }),
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.content.map(({ id }) => ({ type: 'Admin' as const, id })),
-              { type: 'Admin', id: 'AUDIT_LIST' },
-            ]
-          : [{ type: 'Admin', id: 'AUDIT_LIST' }],
+      providesTags: (result) => {
+        const list = Array.isArray(result)
+          ? result
+          : Array.isArray(result?.content)
+            ? result.content
+            : Array.isArray((result as any)?.items)
+              ? (result as any).items
+              : [];
+        return [
+          ...list.filter((item: any) => Boolean(item && item.id)).map(({ id }: any) => ({ type: 'Admin' as const, id })),
+          { type: 'Admin' as const, id: 'AUDIT_LIST' },
+        ];
+      },
       keepUnusedDataFor: 60,
     }),
   }),

@@ -5,13 +5,14 @@ import { Text, trackAnalyticsEvent, useTheme, EmptyState } from 'foodie-shared-w
 import { useAppSelector } from '@/store/hooks';
 import { selectAdminRole } from '@/features/auth/authSlice';
 import { useGetAuditLogsQuery } from '@/api/endpoints/auditLogsApi';
-import { MOCK_AUDIT_LOGS, type AuditLogRecord } from '../types';
+import { canAccessAuditLog } from '@/lib/routeGuards';
+import type { AuditLogRecord } from '../types';
 import { AuditLogDetailModal } from '../components/AuditLogDetailModal';
 
 export function AuditLogPage() {
   const { tokens } = useTheme();
   const role = useAppSelector(selectAdminRole);
-  const isSuperAdmin = role === 'SUPER_ADMIN';
+  const isAuthorized = canAccessAuditLog(role);
 
   // Filters State
   const [resourceType, setResourceType] = useState<string>('ALL');
@@ -32,7 +33,7 @@ export function AuditLogPage() {
     trackAnalyticsEvent('admin_audit_logs_viewed');
   }, []);
 
-  // RTK Query API fetch
+  // RTK Query API fetch - Live Database Records
   const {
     data: apiData,
     isLoading,
@@ -51,79 +52,41 @@ export function AuditLogPage() {
       sort: sortOrder === 'NEWEST' ? 'createdAt,desc' : 'createdAt,asc',
     },
     {
-      skip: !isSuperAdmin,
+      skip: !isAuthorized,
     }
   );
 
-  // Filter mock logs locally if query fails or returns empty/unreachable
-  const fallbackData = useMemo(() => {
-    let logs = [...MOCK_AUDIT_LOGS];
-
-    // Filter resource type
-    if (resourceType !== 'ALL') {
-      logs = logs.filter((log) => log.resourceType === resourceType);
+  // Extract real records from backend response
+  const logsList: AuditLogRecord[] = useMemo(() => {
+    if (apiData && Array.isArray((apiData as any).content)) {
+      return (apiData as any).content;
     }
-
-    // Filter action
-    if (action !== 'ALL') {
-      logs = logs.filter((log) => log.action === action);
+    if (Array.isArray(apiData)) {
+      return apiData as AuditLogRecord[];
     }
+    return [];
+  }, [apiData]);
 
-    // Filter resourceId
-    if (resourceId.trim()) {
-      logs = logs.filter((log) =>
-        log.resourceId.toLowerCase().includes(resourceId.trim().toLowerCase())
-      );
+  const totalElements: number = useMemo(() => {
+    if (apiData && typeof (apiData as any).totalElements === 'number') {
+      return (apiData as any).totalElements;
     }
+    return logsList.length;
+  }, [apiData, logsList]);
 
-    // Filter adminUserId
-    if (adminUserId.trim()) {
-      logs = logs.filter(
-        (log) =>
-          log.adminUserId.toLowerCase().includes(adminUserId.trim().toLowerCase()) ||
-          (log.adminUserName &&
-            log.adminUserName.toLowerCase().includes(adminUserId.trim().toLowerCase()))
-      );
+  const totalPages: number = useMemo(() => {
+    if (apiData && typeof (apiData as any).totalPages === 'number') {
+      return (apiData as any).totalPages;
     }
+    return totalElements > 0 ? Math.ceil(totalElements / pageSize) : 0;
+  }, [apiData, totalElements, pageSize]);
 
-    // Filter Date Range
-    if (dateFrom) {
-      const fromTime = new Date(dateFrom).getTime();
-      logs = logs.filter((log) => new Date(log.createdAt).getTime() >= fromTime);
+  const isLastPage: boolean = useMemo(() => {
+    if (apiData && typeof (apiData as any).last === 'boolean') {
+      return (apiData as any).last;
     }
-    if (dateTo) {
-      // Include the entire day of dateTo
-      const toTime = new Date(`${dateTo}T23:59:59Z`).getTime();
-      logs = logs.filter((log) => new Date(log.createdAt).getTime() <= toTime);
-    }
-
-    // Sorting
-    logs.sort((a, b) => {
-      const timeA = new Date(a.createdAt).getTime();
-      const timeB = new Date(b.createdAt).getTime();
-      return sortOrder === 'NEWEST' ? timeB - timeA : timeA - timeB;
-    });
-
-    // Pagination
-    const totalElements = logs.length;
-    const totalPages = Math.ceil(totalElements / pageSize);
-    const startIndex = page * pageSize;
-    const paginatedLogs = logs.slice(startIndex, startIndex + pageSize);
-
-    return {
-      content: paginatedLogs,
-      totalElements,
-      totalPages,
-      pageNumber: page,
-      last: page >= totalPages - 1,
-    };
-  }, [resourceType, action, resourceId, adminUserId, dateFrom, dateTo, sortOrder, page, pageSize]);
-
-  // Determine active dataset
-  const hasApiContent = apiData && apiData.content && apiData.content.length > 0;
-  const useFallback = isError || !hasApiContent;
-  const activeDataset = useFallback ? fallbackData : apiData!;
-  const isDemoMode = useFallback && !isLoading;
+    return page >= Math.max(0, totalPages - 1);
+  }, [apiData, page, totalPages]);
 
   const handleClearFilters = () => {
     setResourceType('ALL');
@@ -153,12 +116,12 @@ export function AuditLogPage() {
     }
   };
 
-  if (!isSuperAdmin) {
+  if (!isAuthorized) {
     return (
       <div style={{ padding: 40, display: 'flex', justifyContent: 'center' }}>
         <EmptyState
           title="Permission Denied"
-          description="You do not have administrative clearance to access the platform audit logs. SUPER_ADMIN privileges required."
+          description="You do not have administrative clearance to access the platform audit logs. AUDITOR, FINANCE_ADMIN, or SUPER_ADMIN privileges required."
           aria-label="unauthorized access error"
         />
       </div>
@@ -168,68 +131,40 @@ export function AuditLogPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <Text as="h1" variant="heading1" color="#09090B" style={{ margin: 0 }}>
               System Audit Logs
             </Text>
-            {isDemoMode ? (
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#09090B',
+                backgroundColor: '#F4F4F5',
+                border: '1px solid #E4E4E7',
+                padding: '4px 10px',
+                borderRadius: 20,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
               <span
                 style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: '#09090B',
-                  backgroundColor: '#F4F4F5',
-                  border: '1px solid #E4E4E7',
-                  padding: '2px 8px',
-                  borderRadius: 20,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
+                  display: 'inline-block',
+                  width: 7,
+                  height: 7,
+                  backgroundColor: '#22C55E',
+                  borderRadius: '50%',
                 }}
-              >
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: 6,
-                    height: 6,
-                    backgroundColor: '#09090B',
-                    borderRadius: '50%',
-                  }}
-                />
-                Demo Mode (API Unreachable)
-              </span>
-            ) : (
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: '#09090B',
-                  backgroundColor: '#F4F4F5',
-                  border: '1px solid #E4E4E7',
-                  padding: '2px 8px',
-                  borderRadius: 20,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: 6,
-                    height: 6,
-                    backgroundColor: '#09090B',
-                    borderRadius: '50%',
-                  }}
-                />
-                Live API Logs
-              </span>
-            )}
+              />
+              Live Database ({totalElements} {totalElements === 1 ? 'entry' : 'entries'})
+            </span>
           </div>
           <Text as="p" variant="caption" color="#71717A" style={{ marginTop: 4 }}>
-            Monitor and track administrative changes, vendor approvals, payment refunds, and fleet status updates.
+            Monitor and track administrative changes, vendor approvals, payment refunds, and fleet status updates recorded in the backend.
           </Text>
         </div>
         <button
@@ -244,14 +179,14 @@ export function AuditLogPage() {
             borderRadius: 8,
             fontWeight: 700,
             fontSize: 13,
-            cursor: 'pointer',
+            cursor: isLoading ? 'default' : 'pointer',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
           }}
         >
-          Refresh
+          {isLoading ? 'Fetching...' : 'Refresh Logs'}
         </button>
       </div>
 
@@ -482,14 +417,14 @@ export function AuditLogPage() {
         }}
       >
         {isLoading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: '#71717A' }}>
-            <div style={{ marginTop: 8, fontWeight: 600 }}>Loading system audit logs...</div>
+          <div style={{ padding: 60, textAlign: 'center', color: '#71717A' }}>
+            <div style={{ marginTop: 8, fontWeight: 700, fontSize: 14 }}>Loading system audit logs from database...</div>
           </div>
-        ) : activeDataset.content.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center' }}>
+        ) : logsList.length === 0 ? (
+          <div style={{ padding: '64px 20px', textAlign: 'center' }}>
             <EmptyState
-              title="No Logs Found"
-              description="No audit logs matched your search filters. Try clearing some parameters."
+              title="No Audit Logs Found in Database"
+              description="No audit logs were found matching your current filter parameters. Administrative actions and status overrides will automatically be logged here."
               aria-label="empty audit logs search results"
             />
           </div>
@@ -507,7 +442,7 @@ export function AuditLogPage() {
                 </tr>
               </thead>
               <tbody>
-                {activeDataset.content.map((log) => {
+                {logsList.map((log) => {
                   const badge = getActionBadgeStyle(log.action);
                   return (
                     <tr
@@ -557,14 +492,16 @@ export function AuditLogPage() {
                       {/* Operator User */}
                       <td style={{ padding: '14px 20px' }}>
                         <div style={{ fontWeight: 600, color: '#09090B' }}>
-                          {log.adminUserName || 'System Operator'}
+                          {log.adminUserName || log.adminUserId || 'System Operator'}
                         </div>
-                        <div style={{ fontSize: 11, color: '#71717A' }}>Role: {log.adminUserRole || 'N/A'}</div>
+                        {log.adminUserRole && (
+                          <div style={{ fontSize: 11, color: '#71717A' }}>Role: {log.adminUserRole}</div>
+                        )}
                       </td>
 
                       {/* Timestamp */}
                       <td style={{ padding: '14px 20px', color: '#71717A' }}>
-                        {new Date(log.createdAt).toLocaleString()}
+                        {log.createdAt ? new Date(log.createdAt).toLocaleString() : 'N/A'}
                       </td>
 
                       {/* Details Trigger */}
@@ -604,7 +541,7 @@ export function AuditLogPage() {
         )}
 
         {/* Pagination Footer */}
-        {activeDataset.totalPages > 1 && (
+        {totalPages > 1 && (
           <div
             style={{
               padding: '16px 20px',
@@ -616,7 +553,7 @@ export function AuditLogPage() {
             }}
           >
             <span style={{ fontSize: 13, color: '#71717A' }}>
-              Showing Page <strong>{page + 1}</strong> of <strong>{activeDataset.totalPages}</strong> ({activeDataset.totalElements} records)
+              Showing Page <strong>{page + 1}</strong> of <strong>{totalPages}</strong> ({totalElements} records in database)
             </span>
 
             <div style={{ display: 'flex', gap: 8 }}>
@@ -639,17 +576,17 @@ export function AuditLogPage() {
               </button>
               <button
                 type="button"
-                disabled={activeDataset.last}
+                disabled={isLastPage}
                 onClick={() => setPage((p) => p + 1)}
                 style={{
                   padding: '6px 12px',
                   backgroundColor: '#FFFFFF',
-                  color: activeDataset.last ? '#71717A' : '#09090B',
+                  color: isLastPage ? '#71717A' : '#09090B',
                   border: '1px solid #E4E4E7',
                   borderRadius: 6,
                   fontSize: 12,
                   fontWeight: 700,
-                  cursor: activeDataset.last ? 'default' : 'pointer',
+                  cursor: isLastPage ? 'default' : 'pointer',
                 }}
               >
                 Next ▶
@@ -666,3 +603,4 @@ export function AuditLogPage() {
     </div>
   );
 }
+

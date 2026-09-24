@@ -46,10 +46,16 @@ function parseSession(data: unknown): AdminCookieSession | null {
     userType === 'ADMIN' &&
     (role === 'SUPER_ADMIN' ||
       role === 'OPS' ||
+      role === 'OPERATIONS_ADMIN' ||
       role === 'FINANCE' ||
-      role === 'SUPPORT')
+      role === 'FINANCE_ADMIN' ||
+      role === 'SUPPORT' ||
+      role === 'SUPPORT_AGENT' ||
+      role === 'AUDITOR' ||
+      role === 'RESTAURANT_MANAGER' ||
+      role === 'DARKSTORE_ADMIN')
   ) {
-    return { userId, role, userType: 'ADMIN' };
+    return { userId, role: role as AdminRole, userType: 'ADMIN' };
   }
   return null;
 }
