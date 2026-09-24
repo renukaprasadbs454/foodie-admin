@@ -23,6 +23,23 @@ export type DeliveryPartnerProfile = {
   documents?: DeliveryDocument[];
 };
 
+export interface DeliveryBankDetails {
+  id?: string;
+  deliveryPartnerId?: string;
+  accountHolderName: string;
+  accountNumber: string;
+  maskedAccountNumber?: string;
+  ifscCode: string;
+  bankName: string;
+  branchName?: string;
+  accountType?: string;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  verifiedAt?: string;
+  rejectionReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface AdminDeliveryPartner {
   id: string;
   userCredentialId: string;
@@ -33,10 +50,12 @@ export interface AdminDeliveryPartner {
   profileImageUrl?: string | null;
   kycStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
   isOnline: boolean;
+  lastSeenAt?: string;
   cashInHand: number;
   totalDeliveries: number;
   zone: string;
   documents: DeliveryDocument[];
+  bankDetails?: DeliveryBankDetails | null;
   createdAt: string;
 }
 

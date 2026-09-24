@@ -7,6 +7,9 @@ import {
   useGetAdminDeliveryPartnersQuery,
   useApproveDeliveryPartnerKycMutation,
   useRejectDeliveryPartnerKycMutation,
+  useGetDeliveryPartnerBankDetailsQuery,
+  useApproveBankDetailsMutation,
+  useRejectBankDetailsMutation,
 } from '@/api/endpoints/deliveryPartnersApi';
 import type { AdminDeliveryPartner } from '../types';
 
@@ -19,6 +22,7 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
   const router = useRouter();
   const [rejectReason, setRejectReason] = useState('Documents incomplete or unreadable');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showFullAccount, setShowFullAccount] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const { data: partnersData, isLoading } = useGetAdminDeliveryPartnersQuery({
@@ -26,12 +30,20 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
     size: 100,
   });
 
+  const { data: bankData } = useGetDeliveryPartnerBankDetailsQuery(partnerId ?? '', {
+    skip: !partnerId,
+  });
+
   const [approveKyc, { isLoading: isApproving }] = useApproveDeliveryPartnerKycMutation();
   const [rejectKyc, { isLoading: isRejecting }] = useRejectDeliveryPartnerKycMutation();
+  const [approveBank, { isLoading: isApprovingBank }] = useApproveBankDetailsMutation();
+  const [rejectBank, { isLoading: isRejectingBank }] = useRejectBankDetailsMutation();
 
   const partner: AdminDeliveryPartner | undefined = partnersData?.items?.find(
     (p: AdminDeliveryPartner) => p.id === partnerId
   );
+
+  const bankDetails = bankData || partner?.bankDetails;
 
   const handleApprove = async () => {
     if (!partner) return;
@@ -51,6 +63,26 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
       setToastMsg({ type: 'success', message: `${partner.fullName}'s KYC has been rejected.` });
     } catch {
       setToastMsg({ type: 'error', message: 'Failed to reject KYC.' });
+    }
+  };
+
+  const handleApproveBank = async () => {
+    if (!partner) return;
+    try {
+      await approveBank(partner.id).unwrap();
+      setToastMsg({ type: 'success', message: `${partner.fullName}'s bank details have been verified.` });
+    } catch {
+      setToastMsg({ type: 'error', message: 'Failed to verify bank details.' });
+    }
+  };
+
+  const handleRejectBank = async () => {
+    if (!partner) return;
+    try {
+      await rejectBank({ partnerId: partner.id, reason: 'Bank account verification failed.' }).unwrap();
+      setToastMsg({ type: 'success', message: `${partner.fullName}'s bank details have been rejected.` });
+    } catch {
+      setToastMsg({ type: 'error', message: 'Failed to reject bank details.' });
     }
   };
 
@@ -231,6 +263,142 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
         ) : (
           <div style={{ color: tokens.color.textSecondary, fontSize: '14px', marginBottom: '24px' }}>
             No documents uploaded yet.
+          </div>
+        )}
+
+        {/* Bank Account Details Section */}
+        <h3 style={{ fontSize: '16px', fontWeight: 600, marginTop: '24px', marginBottom: '12px', color: tokens.color.textPrimary }}>
+          Bank Account Details
+        </h3>
+        {bankDetails ? (
+          <div
+            style={{
+              borderRadius: '12px',
+              border: `1px solid ${tokens.color.border}`,
+              backgroundColor: tokens.color.background,
+              padding: '16px 20px',
+              marginBottom: '24px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: tokens.color.textPrimary }}>
+                  🏦 {bankDetails.bankName} {bankDetails.branchName ? `(${bankDetails.branchName})` : ''}
+                </div>
+                <div style={{ fontSize: '12px', color: tokens.color.textSecondary, marginTop: '2px' }}>
+                  Account Holder: {bankDetails.accountHolderName} • Type: {bankDetails.accountType || 'SAVINGS'}
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: '12px',
+                  backgroundColor:
+                    bankDetails.verificationStatus === 'VERIFIED'
+                      ? '#ECFDF5'
+                      : bankDetails.verificationStatus === 'REJECTED'
+                      ? '#FEF2F2'
+                      : '#FEF3C7',
+                  color:
+                    bankDetails.verificationStatus === 'VERIFIED'
+                      ? '#059669'
+                      : bankDetails.verificationStatus === 'REJECTED'
+                      ? '#DC2626'
+                      : '#D97706',
+                }}
+              >
+                {bankDetails.verificationStatus}
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '12px',
+                fontSize: '13px',
+                paddingTop: '12px',
+                borderTop: `1px solid ${tokens.color.border}`,
+              }}
+            >
+              <div>
+                <span style={{ color: tokens.color.textSecondary }}>Account Number: </span>
+                <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>
+                  {showFullAccount
+                    ? bankDetails.accountNumber
+                    : (bankDetails.maskedAccountNumber || `•••• •••• ${bankDetails.accountNumber.slice(-4)}`)}
+                </span>
+                <button
+                  onClick={() => setShowFullAccount(!showFullAccount)}
+                  style={{
+                    marginLeft: '8px',
+                    fontSize: '11px',
+                    color: tokens.color.accent,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  {showFullAccount ? 'Hide' : 'Reveal'}
+                </button>
+              </div>
+
+              <div>
+                <span style={{ color: tokens.color.textSecondary }}>IFSC Code: </span>
+                <span style={{ fontWeight: 600, fontFamily: 'monospace' }}>{bankDetails.ifscCode}</span>
+              </div>
+
+              {bankDetails.updatedAt && (
+                <div>
+                  <span style={{ color: tokens.color.textSecondary }}>Submitted: </span>
+                  <span style={{ fontWeight: 500 }}>{new Date(bankDetails.updatedAt).toLocaleDateString()}</span>
+                </div>
+              )}
+            </div>
+
+            {bankDetails.verificationStatus === 'PENDING' && (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                <button
+                  onClick={handleApproveBank}
+                  disabled={isApprovingBank}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    backgroundColor: '#059669',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {isApprovingBank ? 'Approving...' : '✓ Approve Bank Details'}
+                </button>
+                <button
+                  onClick={handleRejectBank}
+                  disabled={isRejectingBank}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    backgroundColor: '#FEF2F2',
+                    color: '#DC2626',
+                    border: '1px solid #FECACA',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {isRejectingBank ? 'Rejecting...' : '✗ Reject Bank Details'}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ color: tokens.color.textSecondary, fontSize: '14px', marginBottom: '24px' }}>
+            Bank details have not been submitted yet.
           </div>
         )}
 

@@ -85,6 +85,33 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'Admin', id: 'DELIVERY_PRICING' }],
     }),
+    getDeliveryPartnerBankDetails: builder.query<import('../../features/deliveryPartners/types').DeliveryBankDetails | null, string>({
+      query: (partnerId) => `/api/bff/admin/delivery-partners/${partnerId}/bank-details`,
+      providesTags: (_result, _error, partnerId) => [{ type: 'Delivery', id: `BANK-${partnerId}` }],
+    }),
+    approveBankDetails: builder.mutation<import('../../features/deliveryPartners/types').DeliveryBankDetails, string>({
+      query: (partnerId) => ({
+        url: `/api/bff/admin/delivery-partners/${partnerId}/bank-details/approve`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, partnerId) => [
+        { type: 'Delivery', id: partnerId },
+        { type: 'Delivery', id: `BANK-${partnerId}` },
+        { type: 'Admin', id: 'DELIVERY_LIST' },
+      ],
+    }),
+    rejectBankDetails: builder.mutation<import('../../features/deliveryPartners/types').DeliveryBankDetails, RejectKycRequest>({
+      query: ({ partnerId, reason }) => ({
+        url: `/api/bff/admin/delivery-partners/${partnerId}/bank-details/reject`,
+        method: 'PATCH',
+        body: { reason },
+      }),
+      invalidatesTags: (_result, _error, { partnerId }) => [
+        { type: 'Delivery', id: partnerId },
+        { type: 'Delivery', id: `BANK-${partnerId}` },
+        { type: 'Admin', id: 'DELIVERY_LIST' },
+      ],
+    }),
   }),
 });
 
@@ -94,4 +121,7 @@ export const {
   useRejectDeliveryPartnerKycMutation,
   useGetDeliveryPricingQuery,
   useUpdateDeliveryPricingMutation,
+  useGetDeliveryPartnerBankDetailsQuery,
+  useApproveBankDetailsMutation,
+  useRejectBankDetailsMutation,
 } = deliveryPartnersApi;
