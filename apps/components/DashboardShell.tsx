@@ -271,14 +271,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   const isHighlighted = item.highlighted ?? false;
                   const isAuditor = activeRole === 'AUDITOR';
 
-                  // Add spacing before Settings in Auditor nav
-                  const isAuditorLowerSection = isAuditor && (item.label === 'Settings');
-
                   return (
                     <React.Fragment key={item.href}>
-                      {isAuditorLowerSection && (
-                        <li style={{ height: 16 }} aria-hidden="true" />
-                      )}
                       <li>
                         <Link
                           href={item.href}

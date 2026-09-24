@@ -98,6 +98,31 @@ export function LegalPage({ initialTab = 'TERMS' }: { initialTab?: LegalTab }) {
                 Delivery partners function as independent gig dispatchers entitled to transparent per-kilometer and surge earnings. Zero-tolerance policy applies for order tampering or unverified KYC profiles.
               </div>
             </div>
+
+            <div style={{ backgroundColor: '#F4F4F5', padding: 18, borderRadius: 10, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#09090B', margin: 0 }}>4. Data Protection & Privacy Governance</h3>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('PRIVACY')}
+                  style={{
+                    backgroundColor: '#000000',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  View Full Privacy Policy →
+                </button>
+              </div>
+              <div style={{ color: '#71717A' }}>
+                All user accounts, location tracking, KYC records, and transaction logs are governed under strict data confidentiality guidelines with 256-bit TLS 1.3 encryption, PCI-DSS Level 1 payment compliance, and short-lived signed S3 access.
+              </div>
+            </div>
           </div>
         </div>
       )}
