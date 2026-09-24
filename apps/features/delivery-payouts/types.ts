@@ -1,4 +1,5 @@
-export type PayoutStatus = 'REQUESTED' | 'PROCESSING' | 'SUCCESS' | 'FAILED';
+export type PayoutStatus = 'REQUESTED' | 'APPROVED' | 'PROCESSING' | 'SUCCESS' | 'COMPLETED' | 'FAILED' | 'REJECTED';
+
 
 export type PayoutProvider = 'RAZORPAY' | 'CASHFREE';
 

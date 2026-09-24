@@ -84,6 +84,25 @@ export const paymentsApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
     }),
 
+    approveSinglePayout: builder.mutation<any, { payoutId: string }>({
+      query: ({ payoutId }) => ({
+        url: `/api/bff/admin/payments/payouts/${payoutId}/approve`,
+        method: 'POST',
+      }),
+      transformResponse: (res: any) => (typeof res === 'object' && res !== null && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
+    }),
+
+    rejectPayout: builder.mutation<any, { payoutId: string; reason?: string }>({
+      query: ({ payoutId, reason }) => ({
+        url: `/api/bff/admin/payments/payouts/${payoutId}/reject`,
+        method: 'POST',
+        body: { reason: reason || 'Rejected by Admin' },
+      }),
+      transformResponse: (res: any) => (typeof res === 'object' && res !== null && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
+    }),
+
     getCommissionRules: builder.query<CommissionConfig, void>({
       query: () => '/api/bff/admin/payments/commission-rules',
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
@@ -143,4 +162,7 @@ export const {
   useCalculateSplitMutation,
   useRefundPaymentMutation,
   useApprovePayoutsMutation,
+  useApproveSinglePayoutMutation,
+  useRejectPayoutMutation,
 } = paymentsApi;
+

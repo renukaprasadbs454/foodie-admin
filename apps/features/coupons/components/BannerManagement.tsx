@@ -363,7 +363,7 @@ export function BannerManagement() {
                                         </div>
 
                                         {/* Show Preview of created banner in the list */}
-                                        {renderBannerPreview(banner.title, banner.subtitle || '', banner.ctaText || '', banner.ctaType, banner.ctaTarget || '', index)}
+                                        {renderBannerPreview(banner.title, banner.subtitle || '', banner.ctaText || '', banner.ctaType || '', banner.ctaTarget || '', index)}
 
                                     </div>
                                 );
