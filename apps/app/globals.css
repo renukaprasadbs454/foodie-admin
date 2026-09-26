@@ -1,18 +1,27 @@
 :root {
   color-scheme: light;
-  --color-brand-green: #000000;
-  --color-brand-green-dark: #000000;
-  --color-brand-green-light: #F4F4F5;
-  --color-brand-gold: #18181B;
-  --color-brand-gold-hover: #000000;
-  --color-brand-gold-light: #E4E4E7;
+  --color-brand-sky: #0284C7;
+  --color-brand-sky-dark: #0369A1;
+  --color-brand-sky-deep: #075985;
+  --color-brand-sky-light: #E0F2FE;
+  --color-brand-sky-ice: #F0F9FF;
+  --color-brand-green: #0284C7;
+  --color-brand-green-dark: #0369A1;
+  --color-brand-green-light: #E0F2FE;
+  --color-brand-gold: #0EA5E9;
+  --color-brand-gold-hover: #0284C7;
+  --color-brand-gold-light: #BAE6FD;
   --color-surface-cream: #FFFFFF;
-  --color-accent: #000000;
-  --color-background: #FAFAFA;
-  --color-text-primary: #09090B;
-  --color-border-subtle: #E4E4E7;
-  --shadow-card: 0 4px 14px 0 rgba(0, 0, 0, 0.05);
-  --shadow-card-hover: 0 8px 24px 0 rgba(0, 0, 0, 0.08);
+  --color-surface: #FFFFFF;
+  --color-accent: #0284C7;
+  --color-accent-muted: #E0F2FE;
+  --color-background: #F0F9FF;
+  --color-text-primary: #0369A1;
+  --color-text-secondary: #0284C7;
+  --color-text-deep: #0C4A6E;
+  --color-border-subtle: #BAE6FD;
+  --shadow-card: 0 4px 14px 0 rgba(2, 132, 199, 0.08);
+  --shadow-card-hover: 0 8px 24px 0 rgba(2, 132, 199, 0.16);
 }
 
 * {
@@ -30,53 +39,99 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-a {
+/* Sky Blue Typography Hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  color: #0369A1;
+}
+
+p, span, label {
   color: inherit;
+}
+
+strong, b {
+  color: #0C4A6E;
+}
+
+a {
+  color: #0284C7;
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 a:hover {
+  color: #0369A1;
   text-decoration: none;
 }
 
-/* P2-OPT-01 — Admin visible focus outline */
+/* Sky Blue Focus Outline */
 :focus-visible {
-  outline: 2px solid #000000;
+  outline: 2px solid #0EA5E9;
   outline-offset: 2px;
 }
 
-/* Custom scrollbars */
+/* Sky Blue Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #F4F4F5;
+  background: #E0F2FE;
 }
 ::-webkit-scrollbar-thumb {
-  background: #71717A;
+  background: #38BDF8;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #000000;
+  background: #0284C7;
 }
 
-/* 6amMart Utility Classes */
+/* Sky Blue Selection */
+::selection {
+  background: #BAE6FD;
+  color: #0369A1;
+}
+
+/* Form controls default sky blue accent */
+input, select, textarea {
+  color: #0369A1;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #7DD3FC;
+}
+
+/* Sky Blue Utility Classes */
 .card-hover {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease;
 }
 .card-hover:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-card-hover);
+  border-color: #38BDF8 !important;
 }
 
 @keyframes pulseGlow {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.05); }
+  0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 4px #38BDF8); }
+  50% { opacity: 0.7; transform: scale(1.05); filter: drop-shadow(0 0 8px #0EA5E9); }
 }
 
 .pulse-live {
   animation: pulseGlow 2s infinite ease-in-out;
 }
 
+.sky-gradient-primary {
+  background: linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%);
+  color: #FFFFFF;
+}
 
+.sky-gradient-dark {
+  background: linear-gradient(180deg, #075985 0%, #0C4A6E 50%, #082F49 100%);
+  color: #FFFFFF;
+}
+
+.sky-card {
+  background: #FFFFFF;
+  border: 1px solid #BAE6FD;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px 0 rgba(2, 132, 199, 0.06);
+}

@@ -48,7 +48,7 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(8, 47, 73, 0.5)',
         backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
@@ -61,15 +61,16 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          borderRadius: 16,
+          borderRadius: 20,
           width: '100%',
           maxWidth: 800,
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+          boxShadow: '0 20px 40px rgba(2, 132, 199, 0.2)',
           animation: 'modalFadeIn 0.2s ease-out',
-          border: '1px solid #E4E4E7',
+          border: '1px solid #BAE6FD',
+          overflow: 'hidden',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -77,20 +78,18 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
         <div
           style={{
             padding: '20px 24px',
-            borderBottom: '1px solid #E4E4E7',
+            borderBottom: '1px solid #BAE6FD',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: '#000000',
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
           }}
         >
           <div>
-            <h3 id="modal-title" style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#FFFFFF' }}>
+            <h3 id="modal-title" style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#FFFFFF' }}>
               Audit Log Details
             </h3>
-            <span style={{ fontSize: 12, color: '#E4E4E7', fontWeight: 600 }}>
+            <span style={{ fontSize: 12, color: '#E0F2FE', fontWeight: 600 }}>
               ID: {log.id}
             </span>
           </div>
@@ -105,6 +104,7 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
               cursor: 'pointer',
               lineHeight: 1,
               padding: 4,
+              fontWeight: 700,
             }}
           >
             &times;
@@ -119,28 +119,28 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: 16,
-              backgroundColor: '#F4F4F5',
+              backgroundColor: '#F0F9FF',
               padding: 16,
               borderRadius: 12,
-              border: '1px solid #E4E4E7',
+              border: '1px solid #BAE6FD',
             }}
           >
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Operator</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#09090B', marginTop: 2 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Operator</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#0369A1', marginTop: 2 }}>
                 {log.adminUserName || 'System'} ({log.adminUserRole || 'N/A'})
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Action</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Action</div>
               <div
                 style={{
                   display: 'inline-block',
                   fontSize: 12,
                   fontWeight: 700,
-                  color: '#09090B',
+                  color: '#0369A1',
                   backgroundColor: '#FFFFFF',
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                   padding: '2px 8px',
                   borderRadius: 4,
                   marginTop: 4,
@@ -150,14 +150,14 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Target Entity</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#09090B', marginTop: 2 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Target Entity</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#0369A1', marginTop: 2 }}>
                 {log.resourceType}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Timestamp</div>
-              <div style={{ fontSize: 14, color: '#09090B', marginTop: 2 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Timestamp</div>
+              <div style={{ fontSize: 14, color: '#0369A1', marginTop: 2 }}>
                 {new Date(log.createdAt).toLocaleString()}
               </div>
             </div>
@@ -165,16 +165,16 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
 
           {/* Target ID banner */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Target ID</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Target ID</span>
             <code
               style={{
-                backgroundColor: '#F4F4F5',
+                backgroundColor: '#F0F9FF',
                 padding: '8px 12px',
                 borderRadius: 6,
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 fontSize: 13,
                 wordBreak: 'break-all',
-                color: '#09090B',
+                color: '#0369A1',
               }}
             >
               {log.resourceId}
@@ -183,18 +183,18 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
 
           {/* Before & After State Changes */}
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1', marginBottom: 12 }}>
               State Changes Comparison
             </div>
 
             {allKeys.length === 0 ? (
-              <div style={{ color: '#71717A', fontSize: 14, fontStyle: 'italic', textAlign: 'center', padding: 24 }}>
+              <div style={{ color: '#0284C7', fontSize: 14, fontStyle: 'italic', textAlign: 'center', padding: 24 }}>
                 No state parameters recorded for this operation.
               </div>
             ) : (
               <div
                 style={{
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                   borderRadius: 12,
                   overflow: 'hidden',
                 }}
@@ -204,11 +204,11 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '150px 1fr 1fr',
-                    backgroundColor: '#F4F4F5',
-                    borderBottom: '1px solid #E4E4E7',
+                    backgroundColor: '#F0F9FF',
+                    borderBottom: '1px solid #BAE6FD',
                     fontSize: 12,
                     fontWeight: 700,
-                    color: '#09090B',
+                    color: '#0369A1',
                     padding: '10px 16px',
                   }}
                 >
@@ -225,19 +225,19 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
                     const afterVal = after[key] !== undefined ? JSON.stringify(after[key]) : '—';
 
                     let rowBg = '#FFFFFF';
-                    let valBeforeColor = '#09090B';
-                    let valAfterColor = '#09090B';
+                    let valBeforeColor = '#0369A1';
+                    let valAfterColor = '#0369A1';
 
                     if (status === 'ADDED') {
-                      rowBg = '#F4F4F5';
-                      valAfterColor = '#09090B';
+                      rowBg = '#F0F9FF';
+                      valAfterColor = '#0369A1';
                     } else if (status === 'DELETED') {
-                      rowBg = '#F4F4F5';
-                      valBeforeColor = '#71717A';
+                      rowBg = '#FEF2F2';
+                      valBeforeColor = '#DC2626';
                     } else if (status === 'MODIFIED') {
-                      rowBg = '#F4F4F5';
-                      valBeforeColor = '#71717A';
-                      valAfterColor = '#09090B';
+                      rowBg = '#F0F9FF';
+                      valBeforeColor = '#94A3B8';
+                      valAfterColor = '#0369A1';
                     }
 
                     return (
@@ -246,14 +246,14 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
                         style={{
                           display: 'grid',
                           gridTemplateColumns: '150px 1fr 1fr',
-                          borderBottom: '1px solid #E4E4E7',
+                          borderBottom: '1px solid #E0F2FE',
                           fontSize: 13,
                           padding: '12px 16px',
                           backgroundColor: rowBg,
                           gap: 12,
                         }}
                       >
-                        <div style={{ fontWeight: 600, color: '#09090B', wordBreak: 'break-all' }}>
+                        <div style={{ fontWeight: 600, color: '#0369A1', wordBreak: 'break-all' }}>
                           {key}
                         </div>
                         <div
@@ -291,25 +291,24 @@ export function AuditLogDetailModal({ log, onClose }: Props) {
         <div
           style={{
             padding: '16px 24px',
-            borderTop: '1px solid #E4E4E7',
+            borderTop: '1px solid #BAE6FD',
             display: 'flex',
             justifyContent: 'flex-end',
-            backgroundColor: '#F4F4F5',
-            borderBottomLeftRadius: 16,
-            borderBottomRightRadius: 16,
+            backgroundColor: '#F0F9FF',
           }}
         >
           <button
             onClick={onClose}
             style={{
-              padding: '8px 16px',
-              backgroundColor: '#000000',
+              padding: '8px 20px',
+              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
               fontWeight: 700,
               fontSize: 13,
               cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
             }}
           >
             Close

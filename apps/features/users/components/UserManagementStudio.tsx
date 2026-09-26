@@ -155,30 +155,30 @@ export function UserManagementStudio() {
       {toastMsg ? (
         <div
           style={{
-            backgroundColor: '#0F3D21',
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
             color: '#FFFFFF',
             padding: '12px 20px',
             borderRadius: 12,
             fontSize: 14,
             fontWeight: 700,
-            boxShadow: '0 8px 24px rgba(15,61,33,0.3)',
+            boxShadow: '0 8px 24px rgba(2, 132, 199, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
           <span>{toastMsg}</span>
-          <span style={{ fontSize: 12, color: '#FFFFFF' }}>● Security Directory Updated</span>
+          <span style={{ fontSize: 12, color: '#E0F2FE' }}>● Security Directory Updated</span>
         </div>
       ) : null}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#09090B', margin: 0 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', margin: 0 }}>
             Members & Admin User Directory
           </h1>
-          <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0' }}>
+          <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0' }}>
             Provision, assign roles, manage system privileges, and monitor security status for platform staff.
           </p>
         </div>
@@ -187,7 +187,7 @@ export function UserManagementStudio() {
           type="button"
           onClick={() => setIsCreateModalOpen(true)}
           style={{
-            backgroundColor: '#0F3D21',
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
             color: '#FFFFFF',
             border: 'none',
             padding: '10px 20px',
@@ -198,7 +198,7 @@ export function UserManagementStudio() {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            boxShadow: '0 4px 12px rgba(15,61,33,0.25)',
+            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
             transition: 'all 0.15s ease',
           }}
         >
@@ -208,33 +208,33 @@ export function UserManagementStudio() {
 
       {/* Executive Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Total Staff Members</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0F3D21', marginTop: 4 }}>{totalUsers}</div>
-          <div style={{ fontSize: 12, color: '#166534', fontWeight: 600, marginTop: 6 }}>● Active Administrative Accounts</div>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Total Staff Members</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>{totalUsers}</div>
+          <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600, marginTop: 6 }}>● Active Administrative Accounts</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Super Admins</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#7C3AED', marginTop: 4 }}>{activeAdmins}</div>
-          <div style={{ fontSize: 12, color: '#7C3AED', fontWeight: 600, marginTop: 6 }}>Full Root System Privileges</div>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Super Admins</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>{activeAdmins}</div>
+          <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600, marginTop: 6 }}>Full Root System Privileges</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Operations Managers</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#047857', marginTop: 4 }}>{opsTeam}</div>
-          <div style={{ fontSize: 12, color: '#047857', fontWeight: 600, marginTop: 6 }}>Dispatch & Merchant Ops</div>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Operations Managers</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#075985', marginTop: 4 }}>{opsTeam}</div>
+          <div style={{ fontSize: 12, color: '#075985', fontWeight: 600, marginTop: 6 }}>Dispatch & Merchant Ops</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #E2E8F0' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Finance & Support</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#B45309', marginTop: 4 }}>{supportFinance}</div>
-          <div style={{ fontSize: 12, color: '#B45309', fontWeight: 600, marginTop: 6 }}>Payouts & Support Desk</div>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Finance & Support</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>{supportFinance}</div>
+          <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600, marginTop: 6 }}>Payouts & Support Desk</div>
         </div>
       </div>
 
       {/* Directory Section */}
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 16, border: '1px solid #E2E8F0', padding: 20 }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 16, border: '1px solid #BAE6FD', padding: 20, boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
         {/* Filter Controls */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 16, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
@@ -246,17 +246,19 @@ export function UserManagementStudio() {
               style={{
                 padding: '9px 14px',
                 borderRadius: 10,
-                border: '1px solid #CBD5E1',
+                border: '1px solid #BAE6FD',
                 fontSize: 13,
                 minWidth: 260,
                 flex: 1,
+                color: '#0369A1',
+                backgroundColor: '#F0F9FF',
               }}
             />
 
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              style={{ padding: '9px 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 600 }}
+              style={{ padding: '9px 12px', borderRadius: 10, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 600, color: '#0369A1', backgroundColor: '#F0F9FF' }}
             >
               <option value="ALL">Role: All Roles</option>
               <option value="SUPER_ADMIN"> Super Admin</option>
@@ -268,7 +270,7 @@ export function UserManagementStudio() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ padding: '9px 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 600 }}
+              style={{ padding: '9px 12px', borderRadius: 10, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 600, color: '#0369A1', backgroundColor: '#F0F9FF' }}
             >
               <option value="ALL">Status: All Statuses</option>
               <option value="ACTIVE">● Active Only</option>
@@ -276,7 +278,7 @@ export function UserManagementStudio() {
             </select>
           </div>
 
-          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
+          <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>
             Showing {filteredUsers.length} of {totalUsers} staff members
           </div>
         </div>
@@ -285,20 +287,20 @@ export function UserManagementStudio() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '2px solid #E2E8F0', textAlign: 'left' }}>
-                <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>Staff Member</th>
-                <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>Contact Info</th>
-                <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>Role Privilege</th>
-                <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>Department</th>
-                <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>Status</th>
-                <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>Last Active</th>
-                <th style={{ padding: '10px 12px', color: '#475569', fontWeight: 700 }}>Actions</th>
+              <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '2px solid #BAE6FD', textAlign: 'left' }}>
+                <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Staff Member</th>
+                <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Contact Info</th>
+                <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Role Privilege</th>
+                <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Department</th>
+                <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Status</th>
+                <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Last Active</th>
+                <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: '#64748B', fontWeight: 600 }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: '#0284C7', fontWeight: 600 }}>
                     No administrative users match the filter criteria.
                   </td>
                 </tr>
@@ -308,7 +310,7 @@ export function UserManagementStudio() {
                   const statusBadge = formatStatusBadge(user.accountStatus);
 
                   return (
-                    <tr key={user.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <tr key={user.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
                       <td style={{ padding: '12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div
@@ -316,7 +318,7 @@ export function UserManagementStudio() {
                               width: 36,
                               height: 36,
                               borderRadius: '50%',
-                              backgroundColor: '#000000',
+                              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                               color: '#FFFFFF',
                               display: 'flex',
                               alignItems: 'center',
@@ -328,15 +330,15 @@ export function UserManagementStudio() {
                             {user.fullName.charAt(0)}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 700, color: '#0F3D21' }}>{user.fullName}</div>
-                            <div style={{ fontSize: 11, color: '#64748B' }}>ID: {user.id}</div>
+                            <div style={{ fontWeight: 700, color: '#0369A1' }}>{user.fullName}</div>
+                            <div style={{ fontSize: 11, color: '#0284C7' }}>ID: {user.id}</div>
                           </div>
                         </div>
                       </td>
 
                       <td style={{ padding: '12px' }}>
-                        <div style={{ color: '#334155', fontWeight: 600 }}>{user.email}</div>
-                        <div style={{ fontSize: 11, color: '#64748B' }}>{user.phone}</div>
+                        <div style={{ color: '#075985', fontWeight: 600 }}>{user.email}</div>
+                        <div style={{ fontSize: 11, color: '#0284C7' }}>{user.phone}</div>
                       </td>
 
                       <td style={{ padding: '12px' }}>
@@ -355,7 +357,7 @@ export function UserManagementStudio() {
                         </span>
                       </td>
 
-                      <td style={{ padding: '12px', color: '#475569', fontWeight: 600 }}>
+                      <td style={{ padding: '12px', color: '#075985', fontWeight: 600 }}>
                         {user.department}
                       </td>
 
@@ -374,7 +376,7 @@ export function UserManagementStudio() {
                         </span>
                       </td>
 
-                      <td style={{ padding: '12px', fontSize: 12, color: '#64748B' }}>
+                      <td style={{ padding: '12px', fontSize: 12, color: '#0284C7' }}>
                         {user.lastActive}
                       </td>
 
@@ -389,9 +391,9 @@ export function UserManagementStudio() {
                             style={{
                               padding: '5px 10px',
                               borderRadius: 6,
-                              border: '1px solid #CBD5E1',
-                              backgroundColor: '#F8FAFC',
-                              color: '#334155',
+                              border: '1px solid #BAE6FD',
+                              backgroundColor: '#F0F9FF',
+                              color: '#0369A1',
                               fontSize: 11,
                               fontWeight: 700,
                               cursor: 'pointer',
@@ -406,9 +408,9 @@ export function UserManagementStudio() {
                             style={{
                               padding: '5px 10px',
                               borderRadius: 6,
-                              border: '1px solid #CBD5E1',
-                              backgroundColor: user.accountStatus === 'ACTIVE' ? '#FFF1F2' : '#F0FDF4',
-                              color: user.accountStatus === 'ACTIVE' ? '#991B1B' : '#166534',
+                              border: '1px solid #BAE6FD',
+                              backgroundColor: user.accountStatus === 'ACTIVE' ? '#FFF1F2' : '#F0F9FF',
+                              color: user.accountStatus === 'ACTIVE' ? '#991B1B' : '#0284C7',
                               fontSize: 11,
                               fontWeight: 700,
                               cursor: 'pointer',
@@ -433,7 +435,7 @@ export function UserManagementStudio() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15,23,42,0.6)',
+            backgroundColor: 'rgba(8, 47, 73, 0.5)',
             backdropFilter: 'blur(4px)',
             zIndex: 100,
             display: 'flex',
@@ -450,27 +452,28 @@ export function UserManagementStudio() {
               padding: 24,
               maxWidth: 480,
               width: '100%',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              boxShadow: '0 20px 40px rgba(3, 105, 161, 0.2)',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
                  Provision New Administrative User
               </h3>
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748B' }}
+                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#0284C7' }}
               >
                 
               </button>
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                 Full Name *
               </label>
               <input
@@ -479,12 +482,12 @@ export function UserManagementStudio() {
                 placeholder="e.g. Sarah Jenkins"
                 value={newFullName}
                 onChange={(e) => setNewFullName(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#F0F9FF' }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                 Work Email Address *
               </label>
               <input
@@ -493,12 +496,12 @@ export function UserManagementStudio() {
                 placeholder="e.g. s.jenkins@foodie.com"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#F0F9FF' }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                 Mobile Phone Number *
               </label>
               <input
@@ -507,19 +510,19 @@ export function UserManagementStudio() {
                 placeholder="e.g. +1 (555) 234-5678"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#F0F9FF' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                   System Role Privilege *
                 </label>
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value as AdminRole)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 600 }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 600, color: '#0369A1', backgroundColor: '#F0F9FF' }}
                 >
                   <option value="OPS">Operations (OPS)</option>
                   <option value="FINANCE">Finance (FINANCE)</option>
@@ -529,7 +532,7 @@ export function UserManagementStudio() {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                   Department
                 </label>
                 <input
@@ -537,7 +540,7 @@ export function UserManagementStudio() {
                   placeholder="e.g. Dispatch & Logistics"
                   value={newDept}
                   onChange={(e) => setNewDept(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#F0F9FF' }}
                 />
               </div>
             </div>
@@ -546,7 +549,7 @@ export function UserManagementStudio() {
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', fontSize: 13, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -556,11 +559,12 @@ export function UserManagementStudio() {
                   padding: '8px 18px',
                   borderRadius: 8,
                   border: 'none',
-                  backgroundColor: '#0F3D21',
+                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                   color: '#FFFFFF',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
                 }}
               >
                 Provision User
@@ -576,7 +580,7 @@ export function UserManagementStudio() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15,23,42,0.6)',
+            backgroundColor: 'rgba(8, 47, 73, 0.5)',
             backdropFilter: 'blur(4px)',
             zIndex: 100,
             display: 'flex',
@@ -592,34 +596,35 @@ export function UserManagementStudio() {
               padding: 24,
               maxWidth: 440,
               width: '100%',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              boxShadow: '0 20px 40px rgba(3, 105, 161, 0.2)',
+              border: '1px solid #BAE6FD',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
                  Update Role Privilege
               </h3>
               <button
                 type="button"
                 onClick={() => setSelectedUserForRole(null)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748B' }}
+                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#0284C7' }}
               >
                 
               </button>
             </div>
 
-            <p style={{ fontSize: 13, color: '#475569', marginBottom: 16 }}>
-              Modify system access role for <strong>{selectedUserForRole.fullName}</strong> ({selectedUserForRole.email}).
+            <p style={{ fontSize: 13, color: '#0284C7', marginBottom: 16 }}>
+              Modify system access role for <strong style={{ color: '#0369A1' }}>{selectedUserForRole.fullName}</strong> ({selectedUserForRole.email}).
             </p>
 
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 6 }}>
                 Select Target Role Privilege
               </label>
               <select
                 value={targetRole}
                 onChange={(e) => setTargetRole(e.target.value as AdminRole)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700, color: '#0369A1', backgroundColor: '#F0F9FF' }}
               >
                 <option value="SUPER_ADMIN"> Super Admin (Full Control)</option>
                 <option value="OPS"> Operations (Manage Merchants & Dispatch)</option>
@@ -632,7 +637,7 @@ export function UserManagementStudio() {
               <button
                 type="button"
                 onClick={() => setSelectedUserForRole(null)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', fontSize: 13, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -643,11 +648,12 @@ export function UserManagementStudio() {
                   padding: '8px 16px',
                   borderRadius: 8,
                   border: 'none',
-                  backgroundColor: '#0F3D21',
+                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                   color: '#FFFFFF',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
                 }}
               >
                 Save Role Privilege
@@ -663,7 +669,7 @@ export function UserManagementStudio() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15,23,42,0.6)',
+            backgroundColor: 'rgba(8, 47, 73, 0.5)',
             backdropFilter: 'blur(4px)',
             zIndex: 100,
             display: 'flex',
@@ -679,32 +685,33 @@ export function UserManagementStudio() {
               padding: 24,
               maxWidth: 440,
               width: '100%',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              boxShadow: '0 20px 40px rgba(3, 105, 161, 0.2)',
+              border: '1px solid #BAE6FD',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
                 {selectedUserForStatus.accountStatus === 'ACTIVE' ? ' Suspend User Account' : ' Re-activate User Account'}
               </h3>
               <button
                 type="button"
                 onClick={() => setSelectedUserForStatus(null)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748B' }}
+                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#0284C7' }}
               >
                 
               </button>
             </div>
 
-            <p style={{ fontSize: 13, color: '#475569', marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: '#0284C7', marginBottom: 20 }}>
               Are you sure you want to {selectedUserForStatus.accountStatus === 'ACTIVE' ? 'suspend' : 're-activate'}{' '}
-              administrative access for <strong>{selectedUserForStatus.fullName}</strong> ({selectedUserForStatus.email})?
+              administrative access for <strong style={{ color: '#0369A1' }}>{selectedUserForStatus.fullName}</strong> ({selectedUserForStatus.email})?
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <button
                 type="button"
                 onClick={() => setSelectedUserForStatus(null)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', fontSize: 13, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -715,11 +722,12 @@ export function UserManagementStudio() {
                   padding: '8px 16px',
                   borderRadius: 8,
                   border: 'none',
-                  backgroundColor: selectedUserForStatus.accountStatus === 'ACTIVE' ? '#DC2626' : '#166534',
+                  backgroundColor: selectedUserForStatus.accountStatus === 'ACTIVE' ? '#DC2626' : '#0284C7',
                   color: '#FFFFFF',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
                 }}
               >
                 Confirm {selectedUserForStatus.accountStatus === 'ACTIVE' ? 'Suspension' : 'Activation'}
@@ -731,3 +739,4 @@ export function UserManagementStudio() {
     </div>
   );
 }
+

@@ -490,14 +490,14 @@ export function ContactUsPage() {
             position: 'fixed',
             top: 24,
             right: 24,
-            backgroundColor: '#000000',
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
             color: '#FFFFFF',
-            border: '1px solid #27272A',
+            border: '1px solid #38BDF8',
             padding: '14px 24px',
             borderRadius: 12,
             fontWeight: 800,
             fontSize: 14,
-            boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+            boxShadow: '0 12px 30px rgba(2, 132, 199, 0.3)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
@@ -511,10 +511,10 @@ export function ContactUsPage() {
       {/* Header & Quick Action */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#09090B', margin: '0 0 6px 0' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0369A1', margin: '0 0 6px 0' }}>
             Contact Us & Support Operations Desk
           </h1>
-          <p style={{ fontSize: 13, color: '#71717A', margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#0284C7', margin: 0 }}>
             Manage customer, restaurant, delivery partner & general enquiries with direct message replies and resolution tracking
           </p>
         </div>
@@ -524,7 +524,7 @@ export function ContactUsPage() {
           onClick={() => setIsCreateModalOpen(true)}
           style={{
             padding: '10px 20px',
-            backgroundColor: '#000000',
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: 10,
@@ -534,7 +534,7 @@ export function ContactUsPage() {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
             transition: 'transform 0.15s ease',
           }}
         >
@@ -556,13 +556,13 @@ export function ContactUsPage() {
             backgroundColor: '#FFFFFF',
             padding: '16px 20px',
             borderRadius: 12,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Active Enquiries</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#09090B', marginTop: 4 }}>{enquiries.length}</div>
-          <div style={{ fontSize: 11, color: '#71717A', fontWeight: 600, marginTop: 2 }}>{totalOpenCount} Open tickets</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Active Enquiries</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>{enquiries.length}</div>
+          <div style={{ fontSize: 11, color: '#0284C7', fontWeight: 600, marginTop: 2 }}>{totalOpenCount} Open tickets</div>
         </div>
 
         <div
@@ -570,13 +570,13 @@ export function ContactUsPage() {
             backgroundColor: '#FFFFFF',
             padding: '16px 20px',
             borderRadius: 12,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Customer Enquiries</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#09090B', marginTop: 4 }}>{customerCount}</div>
-          <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>User tickets & refunds</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Customer Enquiries</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>{customerCount}</div>
+          <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>User tickets & refunds</div>
         </div>
 
         <div
@@ -584,13 +584,13 @@ export function ContactUsPage() {
             backgroundColor: '#FFFFFF',
             padding: '16px 20px',
             borderRadius: 12,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Restaurant Enquiries</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#09090B', marginTop: 4 }}>{restaurantCount}</div>
-          <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>Menu, POS & payouts</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Restaurant Enquiries</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>{restaurantCount}</div>
+          <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>Menu, POS & payouts</div>
         </div>
 
         <div
@@ -598,13 +598,13 @@ export function ContactUsPage() {
             backgroundColor: '#FFFFFF',
             padding: '16px 20px',
             borderRadius: 12,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Delivery Partners</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#09090B', marginTop: 4 }}>{deliveryCount}</div>
-          <div style={{ fontSize: 11, color: '#71717A', marginTop: 2 }}>Incentives & KYC review</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Delivery Partners</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>{deliveryCount}</div>
+          <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>Incentives & KYC review</div>
         </div>
 
         <div
@@ -612,13 +612,13 @@ export function ContactUsPage() {
             backgroundColor: '#FFFFFF',
             padding: '16px 20px',
             borderRadius: 12,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Resolved Audit Log</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#09090B', marginTop: 4 }}>{historyCount}</div>
-          <div style={{ fontSize: 11, color: '#71717A', fontWeight: 600, marginTop: 2 }}>100% Audit Logged</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Resolved Audit Log</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>{historyCount}</div>
+          <div style={{ fontSize: 11, color: '#0284C7', fontWeight: 600, marginTop: 2 }}>100% Audit Logged</div>
         </div>
       </div>
 
@@ -630,7 +630,7 @@ export function ContactUsPage() {
           backgroundColor: '#FFFFFF',
           padding: '14px 18px',
           borderRadius: 12,
-          border: '1px solid #E4E4E7',
+          border: '1px solid #BAE6FD',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
@@ -649,11 +649,11 @@ export function ContactUsPage() {
                 width: '100%',
                 padding: '9px 14px',
                 borderRadius: 8,
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 fontSize: 13,
                 outline: 'none',
                 backgroundColor: '#FFFFFF',
-                color: '#09090B',
+                color: '#0369A1',
               }}
             />
           </div>
@@ -665,11 +665,11 @@ export function ContactUsPage() {
             style={{
               padding: '9px 14px',
               borderRadius: 8,
-              border: '1px solid #E4E4E7',
+              border: '1px solid #BAE6FD',
               fontSize: 13,
               fontWeight: 600,
               backgroundColor: '#FFFFFF',
-              color: '#09090B',
+              color: '#0369A1',
               outline: 'none',
               cursor: 'pointer',
             }}
@@ -687,11 +687,11 @@ export function ContactUsPage() {
             style={{
               padding: '9px 14px',
               borderRadius: 8,
-              border: '1px solid #E4E4E7',
+              border: '1px solid #BAE6FD',
               fontSize: 13,
               fontWeight: 600,
               backgroundColor: '#FFFFFF',
-              color: '#09090B',
+              color: '#0369A1',
               outline: 'none',
               cursor: 'pointer',
             }}
@@ -709,11 +709,11 @@ export function ContactUsPage() {
             style={{
               padding: '9px 14px',
               borderRadius: 8,
-              border: '1px solid #E4E4E7',
+              border: '1px solid #BAE6FD',
               fontSize: 13,
               fontWeight: 600,
               backgroundColor: '#FFFFFF',
-              color: '#09090B',
+              color: '#0369A1',
               outline: 'none',
               cursor: 'pointer',
             }}
@@ -736,9 +736,9 @@ export function ContactUsPage() {
             style={{
               padding: '8px 14px',
               borderRadius: 8,
-              border: '1px solid #E4E4E7',
-              backgroundColor: '#F4F4F5',
-              color: '#09090B',
+              border: '1px solid #BAE6FD',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
               fontSize: 12,
               fontWeight: 800,
               cursor: 'pointer',
@@ -757,7 +757,7 @@ export function ContactUsPage() {
           backgroundColor: '#FFFFFF',
           padding: '8px',
           borderRadius: 12,
-          border: '1px solid #E4E4E7',
+          border: '1px solid #BAE6FD',
           overflowX: 'auto',
           boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
         }}
@@ -779,8 +779,8 @@ export function ContactUsPage() {
                 padding: '12px 20px',
                 borderRadius: 8,
                 border: 'none',
-                backgroundColor: isActive ? '#000000' : 'transparent',
-                color: isActive ? '#FFFFFF' : '#71717A',
+                background: isActive ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
+                color: isActive ? '#FFFFFF' : '#0369A1',
                 fontSize: 13,
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -788,6 +788,7 @@ export function ContactUsPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
+                boxShadow: isActive ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
                 transition: 'all 0.15s ease',
               }}
             >
@@ -796,9 +797,9 @@ export function ContactUsPage() {
                 style={{
                   fontSize: 11,
                   fontWeight: 800,
-                  backgroundColor: isActive ? '#FFFFFF' : '#F4F4F5',
-                  color: isActive ? '#000000' : '#71717A',
-                  border: isActive ? 'none' : '1px solid #E4E4E7',
+                  backgroundColor: isActive ? '#FFFFFF' : '#E0F2FE',
+                  color: isActive ? '#0369A1' : '#0284C7',
+                  border: isActive ? 'none' : '1px solid #BAE6FD',
                   padding: '2px 8px',
                   borderRadius: 10,
                 }}
@@ -820,13 +821,13 @@ export function ContactUsPage() {
                 padding: 48,
                 borderRadius: 14,
                 textAlign: 'center',
-                border: '1px solid #E4E4E7',
-                color: '#71717A',
+                border: '1px solid #BAE6FD',
+                color: '#0284C7',
               }}
             >
               <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#09090B' }}>No active enquiries matching your filters</div>
-              <div style={{ fontSize: 13, color: '#71717A', marginTop: 4 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>No active enquiries matching your filters</div>
+              <div style={{ fontSize: 13, color: '#0284C7', marginTop: 4 }}>
                 All support tickets in this view have been resolved or reset search filters.
               </div>
             </div>
@@ -837,31 +838,31 @@ export function ContactUsPage() {
                 style={{
                   backgroundColor: '#FFFFFF',
                   borderRadius: 14,
-                  border: '1px solid #E4E4E7',
-                  borderLeft: '5px solid #000000',
+                  border: '1px solid #BAE6FD',
+                  borderLeft: '5px solid #0284C7',
                   padding: '24px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 14,
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)',
                 }}
               >
                 {/* Header Row */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#000000', color: '#FFFFFF', padding: '2px 6px', borderRadius: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#0284C7', color: '#FFFFFF', padding: '2px 6px', borderRadius: 4 }}>
                         {item.id}
                       </span>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: '#09090B' }}>{item.subject}</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>{item.subject}</span>
                       
                       <span
                         style={{
                           fontSize: 10,
                           fontWeight: 800,
-                          backgroundColor: '#F4F4F5',
-                          color: '#09090B',
-                          border: '1px solid #E4E4E7',
+                          backgroundColor: '#F0F9FF',
+                          color: '#0369A1',
+                          border: '1px solid #BAE6FD',
                           padding: '3px 8px',
                           borderRadius: 4,
                         }}
@@ -874,9 +875,9 @@ export function ContactUsPage() {
                           style={{
                             fontSize: 10,
                             fontWeight: 800,
-                            backgroundColor: '#F4F4F5',
-                            color: '#09090B',
-                            border: '1px solid #E4E4E7',
+                            backgroundColor: '#F0F9FF',
+                            color: '#0369A1',
+                            border: '1px solid #BAE6FD',
                             padding: '3px 8px',
                             borderRadius: 4,
                           }}
@@ -886,9 +887,9 @@ export function ContactUsPage() {
                       )}
                     </div>
 
-                    <div style={{ fontSize: 12, color: '#71717A', marginTop: 6 }}>
-                      From: <strong style={{ color: '#09090B' }}>{item.senderName}</strong> ({item.senderEmail} • {item.senderPhone}) | Recd: {item.timestamp}
-                      {item.orderId ? <span style={{ marginLeft: 8, color: '#09090B', fontWeight: 700 }}>• Order Ref: #{item.orderId}</span> : null}
+                    <div style={{ fontSize: 12, color: '#0284C7', marginTop: 6 }}>
+                      From: <strong style={{ color: '#0369A1' }}>{item.senderName}</strong> ({item.senderEmail} • {item.senderPhone}) | Recd: {item.timestamp}
+                      {item.orderId ? <span style={{ marginLeft: 8, color: '#0369A1', fontWeight: 700 }}>• Order Ref: #{item.orderId}</span> : null}
                     </div>
                   </div>
 
@@ -903,8 +904,8 @@ export function ContactUsPage() {
                       style={{
                         padding: '8px 16px',
                         backgroundColor: '#FFFFFF',
-                        color: '#09090B',
-                        border: '1px solid #E4E4E7',
+                        color: '#0369A1',
+                        border: '1px solid #BAE6FD',
                         borderRadius: 8,
                         fontSize: 12,
                         fontWeight: 800,
@@ -912,6 +913,7 @@ export function ContactUsPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
+                        boxShadow: '0 1px 3px rgba(14, 165, 233, 0.1)',
                       }}
                     >
                       <span>✉</span>
@@ -923,7 +925,7 @@ export function ContactUsPage() {
                       onClick={() => handleMarkAsResolved(item.id)}
                       style={{
                         padding: '8px 16px',
-                        backgroundColor: '#000000',
+                        background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: 8,
@@ -933,6 +935,7 @@ export function ContactUsPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
+                        boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                       }}
                     >
                       <span>✓</span>
@@ -943,17 +946,17 @@ export function ContactUsPage() {
 
                 {/* Live Customer & Admin Chat Thread */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
                     Customer Chat Thread ({item.messages?.length || 1} messages):
                   </div>
                   <div
                     style={{
-                      backgroundColor: '#F4F4F5',
+                      backgroundColor: '#F0F9FF',
                       padding: 14,
                       borderRadius: 10,
-                      border: '1px solid #E4E4E7',
+                      border: '1px solid #BAE6FD',
                       fontSize: 13,
-                      color: '#09090B',
+                      color: '#0369A1',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 8,
@@ -981,15 +984,16 @@ export function ContactUsPage() {
                           style={{
                             alignSelf: isAdmin ? 'flex-end' : 'flex-start',
                             maxWidth: '90%',
-                            backgroundColor: isAdmin ? '#14532D' : '#FFFFFF',
-                            color: isAdmin ? '#FFFFFF' : '#09090B',
+                            background: isAdmin ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
+                            color: isAdmin ? '#FFFFFF' : '#0369A1',
                             padding: '8px 12px',
                             borderRadius: 10,
-                            border: isAdmin ? 'none' : '1px solid #CBD5E1',
+                            border: isAdmin ? 'none' : '1px solid #BAE6FD',
                             fontSize: 13,
+                            boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
                           }}
                         >
-                          <div style={{ fontSize: 10, fontWeight: 700, color: isAdmin ? '#A7F3D0' : '#64748B', marginBottom: 2 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: isAdmin ? '#E0F2FE' : '#0284C7', marginBottom: 2 }}>
                             {msg.senderName} • {msg.timestamp}
                           </div>
                           <div>{msg.message}</div>
@@ -1006,14 +1010,14 @@ export function ContactUsPage() {
 
       {/* TAB 5: CONTACT HISTORY */}
       {activeTab === 'HISTORY' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #E4E4E7', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #E4E4E7', backgroundColor: '#F4F4F5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>Resolved Contact History Audit Log</h2>
-              <p style={{ fontSize: 12, color: '#71717A', margin: '2px 0 0 0' }}>Archived and resolved support enquiries with complete audit trail</p>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Resolved Contact History Audit Log</h2>
+              <p style={{ fontSize: 12, color: '#0284C7', margin: '2px 0 0 0' }}>Archived and resolved support enquiries with complete audit trail</p>
             </div>
 
-            <span style={{ fontSize: 12, fontWeight: 800, backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', padding: '4px 12px', borderRadius: 20 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '4px 12px', borderRadius: 20 }}>
               {getFilteredHistory().length} Resolved Tickets
             </span>
           </div>
@@ -1021,7 +1025,7 @@ export function ContactUsPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #E4E4E7', color: '#18181B', backgroundColor: '#F4F4F5' }}>
+                <tr style={{ borderBottom: '1px solid #BAE6FD', color: '#0369A1', backgroundColor: '#F0F9FF' }}>
                   <th style={{ padding: '14px 20px' }}>Enquiry & Sender</th>
                   <th style={{ padding: '14px 20px' }}>Category</th>
                   <th style={{ padding: '14px 20px' }}>Original Request</th>
@@ -1033,26 +1037,26 @@ export function ContactUsPage() {
               <tbody>
                 {getFilteredHistory().length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: 40, textAlign: 'center', color: '#71717A' }}>
+                    <td colSpan={6} style={{ padding: 40, textAlign: 'center', color: '#0284C7' }}>
                       No resolved records matching active search filters.
                     </td>
                   </tr>
                 ) : (
                   getFilteredHistory().map((row) => (
-                    <tr key={row.id} style={{ borderBottom: '1px solid #F4F4F5' }}>
+                    <tr key={row.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: '#09090B' }}>{row.id}</div>
-                        <div style={{ fontWeight: 800, color: '#09090B', marginTop: 2 }}>{row.senderName}</div>
-                        <div style={{ fontSize: 11, color: '#71717A' }}>{row.senderEmail}</div>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: '#0369A1' }}>{row.id}</div>
+                        <div style={{ fontWeight: 800, color: '#0369A1', marginTop: 2 }}>{row.senderName}</div>
+                        <div style={{ fontSize: 11, color: '#0284C7' }}>{row.senderEmail}</div>
                       </td>
                       <td style={{ padding: '16px 20px' }}>
                         <span
                           style={{
                             fontSize: 11,
                             fontWeight: 700,
-                            backgroundColor: '#F4F4F5',
-                            color: '#09090B',
-                            border: '1px solid #E4E4E7',
+                            backgroundColor: '#F0F9FF',
+                            color: '#0369A1',
+                            border: '1px solid #BAE6FD',
                             padding: '4px 8px',
                             borderRadius: 6,
                           }}
@@ -1061,18 +1065,18 @@ export function ContactUsPage() {
                         </span>
                       </td>
                       <td style={{ padding: '16px 20px', maxWidth: 240 }}>
-                        <div style={{ fontWeight: 700, color: '#09090B', fontSize: 12 }}>{row.subject}</div>
-                        <div style={{ fontSize: 11, color: '#71717A', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontWeight: 700, color: '#0369A1', fontSize: 12 }}>{row.subject}</div>
+                        <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           "{row.message}"
                         </div>
                       </td>
                       <td style={{ padding: '16px 20px', maxWidth: 240 }}>
-                        <div style={{ fontSize: 12, color: '#09090B', fontWeight: 600 }}>{row.replyMessage || 'Resolved via phone call'}</div>
+                        <div style={{ fontSize: 12, color: '#0369A1', fontWeight: 600 }}>{row.replyMessage || 'Resolved via phone call'}</div>
                       </td>
-                      <td style={{ padding: '16px 20px', fontSize: 11, color: '#71717A' }}>{row.resolvedAt || 'Resolved'}</td>
+                      <td style={{ padding: '16px 20px', fontSize: 11, color: '#0284C7' }}>{row.resolvedAt || 'Resolved'}</td>
                       <td style={{ padding: '16px 20px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <span style={{ backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 20, textAlign: 'center' }}>
+                          <span style={{ backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 20, textAlign: 'center' }}>
                             RESOLVED
                           </span>
                           <button
@@ -1081,7 +1085,7 @@ export function ContactUsPage() {
                             style={{
                               border: 'none',
                               background: 'none',
-                              color: '#09090B',
+                              color: '#0369A1',
                               fontSize: 11,
                               fontWeight: 700,
                               cursor: 'pointer',
@@ -1107,7 +1111,7 @@ export function ContactUsPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(9, 9, 11, 0.6)',
+            backgroundColor: 'rgba(8, 47, 73, 0.5)',
             backdropFilter: 'blur(4px)',
             zIndex: 9999,
             display: 'flex',
@@ -1125,8 +1129,8 @@ export function ContactUsPage() {
               maxWidth: 580,
               width: '100%',
               padding: 28,
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-              border: '1px solid #E4E4E7',
+              boxShadow: '0 20px 40px rgba(14, 165, 233, 0.2)',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
@@ -1134,39 +1138,39 @@ export function ContactUsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
                 Reply to {selectedEnquiry.senderName} ({selectedEnquiry.id})
               </h3>
               <button
                 type="button"
                 onClick={() => setSelectedEnquiry(null)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#71717A' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#0284C7' }}
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ backgroundColor: '#F4F4F5', padding: 12, borderRadius: 8, fontSize: 12, color: '#09090B', lineHeight: 1.4, border: '1px solid #E4E4E7' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: 12, borderRadius: 8, fontSize: 12, color: '#0369A1', lineHeight: 1.4, border: '1px solid #BAE6FD' }}>
               <strong>Subject:</strong> {selectedEnquiry.subject}<br />
               <strong>Recipient Email:</strong> {selectedEnquiry.senderEmail} ({selectedEnquiry.senderPhone})
             </div>
 
             {/* Live 2-Way Chat Thread */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
                 Conversation History ({(selectedEnquiry.messages && selectedEnquiry.messages.length) || 1} messages)
               </label>
               <div
                 style={{
                   maxHeight: 220,
                   overflowY: 'auto',
-                  backgroundColor: '#F4F4F5',
+                  backgroundColor: '#F0F9FF',
                   borderRadius: 10,
                   padding: 12,
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 10,
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                 }}
               >
                 {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0
@@ -1189,12 +1193,12 @@ export function ContactUsPage() {
                       style={{
                         alignSelf: isAdmin ? 'flex-end' : 'flex-start',
                         maxWidth: '85%',
-                        backgroundColor: isAdmin ? '#14532D' : '#FFFFFF',
-                        color: isAdmin ? '#FFFFFF' : '#09090B',
+                        background: isAdmin ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
+                        color: isAdmin ? '#FFFFFF' : '#0369A1',
                         padding: '10px 14px',
                         borderRadius: 12,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                        border: isAdmin ? 'none' : '1px solid #E4E4E7',
+                        boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
+                        border: isAdmin ? 'none' : '1px solid #BAE6FD',
                         borderTopRightRadius: isAdmin ? 2 : 12,
                         borderTopLeftRadius: isAdmin ? 12 : 2,
                       }}
@@ -1203,7 +1207,7 @@ export function ContactUsPage() {
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
-                          color: isAdmin ? '#A7F3D0' : '#71717A',
+                          color: isAdmin ? '#E0F2FE' : '#0284C7',
                           marginBottom: 4,
                           display: 'flex',
                           justifyContent: 'space-between',
@@ -1222,7 +1226,7 @@ export function ContactUsPage() {
 
             {/* Quick Templates */}
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: '#71717A', display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>
                 Quick Response Templates
               </label>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1234,9 +1238,9 @@ export function ContactUsPage() {
                     style={{
                       padding: '4px 10px',
                       borderRadius: 6,
-                      border: '1px solid #E4E4E7',
-                      backgroundColor: '#F4F4F5',
-                      color: '#09090B',
+                      border: '1px solid #BAE6FD',
+                      backgroundColor: '#F0F9FF',
+                      color: '#0369A1',
                       fontSize: 11,
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -1249,7 +1253,7 @@ export function ContactUsPage() {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 6 }}>
                 Compose Response Message *
               </label>
               <textarea
@@ -1257,7 +1261,7 @@ export function ContactUsPage() {
                 onChange={(e) => setReplyText(e.target.value)}
                 rows={5}
                 placeholder="Type your official reply message to be dispatched via email and SMS notification..."
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, resize: 'vertical', backgroundColor: '#FFFFFF', color: '#09090B' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, resize: 'vertical', backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
                 required
               />
             </div>
@@ -1268,9 +1272,9 @@ export function ContactUsPage() {
                 onClick={() => setSelectedEnquiry(null)}
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#09090B',
-                  border: '1px solid #E4E4E7',
+                  backgroundColor: '#F0F9FF',
+                  color: '#0369A1',
+                  border: '1px solid #BAE6FD',
                   borderRadius: 8,
                   fontWeight: 700,
                   fontSize: 13,
@@ -1283,13 +1287,14 @@ export function ContactUsPage() {
                 type="submit"
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#000000',
+                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
                   fontWeight: 800,
                   fontSize: 13,
                   cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                 }}
               >
                 Dispatch Response Now
@@ -1305,7 +1310,7 @@ export function ContactUsPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(9, 9, 11, 0.6)',
+            backgroundColor: 'rgba(8, 47, 73, 0.5)',
             backdropFilter: 'blur(4px)',
             zIndex: 9999,
             display: 'flex',
@@ -1323,8 +1328,8 @@ export function ContactUsPage() {
               maxWidth: 540,
               width: '100%',
               padding: 28,
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-              border: '1px solid #E4E4E7',
+              boxShadow: '0 20px 40px rgba(14, 165, 233, 0.2)',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
@@ -1332,13 +1337,13 @@ export function ContactUsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
                 Log New Support Enquiry Ticket
               </h3>
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#71717A' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#0284C7' }}
               >
                 ✕
               </button>
@@ -1346,13 +1351,13 @@ export function ContactUsPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                   Category *
                 </label>
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value as any)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
                 >
                   <option value="CUSTOMER">Customer Enquiry</option>
                   <option value="RESTAURANT">Restaurant Enquiry</option>
@@ -1362,13 +1367,13 @@ export function ContactUsPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                   Priority Urgency *
                 </label>
                 <select
                   value={newPriority}
                   onChange={(e) => setNewPriority(e.target.value as any)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
                 >
                   <option value="HIGH">🔥 High Urgency</option>
                   <option value="MEDIUM">⚡ Medium Urgency</option>
@@ -1378,7 +1383,7 @@ export function ContactUsPage() {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                 Sender Name *
               </label>
               <input
@@ -1386,14 +1391,14 @@ export function ContactUsPage() {
                 value={newSenderName}
                 onChange={(e) => setNewSenderName(e.target.value)}
                 placeholder="e.g. Ramesh Chandra"
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
                 required
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                   Sender Email *
                 </label>
                 <input
@@ -1401,13 +1406,13 @@ export function ContactUsPage() {
                   value={newSenderEmail}
                   onChange={(e) => setNewSenderEmail(e.target.value)}
                   placeholder="ramesh@gmail.com"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
                   required
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                   Sender Phone
                 </label>
                 <input
@@ -1415,13 +1420,13 @@ export function ContactUsPage() {
                   value={newSenderPhone}
                   onChange={(e) => setNewSenderPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
                 />
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                 Subject *
               </label>
               <input
@@ -1429,13 +1434,13 @@ export function ContactUsPage() {
                 value={newSubject}
                 onChange={(e) => setNewSubject(e.target.value)}
                 placeholder="Brief title of enquiry..."
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, backgroundColor: '#FFFFFF', color: '#09090B' }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
                 required
               />
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                 Detailed Enquiry Description *
               </label>
               <textarea
@@ -1443,7 +1448,7 @@ export function ContactUsPage() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 rows={4}
                 placeholder="Enter details of customer/partner inquiry..."
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, resize: 'vertical', backgroundColor: '#FFFFFF', color: '#09090B' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, resize: 'vertical', backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
                 required
               />
             </div>
@@ -1454,9 +1459,9 @@ export function ContactUsPage() {
                 onClick={() => setIsCreateModalOpen(false)}
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#09090B',
-                  border: '1px solid #E4E4E7',
+                  backgroundColor: '#F0F9FF',
+                  color: '#0369A1',
+                  border: '1px solid #BAE6FD',
                   borderRadius: 8,
                   fontWeight: 700,
                   fontSize: 13,
@@ -1469,13 +1474,14 @@ export function ContactUsPage() {
                 type="submit"
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#000000',
+                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
                   fontWeight: 800,
                   fontSize: 13,
                   cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                 }}
               >
                 Save & Open Ticket

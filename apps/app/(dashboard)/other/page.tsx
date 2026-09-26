@@ -11,7 +11,7 @@ export default function OtherBusinessPage() {
         <h1 style={{ fontSize: 24, fontWeight: 800, color: '#14532D', margin: '0 0 6px 0' }}>
           Other Business Services & Auxiliary Operations
         </h1>
-        <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
+        <p style={{ fontSize: 13, color: '#0284C7', margin: 0 }}>
           Manage location boundaries, operating zones, delivery charges, auxiliary business services & regional settings
         </p>
       </div>
@@ -44,7 +44,7 @@ export default function OtherBusinessPage() {
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#14532D', margin: '0 0 6px 0' }}>
               Location Management
             </h3>
-            <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: '#0284C7', margin: 0, lineHeight: 1.5 }}>
               Configure operating cities, service area coverage, delivery polygon zones, distance-based charges & radius parameters.
             </p>
           </div>
@@ -82,7 +82,7 @@ export default function OtherBusinessPage() {
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#14532D', margin: '0 0 6px 0' }}>
               Social Media
             </h3>
-            <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: '#0284C7', margin: 0, lineHeight: 1.5 }}>
               Manage platform social media links (Pinterest, LinkedIn, Facebook, Instagram, YouTube, etc.) and active display status.
             </p>
           </div>
@@ -100,7 +100,7 @@ export default function OtherBusinessPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 16,
             padding: 24,
-            border: '1px solid #E2E8F0',
+            border: '1px solid #BAE6FD',
             display: 'flex',
             flexDirection: 'column',
             gap: 12,
@@ -116,12 +116,12 @@ export default function OtherBusinessPage() {
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#14532D', margin: '0 0 6px 0' }}>
               Regional Delivery Rules
             </h3>
-            <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: '#0284C7', margin: 0, lineHeight: 1.5 }}>
               Set up state-level delivery dispatch policies, weather contingency multipliers & driver payout guarantees.
             </p>
           </div>
           <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 12, marginTop: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#075985' }}>
               Configured under Location & Settings
             </span>
           </div>
@@ -133,7 +133,7 @@ export default function OtherBusinessPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 16,
             padding: 24,
-            border: '1px solid #E2E8F0',
+            border: '1px solid #BAE6FD',
             display: 'flex',
             flexDirection: 'column',
             gap: 12,
@@ -149,12 +149,12 @@ export default function OtherBusinessPage() {
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#14532D', margin: '0 0 6px 0' }}>
               Zone Merchant Limits
             </h3>
-            <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: '#0284C7', margin: 0, lineHeight: 1.5 }}>
               Manage outlet density caps per delivery zone and regulate merchant registration thresholds per pincode.
             </p>
           </div>
           <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 12, marginTop: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#075985' }}>
               Integrated with Restaurants & Location
             </span>
           </div>

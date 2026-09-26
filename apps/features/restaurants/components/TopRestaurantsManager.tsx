@@ -99,24 +99,25 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
                     onClick={handleSave}
                     disabled={isSaving}
                     style={{
-                        backgroundColor: '#14532D',
+                        background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                         color: '#FFFFFF',
                         fontWeight: 700,
-                        padding: '10px 16px',
+                        padding: '10px 18px',
                         borderRadius: 8,
                         border: 'none',
-                        cursor: isSaving ? 'not-allowed' : 'pointer'
+                        cursor: isSaving ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                     }}
                 >
                     {isSaving ? 'Saving...' : 'Save Top Restaurants'}
                 </button>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: 16, backgroundColor: '#FAFAFA', borderRadius: 8, border: '1px solid #E4E4E7' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: 16, backgroundColor: '#F0F9FF', borderRadius: 8, border: '1px solid #BAE6FD' }}>
                 <select
                     value={selectedToAdd}
                     onChange={(e) => setSelectedToAdd(e.target.value)}
-                    style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 14 }}
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 14, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
                 >
                     <option value="" disabled>-- Select Restaurant to Add to Top List --</option>
                     {availableStores.map(store => (
@@ -127,13 +128,14 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
                     onClick={handleAdd}
                     disabled={!selectedToAdd}
                     style={{
-                        padding: '10px 16px',
-                        backgroundColor: selectedToAdd ? '#000000' : '#A1A1AA',
-                        color: '#FFFFFF',
-                        border: 'none',
+                        padding: '10px 18px',
+                        background: selectedToAdd ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#E0F2FE',
+                        color: selectedToAdd ? '#FFFFFF' : '#0369A1',
+                        border: selectedToAdd ? 'none' : '1px solid #BAE6FD',
                         borderRadius: 8,
-                        fontWeight: 600,
-                        cursor: selectedToAdd ? 'pointer' : 'not-allowed'
+                        fontWeight: 700,
+                        cursor: selectedToAdd ? 'pointer' : 'not-allowed',
+                        boxShadow: selectedToAdd ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
                     }}
                 >
                     + Add to List
@@ -141,8 +143,8 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
             </div>
 
             {arrangedStores.length === 0 ? (
-                <div style={{ padding: 40, textAlign: 'center', backgroundColor: '#FAFAFA', border: '1px dashed #E4E4E7', borderRadius: 12 }}>
-                    <Text style={{ fontWeight: 600, color: '#A1A1AA' }}>No top restaurants selected.</Text>
+                <div style={{ padding: 40, textAlign: 'center', backgroundColor: '#F0F9FF', border: '1px dashed #BAE6FD', borderRadius: 12 }}>
+                    <Text style={{ fontWeight: 600, color: '#0284C7' }}>No top restaurants selected.</Text>
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
@@ -154,11 +156,11 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
                             <div key={restaurant.id} style={{ position: 'relative' }}>
                                 <div
                                     style={{
-                                        backgroundColor: tokens.color.surface,
+                                        backgroundColor: '#FFFFFF',
                                         borderRadius: tokens.radius.md,
-                                        border: '1px solid ' + tokens.color.border,
+                                        border: '1px solid #BAE6FD',
                                         overflow: 'hidden',
-                                        boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                                        boxShadow: '0 4px 10px rgba(14, 165, 233, 0.1)',
                                         position: 'relative',
                                         flex: 1,
                                         display: 'flex',
@@ -166,8 +168,8 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
                                     }}
                                 >
                                     <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, display: 'flex', gap: 4 }}>
-                                        <button onClick={() => moveUp(index)} style={{ padding: 4, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>⬆️</button>
-                                        <button onClick={() => moveDown(index)} style={{ padding: 4, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'rgba(255,255,255,0.9)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>⬇️</button>
+                                        <button onClick={() => moveUp(index)} style={{ padding: '4px 6px', cursor: 'pointer', borderRadius: 4, border: '1px solid #BAE6FD', background: 'rgba(240, 249, 255, 0.95)', boxShadow: '0 2px 4px rgba(14, 165, 233, 0.15)' }}>⬆️</button>
+                                        <button onClick={() => moveDown(index)} style={{ padding: '4px 6px', cursor: 'pointer', borderRadius: 4, border: '1px solid #BAE6FD', background: 'rgba(240, 249, 255, 0.95)', boxShadow: '0 2px 4px rgba(14, 165, 233, 0.15)' }}>⬇️</button>
                                     </div>
 
                                     <button
@@ -177,8 +179,8 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
                                         Remove ✕
                                     </button>
 
-                                    <div style={{ height: 110, width: '100%', backgroundColor: '#F0ECE4', position: 'relative' }}>
-                                        <div style={{ position: 'absolute', zIndex: 5, bottom: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFF', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontWeight: 800 }}>
+                                    <div style={{ height: 110, width: '100%', backgroundColor: '#E0F2FE', position: 'relative' }}>
+                                        <div style={{ position: 'absolute', zIndex: 5, bottom: 8, left: 8, backgroundColor: '#0284C7', color: '#FFF', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800 }}>
                                             Pos: #{index + 1}
                                         </div>
                                         <img
@@ -187,17 +189,17 @@ export function TopRestaurantsManager({ stores, onSavePositions }: TopRestaurant
                                         />
                                     </div>
 
-                                    <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <Text
                                                 variant="label"
-                                                style={{ flex: 1, fontWeight: '700', color: tokens.color.textPrimary, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                                                style={{ flex: 1, fontWeight: '700', color: '#0369A1', fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
                                             >
                                                 {restaurant.name}
                                             </Text>
                                         </div>
                                         {restaurant.module ? (
-                                            <Text variant="caption" color={tokens.color.textSecondary} style={{ fontWeight: '500', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            <Text variant="caption" color="#0284C7" style={{ fontWeight: '500', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 {restaurant.module}
                                             </Text>
                                         ) : null}

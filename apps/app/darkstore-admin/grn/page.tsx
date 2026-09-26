@@ -110,7 +110,7 @@ export default function WarehouseGrnPage() {
             position: 'fixed',
             top: 20,
             right: 20,
-            backgroundColor: '#0F3D21',
+            backgroundColor: '#0369A1',
             color: '#F59E0B',
             padding: '14px 24px',
             borderRadius: 12,
@@ -126,10 +126,10 @@ export default function WarehouseGrnPage() {
 
       {/* Header */}
       <div>
-        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', margin: 0 }}>
           Warehouse Inventory Flow (GRN / Stock Entry)
         </h1>
-        <p style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>
+        <p style={{ fontSize: 13, color: '#0284C7', marginTop: 4 }}>
           Warehouse receives actual inventory through Goods Received Note (GRN) entries. Only GRN received quantity becomes actual Warehouse inventory stock.
         </p>
       </div>
@@ -141,21 +141,21 @@ export default function WarehouseGrnPage() {
           backgroundColor: '#FFFFFF',
           borderRadius: 16,
           padding: 24,
-          border: '1.5px solid #0F3D21',
+          border: '1.5px solid #0369A1',
           boxShadow: '0 4px 14px rgba(15, 61, 33, 0.08)',
           display: 'flex',
           flexDirection: 'column',
           gap: 20,
         }}
       >
-        <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0369A1', margin: 0 }}>
           Admin GRN Stock Inward Entry Form
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
           {/* 1. Select State */}
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#0F3D21', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#0369A1', marginBottom: 6 }}>
               1. Select State *
             </label>
             <select
@@ -165,7 +165,7 @@ export default function WarehouseGrnPage() {
                 const firstWh = SAMPLE_WAREHOUSES.find((w) => w.stateId === e.target.value);
                 if (firstWh) setSelectedWarehouseId(firstWh.id);
               }}
-              style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700, outline: 'none' }}
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700, outline: 'none' }}
             >
               {SAMPLE_STATES.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -177,14 +177,14 @@ export default function WarehouseGrnPage() {
 
           {/* 2. Select Warehouse (Filtered by State) */}
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#0F3D21', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#0369A1', marginBottom: 6 }}>
               2. Select Warehouse (State Filtered) *
             </label>
             <select
               value={selectedWarehouseId}
               required
               onChange={(e) => setSelectedWarehouseId(e.target.value)}
-              style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700, outline: 'none' }}
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700, outline: 'none' }}
             >
               {filteredWarehouses.map((w) => (
                 <option key={w.id} value={w.id}>
@@ -196,13 +196,13 @@ export default function WarehouseGrnPage() {
 
           {/* 3. Product / Variant */}
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#0F3D21', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#0369A1', marginBottom: 6 }}>
               3. Product / Variant SKU *
             </label>
             <select
               value={selectedSku}
               onChange={(e) => setSelectedSku(e.target.value)}
-              style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700, outline: 'none' }}
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700, outline: 'none' }}
             >
               {SAMPLE_PRODUCTS.map((p) => (
                 <option key={p.sku} value={p.sku}>
@@ -214,7 +214,7 @@ export default function WarehouseGrnPage() {
 
           {/* 4. Quantity Received */}
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#0F3D21', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#0369A1', marginBottom: 6 }}>
               4. Quantity Received through GRN *
             </label>
             <input
@@ -223,7 +223,7 @@ export default function WarehouseGrnPage() {
               required
               value={quantityReceived}
               onChange={(e) => setQuantityReceived(Number(e.target.value))}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 800 }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 800 }}
             />
           </div>
         </div>
@@ -235,7 +235,7 @@ export default function WarehouseGrnPage() {
               padding: '12px 24px',
               borderRadius: 10,
               border: 'none',
-              backgroundColor: '#0F3D21',
+              backgroundColor: '#0369A1',
               color: '#F59E0B',
               fontSize: 14,
               fontWeight: 900,
@@ -249,20 +249,20 @@ export default function WarehouseGrnPage() {
       </form>
 
       {/* GRN Log History Table */}
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #E2E8F0', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0369A1', margin: 0 }}>
             GRN Inward Stock Log History
           </h3>
-          <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
             Flow: Warehouse GRN Entry → Warehouse Inventory Updated → Available Darkstore Stock Recalculated
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: 10 }}>
+        <div style={{ overflowX: 'auto', border: '1px solid #BAE6FD', borderRadius: 10 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
             <thead>
-              <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B' }}>
+              <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0284C7' }}>
                 <th style={{ padding: '12px 16px' }}>GRN Reference Number</th>
                 <th style={{ padding: '12px 16px' }}>State & Warehouse</th>
                 <th style={{ padding: '12px 16px' }}>Product Variant</th>
@@ -273,13 +273,13 @@ export default function WarehouseGrnPage() {
             </thead>
             <tbody>
               {grnLogs.map((log) => (
-                <tr key={log.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                <tr key={log.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
                   <td style={{ padding: '12px 16px', fontWeight: 900, color: '#0284C7', fontFamily: 'monospace' }}>
                     {log.grnNumber}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <div style={{ fontWeight: 800, color: '#0F3D21' }}>{log.warehouseName}</div>
-                    <div style={{ fontSize: 11, color: '#64748B' }}>State: {log.stateName}</div>
+                    <div style={{ fontWeight: 800, color: '#0369A1' }}>{log.warehouseName}</div>
+                    <div style={{ fontSize: 11, color: '#0284C7' }}>State: {log.stateName}</div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ fontWeight: 700, color: '#1E293B' }}>{log.productName}</div>
@@ -290,8 +290,8 @@ export default function WarehouseGrnPage() {
                       +{log.quantityReceived} units
                     </span>
                   </td>
-                  <td style={{ padding: '12px 16px', color: '#475569' }}>{log.entryDate}</td>
-                  <td style={{ padding: '12px 16px', color: '#64748B' }}>{log.receivedBy}</td>
+                  <td style={{ padding: '12px 16px', color: '#075985' }}>{log.entryDate}</td>
+                  <td style={{ padding: '12px 16px', color: '#0284C7' }}>{log.receivedBy}</td>
                 </tr>
               ))}
             </tbody>

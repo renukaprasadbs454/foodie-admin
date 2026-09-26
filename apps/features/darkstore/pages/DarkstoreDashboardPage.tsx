@@ -93,7 +93,7 @@ export function DarkstoreDashboardPage() {
   ]);
 
   const kpiCards = [
-    { title: 'Total Orders', value: metrics.totalOrders, color: '#0F3D21', icon: '', bg: '#DCFCE7' },
+    { title: 'Total Orders', value: metrics.totalOrders, color: '#0369A1', icon: '', bg: '#DCFCE7' },
     { title: 'New Orders', value: metrics.newOrders, color: '#B45309', icon: '', bg: '#FEF3C7' },
     { title: 'Picking in Progress', value: metrics.ordersBeingPicked, color: '#1D4ED8', icon: '', bg: '#DBEAFE' },
     { title: 'Ready for Dispatch', value: metrics.ordersReadyForDispatch, color: '#6D28D9', icon: '', bg: '#EDE9FE' },
@@ -102,7 +102,7 @@ export function DarkstoreDashboardPage() {
     { title: 'Low Stock SKU', value: metrics.lowStockProducts, color: '#C2410C', icon: '', bg: '#FFEDD5' },
     { title: 'Out of Stock SKU', value: metrics.outOfStockProducts, color: '#991B1B', icon: '', bg: '#FEE2E2' },
     { title: 'Total Catalog Products', value: metrics.totalProducts, color: '#374151', icon: '', bg: '#F3F4F6' },
-    { title: "Today's Revenue", value: `₹${metrics.todaysRevenue.toFixed(2)}`, color: '#0F3D21', icon: '', bg: '#DCFCE7' },
+    { title: "Today's Revenue", value: `₹${metrics.todaysRevenue.toFixed(2)}`, color: '#0369A1', icon: '', bg: '#DCFCE7' },
     { title: 'Average Order Value', value: `₹${metrics.averageOrderValue.toFixed(2)}`, color: '#1E40AF', icon: '', bg: '#DBEAFE' },
     { title: 'Pending Actions', value: metrics.pendingActionsCount, color: '#9A3412', icon: '', bg: '#FFEDD5' },
   ];
@@ -112,10 +112,10 @@ export function DarkstoreDashboardPage() {
       {/* Top Banner & Quick Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', margin: 0 }}>
             Darkstore Operational Dashboard
           </h1>
-          <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
+          <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0' }}>
             Real-time quick-commerce picking, packing, dispatch, and inventory analytics for <strong>Indiranagar QuickHub</strong>.
           </p>
         </div>
@@ -123,7 +123,7 @@ export function DarkstoreDashboardPage() {
           <Link
             href="/darkstore-admin/picking"
             style={{
-              backgroundColor: '#0F3D21',
+              backgroundColor: '#0369A1',
               color: '#FFFFFF',
               padding: '10px 16px',
               borderRadius: 8,
@@ -140,7 +140,7 @@ export function DarkstoreDashboardPage() {
           <Link
             href="/darkstore-admin/dispatch"
             style={{
-              backgroundColor: '#000000',
+              backgroundColor: '#0284C7',
               color: '#FFFFFF',
               padding: '10px 16px',
               borderRadius: 8,
@@ -166,7 +166,7 @@ export function DarkstoreDashboardPage() {
               backgroundColor: '#FFFFFF',
               borderRadius: 12,
               padding: 16,
-              border: '1px solid #E5E7EB',
+              border: '1px solid #BAE6FD',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
               display: 'flex',
               alignItems: 'center',
@@ -174,7 +174,7 @@ export function DarkstoreDashboardPage() {
             }}
           >
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>{card.title}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>{card.title}</div>
               <div style={{ fontSize: 24, fontWeight: 900, color: card.color, marginTop: 4 }}>{card.value}</div>
             </div>
             <div
@@ -196,12 +196,12 @@ export function DarkstoreDashboardPage() {
       </div>
 
       {/* Live Order Queue Table */}
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 20 }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #BAE6FD', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F3D21', margin: 0 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0369A1', margin: 0 }}>
              Active Quick-Commerce Order Queue
           </h2>
-          <Link href="/darkstore-admin/orders" style={{ fontSize: 13, fontWeight: 700, color: '#0F3D21', textDecoration: 'none' }}>
+          <Link href="/darkstore-admin/orders" style={{ fontSize: 13, fontWeight: 700, color: '#0369A1', textDecoration: 'none' }}>
             View All Orders →
           </Link>
         </div>
@@ -209,7 +209,7 @@ export function DarkstoreDashboardPage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
-              <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 700 }}>
+              <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 700 }}>
                 <th style={{ padding: '12px 16px' }}>Order #</th>
                 <th style={{ padding: '12px 16px' }}>Customer</th>
                 <th style={{ padding: '12px 16px' }}>Address</th>
@@ -223,10 +223,10 @@ export function DarkstoreDashboardPage() {
             <tbody>
               {activeOrders.map((order) => (
                 <tr key={order.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                  <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0F3D21' }}>{order.orderNumber}</td>
+                  <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0369A1' }}>{order.orderNumber}</td>
                   <td style={{ padding: '14px 16px' }}>
-                    <div style={{ fontWeight: 700, color: '#111827' }}>{order.customerName}</div>
-                    <div style={{ fontSize: 11, color: '#6B7280' }}>{order.customerPhone}</div>
+                    <div style={{ fontWeight: 700, color: '#0369A1' }}>{order.customerName}</div>
+                    <div style={{ fontSize: 11, color: '#0284C7' }}>{order.customerPhone}</div>
                   </td>
                   <td style={{ padding: '14px 16px', color: '#4B5563', maxWidth: 220 }}>{order.deliveryAddress}</td>
                   <td style={{ padding: '14px 16px' }}>
@@ -258,12 +258,12 @@ export function DarkstoreDashboardPage() {
                     </span>
                   </td>
                   <td style={{ padding: '14px 16px', color: '#374151' }}>{order.assignedPicker || 'Unassigned'}</td>
-                  <td style={{ padding: '14px 16px', fontWeight: 800, color: '#111827' }}>₹{order.totalAmount.toFixed(2)}</td>
+                  <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0369A1' }}>₹{order.totalAmount.toFixed(2)}</td>
                   <td style={{ padding: '14px 16px' }}>
                     <Link
                       href={`/darkstore-admin/picking?orderId=${order.id}`}
                       style={{
-                        backgroundColor: '#0F3D21',
+                        backgroundColor: '#0369A1',
                         color: '#FFFFFF',
                         padding: '6px 12px',
                         borderRadius: 6,

@@ -29,17 +29,17 @@ const MOCK_RECENT_ORDERS: RecentOrder[] = [
 function getStatusBadge(status: RecentOrder['status']) {
   switch (status) {
     case 'PENDING':
-      return { label: 'Pending', color: '#09090B', bg: '#F4F4F5' };
+      return { label: 'Pending', color: '#0369A1', bg: '#E0F2FE', border: '#BAE6FD' };
     case 'CONFIRMED':
-      return { label: 'Confirmed', color: '#09090B', bg: '#F4F4F5' };
+      return { label: 'Confirmed', color: '#0284C7', bg: '#F0F9FF', border: '#7DD3FC' };
     case 'PROCESSING':
-      return { label: 'Packaging', color: '#09090B', bg: '#F4F4F5' };
+      return { label: 'Packaging', color: '#075985', bg: '#E0F2FE', border: '#38BDF8' };
     case 'OUT_FOR_DELIVERY':
-      return { label: 'In Transit', color: '#09090B', bg: '#F4F4F5' };
+      return { label: 'In Transit', color: '#0369A1', bg: '#BAE6FD', border: '#38BDF8' };
     case 'DELIVERED':
-      return { label: 'Delivered', color: '#FFFFFF', bg: '#000000' };
+      return { label: 'Delivered', color: '#FFFFFF', bg: '#0284C7', border: '#0284C7' };
     case 'CANCELED':
-      return { label: 'Canceled', color: '#71717A', bg: '#F4F4F5' };
+      return { label: 'Canceled', color: '#0284C7', bg: '#F1F5F9', border: '#CBD5E1' };
   }
 }
 
@@ -65,8 +65,8 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
       style={{
         backgroundColor: '#FFFFFF',
         borderRadius: 14,
-        border: '1px solid #E4E4E7',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+        border: '1px solid #BAE6FD',
+        boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -75,16 +75,16 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
       <div
         style={{
           padding: '16px 20px',
-          borderBottom: '1px solid #E4E4E7',
+          borderBottom: '1px solid #BAE6FD',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          backgroundColor: '#FAFAFA',
+          backgroundColor: '#F0F9FF',
         }}
       >
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#09090B', margin: 0 }}>Recent Orders Activity</h3>
-          <p style={{ fontSize: 12, color: '#71717A', margin: '2px 0 0' }}>Real-time stream of incoming customer transactions</p>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0369A1', margin: 0 }}>Recent Orders Activity</h3>
+          <p style={{ fontSize: 12, color: '#0284C7', margin: '2px 0 0' }}>Real-time stream of incoming customer transactions</p>
         </div>
         <button
           type="button"
@@ -92,12 +92,19 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
           style={{
             fontSize: 12,
             fontWeight: 700,
-            color: '#09090B',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E4E4E7',
+            color: '#0369A1',
+            backgroundColor: '#E0F2FE',
+            border: '1px solid #BAE6FD',
             padding: '6px 14px',
             borderRadius: 8,
             cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#BAE6FD';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#E0F2FE';
           }}
         >
           View All Orders →
@@ -107,7 +114,7 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#18181B', fontSize: 12, fontWeight: 700 }}>
+            <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontSize: 12, fontWeight: 700 }}>
               <th style={{ padding: '12px 14px' }}>Order ID</th>
               <th style={{ padding: '12px 14px' }}>Customer</th>
               <th style={{ padding: '12px 14px' }}>Restaurant Outlet</th>
@@ -120,7 +127,7 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
           <tbody>
             {filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#71717A' }}>
+                <td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#0284C7' }}>
                   No recent orders found matching selected module.
                 </td>
               </tr>
@@ -130,16 +137,16 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
                 return (
                   <tr
                     key={ord.id}
-                    style={{ borderBottom: '1px solid #F4F4F5', transition: 'background-color 0.15s ease' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAFAFA')}
+                    style={{ borderBottom: '1px solid #E0F2FE', transition: 'background-color 0.15s ease' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F0F9FF')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
-                    <td style={{ padding: '12px 14px', fontWeight: 800, color: '#09090B' }}>{ord.orderCode}</td>
-                    <td style={{ padding: '12px 14px', color: '#09090B', fontWeight: 600 }}>{ord.customerName}</td>
-                    <td style={{ padding: '12px 14px', color: '#71717A' }}>{ord.restaurantName}</td>
-                    <td style={{ padding: '12px 14px', fontWeight: 800, color: '#09090B' }}>₹{ord.totalAmount.toFixed(2)}</td>
+                    <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0369A1' }}>{ord.orderCode}</td>
+                    <td style={{ padding: '12px 14px', color: '#075985', fontWeight: 600 }}>{ord.customerName}</td>
+                    <td style={{ padding: '12px 14px', color: '#0284C7' }}>{ord.restaurantName}</td>
+                    <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0369A1' }}>₹{ord.totalAmount.toFixed(2)}</td>
                     <td style={{ padding: '12px 14px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '3px 8px', borderRadius: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#0369A1', backgroundColor: '#E0F2FE', border: '1px solid #BAE6FD', padding: '3px 8px', borderRadius: 4 }}>
                         {ord.paymentMethod}
                       </span>
                     </td>
@@ -150,7 +157,7 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
                           fontWeight: 700,
                           color: badge.color,
                           backgroundColor: badge.bg,
-                          border: '1px solid #E4E4E7',
+                          border: `1px solid ${badge.border}`,
                           padding: '4px 10px',
                           borderRadius: 20,
                           display: 'inline-block',
@@ -167,9 +174,9 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
                           padding: '5px 10px',
                           fontSize: 12,
                           fontWeight: 700,
-                          color: '#09090B',
-                          backgroundColor: '#F4F4F5',
-                          border: '1px solid #E4E4E7',
+                          color: '#0369A1',
+                          backgroundColor: '#E0F2FE',
+                          border: '1px solid #BAE6FD',
                           borderRadius: 6,
                           cursor: 'pointer',
                         }}
@@ -191,7 +198,7 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backgroundColor: 'rgba(8, 47, 73, 0.5)',
             backdropFilter: 'blur(3px)',
             zIndex: 999,
             display: 'flex',
@@ -206,50 +213,51 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
               backgroundColor: '#FFFFFF',
               height: '100%',
               padding: '24px',
-              boxShadow: '-10px 0 25px rgba(0,0,0,0.1)',
+              boxShadow: '-10px 0 25px rgba(3, 105, 161, 0.15)',
               display: 'flex',
               flexDirection: 'column',
               gap: 20,
               overflowY: 'auto',
+              borderLeft: '2px solid #BAE6FD',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E4E4E7', paddingBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #BAE6FD', paddingBottom: 16 }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#09090B' }}>Order {selectedOrder.orderCode}</div>
-                <div style={{ fontSize: 12, color: '#71717A' }}>Created {selectedOrder.createdAt}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#0369A1' }}>Order {selectedOrder.orderCode}</div>
+                <div style={{ fontSize: 12, color: '#0284C7' }}>Created {selectedOrder.createdAt}</div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedOrder(null)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#71717A' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#0284C7' }}
               >
                 ×
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: 13 }}>
-              <div style={{ backgroundColor: '#F4F4F5', padding: 14, borderRadius: 10, border: '1px solid #E4E4E7' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Customer Details</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', marginTop: 2 }}>{selectedOrder.customerName}</div>
-                <div style={{ color: '#71717A', marginTop: 2 }}>Payment via {selectedOrder.paymentMethod}</div>
+              <div style={{ backgroundColor: '#F0F9FF', padding: 14, borderRadius: 10, border: '1px solid #BAE6FD' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Customer Details</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1', marginTop: 2 }}>{selectedOrder.customerName}</div>
+                <div style={{ color: '#075985', marginTop: 2 }}>Payment via {selectedOrder.paymentMethod}</div>
               </div>
 
-              <div style={{ backgroundColor: '#F4F4F5', padding: 14, borderRadius: 10, border: '1px solid #E4E4E7' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>Store Details</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', marginTop: 2 }}>{selectedOrder.restaurantName}</div>
-                <div style={{ color: '#71717A', marginTop: 2 }}>{selectedOrder.itemsCount} Food items included</div>
+              <div style={{ backgroundColor: '#F0F9FF', padding: 14, borderRadius: 10, border: '1px solid #BAE6FD' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Store Details</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1', marginTop: 2 }}>{selectedOrder.restaurantName}</div>
+                <div style={{ color: '#075985', marginTop: 2 }}>{selectedOrder.itemsCount} Food items included</div>
               </div>
 
-              <div style={{ backgroundColor: '#F4F4F5', padding: 14, borderRadius: 10, border: '1px solid #E4E4E7' }}>
+              <div style={{ backgroundColor: '#F0F9FF', padding: 14, borderRadius: 10, border: '1px solid #BAE6FD' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>Total Amount Paid</span>
-                  <span style={{ fontSize: 18, fontWeight: 800, color: '#09090B' }}>₹{selectedOrder.totalAmount.toFixed(2)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>Total Amount Paid</span>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: '#0369A1' }}>₹{selectedOrder.totalAmount.toFixed(2)}</span>
                 </div>
               </div>
             </div>
 
-            <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #E4E4E7', display: 'flex', gap: 12 }}>
+            <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #BAE6FD', display: 'flex', gap: 12 }}>
               <button
                 type="button"
                 onClick={() => {
@@ -259,13 +267,14 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
                 style={{
                   flex: 1,
                   padding: '12px',
-                  backgroundColor: '#000000',
+                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 10,
                   fontWeight: 800,
                   fontSize: 13,
                   cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)',
                 }}
               >
                 Go to Order Details
@@ -277,3 +286,4 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
     </div>
   );
 }
+

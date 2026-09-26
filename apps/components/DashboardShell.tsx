@@ -148,7 +148,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         width: '100vw',
         overflow: 'hidden',
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        backgroundColor: '#FAFAFA',
+        backgroundColor: '#F0F9FF',
       }}
     >
       <div
@@ -174,14 +174,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             width: isCompact ? 0 : 270,
             opacity: isCompact ? 0 : 1,
             visibility: isCompact ? 'hidden' : 'visible',
-            backgroundColor: '#000000',
+            backgroundColor: '#075985',
+            backgroundImage: 'linear-gradient(180deg, #075985 0%, #0C4A6E 50%, #082F49 100%)',
             color: '#FFFFFF',
             padding: isCompact ? 0 : '24px 16px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            boxShadow: isCompact ? 'none' : '4px 0 16px rgba(0,0,0,0.1)',
-            borderRight: isCompact ? 'none' : '1px solid #27272A',
+            boxShadow: isCompact ? 'none' : '4px 0 20px rgba(7, 89, 133, 0.25)',
+            borderRight: isCompact ? 'none' : '1px solid #0369A1',
             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             overflowX: 'hidden',
             overflowY: 'auto',
@@ -194,8 +195,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                 {activeRole === 'AUDITOR' ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ color: '#FFFFFF', display: 'flex', alignItems: 'center' }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <div style={{ color: '#38BDF8', display: 'flex', alignItems: 'center' }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                         <polyline points="9 12 11 14 15 10" />
                       </svg>
@@ -206,7 +207,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   </div>
                 ) : (
                   <div style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-                    Admin <span style={{ color: '#A1A1AA' }}>Panel</span>
+                    Foodie <span style={{ color: '#38BDF8' }}>Admin</span>
                   </div>
                 )}
               </div>
@@ -216,18 +217,19 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             {activeRole ? (
               <div
                 style={{
-                  backgroundColor: '#18181B',
-                  border: '1px solid #27272A',
+                  backgroundColor: 'rgba(12, 74, 110, 0.75)',
+                  border: '1px solid #0284C7',
                   borderRadius: 10,
                   padding: '10px 14px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                 }}
                 title={`Active Role: ${activeRole}`}
               >
                 <div>
-                  <div style={{ fontSize: 10, color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
+                  <div style={{ fontSize: 10, color: '#7DD3FC', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
                     Active Role
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap' }}>
@@ -239,8 +241,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                     height: 8,
                     width: 8,
                     borderRadius: '50%',
-                    backgroundColor: '#22C55E',
-                    boxShadow: '0 0 8px #22C55E',
+                    backgroundColor: '#38BDF8',
+                    boxShadow: '0 0 10px #38BDF8',
                   }}
                   className="pulse-live"
                 />
@@ -285,22 +287,26 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                             fontSize: 13,
                             fontWeight: isActive || isHighlighted ? 700 : 500,
                             color: isActive
-                              ? '#000000'
-                              : isHighlighted
-                                ? '#FFFFFF'
-                                : '#A1A1AA',
-                            backgroundColor: isActive
                               ? '#FFFFFF'
                               : isHighlighted
-                                ? '#27272A'
+                                ? '#FFFFFF'
+                                : '#BAE6FD',
+                            backgroundColor: isActive
+                              ? '#0284C7'
+                              : isHighlighted
+                                ? '#0369A1'
                                 : 'transparent',
+                            backgroundImage: isActive
+                              ? 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)'
+                              : 'none',
                             borderLeft: isAuditor
                               ? 'none'
                               : isActive
-                              ? '4px solid #000000'
+                              ? '4px solid #38BDF8'
                               : isHighlighted
-                                ? '4px solid #FFFFFF'
+                                ? '4px solid #38BDF8'
                                 : '4px solid transparent',
+                            boxShadow: isActive ? '0 4px 12px rgba(14, 165, 233, 0.4)' : 'none',
                             textDecoration: 'none',
                             transition: 'all 0.15s ease-in-out',
                           }}
@@ -360,8 +366,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                               style={{
                                 fontSize: 10,
                                 fontWeight: 800,
-                                color: isActive ? '#000000' : '#FFFFFF',
-                                backgroundColor: isActive ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
+                                color: '#0369A1',
+                                backgroundColor: '#BAE6FD',
                                 padding: '2px 6px',
                                 borderRadius: 6,
                               }}
@@ -381,7 +387,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           {/* Sidebar Bottom Profile & Logout Footer */}
           <div
             style={{
-              borderTop: '1px solid #27272A',
+              borderTop: '1px solid #0369A1',
               paddingTop: 16,
               display: 'flex',
               flexDirection: 'column',
@@ -394,7 +400,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   width: 36,
                   height: 36,
                   borderRadius: '50%',
-                  backgroundColor: '#27272A',
+                  backgroundColor: '#0284C7',
                   color: '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
@@ -402,6 +408,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   fontSize: 13,
                   fontWeight: 800,
                   flexShrink: 0,
+                  boxShadow: '0 0 10px rgba(14, 165, 233, 0.4)',
                 }}
               >
                 {activeRole === 'AUDITOR' ? 'CA' : 'AD'}
@@ -410,7 +417,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                   {activeRole === 'AUDITOR' ? 'Compliance Auditor' : 'Admin'}
                 </div>
-                <div style={{ fontSize: 11, color: '#71717A', marginTop: 1 }}>
+                <div style={{ fontSize: 11, color: '#7DD3FC', marginTop: 1 }}>
                   admin
                 </div>
               </div>
@@ -427,7 +434,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 borderRadius: 8,
                 border: 'none',
                 backgroundColor: 'transparent',
-                color: '#A1A1AA',
+                color: '#BAE6FD',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -436,12 +443,12 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 textAlign: 'left',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#18181B';
+                e.currentTarget.style.backgroundColor = '#0369A1';
                 e.currentTarget.style.color = '#FFFFFF';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#A1A1AA';
+                e.currentTarget.style.color = '#BAE6FD';
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -487,16 +494,16 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   padding: '80px 24px',
                   backgroundColor: '#FFFFFF',
                   borderRadius: 16,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid #BAE6FD',
                   textAlign: 'center',
                   marginTop: 24,
                 }}
               >
                 <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-                <Text as="h2" variant="heading1" style={{ fontSize: 22, fontWeight: 800, color: '#991B1B', marginBottom: 8 }}>
+                <Text as="h2" variant="heading1" style={{ fontSize: 22, fontWeight: 800, color: '#0369A1', marginBottom: 8 }}>
                   403 — Access Restricted
                 </Text>
-                <Text variant="body" style={{ color: '#475569', maxWidth: 460, marginBottom: 24, fontSize: 14 }}>
+                <Text variant="body" style={{ color: '#0284C7', maxWidth: 460, marginBottom: 24, fontSize: 14 }}>
                   Your administrative account ({activeRole || 'UNASSIGNED'}) is not authorized to access <strong>{pathname}</strong>.
                 </Text>
                 <Button
@@ -504,7 +511,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   aria-label={`Navigate to ${activeRole ? activeRole : 'Home'} dashboard`}
                   onClick={() => router.push(getHomeRouteForRole(activeRole))}
                   style={{
-                    backgroundColor: '#000000',
+                    backgroundColor: '#0284C7',
+                    backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
                     color: '#FFFFFF',
                     padding: '10px 20px',
                     fontWeight: 700,

@@ -115,7 +115,7 @@ export function AiAssistantWidget() {
 
   return (
     <>
-      {/* Floating Trigger Button */}
+      {/* Floating AI Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -124,22 +124,23 @@ export function AiAssistantWidget() {
           bottom: 28,
           right: 28,
           zIndex: 9999,
-          backgroundColor: '#000000',
+          backgroundColor: '#0284C7',
+          backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
           color: '#FFFFFF',
-          border: '1px solid #27272A',
+          border: '1px solid #38BDF8',
           borderRadius: 30,
           padding: '12px 20px',
           fontWeight: 800,
           fontSize: 14,
           cursor: 'pointer',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+          boxShadow: '0 8px 24px rgba(14, 165, 233, 0.4)',
           display: 'flex',
           alignItems: 'center',
           gap: 10,
           transition: 'all 0.2s ease-in-out',
         }}
       >
-        <span style={{ fontSize: 18 }}></span>
+        <span style={{ fontSize: 18 }}>🤖</span>
         <span>FoodieBot</span>
       </button>
 
@@ -154,8 +155,8 @@ export function AiAssistantWidget() {
             height: 540,
             backgroundColor: '#FFFFFF',
             borderRadius: 16,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
-            border: '1px solid #E2E8F0',
+            boxShadow: '0 20px 40px rgba(2, 132, 199, 0.2)',
+            border: '1px solid #BAE6FD',
             zIndex: 9999,
             display: 'flex',
             flexDirection: 'column',
@@ -166,13 +167,14 @@ export function AiAssistantWidget() {
           {/* Header */}
           <div
             style={{
-              backgroundColor: '#000000',
+              backgroundColor: '#0284C7',
+              backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
               color: '#FFFFFF',
               padding: '16px 20px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              borderBottom: '1px solid #27272A',
+              borderBottom: '1px solid #38BDF8',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -181,13 +183,14 @@ export function AiAssistantWidget() {
                 <div style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF' }}>
                   FoodieBot
                 </div>
-                <div style={{ fontSize: 11, color: '#A1A1AA', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 11, color: '#E0F2FE', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span
                     style={{
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
                       backgroundColor: '#FFFFFF',
+                      boxShadow: '0 0 6px #FFFFFF',
                       display: 'inline-block',
                     }}
                   />
@@ -214,8 +217,8 @@ export function AiAssistantWidget() {
           <div
             style={{
               padding: '10px 14px',
-              backgroundColor: '#FAFAFA',
-              borderBottom: '1px solid #E4E4E7',
+              backgroundColor: '#F0F9FF',
+              borderBottom: '1px solid #BAE6FD',
               display: 'flex',
               gap: 6,
               overflowX: 'auto',
@@ -230,9 +233,9 @@ export function AiAssistantWidget() {
                   whiteSpace: 'nowrap',
                   padding: '5px 10px',
                   borderRadius: 20,
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                   backgroundColor: '#FFFFFF',
-                  color: '#000000',
+                  color: '#0369A1',
                   fontSize: 11,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -253,7 +256,7 @@ export function AiAssistantWidget() {
               display: 'flex',
               flexDirection: 'column',
               gap: 14,
-              backgroundColor: '#FAFAFA',
+              backgroundColor: '#F0F9FF',
             }}
           >
             {messages.map((m) => (
@@ -262,12 +265,13 @@ export function AiAssistantWidget() {
                 style={{
                   alignSelf: m.sender === 'user' ? 'flex-end' : 'flex-start',
                   maxWidth: '85%',
-                  backgroundColor: m.sender === 'user' ? '#000000' : '#FFFFFF',
-                  color: m.sender === 'user' ? '#FFFFFF' : '#09090B',
+                  backgroundColor: m.sender === 'user' ? '#0284C7' : '#FFFFFF',
+                  backgroundImage: m.sender === 'user' ? 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)' : 'none',
+                  color: m.sender === 'user' ? '#FFFFFF' : '#0369A1',
                   padding: '12px 14px',
                   borderRadius: m.sender === 'user' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                  border: m.sender === 'user' ? 'none' : '1px solid #E4E4E7',
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.08)',
+                  border: m.sender === 'user' ? 'none' : '1px solid #BAE6FD',
                 }}
               >
                 <div style={{ fontSize: 13, lineHeight: 1.45 }}>{m.text}</div>
@@ -281,21 +285,21 @@ export function AiAssistantWidget() {
                       gap: 8,
                       marginTop: 10,
                       paddingTop: 8,
-                      borderTop: '1px dashed #E4E4E7',
+                      borderTop: '1px dashed #BAE6FD',
                     }}
                   >
                     {m.metrics.map((met) => (
                       <div
                         key={met.label}
                         style={{
-                          backgroundColor: '#F4F4F5',
+                          backgroundColor: '#F0F9FF',
                           padding: '6px 8px',
                           borderRadius: 6,
-                          border: '1px solid #E4E4E7',
+                          border: '1px solid #BAE6FD',
                         }}
                       >
-                        <div style={{ fontSize: 10, color: '#71717A' }}>{met.label}</div>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: '#000000' }}>
+                        <div style={{ fontSize: 10, color: '#0284C7' }}>{met.label}</div>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#0369A1' }}>
                           {met.value}
                         </div>
                       </div>
@@ -306,7 +310,7 @@ export function AiAssistantWidget() {
                 <div
                   style={{
                     fontSize: 10,
-                    color: m.sender === 'user' ? '#A1A1AA' : '#71717A',
+                    color: m.sender === 'user' ? '#E0F2FE' : '#0284C7',
                     marginTop: 6,
                     textAlign: 'right',
                   }}
@@ -321,19 +325,19 @@ export function AiAssistantWidget() {
                 style={{
                   alignSelf: 'flex-start',
                   backgroundColor: '#FFFFFF',
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                   padding: '10px 14px',
                   borderRadius: '14px 14px 14px 2px',
                   fontSize: 12,
-                  color: '#71717A',
+                  color: '#0284C7',
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
                 }}
               >
-                <span> FoodieBot is thinking</span>
-                <span className="pulse-live" style={{ width: 6, height: 6, backgroundColor: '#000000', borderRadius: '50%' }} />
+                <span>🤖 FoodieBot is thinking</span>
+                <span className="pulse-live" style={{ width: 6, height: 6, backgroundColor: '#0EA5E9', borderRadius: '50%' }} />
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -344,7 +348,7 @@ export function AiAssistantWidget() {
             style={{
               padding: 12,
               backgroundColor: '#FFFFFF',
-              borderTop: '1px solid #E4E4E7',
+              borderTop: '1px solid #BAE6FD',
               display: 'flex',
               gap: 8,
             }}
@@ -361,7 +365,9 @@ export function AiAssistantWidget() {
                 flex: 1,
                 padding: '10px 14px',
                 borderRadius: 10,
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
+                backgroundColor: '#F0F9FF',
+                color: '#0369A1',
                 fontSize: 13,
                 outline: 'none',
               }}
@@ -371,13 +377,15 @@ export function AiAssistantWidget() {
               onClick={() => handleSend()}
               style={{
                 padding: '10px 16px',
-                backgroundColor: '#000000',
+                backgroundColor: '#0284C7',
+                backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 10,
                 fontWeight: 800,
                 fontSize: 13,
                 cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
               }}
             >
               Send

@@ -84,6 +84,23 @@ const MOCK_ORDERS: OrderItemRecord[] = [
   },
 ];
 
+function getOrderStatusStyle(status: OrderItemRecord['status']) {
+  switch (status) {
+    case 'PENDING':
+      return { bg: '#F0F9FF', color: '#0369A1', border: '#BAE6FD', shadow: 'none' };
+    case 'PREPARING':
+      return { bg: '#E0F2FE', color: '#0284C7', border: '#7DD3FC', shadow: 'none' };
+    case 'READY_FOR_PICKUP':
+      return { bg: '#BAE6FD', color: '#0369A1', border: '#38BDF8', shadow: 'none' };
+    case 'OUT_FOR_DELIVERY':
+      return { bg: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: '#0284C7', shadow: '0 2px 6px rgba(2, 132, 199, 0.25)' };
+    case 'DELIVERED':
+      return { bg: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)', color: '#FFFFFF', border: '#0284C7', shadow: '0 2px 6px rgba(14, 165, 233, 0.25)' };
+    case 'CANCELED':
+      return { bg: '#F0F9FF', color: '#0284C7', border: '#BAE6FD', shadow: 'none' };
+  }
+}
+
 export function OrdersPage() {
   const { tokens } = useTheme();
   const router = useRouter();
@@ -124,22 +141,21 @@ export function OrdersPage() {
     return matchesStatus && matchesSearch && matchesModule;
   });
 
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Page Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#09090B">
+          <Text as="h1" variant="heading1" color="#0369A1">
             Order Dispatch Control Center
           </Text>
-          <Text as="p" variant="caption" color="#71717A">
+          <Text as="p" variant="caption" color="#0284C7">
             Real-time multi-vendor order tracking, dispatch management & status overrides
           </Text>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '6px 12px', borderRadius: 20 }}>
-          <span style={{ fontSize: 14 }}></span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Live WebSocket Dispatch Feed</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '6px 14px', borderRadius: 20, boxShadow: '0 2px 6px rgba(2, 132, 199, 0.08)' }}>
+          <span style={{ fontSize: 14 }}>⚡</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#0369A1' }}>Live WebSocket Dispatch Feed</span>
         </div>
       </div>
 
@@ -151,13 +167,14 @@ export function OrdersPage() {
         style={{
           backgroundColor: '#FFFFFF',
           padding: '16px 20px',
-          borderRadius: 12,
-          border: '1px solid #E4E4E7',
+          borderRadius: 14,
+          border: '1px solid #BAE6FD',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 16,
+          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
         }}
       >
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -169,12 +186,14 @@ export function OrdersPage() {
               style={{
                 padding: '8px 14px',
                 borderRadius: 8,
-                border: 'none',
-                backgroundColor: statusFilter === st ? '#000000' : '#F4F4F5',
-                color: statusFilter === st ? '#FFFFFF' : '#09090B',
+                border: statusFilter === st ? 'none' : '1px solid #BAE6FD',
+                background: statusFilter === st ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#F0F9FF',
+                color: statusFilter === st ? '#FFFFFF' : '#0369A1',
+                boxShadow: statusFilter === st ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
                 fontSize: 12,
-                fontWeight: 700,
+                fontWeight: 800,
                 cursor: 'pointer',
+                transition: 'all 0.15s ease',
               }}
             >
               {st === 'ALL' ? 'ALL ORDERS' : st.replace(/_/g, ' ').toUpperCase()}
@@ -190,12 +209,13 @@ export function OrdersPage() {
           style={{
             padding: '10px 16px',
             borderRadius: 8,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             width: 320,
-            fontSize: 14,
+            fontSize: 13,
             outline: 'none',
-            color: '#09090B',
+            color: '#0369A1',
             backgroundColor: '#FFFFFF',
+            boxShadow: 'inset 0 1px 3px rgba(2, 132, 199, 0.06)',
           }}
         />
       </div>
@@ -204,15 +224,15 @@ export function OrdersPage() {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          borderRadius: 12,
-          border: '1px solid #E4E4E7',
+          borderRadius: 14,
+          border: '1px solid #BAE6FD',
           overflow: 'hidden',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
         }}
       >
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
+            <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontWeight: 800 }}>
               <th style={{ padding: '14px 20px' }}>Order ID</th>
               <th style={{ padding: '14px 20px' }}>Customer</th>
               <th style={{ padding: '14px 20px' }}>Store & Module</th>
@@ -223,109 +243,113 @@ export function OrdersPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.map((order) => (
-              <tr key={order.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 700, color: '#09090B', fontFamily: 'monospace', fontSize: 12 }}>
-                    #{order.id.slice(0, 8)}...
-                  </div>
-                  <div style={{ fontSize: 11, color: '#71717A' }}>{order.createdAt}</div>
-                </td>
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 600, color: '#09090B' }}>{order.customerName}</div>
-                  <div style={{ fontSize: 12, color: '#71717A' }}>{order.customerPhone}</div>
-                </td>
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 600, color: '#09090B' }}>{order.storeName}</div>
-                  <span style={{ fontSize: 11, color: '#71717A', fontWeight: 600 }}>{order.module}</span>
-                </td>
-                <td style={{ padding: '16px 20px', color: '#18181B', fontSize: 13 }}>{order.itemsSummary}</td>
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 700, color: '#09090B' }}>₹{order.totalAmount}</div>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      padding: '2px 6px',
-                      borderRadius: 4,
-                      backgroundColor: '#F4F4F5',
-                      border: '1px solid #E4E4E7',
-                      color: '#09090B',
-                    }}
-                  >
-                    {order.paymentMethod}
-                  </span>
-                </td>
-                <td style={{ padding: '16px 20px' }}>
-                  <span
-                    style={{
-                      backgroundColor:
-                        order.status === 'DELIVERED' || order.status === 'PENDING'
-                          ? '#F4F4F5'
-                          : order.status === 'READY_FOR_PICKUP'
-                          ? '#000000'
-                          : order.status === 'OUT_FOR_DELIVERY' || order.status === 'PREPARING'
-                          ? '#18181B'
-                          : '#E4E4E7',
-                      color:
-                        order.status === 'READY_FOR_PICKUP' || order.status === 'OUT_FOR_DELIVERY' || order.status === 'PREPARING'
-                          ? '#FFFFFF'
-                          : order.status === 'CANCELED'
-                          ? '#71717A'
-                          : '#09090B',
-                      border: '1px solid #E4E4E7',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      padding: '4px 10px',
-                      borderRadius: 20,
-                    }}
-                  >
-                    {order.status === 'READY_FOR_PICKUP' ? 'READY FOR PICKUP' : order.status.replace(/_/g, ' ')}
-                  </span>
-                </td>
-                <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                  {order.status === 'PREPARING' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOrders((prev) =>
-                          prev.map((o) => (o.id === order.id ? { ...o, status: 'READY_FOR_PICKUP' } : o)),
-                        );
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#F4F4F5',
-                        color: '#09090B',
-                        border: '1px solid #E4E4E7',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        marginRight: 8,
-                      }}
-                    >
-                      Mark Ready for Pickup
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/orders/${order.id}`)}
-                    style={{
-                      padding: '6px 14px',
-                      backgroundColor: '#000000',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 6,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Manage Order
-                  </button>
+            {filteredOrders.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ padding: 28, textAlign: 'center', color: '#0284C7', fontWeight: 600 }}>
+                  No orders found matching the selected filter.
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredOrders.map((order) => {
+                const statusStyle = getOrderStatusStyle(order.status);
+                return (
+                  <tr key={order.id} style={{ borderBottom: '1px solid #E0F2FE', transition: 'background-color 0.15s ease' }}>
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ fontWeight: 800, color: '#0369A1', fontFamily: 'monospace', fontSize: 12 }}>
+                        #{order.id.slice(0, 8)}...
+                      </div>
+                      <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>{order.createdAt}</div>
+                    </td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ fontWeight: 700, color: '#0369A1' }}>{order.customerName}</div>
+                      <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>{order.customerPhone}</div>
+                    </td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ fontWeight: 700, color: '#0369A1' }}>{order.storeName}</div>
+                      <span style={{ fontSize: 11, color: '#0284C7', fontWeight: 600 }}>{order.module}</span>
+                    </td>
+                    <td style={{ padding: '16px 20px', color: '#0369A1', fontSize: 12 }}>{order.itemsSummary}</td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ fontWeight: 800, color: '#0369A1' }}>₹{order.totalAmount}</div>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          backgroundColor: '#F0F9FF',
+                          border: '1px solid #BAE6FD',
+                          color: '#0369A1',
+                          display: 'inline-block',
+                          marginTop: 3,
+                        }}
+                      >
+                        {order.paymentMethod}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <span
+                        style={{
+                          background: statusStyle.bg,
+                          color: statusStyle.color,
+                          border: `1px solid ${statusStyle.border}`,
+                          boxShadow: statusStyle.shadow,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          padding: '4px 10px',
+                          borderRadius: 20,
+                          display: 'inline-block',
+                        }}
+                      >
+                        {order.status === 'READY_FOR_PICKUP' ? 'READY FOR PICKUP' : order.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                      {order.status === 'PREPARING' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOrders((prev) =>
+                              prev.map((o) => (o.id === order.id ? { ...o, status: 'READY_FOR_PICKUP' } : o)),
+                            );
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#F0F9FF',
+                            color: '#0369A1',
+                            border: '1px solid #BAE6FD',
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            marginRight: 8,
+                          }}
+                        >
+                          Mark Ready
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/orders/${order.id}`)}
+                        style={{
+                          padding: '6px 14px',
+                          background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                        }}
+                      >
+                        Manage Order
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

@@ -175,11 +175,11 @@ export function RestaurantCommissionModal({
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Store Identifier / Preview */}
         {!showRestaurantSelector ? (
-          <div style={{ backgroundColor: '#F4F4F5', padding: '12px 14px', borderRadius: 8, border: '1px solid #E4E4E7' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>
+          <div style={{ backgroundColor: '#F0F9FF', padding: '12px 14px', borderRadius: 8, border: '1px solid #BAE6FD' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
               {restaurantName || 'Restaurant'}
             </div>
-            <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'monospace', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: '#0284C7', fontFamily: 'monospace', marginTop: 2 }}>
               ID: {restaurantId}
             </div>
           </div>
@@ -187,7 +187,7 @@ export function RestaurantCommissionModal({
           <>
             {/* Registered Restaurant Selection */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>
                 Select Registered Restaurant
               </label>
               <select
@@ -198,10 +198,10 @@ export function RestaurantCommissionModal({
                   width: '100%',
                   padding: '10px 14px',
                   borderRadius: 8,
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                   fontSize: 13,
                   fontWeight: 600,
-                  color: '#09090B',
+                  color: '#0369A1',
                   backgroundColor: '#FFFFFF',
                   outline: 'none',
                   cursor: 'pointer',
@@ -223,13 +223,13 @@ export function RestaurantCommissionModal({
             </div>
 
             {/* Selected Store Badge / Information Preview */}
-            <div style={{ backgroundColor: '#F4F4F5', padding: '12px 14px', borderRadius: 8, border: '1px solid #E4E4E7' }}>
+            <div style={{ backgroundColor: '#F0F9FF', padding: '12px 14px', borderRadius: 8, border: '1px solid #BAE6FD' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
                     {selectedStoreId === '__ALL_STORES__' ? 'All Registered Restaurants' : (selectedStore?.name || restaurantName)}
                   </div>
-                  <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'monospace', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: '#0284C7', fontFamily: 'monospace', marginTop: 2 }}>
                     {selectedStoreId === '__ALL_STORES__' ? 'Scope: Multi-Vendor Platform Wide' : `ID: ${selectedStoreId}`}
                   </div>
                 </div>
@@ -239,8 +239,8 @@ export function RestaurantCommissionModal({
                       fontSize: 11,
                       fontWeight: 700,
                       backgroundColor: '#FFFFFF',
-                      color: '#09090B',
-                      border: '1px solid #E4E4E7',
+                      color: '#0369A1',
+                      border: '1px solid #BAE6FD',
                       padding: '3px 8px',
                       borderRadius: 6,
                     }}
@@ -261,7 +261,7 @@ export function RestaurantCommissionModal({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>
               Food Commission Rate (%)
             </label>
             <input
@@ -276,17 +276,17 @@ export function RestaurantCommissionModal({
                 width: '100%',
                 padding: '9px 12px',
                 borderRadius: 8,
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 fontSize: 13,
                 fontWeight: 700,
-                color: '#09090B',
+                color: '#0369A1',
                 backgroundColor: '#FFFFFF',
               }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>
               Delivery Split Rate (%)
             </label>
             <input
@@ -301,10 +301,10 @@ export function RestaurantCommissionModal({
                 width: '100%',
                 padding: '9px 12px',
                 borderRadius: 8,
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 fontSize: 13,
                 fontWeight: 700,
-                color: '#09090B',
+                color: '#0369A1',
                 backgroundColor: '#FFFFFF',
               }}
             />
@@ -313,7 +313,7 @@ export function RestaurantCommissionModal({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>
               Commission Structure
             </label>
             <select
@@ -324,9 +324,9 @@ export function RestaurantCommissionModal({
                 width: '100%',
                 padding: '9px 12px',
                 borderRadius: 8,
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 fontSize: 13,
-                color: '#09090B',
+                color: '#0369A1',
                 backgroundColor: '#FFFFFF',
               }}
             >
@@ -337,7 +337,7 @@ export function RestaurantCommissionModal({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>
               Payout Settlement Cycle
             </label>
             <select
@@ -348,9 +348,9 @@ export function RestaurantCommissionModal({
                 width: '100%',
                 padding: '9px 12px',
                 borderRadius: 8,
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 fontSize: 13,
-                color: '#09090B',
+                color: '#0369A1',
                 backgroundColor: '#FFFFFF',
               }}
             >
@@ -363,7 +363,7 @@ export function RestaurantCommissionModal({
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 4 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>
             Contract Agreement Tier
           </label>
           <select
@@ -374,9 +374,9 @@ export function RestaurantCommissionModal({
               width: '100%',
               padding: '9px 12px',
               borderRadius: 8,
-              border: '1px solid #E4E4E7',
+              border: '1px solid #BAE6FD',
               fontSize: 13,
-              color: '#09090B',
+              color: '#0369A1',
               backgroundColor: '#FFFFFF',
             }}
           >
@@ -393,9 +393,9 @@ export function RestaurantCommissionModal({
             checked={tcsDeductionEnabled}
             onChange={(e) => setTcsDeductionEnabled(e.target.checked)}
             disabled={loading}
-            style={{ width: 16, height: 16, accentColor: '#000000' }}
+            style={{ width: 16, height: 16, accentColor: '#0284C7' }}
           />
-          <label htmlFor="tcs-toggle" style={{ fontSize: 13, color: '#09090B', fontWeight: 600, cursor: 'pointer' }}>
+          <label htmlFor="tcs-toggle" style={{ fontSize: 13, color: '#0369A1', fontWeight: 600, cursor: 'pointer' }}>
             Auto-deduct 1% TCS & statutory GST on payouts
           </label>
         </div>
@@ -408,9 +408,9 @@ export function RestaurantCommissionModal({
             style={{
               padding: '8px 16px',
               borderRadius: 8,
-              border: '1px solid #E4E4E7',
-              backgroundColor: '#F4F4F5',
-              color: '#09090B',
+              border: '1px solid #BAE6FD',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
               fontSize: 13,
               fontWeight: 700,
               cursor: 'pointer',
@@ -425,12 +425,13 @@ export function RestaurantCommissionModal({
               padding: '8px 20px',
               borderRadius: 8,
               border: 'none',
-              backgroundColor: '#000000',
+              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
               color: '#FFFFFF',
               fontSize: 13,
               fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.7 : 1,
+              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
             }}
           >
             {loading ? 'Saving...' : 'Save Commission Settings'}

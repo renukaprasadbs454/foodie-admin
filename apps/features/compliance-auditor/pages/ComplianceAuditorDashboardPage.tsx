@@ -267,17 +267,17 @@ export function ComplianceAuditorDashboardPage() {
   const renderRatingStars = (rating: number) => {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ color: '#F59E0B', fontSize: 14 }}>★</span>
-        <span style={{ fontWeight: 700, fontSize: 13, color: '#0F172A' }}>{rating.toFixed(1)}</span>
+        <span style={{ color: '#0284C7', fontSize: 14 }}>★</span>
+        <span style={{ fontWeight: 700, fontSize: 13, color: '#0369A1' }}>{rating.toFixed(1)}</span>
       </div>
     );
   };
 
   const renderSeverityBadge = (severity: ComplianceSeverity) => {
     const config = {
-      High: { bg: '#FEE2E2', color: '#DC2626', border: '#FECACA' },
-      Medium: { bg: '#FEF3C7', color: '#D97706', border: '#FDE68A' },
-      Low: { bg: '#F1F5F9', color: '#64748B', border: '#E2E8F0' },
+      High: { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' },
+      Medium: { bg: '#F0F9FF', color: '#0284C7', border: '#BAE6FD' },
+      Low: { bg: '#F0F9FF', color: '#0369A1', border: '#BAE6FD' },
     }[severity];
 
     return (
@@ -301,10 +301,10 @@ export function ComplianceAuditorDashboardPage() {
 
   const renderStatusBadge = (status: ComplianceStatus) => {
     const config = {
-      Open: { bg: '#FEF9C3', color: '#854D0E', dot: '#CA8A04' },
-      'In Progress': { bg: '#FEF3C7', color: '#92400E', dot: '#F59E0B' },
-      Resolved: { bg: '#DEF7EC', color: '#03543F', dot: '#31C48D' },
-      Closed: { bg: '#F3F4F6', color: '#374151', dot: '#9CA3AF' },
+      Open: { bg: '#F0F9FF', color: '#0284C7', dot: '#0284C7', border: '#BAE6FD' },
+      'In Progress': { bg: '#F0F9FF', color: '#0369A1', dot: '#0369A1', border: '#BAE6FD' },
+      Resolved: { bg: '#F0FDF4', color: '#166534', dot: '#22C55E', border: '#BBF7D0' },
+      Closed: { bg: '#F0F9FF', color: '#0284C7', dot: '#0EA5E9', border: '#BAE6FD' },
     }[status];
 
     return (
@@ -316,9 +316,10 @@ export function ComplianceAuditorDashboardPage() {
           padding: '4px 10px',
           borderRadius: 9999,
           fontSize: 12,
-          fontWeight: 600,
+          fontWeight: 700,
           backgroundColor: config.bg,
           color: config.color,
+          border: `1px solid ${config.border}`,
         }}
       >
         <span
@@ -343,18 +344,19 @@ export function ComplianceAuditorDashboardPage() {
             position: 'fixed',
             top: 24,
             right: 24,
-            backgroundColor: '#0F172A',
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
             color: '#FFFFFF',
             padding: '12px 20px',
             borderRadius: 10,
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
+            boxShadow: '0 10px 25px rgba(2, 132, 199, 0.3)',
             zIndex: 99999,
             fontSize: 14,
-            fontWeight: 600,
+            fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
             gap: 10,
             animation: 'fadeIn 0.2s ease',
+            border: '1px solid #BAE6FD',
           }}
         >
           <span>✓</span>
@@ -369,6 +371,8 @@ export function ComplianceAuditorDashboardPage() {
           justifyContent: 'space-between',
           alignItems: 'flex-start',
           marginBottom: 24,
+          flexWrap: 'wrap',
+          gap: 16,
         }}
       >
         <div>
@@ -376,20 +380,19 @@ export function ComplianceAuditorDashboardPage() {
             style={{
               fontSize: 26,
               fontWeight: 800,
-              color: '#0F172A',
+              color: '#0369A1',
               margin: '0 0 6px 0',
               letterSpacing: '-0.02em',
-              fontFamily: 'Georgia, serif',
             }}
           >
             Compliance Dashboard
           </h1>
-          <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#0284C7', margin: 0 }}>
             Monitor reviews, complaints and ensure policy compliance across all stores and vendors.
           </p>
         </div>
 
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#64748B' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '6px 14px', borderRadius: 20 }}>
           {currentDateTime}
         </div>
       </div>
@@ -398,7 +401,7 @@ export function ComplianceAuditorDashboardPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: 16,
           marginBottom: 28,
         }}
@@ -409,8 +412,8 @@ export function ComplianceAuditorDashboardPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 16,
             padding: 20,
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            border: '1px solid #BAE6FD',
+            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.06)',
             display: 'flex',
             alignItems: 'center',
             gap: 16,
@@ -421,7 +424,8 @@ export function ComplianceAuditorDashboardPage() {
               width: 44,
               height: 44,
               borderRadius: 12,
-              backgroundColor: '#EFF6FF',
+              backgroundColor: '#F0F9FF',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -432,11 +436,11 @@ export function ComplianceAuditorDashboardPage() {
             💬
           </div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748B' }}>Total Reviews</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>Total Reviews</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 2 }}>
               {totalReviewsCount}
             </div>
-            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>in database</div>
+            <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>in database</div>
           </div>
         </div>
 
@@ -446,8 +450,8 @@ export function ComplianceAuditorDashboardPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 16,
             padding: 20,
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            border: '1px solid #BAE6FD',
+            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.06)',
             display: 'flex',
             alignItems: 'center',
             gap: 16,
@@ -458,22 +462,23 @@ export function ComplianceAuditorDashboardPage() {
               width: 44,
               height: 44,
               borderRadius: 12,
-              backgroundColor: '#FEF2F2',
+              backgroundColor: '#F0F9FF',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#DC2626',
+              color: '#0369A1',
               fontSize: 20,
             }}
           >
             ⚠️
           </div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748B' }}>Total Complaints</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>Total Complaints</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 2 }}>
               {totalComplaintsCount}
             </div>
-            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>in database</div>
+            <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>in database</div>
           </div>
         </div>
 
@@ -483,8 +488,8 @@ export function ComplianceAuditorDashboardPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 16,
             padding: 20,
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            border: '1px solid #BAE6FD',
+            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.06)',
             display: 'flex',
             alignItems: 'center',
             gap: 16,
@@ -495,22 +500,23 @@ export function ComplianceAuditorDashboardPage() {
               width: 44,
               height: 44,
               borderRadius: 12,
-              backgroundColor: '#F5F3FF',
+              backgroundColor: '#F0F9FF',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#7C3AED',
+              color: '#0284C7',
               fontSize: 20,
             }}
           >
             📋
           </div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748B' }}>Audit Logs</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>Audit Logs</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 2 }}>
               {totalAuditLogsCount}
             </div>
-            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>entries logged</div>
+            <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>entries logged</div>
           </div>
         </div>
 
@@ -520,8 +526,8 @@ export function ComplianceAuditorDashboardPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 16,
             padding: 20,
-            border: '1px solid #E2E8F0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            border: '1px solid #BAE6FD',
+            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.06)',
             display: 'flex',
             alignItems: 'center',
             gap: 16,
@@ -532,22 +538,23 @@ export function ComplianceAuditorDashboardPage() {
               width: 44,
               height: 44,
               borderRadius: 12,
-              backgroundColor: '#ECFDF5',
+              backgroundColor: '#F0F9FF',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#059669',
+              color: '#0369A1',
               fontSize: 20,
             }}
           >
             🛡️
           </div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#64748B' }}>Resolved Issues</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>Resolved Issues</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 2 }}>
               {resolvedIssuesCount}
             </div>
-            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>resolved in platform</div>
+            <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>resolved in platform</div>
           </div>
         </div>
       </div>
@@ -557,8 +564,8 @@ export function ComplianceAuditorDashboardPage() {
         style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 16,
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+          border: '1px solid #BAE6FD',
+          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)',
           overflow: 'hidden',
         }}
       >
@@ -566,12 +573,13 @@ export function ComplianceAuditorDashboardPage() {
         <div
           style={{
             padding: '18px 24px',
-            borderBottom: '1px solid #F1F5F9',
+            borderBottom: '1px solid #BAE6FD',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
             gap: 16,
+            backgroundColor: '#F0F9FF',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -579,7 +587,7 @@ export function ComplianceAuditorDashboardPage() {
               style={{
                 fontSize: 18,
                 fontWeight: 800,
-                color: '#0F172A',
+                color: '#0369A1',
                 margin: 0,
                 letterSpacing: '-0.01em',
               }}
@@ -591,7 +599,8 @@ export function ComplianceAuditorDashboardPage() {
             <div
               style={{
                 display: 'flex',
-                backgroundColor: '#F1F5F9',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #BAE6FD',
                 padding: 4,
                 borderRadius: 9999,
                 gap: 2,
@@ -607,8 +616,9 @@ export function ComplianceAuditorDashboardPage() {
                   fontWeight: 700,
                   border: 'none',
                   cursor: 'pointer',
-                  backgroundColor: activeTab === 'ALL' ? '#0F172A' : 'transparent',
-                  color: activeTab === 'ALL' ? '#FFFFFF' : '#64748B',
+                  background: activeTab === 'ALL' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
+                  color: activeTab === 'ALL' ? '#FFFFFF' : '#0284C7',
+                  boxShadow: activeTab === 'ALL' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -624,8 +634,9 @@ export function ComplianceAuditorDashboardPage() {
                   fontWeight: 700,
                   border: 'none',
                   cursor: 'pointer',
-                  backgroundColor: activeTab === 'REVIEWS' ? '#0F172A' : 'transparent',
-                  color: activeTab === 'REVIEWS' ? '#FFFFFF' : '#64748B',
+                  background: activeTab === 'REVIEWS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
+                  color: activeTab === 'REVIEWS' ? '#FFFFFF' : '#0284C7',
+                  boxShadow: activeTab === 'REVIEWS' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -641,8 +652,9 @@ export function ComplianceAuditorDashboardPage() {
                   fontWeight: 700,
                   border: 'none',
                   cursor: 'pointer',
-                  backgroundColor: activeTab === 'COMPLAINTS' ? '#0F172A' : 'transparent',
-                  color: activeTab === 'COMPLAINTS' ? '#FFFFFF' : '#64748B',
+                  background: activeTab === 'COMPLAINTS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
+                  color: activeTab === 'COMPLAINTS' ? '#FFFFFF' : '#0284C7',
+                  boxShadow: activeTab === 'COMPLAINTS' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -664,10 +676,11 @@ export function ComplianceAuditorDashboardPage() {
                   width: '100%',
                   padding: '8px 12px 8px 34px',
                   borderRadius: 8,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid #BAE6FD',
                   fontSize: 13,
                   outline: 'none',
-                  backgroundColor: '#F8FAFC',
+                  backgroundColor: '#FFFFFF',
+                  color: '#0369A1',
                 }}
               />
               <span
@@ -676,7 +689,7 @@ export function ComplianceAuditorDashboardPage() {
                   left: 11,
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#94A3B8',
+                  color: '#0284C7',
                   fontSize: 14,
                 }}
               >
@@ -693,13 +706,13 @@ export function ComplianceAuditorDashboardPage() {
                   width: 36,
                   height: 36,
                   borderRadius: 8,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: showFilterDropdown ? '#F1F5F9' : '#FFFFFF',
+                  border: '1px solid #BAE6FD',
+                  backgroundColor: showFilterDropdown ? '#E0F2FE' : '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: '#64748B',
+                  color: '#0369A1',
                   fontSize: 14,
                 }}
               >
@@ -715,14 +728,14 @@ export function ComplianceAuditorDashboardPage() {
                     marginTop: 8,
                     backgroundColor: '#FFFFFF',
                     borderRadius: 12,
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                    border: '1px solid #E2E8F0',
+                    boxShadow: '0 10px 25px rgba(2, 132, 199, 0.15)',
+                    border: '1px solid #BAE6FD',
                     padding: 16,
                     width: 240,
                     zIndex: 100,
                   }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 8 }}>
                     Filter by Status
                   </div>
                   <select
@@ -732,10 +745,12 @@ export function ComplianceAuditorDashboardPage() {
                       width: '100%',
                       padding: '6px 10px',
                       borderRadius: 6,
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid #BAE6FD',
                       fontSize: 12,
                       marginBottom: 12,
                       backgroundColor: '#FFFFFF',
+                      color: '#0369A1',
+                      outline: 'none',
                     }}
                   >
                     <option value="ALL">All Statuses</option>
@@ -755,13 +770,13 @@ export function ComplianceAuditorDashboardPage() {
                     }}
                     style={{
                       width: '100%',
-                      padding: '6px',
+                      padding: '8px',
                       borderRadius: 6,
-                      border: '1px solid #E2E8F0',
-                      backgroundColor: '#F8FAFC',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                       fontSize: 12,
-                      fontWeight: 600,
-                      color: '#64748B',
+                      fontWeight: 700,
+                      color: '#FFFFFF',
                       cursor: 'pointer',
                     }}
                   >
@@ -777,29 +792,29 @@ export function ComplianceAuditorDashboardPage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+              <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD' }}>
+                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                   ID
                 </th>
-                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                   Store Info
                 </th>
-                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                   Module
                 </th>
-                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                   User
                 </th>
-                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                   Rating / Severity
                 </th>
-                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                   Status
                 </th>
-                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase' }}>
                   Date
                 </th>
-                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', textAlign: 'right' }}>
+                <th style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase', textAlign: 'right' }}>
                   Actions
                 </th>
               </tr>
@@ -807,18 +822,18 @@ export function ComplianceAuditorDashboardPage() {
             <tbody>
               {isReviewsLoading || isTicketsLoading ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B' }}>
+                  <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center', color: '#0284C7' }}>
                     Loading live records from database...
                   </td>
                 </tr>
               ) : filteredRecords.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ padding: '60px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 28, marginBottom: 8, color: '#94A3B8' }}>ⓘ</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+                    <div style={{ fontSize: 28, marginBottom: 8, color: '#0284C7' }}>ⓘ</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#0369A1' }}>
                       No records found in database
                     </div>
-                    <div style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>
+                    <div style={{ fontSize: 13, color: '#0284C7', marginTop: 4 }}>
                       Live reviews and complaints logged in the backend database will appear here in real-time.
                     </div>
                   </td>
@@ -829,10 +844,10 @@ export function ComplianceAuditorDashboardPage() {
                     <tr
                       key={item.id}
                       style={{
-                        borderBottom: '1px solid #F1F5F9',
+                        borderBottom: '1px solid #E0F2FE',
                         transition: 'background-color 0.1s ease',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F0F9FF')}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
                       {/* ID / Type */}
@@ -844,13 +859,14 @@ export function ComplianceAuditorDashboardPage() {
                               fontWeight: 800,
                               padding: '2px 6px',
                               borderRadius: 4,
-                              backgroundColor: item.type === 'REVIEW' ? '#E0F2FE' : '#FEE2E2',
-                              color: item.type === 'REVIEW' ? '#0284C7' : '#DC2626',
+                              backgroundColor: '#F0F9FF',
+                              border: '1px solid #BAE6FD',
+                              color: item.type === 'REVIEW' ? '#0369A1' : '#0284C7',
                             }}
                           >
                             {item.type}
                           </span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
                             {String(item.id).slice(0, 8)}
                           </span>
                         </div>
@@ -858,10 +874,10 @@ export function ComplianceAuditorDashboardPage() {
 
                       {/* Store Info */}
                       <td style={{ padding: '14px 20px' }}>
-                        <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 13 }}>
+                        <div style={{ fontWeight: 700, color: '#0369A1', fontSize: 13 }}>
                           {item.storeName}
                         </div>
-                        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                        <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>
                           {item.storeUid}
                         </div>
                       </td>
@@ -872,8 +888,9 @@ export function ComplianceAuditorDashboardPage() {
                           style={{
                             fontSize: 12,
                             fontWeight: 600,
-                            color: '#475569',
-                            backgroundColor: '#F1F5F9',
+                            color: '#0369A1',
+                            backgroundColor: '#F0F9FF',
+                            border: '1px solid #BAE6FD',
                             padding: '3px 8px',
                             borderRadius: 6,
                           }}
@@ -883,7 +900,7 @@ export function ComplianceAuditorDashboardPage() {
                       </td>
 
                       {/* User */}
-                      <td style={{ padding: '14px 20px', fontSize: 13, color: '#334155', fontWeight: 600 }}>
+                      <td style={{ padding: '14px 20px', fontSize: 13, color: '#0369A1', fontWeight: 600 }}>
                         {item.user}
                       </td>
 
@@ -900,7 +917,7 @@ export function ComplianceAuditorDashboardPage() {
                       <td style={{ padding: '14px 20px' }}>{renderStatusBadge(item.status)}</td>
 
                       {/* Date */}
-                      <td style={{ padding: '14px 20px', fontSize: 12, color: '#64748B' }}>
+                      <td style={{ padding: '14px 20px', fontSize: 12, color: '#0284C7' }}>
                         {item.date}
                       </td>
 
@@ -912,16 +929,17 @@ export function ComplianceAuditorDashboardPage() {
                             onClick={(e) => handleApprove(item.id, e)}
                             disabled={item.status === 'Resolved' || item.status === 'Closed'}
                             style={{
-                              backgroundColor:
-                                item.status === 'Resolved' || item.status === 'Closed' ? '#E2E8F0' : '#0F172A',
+                              background:
+                                item.status === 'Resolved' || item.status === 'Closed' ? '#F0F9FF' : 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                               color: item.status === 'Resolved' || item.status === 'Closed' ? '#94A3B8' : '#FFFFFF',
-                              border: 'none',
+                              border: item.status === 'Resolved' || item.status === 'Closed' ? '1px solid #E0F2FE' : 'none',
                               borderRadius: 8,
                               padding: '6px 14px',
                               fontSize: 12,
-                              fontWeight: 600,
+                              fontWeight: 700,
                               cursor:
                                 item.status === 'Resolved' || item.status === 'Closed' ? 'not-allowed' : 'pointer',
+                              boxShadow: item.status === 'Resolved' || item.status === 'Closed' ? 'none' : '0 2px 6px rgba(2, 132, 199, 0.25)',
                               transition: 'all 0.15s ease',
                             }}
                           >
@@ -933,16 +951,16 @@ export function ComplianceAuditorDashboardPage() {
                             onClick={() => setSelectedRecord(item)}
                             style={{
                               backgroundColor: '#FFFFFF',
-                              color: '#475569',
-                              border: '1px solid #E2E8F0',
+                              color: '#0369A1',
+                              border: '1px solid #BAE6FD',
                               borderRadius: 8,
                               padding: '6px 14px',
                               fontSize: 12,
-                              fontWeight: 600,
+                              fontWeight: 700,
                               cursor: 'pointer',
                               transition: 'all 0.15s ease',
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F0F9FF')}
                             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
                           >
                             Details
@@ -964,7 +982,7 @@ export function ComplianceAuditorDashboardPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backgroundColor: 'rgba(8, 47, 73, 0.5)',
             backdropFilter: 'blur(4px)',
             zIndex: 9999,
             display: 'flex',
@@ -983,7 +1001,8 @@ export function ComplianceAuditorDashboardPage() {
               maxHeight: '90vh',
               overflowY: 'auto',
               padding: 28,
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              boxShadow: '0 20px 40px rgba(2, 132, 199, 0.2)',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               flexDirection: 'column',
               gap: 20,
@@ -998,22 +1017,23 @@ export function ComplianceAuditorDashboardPage() {
                     style={{
                       fontSize: 12,
                       fontWeight: 800,
-                      color: selectedRecord.type === 'REVIEW' ? '#0284C7' : '#DC2626',
-                      backgroundColor: selectedRecord.type === 'REVIEW' ? '#E0F2FE' : '#FEE2E2',
+                      color: '#0369A1',
+                      backgroundColor: '#F0F9FF',
+                      border: '1px solid #BAE6FD',
                       padding: '4px 10px',
                       borderRadius: 6,
                     }}
                   >
                     {selectedRecord.type}
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#64748B' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0284C7' }}>
                     {String(selectedRecord.id).slice(0, 8)}
                   </span>
                 </div>
-                <h3 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: '8px 0 0 0' }}>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: '#0369A1', margin: '8px 0 0 0' }}>
                   {selectedRecord.storeName}
                 </h3>
-                <p style={{ fontSize: 12, color: '#94A3B8', margin: '2px 0 0 0' }}>
+                <p style={{ fontSize: 12, color: '#0284C7', margin: '2px 0 0 0' }}>
                   {selectedRecord.storeUid}
                 </p>
               </div>
@@ -1024,9 +1044,10 @@ export function ComplianceAuditorDashboardPage() {
                 style={{
                   border: 'none',
                   background: 'none',
-                  fontSize: 20,
+                  fontSize: 22,
                   cursor: 'pointer',
-                  color: '#94A3B8',
+                  color: '#0284C7',
+                  fontWeight: 700,
                 }}
               >
                 ✕
@@ -1039,34 +1060,34 @@ export function ComplianceAuditorDashboardPage() {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: 12,
-                backgroundColor: '#F8FAFC',
+                backgroundColor: '#F0F9FF',
                 padding: 16,
                 borderRadius: 12,
-                border: '1px solid #E2E8F0',
+                border: '1px solid #BAE6FD',
                 fontSize: 13,
               }}
             >
               <div>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>User / Customer</div>
-                <div style={{ fontWeight: 700, color: '#0F172A', marginTop: 2 }}>{selectedRecord.user}</div>
+                <div style={{ fontSize: 11, color: '#0284C7', fontWeight: 700, textTransform: 'uppercase' }}>User / Customer</div>
+                <div style={{ fontWeight: 700, color: '#0369A1', marginTop: 2 }}>{selectedRecord.user}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Module Category</div>
-                <div style={{ fontWeight: 700, color: '#0F172A', marginTop: 2 }}>{selectedRecord.module}</div>
+                <div style={{ fontSize: 11, color: '#0284C7', fontWeight: 700, textTransform: 'uppercase' }}>Module Category</div>
+                <div style={{ fontWeight: 700, color: '#0369A1', marginTop: 2 }}>{selectedRecord.module}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Timestamp</div>
-                <div style={{ fontWeight: 700, color: '#0F172A', marginTop: 2 }}>{selectedRecord.timestamp}</div>
+                <div style={{ fontSize: 11, color: '#0284C7', fontWeight: 700, textTransform: 'uppercase' }}>Timestamp</div>
+                <div style={{ fontWeight: 700, color: '#0369A1', marginTop: 2 }}>{selectedRecord.timestamp}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Order Ref</div>
-                <div style={{ fontWeight: 700, color: '#0F172A', marginTop: 2 }}>{selectedRecord.orderId}</div>
+                <div style={{ fontSize: 11, color: '#0284C7', fontWeight: 700, textTransform: 'uppercase' }}>Order Ref</div>
+                <div style={{ fontWeight: 700, color: '#0369A1', marginTop: 2 }}>{selectedRecord.orderId}</div>
               </div>
             </div>
 
             {/* Description / Content */}
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
                 Customer Submission & Notes:
               </div>
               <div
@@ -1074,10 +1095,10 @@ export function ComplianceAuditorDashboardPage() {
                   backgroundColor: '#FFFFFF',
                   padding: 14,
                   borderRadius: 10,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid #BAE6FD',
                   fontSize: 13,
                   lineHeight: 1.6,
-                  color: '#1E293B',
+                  color: '#0369A1',
                 }}
               >
                 {selectedRecord.description}
@@ -1085,27 +1106,18 @@ export function ComplianceAuditorDashboardPage() {
             </div>
 
             {/* Severity / Status Badges */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #F1F5F9', paddingTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #BAE6FD', paddingTop: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Compliance Status:</span>
+                <span style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>Compliance Status:</span>
                 <span
                   style={{
                     padding: '3px 12px',
                     borderRadius: 9999,
                     fontSize: 12,
                     fontWeight: 700,
-                    backgroundColor:
-                      selectedRecord.status === 'Resolved'
-                        ? '#DEF7EC'
-                        : selectedRecord.status === 'In Progress'
-                        ? '#FEF3C7'
-                        : '#FEF9C3',
-                    color:
-                      selectedRecord.status === 'Resolved'
-                        ? '#03543F'
-                        : selectedRecord.status === 'In Progress'
-                        ? '#92400E'
-                        : '#854D0E',
+                    backgroundColor: '#F0F9FF',
+                    color: '#0369A1',
+                    border: '1px solid #BAE6FD',
                   }}
                 >
                   {selectedRecord.status}
@@ -1118,7 +1130,7 @@ export function ComplianceAuditorDashboardPage() {
                   type="button"
                   onClick={() => handleApprove(selectedRecord.id)}
                   style={{
-                    backgroundColor: '#0F172A',
+                    background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -1126,6 +1138,7 @@ export function ComplianceAuditorDashboardPage() {
                     fontSize: 13,
                     fontWeight: 700,
                     cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                   }}
                 >
                   Approve & Resolve

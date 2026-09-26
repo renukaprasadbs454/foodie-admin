@@ -9,12 +9,11 @@ type Props = {
   'aria-label'?: string;
 };
 
-/** INR money display — UI-API MoneyText (feature-local). */
+/** INR money display — UI-API MoneyText (Sky Blue theme). */
 export function MoneyText({ value, 'aria-label': ariaLabel }: Props) {
   return (
-    <Text as="span" variant="heading2" color="#09090B" aria-label={ariaLabel}>
+    <Text as="span" variant="heading2" style={{ color: '#0369A1', fontWeight: 800 }} aria-label={ariaLabel}>
       {formatMoneyInr(value)}
     </Text>
   );
 }
-

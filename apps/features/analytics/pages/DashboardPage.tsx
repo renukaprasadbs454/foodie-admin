@@ -155,17 +155,17 @@ export function DashboardPage() {
       {/* Top Banner Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#09090B', letterSpacing: '-0.5px' }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', letterSpacing: '-0.5px' }}>
             Executive Operations Console
           </div>
-          <Text as="p" variant="caption" color="#71717A">
+          <Text as="p" variant="caption" style={{ color: '#0284C7' }}>
             Real-time multi-vendor performance, order status pipeline, and sales telemetry
           </Text>
         </div>
       </div>
 
       {!isConnected ? (
-        <Text as="p" variant="caption" color="#71717A">
+        <Text as="p" variant="caption" style={{ color: '#0284C7' }}>
           Offline — showing cached summary when available.
         </Text>
       ) : null}
@@ -176,25 +176,25 @@ export function DashboardPage() {
           backgroundColor: '#FFFFFF',
           padding: '16px 20px',
           borderRadius: 14,
-          border: '1px solid #E4E4E7',
+          border: '1px solid #BAE6FD',
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          boxShadow: '0 2px 6px rgba(2, 132, 199, 0.05)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span> Analytics Timeframe Filter</span>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>📅 Analytics Timeframe Filter</span>
             <span
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: '#09090B',
-                backgroundColor: '#F4F4F5',
+                color: '#0369A1',
+                backgroundColor: '#F0F9FF',
                 padding: '2px 8px',
                 borderRadius: 12,
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
               }}
             >
               {applied.dateFrom} to {applied.dateTo}
@@ -241,12 +241,14 @@ export function DashboardPage() {
                   style={{
                     padding: '6px 14px',
                     borderRadius: 8,
-                    border: isPresetActive ? '1px solid #000000' : '1px solid #E4E4E7',
-                    backgroundColor: isPresetActive ? '#000000' : '#FAFAFA',
-                    color: isPresetActive ? '#FFFFFF' : '#475569',
+                    border: isPresetActive ? '1px solid #0284C7' : '1px solid #BAE6FD',
+                    backgroundColor: isPresetActive ? '#0284C7' : '#F0F9FF',
+                    backgroundImage: isPresetActive ? 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)' : 'none',
+                    color: isPresetActive ? '#FFFFFF' : '#0369A1',
                     fontSize: 12,
                     fontWeight: isPresetActive ? 800 : 600,
                     cursor: 'pointer',
+                    boxShadow: isPresetActive ? '0 2px 8px rgba(14, 165, 233, 0.3)' : 'none',
                     transition: 'all 0.15s ease-in-out',
                   }}
                 >
@@ -265,14 +267,15 @@ export function DashboardPage() {
             onClick={applyRange}
             style={{
               padding: '8px 18px',
-              backgroundColor: '#000000',
+              backgroundColor: '#0284C7',
+              backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
               fontSize: 13,
               fontWeight: 800,
               cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
             }}
           >
             Apply Custom Range

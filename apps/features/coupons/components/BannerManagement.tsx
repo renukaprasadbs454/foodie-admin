@@ -45,7 +45,7 @@ export function BannerManagement() {
             return;
         }
 
-        const autoImageUrl = 'auto-generated'; // Must not be blank to pass validation
+        const autoImageUrl = 'auto-generated';
 
         let backgroundTarget = '';
         if (ctaType === 'OPEN_RESTAURANT') backgroundTarget = ctaTarget;
@@ -116,7 +116,7 @@ export function BannerManagement() {
         setCtaType(banner.ctaType || 'OPEN_COUPON');
         setCtaTarget(banner.ctaTarget || '');
         setDisplayOrder(String(banner.displayOrder || 0));
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // scroll to form 
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const renderBannerPreview = (bTitle: string, bSubtitle: string, bCtaText: string, bCtaType: string, bCtaTarget: string, index: number = 0) => {
@@ -130,7 +130,7 @@ export function BannerManagement() {
             <div style={{
                 width: '100%',
                 maxWidth: 420,
-                height: 145, // Match customer app smaller size
+                height: 145,
                 borderRadius: 20,
                 overflow: 'hidden',
                 background: bgGradient,
@@ -216,18 +216,18 @@ export function BannerManagement() {
     };
 
     return (
-        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div>
-                <Text as="h2" variant="heading2">Promotional Banners</Text>
-                <Text variant="caption">Manage Dynamic Promotional Content across the Customer App Highlights Feed.</Text>
+                <Text as="h2" variant="heading2" color="#0369A1">Promotional Banners</Text>
+                <Text variant="caption" color="#0284C7">Manage Dynamic Promotional Content across the Customer App Highlights Feed.</Text>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) 1fr', gap: 32, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) 1fr', gap: 24, alignItems: 'start' }}>
 
                 {/* Left Side: Creation Form with Live Preview on Top */}
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: '#FAFAFA', padding: 24, borderRadius: 12, border: '1px solid #E4E4E7' }}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h4 style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>{editBannerId ? 'Edit Promotional Banner' : 'Create New Promotional Banner'}</h4>
+                        <h4 style={{ margin: 0, fontWeight: 800, fontSize: 16, color: '#0369A1' }}>{editBannerId ? 'Edit Promotional Banner' : 'Create New Promotional Banner'}</h4>
                         {editBannerId && (
                             <button type="button" onClick={() => {
                                 setEditBannerId(null);
@@ -237,59 +237,59 @@ export function BannerManagement() {
                                 setCtaType('OPEN_COUPON');
                                 setCtaTarget('');
                                 setDisplayOrder('0');
-                            }} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#EF4444', fontWeight: 600 }}>Cancel Edit</button>
+                            }} style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#EF4444', fontWeight: 700, fontSize: 13 }}>Cancel Edit</button>
                         )}
                     </div>
 
-                    {/* Preview placed at the top of the form as requested */}
-                    <div style={{ marginTop: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Live Preview</span>
+                    {/* Preview placed at the top of the form */}
+                    <div style={{ marginTop: 4, marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#0284C7', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Live Preview</span>
                         {renderBannerPreview(title, subtitle, ctaText, ctaType, ctaTarget, 0)}
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 12, fontWeight: 700 }}>Banner Title *</label>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Banner Title *</label>
                         <input
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="e.g. MEGA WEEKEND SALE"
-                            style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7' }}
+                            style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
                             required
                         />
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 12, fontWeight: 700 }}>Subtitle (Optional)</label>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Subtitle (Optional)</label>
                         <input
                             type="text"
                             value={subtitle}
                             onChange={(e) => setSubtitle(e.target.value)}
                             placeholder="e.g. Up to 50% Off on all orders"
-                            style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7' }}
+                            style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
                         />
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <label style={{ fontSize: 12, fontWeight: 700 }}>CTA Text</label>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>CTA Text</label>
                             <input
                                 type="text"
                                 value={ctaText}
                                 onChange={(e) => setCtaText(e.target.value)}
                                 placeholder="e.g. EXPLORE NOW"
-                                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7' }}
+                                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
                             />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <label style={{ fontSize: 12, fontWeight: 700 }}>Action</label>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Action</label>
                             <select
                                 value={ctaType}
                                 onChange={(e) => {
                                     setCtaType(e.target.value);
                                     setCtaTarget('');
                                 }}
-                                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7' }}
+                                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
                             >
                                 <option value="OPEN_COUPON">Open Coupon</option>
                                 <option value="OPEN_RESTAURANT">Open Restaurant</option>
@@ -301,11 +301,11 @@ export function BannerManagement() {
 
                     {ctaType === 'OPEN_RESTAURANT' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <label style={{ fontSize: 12, fontWeight: 700 }}>Select Restaurant</label>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Select Restaurant</label>
                             <select
                                 value={ctaTarget}
                                 onChange={(e) => setCtaTarget(e.target.value)}
-                                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7' }}
+                                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
                                 required
                             >
                                 <option value="" disabled>-- Choose a Restaurant --</option>
@@ -321,14 +321,16 @@ export function BannerManagement() {
                         disabled={isCreating || isUpdating}
                         style={{
                             padding: '12px 18px',
-                            background: 'linear-gradient(135deg, #000000 0%, #1A1A1A 100%)',
+                            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                             color: '#FFFFFF',
                             border: 'none',
                             borderRadius: 8,
-                            fontWeight: 700,
+                            fontWeight: 800,
+                            fontSize: 14,
                             cursor: (isCreating || isUpdating) ? 'not-allowed' : 'pointer',
                             opacity: (isCreating || isUpdating) ? 0.7 : 1,
-                            marginTop: 8
+                            marginTop: 8,
+                            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                         }}
                     >
                         {isCreating || isUpdating ? 'Saving...' : (editBannerId ? 'Update Banner' : 'Create Banner')}
@@ -336,29 +338,29 @@ export function BannerManagement() {
                 </form>
 
                 {/* Right Side: List of Banners */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: '#F3F4F6', padding: 24, borderRadius: 12, border: '1px solid #E5E7EB' }}>
-                    <h4 style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>Created Banners</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
+                    <h4 style={{ margin: 0, fontWeight: 800, fontSize: 16, color: '#0369A1' }}>Created Banners ({banners.length})</h4>
 
                     {isLoading ? (
-                        <div style={{ fontSize: 14 }}>Loading banners...</div>
+                        <div style={{ fontSize: 14, color: '#0369A1' }}>Loading banners...</div>
                     ) : banners.length === 0 ? (
-                        <div style={{ fontSize: 14, color: '#6B7280' }}>No banners configured yet.</div>
+                        <div style={{ fontSize: 14, color: '#0284C7' }}>No banners configured yet.</div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             {banners.map((banner: PromotionBanner, index: number) => {
                                 return (
-                                    <div key={banner.id} style={{ display: 'flex', flexDirection: 'column', gap: 12, backgroundColor: '#FFFFFF', padding: 16, borderRadius: 12, border: '1px solid #E4E4E7', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Banner #{index + 1}</h4>
+                                    <div key={banner.id} style={{ display: 'flex', flexDirection: 'column', gap: 12, backgroundColor: '#FFFFFF', padding: 16, borderRadius: 12, border: '1px solid #BAE6FD', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.05)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                                            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#0369A1' }}>Banner #{index + 1}</h4>
                                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                                <span style={{ fontSize: 11, padding: '4px 8px', borderRadius: 12, backgroundColor: banner.status === 'ACTIVE' ? '#D1FAE5' : '#FEF2F2', color: banner.status === 'ACTIVE' ? '#065F46' : '#991B1B', fontWeight: 700 }}>
+                                                <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 12, backgroundColor: banner.status === 'ACTIVE' ? '#F0F9FF' : '#FEF2F2', color: banner.status === 'ACTIVE' ? '#0369A1' : '#991B1B', border: banner.status === 'ACTIVE' ? '1px solid #BAE6FD' : '1px solid #FECACA', fontWeight: 800 }}>
                                                     {banner.status}
                                                 </span>
-                                                <button onClick={() => startEdit(banner)} style={{ padding: '6px 12px', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Edit</button>
-                                                <button onClick={() => handleToggleStatus(banner)} style={{ padding: '6px 12px', backgroundColor: banner.status === 'ACTIVE' ? '#F4F4F5' : '#E0E7FF', color: banner.status === 'ACTIVE' ? '#09090B' : '#3730A3', border: banner.status === 'ACTIVE' ? '1px solid #E4E4E7' : '1px solid #C7D2FE', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                                <button onClick={() => startEdit(banner)} style={{ padding: '6px 12px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', color: '#0369A1', borderRadius: 6, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>Edit</button>
+                                                <button onClick={() => handleToggleStatus(banner)} style={{ padding: '6px 12px', backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', borderRadius: 6, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
                                                     {banner.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                                                 </button>
-                                                <button onClick={() => handleDelete(banner.id)} style={{ padding: '6px 12px', backgroundColor: '#FEE2E2', color: '#991B1B', border: '1px solid #FECACA', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Delete</button>
+                                                <button onClick={() => handleDelete(banner.id)} style={{ padding: '6px 12px', backgroundColor: '#FEE2E2', color: '#991B1B', border: '1px solid #FECACA', borderRadius: 6, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>Delete</button>
                                             </div>
                                         </div>
 
