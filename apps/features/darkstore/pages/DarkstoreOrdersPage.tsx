@@ -157,10 +157,10 @@ export function DarkstoreOrdersPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', margin: 0 }}>
           Darkstore Order Management
         </h1>
-        <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
+        <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0' }}>
           Full quick-commerce order lifecycle: <code>New → Accepted → Picking → Packing → Ready → Dispatched → Delivered</code>.
         </p>
       </div>
@@ -171,7 +171,7 @@ export function DarkstoreOrdersPage() {
           backgroundColor: '#FFFFFF',
           borderRadius: 12,
           padding: 16,
-          border: '1px solid #E5E7EB',
+          border: '1px solid #BAE6FD',
           boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           marginBottom: 20,
           display: 'flex',
@@ -188,9 +188,10 @@ export function DarkstoreOrdersPage() {
           style={{
             padding: '8px 14px',
             borderRadius: 8,
-            border: '1px solid #D1D5DB',
+            border: '1px solid #BAE6FD',
             fontSize: 13,
             minWidth: 260,
+            outline: 'none',
           }}
         />
 
@@ -206,10 +207,11 @@ export function DarkstoreOrdersPage() {
                   borderRadius: 20,
                   fontSize: 11,
                   fontWeight: 800,
-                  border: 'none',
+                  border: statusFilter === st ? '1px solid #0284C7' : '1px solid #BAE6FD',
                   cursor: 'pointer',
-                  backgroundColor: statusFilter === st ? '#0F3D21' : '#F3F4F6',
-                  color: statusFilter === st ? '#FFFFFF' : '#374151',
+                  backgroundColor: statusFilter === st ? '#0284C7' : '#F0F9FF',
+                  color: statusFilter === st ? '#FFFFFF' : '#0369A1',
+                  boxShadow: statusFilter === st ? '0 2px 6px rgba(2, 132, 199, 0.2)' : 'none',
                 }}
               >
                 {st}
@@ -220,10 +222,10 @@ export function DarkstoreOrdersPage() {
       </div>
 
       {/* Orders List Table */}
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #BAE6FD', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 700 }}>
+            <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '2px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
               <th style={{ padding: '14px 16px' }}>Order #</th>
               <th style={{ padding: '14px 16px' }}>Customer</th>
               <th style={{ padding: '14px 16px' }}>Items</th>
@@ -235,16 +237,16 @@ export function DarkstoreOrdersPage() {
           </thead>
           <tbody>
             {filteredOrders.map((o) => (
-              <tr key={o.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0F3D21' }}>{o.orderNumber}</td>
+              <tr key={o.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0369A1' }}>{o.orderNumber}</td>
                 <td style={{ padding: '14px 16px' }}>
-                  <div style={{ fontWeight: 700, color: '#111827' }}>{o.customerName}</div>
-                  <div style={{ fontSize: 11, color: '#6B7280' }}>{o.customerPhone}</div>
+                  <div style={{ fontWeight: 700, color: '#0369A1' }}>{o.customerName}</div>
+                  <div style={{ fontSize: 11, color: '#0284C7' }}>{o.customerPhone}</div>
                 </td>
-                <td style={{ padding: '14px 16px', color: '#374151' }}>
+                <td style={{ padding: '14px 16px', color: '#0284C7' }}>
                   {o.items.length} items (Picked: {o.items.filter((i) => i.status === 'PICKED').length}/{o.items.length})
                 </td>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#111827' }}>₹{o.totalAmount.toFixed(2)}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0369A1' }}>₹{o.totalAmount.toFixed(2)}</td>
                 <td style={{ padding: '14px 16px' }}>
                   <span
                     style={{
@@ -252,35 +254,18 @@ export function DarkstoreOrdersPage() {
                       borderRadius: 12,
                       fontSize: 11,
                       fontWeight: 800,
-                      backgroundColor:
-                        o.status === 'NEW'
-                          ? '#FEF3C7'
-                          : o.status === 'PICKING'
-                          ? '#DBEAFE'
-                          : o.status === 'PACKING'
-                          ? '#EDE9FE'
-                          : o.status === 'READY_FOR_DISPATCH'
-                          ? '#DCFCE7'
-                          : '#F3F4F6',
-                      color:
-                        o.status === 'NEW'
-                          ? '#92400E'
-                          : o.status === 'PICKING'
-                          ? '#1E40AF'
-                          : o.status === 'PACKING'
-                          ? '#6D28D9'
-                          : o.status === 'READY_FOR_DISPATCH'
-                          ? '#15803D'
-                          : '#374151',
+                      backgroundColor: '#F0F9FF',
+                      color: '#0369A1',
+                      border: '1px solid #BAE6FD',
                     }}
                   >
                     {o.status}
                   </span>
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: 12, color: '#4B5563' }}>
-                  Picker: {o.assignedPicker || 'Unassigned'}
+                <td style={{ padding: '14px 16px', fontSize: 12, color: '#0284C7' }}>
+                  Picker: <strong style={{ color: '#0369A1' }}>{o.assignedPicker || 'Unassigned'}</strong>
                   <br />
-                  Packer: {o.assignedPacker || 'Unassigned'}
+                  Packer: <strong style={{ color: '#0369A1' }}>{o.assignedPacker || 'Unassigned'}</strong>
                 </td>
                 <td style={{ padding: '14px 16px' }}>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -289,7 +274,7 @@ export function DarkstoreOrdersPage() {
                         type="button"
                         onClick={() => handleUpdateStatus(o.id, 'ACCEPTED')}
                         style={{
-                          backgroundColor: '#0F3D21',
+                          background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                           color: '#FFFFFF',
                           border: 'none',
                           padding: '6px 12px',
@@ -307,7 +292,7 @@ export function DarkstoreOrdersPage() {
                         type="button"
                         onClick={() => handleUpdateStatus(o.id, 'PICKING')}
                         style={{
-                          backgroundColor: '#1D4ED8',
+                          background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                           color: '#FFFFFF',
                           border: 'none',
                           padding: '6px 12px',
@@ -325,7 +310,7 @@ export function DarkstoreOrdersPage() {
                         type="button"
                         onClick={() => handleUpdateStatus(o.id, 'PACKING')}
                         style={{
-                          backgroundColor: '#6D28D9',
+                          background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                           color: '#FFFFFF',
                           border: 'none',
                           padding: '6px 12px',
@@ -343,7 +328,7 @@ export function DarkstoreOrdersPage() {
                         type="button"
                         onClick={() => handleUpdateStatus(o.id, 'READY_FOR_DISPATCH')}
                         style={{
-                          backgroundColor: '#15803D',
+                          background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                           color: '#FFFFFF',
                           border: 'none',
                           padding: '6px 12px',
@@ -360,9 +345,9 @@ export function DarkstoreOrdersPage() {
                       type="button"
                       onClick={() => setSelectedOrder(o)}
                       style={{
-                        backgroundColor: '#F3F4F6',
-                        color: '#374151',
-                        border: '1px solid #D1D5DB',
+                        backgroundColor: '#F0F9FF',
+                        color: '#0369A1',
+                        border: '1px solid #BAE6FD',
                         padding: '6px 10px',
                         borderRadius: 6,
                         fontSize: 11,
@@ -383,12 +368,12 @@ export function DarkstoreOrdersPage() {
       {/* Order Detail Modal */}
       {selectedOrder && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24, maxWidth: 600, width: '100%' }}>
-            <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21', margin: '0 0 16px' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24, maxWidth: 600, width: '100%', border: '1px solid #BAE6FD' }}>
+            <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', margin: '0 0 16px' }}>
               Order Details — {selectedOrder.orderNumber}
             </h2>
 
-            <div style={{ fontSize: 13, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16, color: '#0369A1' }}>
               <div><strong>Customer:</strong> {selectedOrder.customerName}</div>
               <div><strong>Phone:</strong> {selectedOrder.customerPhone}</div>
               <div style={{ gridColumn: '1 / -1' }}><strong>Address:</strong> {selectedOrder.deliveryAddress}</div>
@@ -396,17 +381,17 @@ export function DarkstoreOrdersPage() {
               <div><strong>Priority:</strong> {selectedOrder.priority}</div>
             </div>
 
-            <h3 style={{ fontSize: 14, fontWeight: 800, color: '#374151', marginBottom: 8 }}>Order Items</h3>
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', border: '1px solid #E5E7EB', borderRadius: 8 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 800, color: '#0369A1', marginBottom: 8 }}>Order Items</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', border: '1px solid #BAE6FD', borderRadius: 8 }}>
               {selectedOrder.items.map((i) => (
-                <li key={i.id} style={{ padding: '10px 14px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <li key={i.id} style={{ padding: '10px 14px', borderBottom: '1px solid #E0F2FE', display: 'flex', justifyContent: 'space-between', fontSize: 12, backgroundColor: '#F0F9FF' }}>
                   <div>
-                    <strong style={{ color: '#0F3D21' }}>{i.productName}</strong> ({i.sku})
-                    <div style={{ fontSize: 11, color: '#6B7280' }}> Location: {i.shelfLocation}</div>
+                    <strong style={{ color: '#0369A1' }}>{i.productName}</strong> ({i.sku})
+                    <div style={{ fontSize: 11, color: '#0284C7' }}> Location: {i.shelfLocation}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div>Qty: {i.quantityRequested} | Picked: {i.quantityPicked}</div>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: i.status === 'PICKED' ? '#15803D' : '#92400E' }}>{i.status}</span>
+                    <div style={{ color: '#0369A1', fontWeight: 700 }}>Qty: {i.quantityRequested} | Picked: {i.quantityPicked}</div>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: '#0369A1', backgroundColor: '#E0F2FE', padding: '2px 6px', borderRadius: 4, border: '1px solid #BAE6FD' }}>{i.status}</span>
                   </div>
                 </li>
               ))}
@@ -416,7 +401,7 @@ export function DarkstoreOrdersPage() {
               <button
                 type="button"
                 onClick={() => setSelectedOrder(null)}
-                style={{ backgroundColor: '#0F3D21', color: '#FFFFFF', border: 'none', padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                style={{ background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
               >
                 Close Window
               </button>

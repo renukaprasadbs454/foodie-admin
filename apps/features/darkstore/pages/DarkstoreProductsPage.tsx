@@ -92,26 +92,26 @@ export function DarkstoreProductsPage() {
     <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', margin: 0 }}>
              Darkstore Product Catalog Management
           </h1>
-          <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
+          <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0' }}>
             Catalog items, pricing, GST %, units, and rack shelf locations assigned to Indiranagar QuickHub.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
-          style={{ backgroundColor: '#0F3D21', color: '#FFFFFF', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 800, border: 'none', cursor: 'pointer' }}
+          style={{ background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 800, border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)' }}
         >
           + Add Darkstore Product
         </button>
       </div>
 
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #BAE6FD', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 700 }}>
+            <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '2px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
               <th style={{ padding: '14px 16px' }}>SKU</th>
               <th style={{ padding: '14px 16px' }}>Product</th>
               <th style={{ padding: '14px 16px' }}>Category</th>
@@ -123,18 +123,18 @@ export function DarkstoreProductsPage() {
           </thead>
           <tbody>
             {products.map((p) => (
-              <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.sku}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 700, color: '#09090B' }}>{p.name}</td>
-                <td style={{ padding: '14px 16px', color: '#71717A' }}>{p.category}</td>
+              <tr key={p.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0369A1' }}>{p.sku}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0369A1' }}>{p.name}</td>
+                <td style={{ padding: '14px 16px', color: '#0284C7' }}>{p.category}</td>
                 <td style={{ padding: '14px 16px' }}>
-                  <span style={{ textDecoration: 'line-through', color: '#A1A1AA', marginRight: 6 }}>₹{p.price.toFixed(2)}</span>
-                  <span style={{ fontWeight: 800, color: '#09090B' }}>₹{p.sellingPrice.toFixed(2)}</span>
+                  <span style={{ textDecoration: 'line-through', color: '#94A3B8', marginRight: 6 }}>₹{p.price.toFixed(2)}</span>
+                  <span style={{ fontWeight: 800, color: '#0369A1' }}>₹{p.sellingPrice.toFixed(2)}</span>
                 </td>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.shelfLocation}</td>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#09090B' }}>{p.currentStock} {p.unit}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0369A1' }}>{p.shelfLocation}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0369A1' }}>{p.currentStock} {p.unit}</td>
                 <td style={{ padding: '14px 16px' }}>
-                  <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 800, backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7' }}>
+                  <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 800, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD' }}>
                     {p.status}
                   </span>
                 </td>
@@ -146,23 +146,23 @@ export function DarkstoreProductsPage() {
 
       {showAddModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24, maxWidth: 500, width: '100%' }}>
-            <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21', margin: '0 0 16px' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24, maxWidth: 500, width: '100%', border: '1px solid #BAE6FD' }}>
+            <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', margin: '0 0 16px' }}>
               Add Product to Darkstore Catalog
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-              <input type="text" placeholder="SKU (e.g. MILK-AMUL-500ML)" value={newSku} onChange={(e) => setNewSku(e.target.value)} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #D1D5DB' }} />
-              <input type="text" placeholder="Product Name" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #D1D5DB' }} />
-              <input type="text" placeholder="Category" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #D1D5DB' }} />
+              <input type="text" placeholder="SKU (e.g. MILK-AMUL-500ML)" value={newSku} onChange={(e) => setNewSku(e.target.value)} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', outline: 'none' }} />
+              <input type="text" placeholder="Product Name" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', outline: 'none' }} />
+              <input type="text" placeholder="Category" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', outline: 'none' }} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input type="number" placeholder="MRP Price" value={newPrice} onChange={(e) => setNewPrice(Number(e.target.value))} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #D1D5DB' }} />
-                <input type="number" placeholder="Selling Price" value={newSellingPrice} onChange={(e) => setNewSellingPrice(Number(e.target.value))} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #D1D5DB' }} />
+                <input type="number" placeholder="MRP Price" value={newPrice} onChange={(e) => setNewPrice(Number(e.target.value))} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', outline: 'none' }} />
+                <input type="number" placeholder="Selling Price" value={newSellingPrice} onChange={(e) => setNewSellingPrice(Number(e.target.value))} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', outline: 'none' }} />
               </div>
-              <input type="text" placeholder="Rack / Shelf Bin Location (e.g. Shelf A-04)" value={newShelf} onChange={(e) => setNewShelf(e.target.value)} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #D1D5DB' }} />
+              <input type="text" placeholder="Rack / Shelf Bin Location (e.g. Shelf A-04)" value={newShelf} onChange={(e) => setNewShelf(e.target.value)} style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', outline: 'none' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button type="button" onClick={() => setShowAddModal(false)} style={{ backgroundColor: '#F3F4F6', color: '#374151', padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer' }}>Cancel</button>
-              <button type="button" onClick={handleAddProduct} style={{ backgroundColor: '#0F3D21', color: '#FFFFFF', padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800 }}>Save Product</button>
+              <button type="button" onClick={() => setShowAddModal(false)} style={{ backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>Cancel</button>
+              <button type="button" onClick={handleAddProduct} style={{ background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 800 }}>Save Product</button>
             </div>
           </div>
         </div>

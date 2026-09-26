@@ -309,7 +309,7 @@ export default function DarkstoreHierarchyPage() {
             position: 'fixed',
             top: 20,
             right: 20,
-            backgroundColor: '#0F3D21',
+            backgroundColor: '#0369A1',
             color: '#F59E0B',
             padding: '14px 24px',
             borderRadius: 12,
@@ -325,10 +325,10 @@ export default function DarkstoreHierarchyPage() {
 
       {/* Header */}
       <div>
-        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', margin: 0 }}>
           Dark Store Grocery Hierarchy & Onboarding Setup
         </h1>
-        <p style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>
+        <p style={{ fontSize: 13, color: '#0284C7', marginTop: 4 }}>
           Strict State-Based Grocery Hierarchy: <strong>State → Zone → Warehouse → Dark Store</strong> & State-Filtered Seller Onboarding
         </p>
       </div>
@@ -341,7 +341,7 @@ export default function DarkstoreHierarchyPage() {
           backgroundColor: '#FFFFFF',
           padding: 8,
           borderRadius: 12,
-          border: '1px solid #E2E8F0',
+          border: '1px solid #BAE6FD',
           overflowX: 'auto',
         }}
       >
@@ -359,7 +359,7 @@ export default function DarkstoreHierarchyPage() {
               padding: '10px 18px',
               borderRadius: 8,
               border: 'none',
-              backgroundColor: activeTab === tab.id ? '#0F3D21' : 'transparent',
+              backgroundColor: activeTab === tab.id ? '#0369A1' : 'transparent',
               color: activeTab === tab.id ? '#F59E0B' : '#475569',
               fontSize: 13,
               fontWeight: 800,
@@ -380,14 +380,14 @@ export default function DarkstoreHierarchyPage() {
             <button
               type="button"
               onClick={() => setIsAddStateModal(true)}
-              style={{ padding: '9px 16px', backgroundColor: '#FFFFFF', border: '1.5px solid #0F3D21', color: '#0F3D21', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+              style={{ padding: '9px 16px', backgroundColor: '#FFFFFF', border: '1.5px solid #0369A1', color: '#0369A1', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
             >
               + Create State
             </button>
             <button
               type="button"
               onClick={() => setIsAddZoneModal(true)}
-              style={{ padding: '9px 16px', backgroundColor: '#0F3D21', border: 'none', color: '#F59E0B', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+              style={{ padding: '9px 16px', backgroundColor: '#0369A1', border: 'none', color: '#F59E0B', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
             >
               + Add Zone under State
             </button>
@@ -405,7 +405,7 @@ export default function DarkstoreHierarchyPage() {
                     backgroundColor: '#FFFFFF',
                     borderRadius: 14,
                     padding: 20,
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid #BAE6FD',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                     display: 'flex',
                     flexDirection: 'column',
@@ -413,7 +413,7 @@ export default function DarkstoreHierarchyPage() {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21' }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: '#0369A1' }}>
                       {st.name} ({st.code})
                     </div>
                     <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#D1FAE5', color: '#047857', padding: '3px 8px', borderRadius: 6 }}>
@@ -421,14 +421,14 @@ export default function DarkstoreHierarchyPage() {
                     </span>
                   </div>
 
-                  <div style={{ fontSize: 12, color: '#64748B', display: 'flex', gap: 12, fontWeight: 700 }}>
+                  <div style={{ fontSize: 12, color: '#0284C7', display: 'flex', gap: 12, fontWeight: 700 }}>
                     <span>{stateZones.length} Delivery Zones</span>
                     <span>{stateWhs.length} Warehouses</span>
                   </div>
 
                   {/* Zones under this state */}
                   <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 12 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#334155', marginBottom: 8, textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#0369A1', marginBottom: 8, textTransform: 'uppercase' }}>
                       Delivery Zones in {st.name}:
                     </div>
 
@@ -442,8 +442,8 @@ export default function DarkstoreHierarchyPage() {
                             style={{
                               padding: '8px 12px',
                               borderRadius: 6,
-                              backgroundColor: '#F8FAFC',
-                              border: '1px solid #E2E8F0',
+                              backgroundColor: '#F0F9FF',
+                              border: '1px solid #BAE6FD',
                               fontSize: 12,
                               fontWeight: 700,
                               color: '#1E293B',
@@ -452,7 +452,7 @@ export default function DarkstoreHierarchyPage() {
                             }}
                           >
                             <span>{z.name}</span>
-                            <span style={{ color: '#64748B', fontWeight: 500 }}>{z.cityName}</span>
+                            <span style={{ color: '#0284C7', fontWeight: 500 }}>{z.cityName}</span>
                           </div>
                         ))}
                       </div>
@@ -467,13 +467,13 @@ export default function DarkstoreHierarchyPage() {
 
       {/* TAB 2: WAREHOUSE SETUP (STATE -> ZONE -> WAREHOUSE) */}
       {activeTab === 'WAREHOUSES' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #E2E8F0', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0369A1', margin: 0 }}>
                 Warehouse Setup (`State → Zone → Warehouse`)
               </h3>
-              <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
                 Admin maps each Warehouse strictly to a selected State and a Zone of that State.
               </div>
             </div>
@@ -481,16 +481,16 @@ export default function DarkstoreHierarchyPage() {
             <button
               type="button"
               onClick={() => setIsAddWarehouseModal(true)}
-              style={{ padding: '9px 16px', backgroundColor: '#0F3D21', border: 'none', color: '#F59E0B', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+              style={{ padding: '9px 16px', backgroundColor: '#0369A1', border: 'none', color: '#F59E0B', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
             >
               + Add Warehouse under State & Zone
             </button>
           </div>
 
-          <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: 10 }}>
+          <div style={{ overflowX: 'auto', border: '1px solid #BAE6FD', borderRadius: 10 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
               <thead>
-                <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B' }}>
+                <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0284C7' }}>
                   <th style={{ padding: '12px 16px' }}>Warehouse Code & Name</th>
                   <th style={{ padding: '12px 16px' }}>State Location</th>
                   <th style={{ padding: '12px 16px' }}>Mapped Zone</th>
@@ -505,19 +505,19 @@ export default function DarkstoreHierarchyPage() {
                   const zoneObj = zones.find((z) => z.id === wh.zoneId);
 
                   return (
-                    <tr key={wh.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <tr key={wh.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
                       <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 800, color: '#0F3D21' }}>{wh.name}</div>
+                        <div style={{ fontWeight: 800, color: '#0369A1' }}>{wh.name}</div>
                         <div style={{ fontSize: 11, color: '#0284C7', fontFamily: 'monospace' }}>{wh.code}</div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 800, color: '#334155' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0369A1' }}>
                         {stateObj?.name || wh.stateId} ({stateObj?.code})
                       </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#475569' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#075985' }}>
                         {zoneObj?.name || wh.zoneId}
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#64748B' }}>{wh.address}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0F3D21' }}>
+                      <td style={{ padding: '12px 16px', color: '#0284C7' }}>{wh.address}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0369A1' }}>
                         {wh.capacityUnits.toLocaleString()} units
                       </td>
                       <td style={{ padding: '12px 16px' }}>
@@ -536,13 +536,13 @@ export default function DarkstoreHierarchyPage() {
 
       {/* TAB 3: DARK STORE SETUP (WAREHOUSE -> DARK STORE) */}
       {activeTab === 'DARKSTORES' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #E2E8F0', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0369A1', margin: 0 }}>
                 Dark Store Setup (`Warehouse → Dark Store`)
               </h3>
-              <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
                 <strong>Important Rule</strong>: Dark Store is created under a selected Warehouse and <strong>must remain inside the exact same State</strong> as its parent Warehouse.
               </div>
             </div>
@@ -550,16 +550,16 @@ export default function DarkstoreHierarchyPage() {
             <button
               type="button"
               onClick={() => setIsAddDarkstoreModal(true)}
-              style={{ padding: '9px 16px', backgroundColor: '#0F3D21', border: 'none', color: '#F59E0B', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+              style={{ padding: '9px 16px', backgroundColor: '#0369A1', border: 'none', color: '#F59E0B', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
             >
               + Create Dark Store under Warehouse
             </button>
           </div>
 
-          <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: 10 }}>
+          <div style={{ overflowX: 'auto', border: '1px solid #BAE6FD', borderRadius: 10 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
               <thead>
-                <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B' }}>
+                <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0284C7' }}>
                   <th style={{ padding: '12px 16px' }}>Dark Store Code & Name</th>
                   <th style={{ padding: '12px 16px' }}>Parent Warehouse</th>
                   <th style={{ padding: '12px 16px' }}>Inherited State (Strict)</th>
@@ -573,18 +573,18 @@ export default function DarkstoreHierarchyPage() {
                   const stObj = states.find((s) => s.id === ds.stateId);
 
                   return (
-                    <tr key={ds.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <tr key={ds.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
                       <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 800, color: '#0F3D21' }}>{ds.name}</div>
+                        <div style={{ fontWeight: 800, color: '#0369A1' }}>{ds.name}</div>
                         <div style={{ fontSize: 11, color: '#0284C7', fontFamily: 'monospace' }}>{ds.code}</div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#334155' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0369A1' }}>
                         {whObj?.name || ds.warehouseId}
                       </td>
                       <td style={{ padding: '12px 16px', fontWeight: 800, color: '#047857' }}>
                         {stObj?.name || ds.stateId} ({stObj?.code})
                       </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#475569' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#075985' }}>
                         {ds.deliveryRadiusKm} km radius
                       </td>
                       <td style={{ padding: '12px 16px' }}>
@@ -603,20 +603,20 @@ export default function DarkstoreHierarchyPage() {
 
       {/* TAB 4: SELLER ONBOARDING & STATE-FILTERED WAREHOUSE SELECTION */}
       {activeTab === 'SELLERS' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #E2E8F0', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0369A1', margin: 0 }}>
               Seller Onboarding & Supply Operations Setup
             </h3>
-            <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
               Workflow: Admin Approves Seller → Seller selects State → System displays <strong>only available Warehouses of that State</strong> → Seller selects preferred Warehouse.
             </div>
           </div>
 
-          <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: 10 }}>
+          <div style={{ overflowX: 'auto', border: '1px solid #BAE6FD', borderRadius: 10 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
               <thead>
-                <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B' }}>
+                <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0284C7' }}>
                   <th style={{ padding: '12px 16px' }}>Seller Business Details</th>
                   <th style={{ padding: '12px 16px' }}>Contact Info</th>
                   <th style={{ padding: '12px 16px' }}>Operational State</th>
@@ -631,16 +631,16 @@ export default function DarkstoreHierarchyPage() {
                   const whObj = warehouses.find((w) => w.id === sel.preferredWarehouseId);
 
                   return (
-                    <tr key={sel.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <tr key={sel.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
                       <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 800, color: '#0F3D21' }}>{sel.businessName}</div>
-                        <div style={{ fontSize: 11, color: '#64748B' }}>Owner: {sel.ownerName}</div>
+                        <div style={{ fontWeight: 800, color: '#0369A1' }}>{sel.businessName}</div>
+                        <div style={{ fontSize: 11, color: '#0284C7' }}>Owner: {sel.ownerName}</div>
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#334155' }}>
+                      <td style={{ padding: '12px 16px', color: '#0369A1' }}>
                         <div>{sel.email}</div>
-                        <div style={{ fontSize: 11, color: '#64748B' }}>{sel.phone}</div>
+                        <div style={{ fontSize: 11, color: '#0284C7' }}>{sel.phone}</div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 800, color: '#334155' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0369A1' }}>
                         {stObj?.name || sel.stateId} ({stObj?.code})
                       </td>
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: sel.preferredWarehouseId ? '#0284C7' : '#DC2626' }}>
@@ -672,7 +672,7 @@ export default function DarkstoreHierarchyPage() {
                             padding: '6px 12px',
                             borderRadius: 6,
                             border: 'none',
-                            backgroundColor: '#0F3D21',
+                            backgroundColor: '#0369A1',
                             color: '#F59E0B',
                             fontSize: 11,
                             fontWeight: 800,
@@ -695,18 +695,18 @@ export default function DarkstoreHierarchyPage() {
       {isAddStateModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
           <form onSubmit={handleAddState} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, maxWidth: 400, width: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21', margin: 0 }}>Create Master State</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', margin: 0 }}>Create Master State</h3>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>State Code *</label>
-              <input type="text" required placeholder="e.g. KA, MH, DL" value={stateCode} onChange={(e) => setStateCode(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>State Code *</label>
+              <input type="text" required placeholder="e.g. KA, MH, DL" value={stateCode} onChange={(e) => setStateCode(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>State Name *</label>
-              <input type="text" required placeholder="e.g. Karnataka" value={stateName} onChange={(e) => setStateName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>State Name *</label>
+              <input type="text" required placeholder="e.g. Karnataka" value={stateName} onChange={(e) => setStateName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-              <button type="button" onClick={() => setIsAddStateModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0F3D21', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Create State</button>
+              <button type="button" onClick={() => setIsAddStateModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+              <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0369A1', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Create State</button>
             </div>
           </form>
         </div>
@@ -716,26 +716,26 @@ export default function DarkstoreHierarchyPage() {
       {isAddZoneModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
           <form onSubmit={handleAddZone} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, maxWidth: 440, width: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21', margin: 0 }}>Add Zone under State</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', margin: 0 }}>Add Zone under State</h3>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Select State *</label>
-              <select value={zoneStateId} onChange={(e) => setZoneStateId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Select State *</label>
+              <select value={zoneStateId} onChange={(e) => setZoneStateId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700 }}>
                 {states.map((s) => (
                   <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
                 ))}
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Zone Name *</label>
-              <input type="text" required placeholder="e.g. Indiranagar Tech Hub Zone" value={zoneName} onChange={(e) => setZoneName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Zone Name *</label>
+              <input type="text" required placeholder="e.g. Indiranagar Tech Hub Zone" value={zoneName} onChange={(e) => setZoneName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>City Name *</label>
-              <input type="text" required placeholder="e.g. Bangalore" value={zoneCity} onChange={(e) => setZoneCity(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>City Name *</label>
+              <input type="text" required placeholder="e.g. Bangalore" value={zoneCity} onChange={(e) => setZoneCity(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-              <button type="button" onClick={() => setIsAddZoneModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0F3D21', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Add Zone</button>
+              <button type="button" onClick={() => setIsAddZoneModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+              <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0369A1', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Add Zone</button>
             </div>
           </form>
         </div>
@@ -745,16 +745,16 @@ export default function DarkstoreHierarchyPage() {
       {isAddWarehouseModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
           <form onSubmit={handleAddWarehouse} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, maxWidth: 480, width: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21', margin: 0 }}>Warehouse Setup (`State → Zone → Warehouse`)</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', margin: 0 }}>Warehouse Setup (`State → Zone → Warehouse`)</h3>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Select State *</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Select State *</label>
               <select
                 value={whStateId}
                 onChange={(e) => {
                   setWhStateId(e.target.value);
                   setWhZoneId('');
                 }}
-                style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}
+                style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700 }}
               >
                 {states.map((s) => (
                   <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
@@ -762,8 +762,8 @@ export default function DarkstoreHierarchyPage() {
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Select Zone (Filtered by State) *</label>
-              <select value={whZoneId} required onChange={(e) => setWhZoneId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Select Zone (Filtered by State) *</label>
+              <select value={whZoneId} required onChange={(e) => setWhZoneId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700 }}>
                 <option value="">-- Select Zone in Selected State --</option>
                 {filteredZonesForWh.map((z) => (
                   <option key={z.id} value={z.id}>{z.name} ({z.cityName})</option>
@@ -772,25 +772,25 @@ export default function DarkstoreHierarchyPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Code *</label>
-                <input type="text" required placeholder="KA-WH-03" value={whCode} onChange={(e) => setWhCode(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Code *</label>
+                <input type="text" required placeholder="KA-WH-03" value={whCode} onChange={(e) => setWhCode(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Warehouse Name *</label>
-                <input type="text" required placeholder="Bangalore North Fulfillment Center" value={whName} onChange={(e) => setWhName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Warehouse Name *</label>
+                <input type="text" required placeholder="Bangalore North Fulfillment Center" value={whName} onChange={(e) => setWhName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
               </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Address</label>
-              <input type="text" placeholder="Plot 12, Industrial Area" value={whAddress} onChange={(e) => setWhAddress(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Address</label>
+              <input type="text" placeholder="Plot 12, Industrial Area" value={whAddress} onChange={(e) => setWhAddress(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Capacity Units</label>
-              <input type="number" value={whCapacity} onChange={(e) => setWhCapacity(Number(e.target.value))} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Capacity Units</label>
+              <input type="number" value={whCapacity} onChange={(e) => setWhCapacity(Number(e.target.value))} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-              <button type="button" onClick={() => setIsAddWarehouseModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0F3D21', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Create Warehouse</button>
+              <button type="button" onClick={() => setIsAddWarehouseModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+              <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0369A1', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Create Warehouse</button>
             </div>
           </form>
         </div>
@@ -800,11 +800,11 @@ export default function DarkstoreHierarchyPage() {
       {isAddDarkstoreModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
           <form onSubmit={handleAddDarkStore} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, maxWidth: 480, width: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21', margin: 0 }}>Create Dark Store under Warehouse</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', margin: 0 }}>Create Dark Store under Warehouse</h3>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Select Parent Warehouse *</label>
-              <select value={dsWarehouseId} onChange={(e) => setDsWarehouseId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Select Parent Warehouse *</label>
+              <select value={dsWarehouseId} onChange={(e) => setDsWarehouseId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700 }}>
                 {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
                 ))}
@@ -818,23 +818,23 @@ export default function DarkstoreHierarchyPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Code *</label>
-                <input type="text" required placeholder="KA-DS-03" value={dsCode} onChange={(e) => setDsCode(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Code *</label>
+                <input type="text" required placeholder="KA-DS-03" value={dsCode} onChange={(e) => setDsCode(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Dark Store Name *</label>
-                <input type="text" required placeholder="Whitefield Quick-Commerce Darkstore" value={dsName} onChange={(e) => setDsName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Dark Store Name *</label>
+                <input type="text" required placeholder="Whitefield Quick-Commerce Darkstore" value={dsName} onChange={(e) => setDsName(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Delivery Radius (km)</label>
-              <input type="number" step="0.5" value={dsRadius} onChange={(e) => setDsRadius(Number(e.target.value))} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Delivery Radius (km)</label>
+              <input type="number" step="0.5" value={dsRadius} onChange={(e) => setDsRadius(Number(e.target.value))} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }} />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-              <button type="button" onClick={() => setIsAddDarkstoreModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0F3D21', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Create Dark Store</button>
+              <button type="button" onClick={() => setIsAddDarkstoreModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+              <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0369A1', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Create Dark Store</button>
             </div>
           </form>
         </div>
@@ -844,21 +844,21 @@ export default function DarkstoreHierarchyPage() {
       {selectedSellerForOnboarding && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
           <form onSubmit={handleApproveSellerOnboarding} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, maxWidth: 480, width: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0F3D21', margin: 0 }}>Seller Onboarding & Supply Warehouse Mapping</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', margin: 0 }}>Seller Onboarding & Supply Warehouse Mapping</h3>
 
-            <div style={{ fontSize: 13, color: '#475569' }}>
+            <div style={{ fontSize: 13, color: '#075985' }}>
               Configuring supply operations for <strong>{selectedSellerForOnboarding.businessName}</strong> ({selectedSellerForOnboarding.email}).
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Select Seller State *</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Select Seller State *</label>
               <select
                 value={sellerTargetStateId}
                 onChange={(e) => {
                   setSellerTargetStateId(e.target.value);
                   setSellerTargetWarehouseId('');
                 }}
-                style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}
+                style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700 }}
               >
                 {states.map((s) => (
                   <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
@@ -867,8 +867,8 @@ export default function DarkstoreHierarchyPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0F3D21', marginBottom: 4 }}>Select Preferred Warehouse (Only Available in Selected State) *</label>
-              <select value={sellerTargetWarehouseId} required onChange={(e) => setSellerTargetWarehouseId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Select Preferred Warehouse (Only Available in Selected State) *</label>
+              <select value={sellerTargetWarehouseId} required onChange={(e) => setSellerTargetWarehouseId(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700 }}>
                 <option value="">-- Select State-Filtered Warehouse --</option>
                 {filteredWarehousesForSeller.map((w) => (
                   <option key={w.id} value={w.id}>{w.name} ({w.code})</option>
@@ -877,8 +877,8 @@ export default function DarkstoreHierarchyPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-              <button type="button" onClick={() => setSelectedSellerForOnboarding(null)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0F3D21', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Approve & Connect Warehouse</button>
+              <button type="button" onClick={() => setSelectedSellerForOnboarding(null)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+              <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0369A1', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Approve & Connect Warehouse</button>
             </div>
           </form>
         </div>

@@ -163,10 +163,10 @@ export function DeliveryPayoutsPage() {
       {/* Page Title & Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 900, color: '#0F172A', margin: 0, letterSpacing: '-0.5px' }}>
+          <h1 style={{ fontSize: 26, fontWeight: 900, color: '#0369A1', margin: 0, letterSpacing: '-0.5px' }}>
             Delivery Partner Payout Studio
           </h1>
-          <p style={{ fontSize: 13, color: '#64748B', marginTop: 4, margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#0284C7', marginTop: 4, margin: 0 }}>
             Manage deliveryman payout requests, gateway settlements, automated reconciliation, and wallet ledger audits.
           </p>
         </div>
@@ -174,13 +174,13 @@ export function DeliveryPayoutsPage() {
         {toastMsg && (
           <div
             style={{
-              backgroundColor: '#0F3D21',
+              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
               color: '#FFFFFF',
               padding: '10px 20px',
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 700,
-              boxShadow: '0 4px 12px rgba(15, 61, 33, 0.25)',
+              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
               animation: 'fadeIn 0.2s ease',
             }}
           >
@@ -197,17 +197,17 @@ export function DeliveryPayoutsPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             padding: 20,
-            border: '1px solid #E2E8F0',
+            border: '1px solid #BAE6FD',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
             Total Payout Volume
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#0F3D21', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>
             ₹{totalVolume.toFixed(2)}
           </div>
-          <div style={{ fontSize: 12, color: '#166534', marginTop: 4, fontWeight: 700 }}>
+          <div style={{ fontSize: 12, color: '#0284C7', marginTop: 4, fontWeight: 700 }}>
             Across {payouts.length} payout requests
           </div>
         </div>
@@ -218,17 +218,17 @@ export function DeliveryPayoutsPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             padding: 20,
-            border: '1px solid #E2E8F0',
+            border: '1px solid #BAE6FD',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
             Open / Pending Requests
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#D97706', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#0284C7', marginTop: 4 }}>
             {pendingCount}
           </div>
-          <div style={{ fontSize: 12, color: '#B45309', marginTop: 4, fontWeight: 700 }}>
+          <div style={{ fontSize: 12, color: '#0369A1', marginTop: 4, fontWeight: 700 }}>
             REQUESTED or PROCESSING
           </div>
         </div>
@@ -239,17 +239,17 @@ export function DeliveryPayoutsPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             padding: 20,
-            border: '1px solid #E2E8F0',
+            border: '1px solid #BAE6FD',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
             Success Rate
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#047857', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>
             {successRate}%
           </div>
-          <div style={{ fontSize: 12, color: '#047857', marginTop: 4, fontWeight: 700 }}>
+          <div style={{ fontSize: 12, color: '#0284C7', marginTop: 4, fontWeight: 700 }}>
             {successCount} successfully settled
           </div>
         </div>
@@ -260,24 +260,24 @@ export function DeliveryPayoutsPage() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             padding: 20,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#71717A', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
             Audit Discrepancies
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#09090B', marginTop: 4 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>
             {discrepancyCount}
           </div>
-          <div style={{ fontSize: 12, color: '#71717A', marginTop: 4, fontWeight: 700 }}>
+          <div style={{ fontSize: 12, color: '#0284C7', marginTop: 4, fontWeight: 700 }}>
             {discrepancyCount > 0 ? 'Requires reconciliation attention' : 'All transactions matched'}
           </div>
         </div>
       </div>
 
       {/* Primary Studio Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #E2E8F0', gap: 24 }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid #BAE6FD', gap: 24 }}>
         <button
           type="button"
           onClick={() => setActiveTab('PAYOUTS')}
@@ -285,8 +285,8 @@ export function DeliveryPayoutsPage() {
             padding: '12px 6px',
             fontSize: 15,
             fontWeight: 800,
-            color: activeTab === 'PAYOUTS' ? '#0F3D21' : '#64748B',
-            borderBottom: activeTab === 'PAYOUTS' ? '4px solid #0F3D21' : '4px solid transparent',
+            color: activeTab === 'PAYOUTS' ? '#0369A1' : '#0284C7',
+            borderBottom: activeTab === 'PAYOUTS' ? '4px solid #0369A1' : '4px solid transparent',
             background: 'none',
             borderTop: 'none',
             borderLeft: 'none',
@@ -304,8 +304,8 @@ export function DeliveryPayoutsPage() {
             padding: '12px 6px',
             fontSize: 15,
             fontWeight: 800,
-            color: activeTab === 'RECONCILIATION' ? '#0F3D21' : '#64748B',
-            borderBottom: activeTab === 'RECONCILIATION' ? '4px solid #0F3D21' : '4px solid transparent',
+            color: activeTab === 'RECONCILIATION' ? '#0369A1' : '#0284C7',
+            borderBottom: activeTab === 'RECONCILIATION' ? '4px solid #0369A1' : '4px solid transparent',
             background: 'none',
             borderTop: 'none',
             borderLeft: 'none',
@@ -323,8 +323,8 @@ export function DeliveryPayoutsPage() {
             padding: '12px 6px',
             fontSize: 15,
             fontWeight: 800,
-            color: activeTab === 'PROVIDERS' ? '#0F3D21' : '#64748B',
-            borderBottom: activeTab === 'PROVIDERS' ? '4px solid #0F3D21' : '4px solid transparent',
+            color: activeTab === 'PROVIDERS' ? '#0369A1' : '#0284C7',
+            borderBottom: activeTab === 'PROVIDERS' ? '4px solid #0369A1' : '4px solid transparent',
             background: 'none',
             borderTop: 'none',
             borderLeft: 'none',
@@ -372,34 +372,34 @@ export function DeliveryPayoutsPage() {
               backgroundColor: '#FFFFFF',
               borderRadius: 14,
               padding: 24,
-              border: '1px solid #E2E8F0',
+              border: '1px solid #BAE6FD',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#1D4ED8' }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#0369A1' }}>
                 Razorpay Payout Gateway
               </div>
-              <span style={{ backgroundColor: '#DCFCE7', color: '#15803D', padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 800 }}>
+              <span style={{ backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 800 }}>
                 ONLINE / OPERATIONAL
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
               <div>
-                <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>ACCOUNT ID</span>
-                <strong style={{ color: '#0F172A' }}>rzp_account_live_490182390</strong>
+                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>ACCOUNT ID</span>
+                <strong style={{ color: '#0369A1' }}>rzp_account_live_490182390</strong>
               </div>
               <div>
-                <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>PAYOUT DISPATCH MODE</span>
-                <span style={{ fontWeight: 700, color: '#0F172A' }}>Automated Direct Bank Transfer (IMPS/NEFT)</span>
+                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>PAYOUT DISPATCH MODE</span>
+                <span style={{ fontWeight: 700, color: '#0369A1' }}>Automated Direct Bank Transfer (IMPS/NEFT)</span>
               </div>
               <div>
-                <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>WEBHOOK LISTENER</span>
-                <code style={{ fontSize: 12, backgroundColor: '#F1F5F9', padding: '2px 6px', borderRadius: 4 }}>
+                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>WEBHOOK LISTENER</span>
+                <code style={{ fontSize: 12, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '2px 6px', borderRadius: 4 }}>
                   /api/v1/payments/razorpay-webhook
                 </code>
               </div>
-              <div style={{ fontSize: 11, color: '#64748B', backgroundColor: '#F8FAFC', padding: 10, borderRadius: 8, marginTop: 8 }}>
+              <div style={{ fontSize: 11, color: '#0284C7', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: 10, borderRadius: 8, marginTop: 8 }}>
                 Provider credentials and secret keys are stored in encrypted environment variables and never returned over API endpoints.
               </div>
             </div>
@@ -411,34 +411,34 @@ export function DeliveryPayoutsPage() {
               backgroundColor: '#FFFFFF',
               borderRadius: 14,
               padding: 24,
-              border: '1px solid #E2E8F0',
+              border: '1px solid #BAE6FD',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#C2410C' }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#0284C7' }}>
                 Cashfree Payout Gateway
               </div>
-              <span style={{ backgroundColor: '#FEF3C7', color: '#B45309', padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 800 }}>
+              <span style={{ backgroundColor: '#F0F9FF', color: '#0284C7', border: '1px solid #BAE6FD', padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 800 }}>
                 STANDBY / SECONDARY
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
               <div>
-                <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>APP ID</span>
-                <strong style={{ color: '#0F172A' }}>cf_app_live_8839021940</strong>
+                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>APP ID</span>
+                <strong style={{ color: '#0369A1' }}>cf_app_live_8839021940</strong>
               </div>
               <div>
-                <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>PAYOUT DISPATCH MODE</span>
-                <span style={{ fontWeight: 700, color: '#0F172A' }}>Fallback Instant UPI Transfer</span>
+                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>PAYOUT DISPATCH MODE</span>
+                <span style={{ fontWeight: 700, color: '#0369A1' }}>Fallback Instant UPI Transfer</span>
               </div>
               <div>
-                <span style={{ color: '#64748B', display: 'block', fontSize: 11, fontWeight: 700 }}>WEBHOOK LISTENER</span>
-                <code style={{ fontSize: 12, backgroundColor: '#F1F5F9', padding: '2px 6px', borderRadius: 4 }}>
+                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>WEBHOOK LISTENER</span>
+                <code style={{ fontSize: 12, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '2px 6px', borderRadius: 4 }}>
                   /api/v1/payments/cashfree-webhook
                 </code>
               </div>
-              <div style={{ fontSize: 11, color: '#64748B', backgroundColor: '#F8FAFC', padding: 10, borderRadius: 8, marginTop: 8 }}>
+              <div style={{ fontSize: 11, color: '#0284C7', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: 10, borderRadius: 8, marginTop: 8 }}>
                 Provider credentials and secret keys are stored in encrypted environment variables and never returned over API endpoints.
               </div>
             </div>

@@ -180,7 +180,7 @@ export function AnalyticsPage() {
           backgroundColor: '#FFFFFF',
           padding: '16px 20px',
           borderRadius: 14,
-          border: '1px solid #E2E8F0',
+          border: '1px solid #BAE6FD',
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
@@ -188,15 +188,15 @@ export function AnalyticsPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span> Analytics Timeframe Filter</span>
             <span
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: '#09090B',
-                backgroundColor: '#F4F4F5',
-                border: '1px solid #E4E4E7',
+                color: '#0369A1',
+                backgroundColor: '#F0F9FF',
+                border: '1px solid #BAE6FD',
                 padding: '2px 8px',
                 borderRadius: 12,
               }}
@@ -269,7 +269,7 @@ export function AnalyticsPage() {
             onClick={applyRange}
             style={{
               padding: '8px 18px',
-              backgroundColor: '#000000',
+              backgroundColor: '#0284C7',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,

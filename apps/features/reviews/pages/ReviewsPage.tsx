@@ -207,10 +207,10 @@ export function ReviewsPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#09090B">
+          <Text as="h1" variant="heading1" color="#0369A1">
             Reviews & Customer Complaints Desk
           </Text>
-          <Text as="p" variant="caption" color="#71717A">
+          <Text as="p" variant="caption" color="#0284C7">
             Manage customer ratings, restaurant feedback, delivery partner scorecards, reported reviews & support complaints
           </Text>
         </div>
@@ -224,13 +224,13 @@ export function ReviewsPage() {
           style={{
             padding: '10px 16px',
             borderRadius: 10,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             fontSize: 13,
             width: 320,
             maxWidth: '100%',
             outline: 'none',
             backgroundColor: '#FFFFFF',
-            color: '#09090B',
+            color: '#0369A1',
           }}
         />
       </div>
@@ -243,7 +243,7 @@ export function ReviewsPage() {
           backgroundColor: '#FFFFFF',
           padding: '8px',
           borderRadius: 12,
-          border: '1px solid #E4E4E7',
+          border: '1px solid #BAE6FD',
         }}
       >
         <button
@@ -254,11 +254,13 @@ export function ReviewsPage() {
             padding: '12px',
             borderRadius: 8,
             border: 'none',
-            backgroundColor: mainTab === 'REVIEWS_RATINGS' ? '#000000' : 'transparent',
-            color: mainTab === 'REVIEWS_RATINGS' ? '#FFFFFF' : '#71717A',
+            background: mainTab === 'REVIEWS_RATINGS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
+            color: mainTab === 'REVIEWS_RATINGS' ? '#FFFFFF' : '#0369A1',
             fontSize: 14,
             fontWeight: 800,
             cursor: 'pointer',
+            boxShadow: mainTab === 'REVIEWS_RATINGS' ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
           Reviews & Ratings ({reviews.length})
@@ -272,11 +274,13 @@ export function ReviewsPage() {
             padding: '12px',
             borderRadius: 8,
             border: 'none',
-            backgroundColor: mainTab === 'CUSTOMER_COMPLAINTS' ? '#000000' : 'transparent',
-            color: mainTab === 'CUSTOMER_COMPLAINTS' ? '#FFFFFF' : '#71717A',
+            background: mainTab === 'CUSTOMER_COMPLAINTS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
+            color: mainTab === 'CUSTOMER_COMPLAINTS' ? '#FFFFFF' : '#0369A1',
             fontSize: 14,
             fontWeight: 800,
             cursor: 'pointer',
+            boxShadow: mainTab === 'CUSTOMER_COMPLAINTS' ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
           Customer Complaints & Tickets ({tickets.length})
@@ -302,13 +306,14 @@ export function ReviewsPage() {
                 style={{
                   padding: '8px 16px',
                   borderRadius: 8,
-                  border: reviewSubTab === tab.id ? '1px solid #000000' : '1px solid #E4E4E7',
-                  backgroundColor: reviewSubTab === tab.id ? '#000000' : '#FFFFFF',
-                  color: reviewSubTab === tab.id ? '#FFFFFF' : '#09090B',
+                  border: reviewSubTab === tab.id ? 'none' : '1px solid #BAE6FD',
+                  background: reviewSubTab === tab.id ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
+                  color: reviewSubTab === tab.id ? '#FFFFFF' : '#0369A1',
                   fontSize: 13,
                   fontWeight: reviewSubTab === tab.id ? 800 : 600,
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  boxShadow: reviewSubTab === tab.id ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {tab.label}
@@ -317,10 +322,10 @@ export function ReviewsPage() {
           </div>
 
           {/* Reviews Table */}
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #E4E4E7', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #BAE6FD', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
               <thead>
-                <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
+                <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
                   <th style={{ padding: '14px 20px' }}>Customer & Store</th>
                   <th style={{ padding: '14px 20px' }}>Ratings</th>
                   <th style={{ padding: '14px 20px' }}>Feedback Comment</th>
@@ -332,9 +337,9 @@ export function ReviewsPage() {
               <tbody>
                 {filteredReviews.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#94A3B8' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#0284C7' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#334155' }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#0369A1' }}>
                           No customer reviews found in database
                         </div>
                         <div style={{ fontSize: 13 }}>
@@ -345,36 +350,36 @@ export function ReviewsPage() {
                   </tr>
                 ) : (
                   filteredReviews.map((r) => (
-                    <tr key={r.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
+                    <tr key={r.id} style={{ borderBottom: '1px solid #BAE6FD' }}>
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#0F172A' }}>{r.customerName}</div>
-                        <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>{r.restaurantName}</div>
+                        <div style={{ fontWeight: 800, color: '#0369A1' }}>{r.customerName}</div>
+                        <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>{r.restaurantName}</div>
                       </td>
                       <td style={{ padding: '16px 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ color: '#F59E0B', fontSize: 14 }}>★</span>
-                          <span style={{ fontWeight: 800, color: '#0F172A' }}>{r.rating}.0</span>
-                          <span style={{ fontSize: 11, color: '#71717A' }}>(Rest.)</span>
+                          <span style={{ color: '#0284C7', fontSize: 14 }}>★</span>
+                          <span style={{ fontWeight: 800, color: '#0369A1' }}>{r.rating}.0</span>
+                          <span style={{ fontSize: 11, color: '#0284C7' }}>(Rest.)</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                           <span style={{ color: '#0284C7', fontSize: 13 }}>★</span>
-                          <span style={{ fontWeight: 700, color: '#0F172A', fontSize: 12 }}>{r.deliveryRating}.0</span>
-                          <span style={{ fontSize: 11, color: '#71717A' }}>(Delivery)</span>
+                          <span style={{ fontWeight: 700, color: '#0369A1', fontSize: 12 }}>{r.deliveryRating}.0</span>
+                          <span style={{ fontSize: 11, color: '#0284C7' }}>(Delivery)</span>
                         </div>
                       </td>
                       <td style={{ padding: '16px 20px', maxWidth: 320 }}>
-                        <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.5 }}>"{r.comment}"</div>
-                        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>{r.createdAt}</div>
+                        <div style={{ fontSize: 13, color: '#0369A1', lineHeight: 1.5 }}>"{r.comment}"</div>
+                        <div style={{ fontSize: 11, color: '#0284C7', marginTop: 4 }}>{r.createdAt}</div>
                       </td>
-                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#09090B', fontWeight: 600 }}>
+                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#0369A1', fontWeight: 600 }}>
                         {r.deliveryManName}
                       </td>
                       <td style={{ padding: '16px 20px' }}>
                         <span
                           style={{
-                            backgroundColor: r.status === 'PUBLISHED' ? '#F4F4F5' : '#000000',
-                            color: r.status === 'PUBLISHED' ? '#09090B' : '#FFFFFF',
-                            border: '1px solid #E4E4E7',
+                            backgroundColor: r.status === 'PUBLISHED' ? '#E0F2FE' : '#0284C7',
+                            color: r.status === 'PUBLISHED' ? '#0369A1' : '#FFFFFF',
+                            border: '1px solid #BAE6FD',
                             fontSize: 11,
                             fontWeight: 800,
                             padding: '4px 8px',
@@ -391,9 +396,9 @@ export function ReviewsPage() {
                             onClick={() => handleModeration(r.id, r.status === 'FLAGGED' ? 'PUBLISHED' : 'FLAGGED')}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: r.status === 'FLAGGED' ? '#000000' : '#F4F4F5',
-                              color: r.status === 'FLAGGED' ? '#FFFFFF' : '#09090B',
-                              border: '1px solid #E4E4E7',
+                              backgroundColor: r.status === 'FLAGGED' ? '#0284C7' : '#F0F9FF',
+                              color: r.status === 'FLAGGED' ? '#FFFFFF' : '#0369A1',
+                              border: '1px solid #BAE6FD',
                               borderRadius: 6,
                               fontSize: 12,
                               fontWeight: 700,
@@ -447,13 +452,14 @@ export function ReviewsPage() {
                 style={{
                   padding: '8px 16px',
                   borderRadius: 8,
-                  border: ticketSubTab === tab.id ? '1px solid #000000' : '1px solid #E4E4E7',
-                  backgroundColor: ticketSubTab === tab.id ? '#000000' : '#FFFFFF',
-                  color: ticketSubTab === tab.id ? '#FFFFFF' : '#09090B',
+                  border: ticketSubTab === tab.id ? 'none' : '1px solid #BAE6FD',
+                  background: ticketSubTab === tab.id ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
+                  color: ticketSubTab === tab.id ? '#FFFFFF' : '#0369A1',
                   fontSize: 13,
                   fontWeight: ticketSubTab === tab.id ? 800 : 600,
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  boxShadow: ticketSubTab === tab.id ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {tab.label}
@@ -462,8 +468,8 @@ export function ReviewsPage() {
           </div>
 
           {/* Ticket Status Filter Bar */}
-          <div style={{ display: 'flex', gap: 8, backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 10, border: '1px solid #E4E4E7' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#09090B', alignSelf: 'center', marginRight: 8 }}>Ticket Status:</span>
+          <div style={{ display: 'flex', gap: 8, backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 10, border: '1px solid #BAE6FD' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', alignSelf: 'center', marginRight: 8 }}>Ticket Status:</span>
             {(['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const).map((st) => (
               <button
                 key={st}
@@ -472,12 +478,14 @@ export function ReviewsPage() {
                 style={{
                   padding: '6px 12px',
                   borderRadius: 6,
-                  border: 'none',
-                  backgroundColor: ticketStatusFilter === st ? '#000000' : '#F4F4F5',
-                  color: ticketStatusFilter === st ? '#FFFFFF' : '#09090B',
+                  border: ticketStatusFilter === st ? 'none' : '1px solid #BAE6FD',
+                  background: ticketStatusFilter === st ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#F0F9FF',
+                  color: ticketStatusFilter === st ? '#FFFFFF' : '#0369A1',
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer',
+                  boxShadow: ticketStatusFilter === st ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {st}
@@ -486,10 +494,10 @@ export function ReviewsPage() {
           </div>
 
           {/* Complaints Table */}
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #E4E4E7', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #BAE6FD', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
               <thead>
-                <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
+                <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
                   <th style={{ padding: '14px 20px' }}>Ticket # & Customer</th>
                   <th style={{ padding: '14px 20px' }}>Category & Issue</th>
                   <th style={{ padding: '14px 20px' }}>Assigned Agent</th>
@@ -501,9 +509,9 @@ export function ReviewsPage() {
               <tbody>
                 {filteredTickets.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#94A3B8' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#0284C7' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#334155' }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#0369A1' }}>
                           No support complaints found in database
                         </div>
                         <div style={{ fontSize: 13 }}>
@@ -514,31 +522,31 @@ export function ReviewsPage() {
                   </tr>
                 ) : (
                   filteredTickets.map((t) => (
-                    <tr key={t.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
+                    <tr key={t.id} style={{ borderBottom: '1px solid #BAE6FD' }}>
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#0F172A', fontFamily: 'monospace' }}>{t.ticketNumber}</div>
-                        <div style={{ fontSize: 12, color: '#09090B', fontWeight: 600 }}>{t.customerName}</div>
-                        <div style={{ fontSize: 11, color: '#71717A' }}>{t.customerPhone}</div>
+                        <div style={{ fontWeight: 800, color: '#0369A1', fontFamily: 'monospace' }}>{t.ticketNumber}</div>
+                        <div style={{ fontSize: 12, color: '#0369A1', fontWeight: 600 }}>{t.customerName}</div>
+                        <div style={{ fontSize: 11, color: '#0284C7' }}>{t.customerPhone}</div>
                       </td>
                       <td style={{ padding: '16px 20px', maxWidth: 340 }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: '#09090B', backgroundColor: '#F4F4F5', border: '1px solid #E4E4E7', padding: '2px 6px', borderRadius: 4, width: 'fit-content', marginBottom: 4 }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: '#0369A1', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '2px 6px', borderRadius: 4, width: 'fit-content', marginBottom: 4 }}>
                           {t.category.replace(/_/g, ' ')}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 13 }}>{t.issueTitle}</div>
-                        <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>{t.details}</div>
+                        <div style={{ fontWeight: 700, color: '#0369A1', fontSize: 13 }}>{t.issueTitle}</div>
+                        <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>{t.details}</div>
                       </td>
-                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#09090B', fontWeight: 600 }}>
+                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#0369A1', fontWeight: 600 }}>
                         {t.assignedAgent}
                       </td>
-                      <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0F172A' }}>
+                      <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0369A1' }}>
                         {t.refundAmount ? `₹${t.refundAmount}` : 'N/A'}
                       </td>
                       <td style={{ padding: '16px 20px' }}>
                         <span
                           style={{
-                            backgroundColor: t.status === 'OPEN' ? '#000000' : t.status === 'IN_PROGRESS' ? '#18181B' : '#F4F4F5',
-                            color: t.status === 'OPEN' || t.status === 'IN_PROGRESS' ? '#FFFFFF' : '#09090B',
-                            border: '1px solid #E4E4E7',
+                            backgroundColor: t.status === 'OPEN' ? '#0284C7' : t.status === 'IN_PROGRESS' ? '#0369A1' : '#E0F2FE',
+                            color: t.status === 'OPEN' || t.status === 'IN_PROGRESS' ? '#FFFFFF' : '#0369A1',
+                            border: '1px solid #BAE6FD',
                             fontSize: 11,
                             fontWeight: 800,
                             padding: '4px 10px',
@@ -554,7 +562,7 @@ export function ReviewsPage() {
                             <button
                               type="button"
                               onClick={() => handleTicketStatusChange(t.id, 'RESOLVED')}
-                              style={{ padding: '6px 12px', backgroundColor: '#000000', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                              style={{ padding: '6px 12px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}
                             >
                               Resolve
                             </button>
@@ -563,7 +571,7 @@ export function ReviewsPage() {
                             <button
                               type="button"
                               onClick={() => handleTicketStatusChange(t.id, 'CLOSED')}
-                              style={{ padding: '6px 12px', backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                              style={{ padding: '6px 12px', backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                             >
                               Close
                             </button>
@@ -585,12 +593,12 @@ export function ReviewsPage() {
             position: 'fixed',
             bottom: 24,
             right: 24,
-            backgroundColor: '#000000',
+            backgroundColor: '#0284C7',
             color: '#FFFFFF',
             padding: '12px 24px',
             borderRadius: 8,
             fontWeight: 700,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)',
             zIndex: 9999,
           }}
         >

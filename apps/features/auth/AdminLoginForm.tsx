@@ -189,10 +189,10 @@ export function AdminLoginForm({
       noValidate
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <Text as="h1" variant="heading1" style={{ fontSize: 24, fontWeight: 800, color: '#09090B' }}>
+        <Text as="h1" variant="heading1" style={{ fontSize: 24, fontWeight: 800, color: '#0369A1' }}>
           Sign In to Admin Panel
         </Text>
-        <Text variant="body" color={tokens.color.textSecondary} style={{ fontSize: 13, lineHeight: 1.5 }}>
+        <Text variant="body" style={{ color: '#0284C7', fontSize: 13, lineHeight: 1.5 }}>
           Select an admin role and enter your credentials to sign in.
         </Text>
       </div>
@@ -203,11 +203,11 @@ export function AdminLoginForm({
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
-          backgroundColor: '#F4F4F5',
+          backgroundColor: '#F0F9FF',
           padding: 16,
           borderRadius: 14,
-          border: '1.5px solid #000000',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          border: '1.5px solid #0284C7',
+          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.1)',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -216,7 +216,7 @@ export function AdminLoginForm({
             style={{
               fontSize: 12,
               fontWeight: 800,
-              color: '#09090B',
+              color: '#0369A1',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
             }}
@@ -233,14 +233,14 @@ export function AdminLoginForm({
             width: '100%',
             padding: '12px 14px',
             borderRadius: 10,
-            border: '1.5px solid #000000',
+            border: '1.5px solid #BAE6FD',
             backgroundColor: '#FFFFFF',
             fontSize: 14,
             fontWeight: 800,
-            color: '#09090B',
+            color: '#0369A1',
             cursor: 'pointer',
             outline: 'none',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            boxShadow: '0 2px 4px rgba(2, 132, 199, 0.05)',
           }}
         >
           {ROLE_OPTIONS.map((item) => (
@@ -287,7 +287,7 @@ export function AdminLoginForm({
               top: 36,
               background: 'none',
               border: 'none',
-              color: '#71717A',
+              color: '#0284C7',
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
@@ -307,11 +307,13 @@ export function AdminLoginForm({
         style={{
           marginTop: 4,
           padding: '12px 20px',
-          backgroundColor: '#000000',
+          backgroundColor: '#0284C7',
+          backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
           color: '#FFFFFF',
           borderRadius: 10,
           fontWeight: 800,
           fontSize: 14,
+          boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)',
           cursor: isLoading ? 'not-allowed' : 'pointer',
         }}
       />
