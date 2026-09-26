@@ -37,11 +37,11 @@ export function ModuleSwitcher({ activeModule: externalModule, onModuleChange }:
         backgroundColor: '#FFFFFF',
         padding: '6px 10px',
         borderRadius: 10,
-        border: '1px solid #E4E4E7',
+        border: '1px solid #BAE6FD',
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 700, color: '#71717A', textTransform: 'uppercase', paddingRight: 4 }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase', paddingRight: 4 }}>
         Module:
       </span>
       {MODULES.map((m) => {

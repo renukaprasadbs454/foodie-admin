@@ -26,19 +26,19 @@ function KpiCard({
       className="card-hover"
       style={{
         padding: '20px 22px',
-        border: '1px solid #E4E4E7',
-        borderLeft: '4px solid #000000',
+        border: '1px solid #BAE6FD',
+        borderLeft: '4px solid #0284C7',
         borderRadius: 14,
         background: '#FFFFFF',
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
-        boxShadow: '0 4px 14px 0 rgba(0, 0, 0, 0.04)',
+        boxShadow: '0 4px 14px 0 rgba(2, 132, 199, 0.06)',
         cursor: 'pointer',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text as="span" variant="caption" color="#71717A" style={{ fontSize: 13, fontWeight: 600 }}>
+        <Text as="span" variant="caption" style={{ color: '#0284C7', fontSize: 13, fontWeight: 700 }}>
           {label}
         </Text>
         {icon ? (
@@ -47,8 +47,8 @@ function KpiCard({
               width: 36,
               height: 36,
               borderRadius: 10,
-              backgroundColor: '#F4F4F5',
-              border: '1px solid #E4E4E7',
+              backgroundColor: '#F0F9FF',
+              border: '1px solid #BAE6FD',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -66,9 +66,9 @@ function KpiCard({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: '#09090B',
-              backgroundColor: '#F4F4F5',
-              border: '1px solid #E4E4E7',
+              color: '#0369A1',
+              backgroundColor: '#F0F9FF',
+              border: '1px solid #BAE6FD',
               padding: '2px 8px',
               borderRadius: 12,
             }}
@@ -81,7 +81,7 @@ function KpiCard({
   );
 }
 
-/** Summary KPI tiles — 6amMart Multi-Vendor metrics. */
+/** Summary KPI tiles — Sky Blue 6amMart Multi-Vendor metrics. */
 export function KpiGrid({ summary }: Props) {
   return (
     <div
@@ -91,33 +91,32 @@ export function KpiGrid({ summary }: Props) {
         gap: 16,
       }}
     >
-      <KpiCard label="Total Orders">
-        <Text as="span" variant="heading2" color="#09090B">
+      <KpiCard label="Total Orders" icon="📦">
+        <Text as="span" variant="heading2" style={{ color: '#0369A1', fontWeight: 800 }}>
           {formatCount(summary.totalOrders)}
         </Text>
       </KpiCard>
-      <KpiCard label="Total Marketplace Revenue">
+      <KpiCard label="Total Marketplace Revenue" icon="💰">
         <MoneyText value={summary.totalRevenue} aria-label="Total revenue" />
       </KpiCard>
-      <KpiCard label="Active Stores / Vendors">
-        <Text as="span" variant="heading2" color="#09090B">
+      <KpiCard label="Active Stores / Vendors" icon="🏪">
+        <Text as="span" variant="heading2" style={{ color: '#0369A1', fontWeight: 800 }}>
           {formatCount(summary.activeRestaurants)}
         </Text>
       </KpiCard>
-      <KpiCard label="Active Delivery Fleet">
-        <Text as="span" variant="heading2" color="#09090B">
+      <KpiCard label="Active Delivery Fleet" icon="🛵">
+        <Text as="span" variant="heading2" style={{ color: '#0369A1', fontWeight: 800 }}>
           {formatCount(summary.activeDeliveryPartners)}
         </Text>
       </KpiCard>
-      <KpiCard label="New Registered Customers">
-        <Text as="span" variant="heading2" color="#09090B">
+      <KpiCard label="New Registered Customers" icon="👥">
+        <Text as="span" variant="heading2" style={{ color: '#0369A1', fontWeight: 800 }}>
           {formatCount(summary.newCustomers)}
         </Text>
       </KpiCard>
-      <KpiCard label="Average Order Value">
+      <KpiCard label="Average Order Value" icon="📈">
         <MoneyText value={summary.avgOrderValue} aria-label="Average order value" />
       </KpiCard>
     </div>
   );
 }
-

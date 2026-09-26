@@ -26,7 +26,7 @@ export function formatRoleBadge(role: AdminRole): { label: string; color: string
     case 'SUPPORT':
       return { label: 'SUPPORT DESK', color: '#1D4ED8', bg: '#DBEAFE', border: '#93C5FD' };
     default:
-      return { label: role, color: '#475569', bg: '#F1F5F9', border: '#CBD5E1' };
+      return { label: role, color: '#075985', bg: '#F1F5F9', border: '#CBD5E1' };
   }
 }
 

@@ -256,15 +256,15 @@ export function SettingsPage() {
             position: 'fixed',
             top: 20,
             right: 20,
-            backgroundColor: '#000000',
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
             color: '#FFFFFF',
             padding: '12px 24px',
             borderRadius: 10,
-            boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            boxShadow: '0 10px 25px rgba(2, 132, 199, 0.3)',
             fontSize: 14,
             fontWeight: 700,
             zIndex: 9999,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
           }}
         >
           {toastMessage}
@@ -274,10 +274,10 @@ export function SettingsPage() {
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#09090B', margin: 0 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', margin: 0 }}>
             Control Center Settings
           </h1>
-          <p style={{ fontSize: 14, color: '#71717A', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: 14, color: '#0284C7', margin: '4px 0 0 0' }}>
             Configure admin profiles, policy page setups, GST taxes, delivery pricing & security
           </p>
         </div>
@@ -288,7 +288,7 @@ export function SettingsPage() {
           disabled={saving}
           style={{
             padding: '10px 22px',
-            backgroundColor: '#000000',
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: 10,
@@ -296,7 +296,7 @@ export function SettingsPage() {
             fontWeight: 800,
             cursor: saving ? 'not-allowed' : 'pointer',
             opacity: saving ? 0.7 : 1,
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.25)',
             transition: 'all 0.15s ease',
           }}
         >
@@ -311,12 +311,12 @@ export function SettingsPage() {
           style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 14,
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             padding: '12px',
             display: 'flex',
             flexDirection: 'column',
             gap: 4,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)',
             height: 'fit-content',
           }}
         >
@@ -343,13 +343,14 @@ export function SettingsPage() {
                   padding: '12px 16px',
                   borderRadius: 10,
                   border: 'none',
-                  backgroundColor: isActive ? '#000000' : 'transparent',
-                  color: isActive ? '#FFFFFF' : '#71717A',
+                  background: isActive ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
+                  color: isActive ? '#FFFFFF' : '#0284C7',
                   fontWeight: isActive ? 800 : 600,
                   fontSize: 13,
                   cursor: 'pointer',
-                  borderLeft: isActive ? '4px solid #000000' : '4px solid transparent',
+                  borderLeft: isActive ? '4px solid #38BDF8' : '4px solid transparent',
                   transition: 'all 0.15s ease',
+                  boxShadow: isActive ? '0 2px 8px rgba(2, 132, 199, 0.25)' : 'none',
                 }}
               >
                 {tab.label}
@@ -362,43 +363,43 @@ export function SettingsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* 1. Admin Profile */}
           {activeTab === 'admin-profile' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
                 Personal Admin Profile
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Full Name</label>
-                  <input type="text" value={profileName} onChange={(e) => setProfileName(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Full Name</label>
+                  <input type="text" value={profileName} onChange={(e) => setProfileName(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Email Address</label>
-                  <input type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Email Address</label>
+                  <input type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Contact Phone</label>
-                  <input type="text" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Contact Phone</label>
+                  <input type="text" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Assigned System Role</label>
-                  <input type="text" value="SUPER_ADMIN (Full Control)" readOnly style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', backgroundColor: '#F4F4F5', color: '#09090B', fontWeight: 700, fontSize: 13 }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Assigned System Role</label>
+                  <input type="text" value="SUPER_ADMIN (Full Control)" readOnly style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', fontWeight: 700, fontSize: 13, outline: 'none' }} />
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid #E4E4E7', paddingTop: 20, marginTop: 10 }}>
-                <h4 style={{ fontSize: 15, fontWeight: 700, color: '#09090B', margin: '0 0 14px 0' }}>Password & Security Credentials</h4>
+              <div style={{ borderTop: '1px solid #BAE6FD', paddingTop: 20, marginTop: 10 }}>
+                <h4 style={{ fontSize: 15, fontWeight: 700, color: '#0369A1', margin: '0 0 14px 0' }}>Password & Security Credentials</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#71717A', marginBottom: 6 }}>Current Password</label>
-                    <input type="password" placeholder="••••••••" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0284C7', marginBottom: 6 }}>Current Password</label>
+                    <input type="password" placeholder="••••••••" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#71717A', marginBottom: 6 }}>New Password</label>
-                    <input type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0284C7', marginBottom: 6 }}>New Password</label>
+                    <input type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#71717A', marginBottom: 6 }}>Confirm New Password</label>
-                    <input type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0284C7', marginBottom: 6 }}>Confirm New Password</label>
+                    <input type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                   </div>
                 </div>
               </div>
@@ -407,13 +408,13 @@ export function SettingsPage() {
 
           {/* PAGE SETUP (TERMS, PRIVACY, CANCELLATION, REFUND & CUSTOM POLICIES) */}
           {activeTab === 'page-setup' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
                     Platform Policy Page Setup
                   </h3>
-                  <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
                     Configure, edit, or add policy documents (Terms & Conditions, Privacy Policy, Cancellation & Refund Policy, Delivery Policy).
                   </div>
                 </div>
@@ -423,7 +424,7 @@ export function SettingsPage() {
                   onClick={() => setIsAddPageModalOpen(true)}
                   style={{
                     padding: '8px 16px',
-                    backgroundColor: '#000000',
+                    background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -433,6 +434,7 @@ export function SettingsPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
+                    boxShadow: '0 2px 8px rgba(2, 132, 199, 0.2)',
                   }}
                 >
                   Add Custom Policy Page
@@ -440,7 +442,7 @@ export function SettingsPage() {
               </div>
 
               {/* Policy Page Selector Tabs */}
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', backgroundColor: '#F4F4F5', padding: 6, borderRadius: 10, border: '1px solid #E4E4E7' }}>
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', backgroundColor: '#F0F9FF', padding: 6, borderRadius: 10, border: '1px solid #BAE6FD' }}>
                 {policyPages.map((page) => {
                   const isSelected = selectedPolicyId === page.id;
                   return (
@@ -452,12 +454,13 @@ export function SettingsPage() {
                         padding: '8px 14px',
                         borderRadius: 8,
                         border: 'none',
-                        backgroundColor: isSelected ? '#000000' : 'transparent',
-                        color: isSelected ? '#FFFFFF' : '#71717A',
+                        background: isSelected ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
+                        color: isSelected ? '#FFFFFF' : '#0284C7',
                         fontSize: 12,
                         fontWeight: 700,
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
+                        boxShadow: isSelected ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
                       }}
                     >
                       {page.title}
@@ -468,30 +471,30 @@ export function SettingsPage() {
 
               {/* Policy Content Editor */}
               {selectedPolicy && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, borderTop: '1px solid #E4E4E7', paddingTop: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, borderTop: '1px solid #BAE6FD', paddingTop: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', padding: '3px 8px', borderRadius: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '3px 8px', borderRadius: 6 }}>
                       STATUS: {selectedPolicy.status} • LAST REVISION: {selectedPolicy.lastUpdated}
                     </span>
-                    <span style={{ fontSize: 11, color: '#71717A', fontFamily: 'monospace' }}>
+                    <span style={{ fontSize: 11, color: '#0284C7', fontFamily: 'monospace' }}>
                       URL Slug: /{selectedPolicy.slug}
                     </span>
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
                       Document Title
                     </label>
                     <input
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 14, fontWeight: 700, color: '#09090B', backgroundColor: '#FFFFFF' }}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 14, fontWeight: 700, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
                       Policy Document Content (Markdown / HTML Supported)
                     </label>
                     <textarea
@@ -502,12 +505,13 @@ export function SettingsPage() {
                         width: '100%',
                         padding: '12px 14px',
                         borderRadius: 8,
-                        border: '1px solid #E4E4E7',
+                        border: '1px solid #BAE6FD',
                         fontSize: 13,
                         lineHeight: 1.6,
                         fontFamily: 'inherit',
-                        color: '#09090B',
+                        color: '#0369A1',
                         backgroundColor: '#FFFFFF',
+                        outline: 'none',
                       }}
                     />
                   </div>
@@ -517,13 +521,14 @@ export function SettingsPage() {
                       type="submit"
                       style={{
                         padding: '10px 20px',
-                        backgroundColor: '#000000',
+                        background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: 8,
                         fontSize: 13,
                         fontWeight: 800,
                         cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(2, 132, 199, 0.2)',
                       }}
                     >
                       Save Policy Document
@@ -536,27 +541,27 @@ export function SettingsPage() {
 
           {/* Social Media */}
           {activeTab === 'social-media' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
               <SocialMediaStudio />
             </div>
           )}
 
           {/* 2. Admin Users */}
           {activeTab === 'admin-users' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>Admin Console Team</h3>
-                  <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>Manage admin accounts, executive access levels & operational personnel</div>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Admin Console Team</h3>
+                  <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>Manage admin accounts, executive access levels & operational personnel</div>
                 </div>
-                <button type="button" onClick={() => setIsAddUserModalOpen(true)} style={{ padding: '8px 16px', backgroundColor: '#000000', color: '#FFFFFF', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                <button type="button" onClick={() => setIsAddUserModalOpen(true)} style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.2)' }}>
                   Add Admin User
                 </button>
               </div>
 
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
+                  <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
                     <th style={{ padding: '12px 16px' }}>User Name & Email</th>
                     <th style={{ padding: '12px 16px' }}>Role</th>
                     <th style={{ padding: '12px 16px' }}>Department</th>
@@ -566,23 +571,23 @@ export function SettingsPage() {
                 </thead>
                 <tbody>
                   {adminUsers.map((u) => (
-                    <tr key={u.id} style={{ borderBottom: '1px solid #E4E4E7' }}>
+                    <tr key={u.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontWeight: 700, color: '#09090B' }}>{u.name}</div>
-                        <div style={{ fontSize: 12, color: '#71717A' }}>{u.email}</div>
+                        <div style={{ fontWeight: 700, color: '#0369A1' }}>{u.name}</div>
+                        <div style={{ fontSize: 12, color: '#0284C7' }}>{u.email}</div>
                       </td>
                       <td style={{ padding: '14px 16px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#F4F4F5', color: '#09090B', padding: '3px 8px', borderRadius: 4, border: '1px solid #E4E4E7' }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#F0F9FF', color: '#0369A1', padding: '3px 8px', borderRadius: 4, border: '1px solid #BAE6FD' }}>
                           {u.role}
                         </span>
                       </td>
-                      <td style={{ padding: '14px 16px', color: '#71717A' }}>{u.department}</td>
+                      <td style={{ padding: '14px 16px', color: '#0284C7' }}>{u.department}</td>
                       <td style={{ padding: '14px 16px' }}>
-                        <span style={{ backgroundColor: '#F4F4F5', color: '#09090B', border: '1px solid #E4E4E7', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 12 }}>
+                        <span style={{ backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 12 }}>
                           {u.status}
                         </span>
                       </td>
-                      <td style={{ padding: '14px 16px', color: '#71717A', fontSize: 12 }}>{u.lastLogin}</td>
+                      <td style={{ padding: '14px 16px', color: '#0284C7', fontSize: 12 }}>{u.lastLogin}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -592,15 +597,15 @@ export function SettingsPage() {
 
           {/* 3. Roles & Permissions */}
           {activeTab === 'roles-permissions' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
               <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>Role-Based Access Control (RBAC)</h3>
-                <div style={{ fontSize: 12, color: '#71717A', marginTop: 2 }}>Configure permissions matrix for SUPER_ADMIN, OPS, FINANCE, and SUPPORT roles</div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Role-Based Access Control (RBAC)</h3>
+                <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>Configure permissions matrix for SUPER_ADMIN, OPS, FINANCE, and SUPPORT roles</div>
               </div>
 
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#F4F4F5', borderBottom: '1px solid #E4E4E7', color: '#09090B', fontWeight: 700 }}>
+                  <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
                     <th style={{ padding: '12px 16px' }}>System Permission Scope</th>
                     <th style={{ padding: '12px 16px', textAlign: 'center' }}>SUPER_ADMIN</th>
                     <th style={{ padding: '12px 16px', textAlign: 'center' }}>OPS</th>
@@ -617,8 +622,8 @@ export function SettingsPage() {
                     { label: 'Manage Commission Rates & Rules', key: 'commissions' },
                     { label: 'View System Audit Logs', key: 'auditLogs' },
                   ].map((perm) => (
-                    <tr key={perm.key} style={{ borderBottom: '1px solid #E4E4E7' }}>
-                      <td style={{ padding: '14px 16px', fontWeight: 600, color: '#09090B' }}>{perm.label}</td>
+                    <tr key={perm.key} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 600, color: '#0369A1' }}>{perm.label}</td>
                       {(['SUPER_ADMIN', 'OPS', 'FINANCE', 'SUPPORT'] as const).map((r) => (
                         <td key={r} style={{ padding: '14px 16px', textAlign: 'center' }}>
                           <input
@@ -631,7 +636,7 @@ export function SettingsPage() {
                                 [r]: { ...prev[r], [perm.key]: val },
                               }));
                             }}
-                            style={{ width: 16, height: 16, accentColor: '#000000' }}
+                            style={{ width: 16, height: 16, accentColor: '#0284C7' }}
                           />
                         </td>
                       ))}
@@ -644,24 +649,24 @@ export function SettingsPage() {
 
           {/* 5. Tax / GST */}
           {activeTab === 'tax-gst' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>Tax & GST Compliance Rules</h3>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Tax & GST Compliance Rules</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>GSTIN Number</label>
-                  <input type="text" value={gstinNumber} onChange={(e) => setGstinNumber(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>GSTIN Number</label>
+                  <input type="text" value={gstinNumber} onChange={(e) => setGstinNumber(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Food Order GST Rate (%)</label>
-                  <input type="number" value={foodGstRate} onChange={(e) => setFoodGstRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Food Order GST Rate (%)</label>
+                  <input type="number" value={foodGstRate} onChange={(e) => setFoodGstRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Delivery Service GST (%)</label>
-                  <input type="number" value={deliveryGstRate} onChange={(e) => setDeliveryGstRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Delivery Service GST (%)</label>
+                  <input type="number" value={deliveryGstRate} onChange={(e) => setDeliveryGstRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>TCS Tax Rate (%)</label>
-                  <input type="number" value={tcsTaxRate} onChange={(e) => setTcsTaxRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>TCS Tax Rate (%)</label>
+                  <input type="number" value={tcsTaxRate} onChange={(e) => setTcsTaxRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
               </div>
             </div>
@@ -669,56 +674,56 @@ export function SettingsPage() {
 
           {/* 6. Payment Settings */}
           {activeTab === 'payment-settings' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>Payment Gateways & COD Rules</h3>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Payment Gateways & COD Rules</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={razorpayEnabled} onChange={(e) => setRazorpayEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#000000' }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#09090B' }}>Enable Razorpay Gateway (UPI, Netbanking, Cards)</span>
+                  <input type="checkbox" checked={razorpayEnabled} onChange={(e) => setRazorpayEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Enable Razorpay Gateway (UPI, Netbanking, Cards)</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={stripeEnabled} onChange={(e) => setStripeEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#000000' }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#09090B' }}>Enable Stripe Gateway (International Cards)</span>
+                  <input type="checkbox" checked={stripeEnabled} onChange={(e) => setStripeEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Enable Stripe Gateway (International Cards)</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={codEnabled} onChange={(e) => setCodEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#000000' }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#09090B' }}>Enable Cash on Delivery (COD)</span>
+                  <input type="checkbox" checked={codEnabled} onChange={(e) => setCodEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Enable Cash on Delivery (COD)</span>
                 </label>
               </div>
 
-              <div style={{ borderTop: '1px solid #E4E4E7', paddingTop: 16, marginTop: 8 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Max Order Limit for Cash on Delivery (₹)</label>
-                <input type="number" value={codMaxLimit} onChange={(e) => setCodMaxLimit(e.target.value)} style={{ width: '100%', maxWidth: 300, padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+              <div style={{ borderTop: '1px solid #BAE6FD', paddingTop: 16, marginTop: 8 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Max Order Limit for Cash on Delivery (₹)</label>
+                <input type="number" value={codMaxLimit} onChange={(e) => setCodMaxLimit(e.target.value)} style={{ width: '100%', maxWidth: 300, padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
               </div>
             </div>
           )}
 
           {/* 7. App Settings */}
           {activeTab === 'app-settings' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>Customer App & Operational Parameters</h3>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Customer App & Operational Parameters</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Minimum Required App Version</label>
-                  <input type="text" value={minAppVersion} onChange={(e) => setMinAppVersion(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Minimum Required App Version</label>
+                  <input type="text" value={minAppVersion} onChange={(e) => setMinAppVersion(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Max Operating Delivery Radius (KM)</label>
-                  <input type="number" value={maxDeliveryRadius} onChange={(e) => setMaxDeliveryRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Max Operating Delivery Radius (KM)</label>
+                  <input type="number" value={maxDeliveryRadius} onChange={(e) => setMaxDeliveryRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid #E4E4E7', paddingTop: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid #BAE6FD', paddingTop: 16 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={forceUpdateEnabled} onChange={(e) => setForceUpdateEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#000000' }} />
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#09090B' }}>Enforce Mandatory App Update Alert</span>
+                  <input type="checkbox" checked={forceUpdateEnabled} onChange={(e) => setForceUpdateEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#0369A1' }}>Enforce Mandatory App Update Alert</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={maintenanceMode} onChange={(e) => setMaintenanceMode(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#000000' }} />
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#09090B' }}>Enable Emergency Maintenance Mode</span>
+                  <input type="checkbox" checked={maintenanceMode} onChange={(e) => setMaintenanceMode(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#0369A1' }}>Enable Emergency Maintenance Mode</span>
                 </label>
               </div>
             </div>
@@ -726,28 +731,28 @@ export function SettingsPage() {
 
           {/* 8. Security */}
           {activeTab === 'security' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #E4E4E7', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>Security, Sessions & IP Rules</h3>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Security, Sessions & IP Rules</h3>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#09090B', marginBottom: 6 }}>Admin Inactivity Timeout (Minutes)</label>
-                <input type="number" value={sessionTimeout} onChange={(e) => setSessionTimeout(e.target.value)} style={{ width: '100%', maxWidth: 300, padding: '10px 14px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Admin Inactivity Timeout (Minutes)</label>
+                <input type="number" value={sessionTimeout} onChange={(e) => setSessionTimeout(e.target.value)} style={{ width: '100%', maxWidth: 300, padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 12, borderTop: '1px solid #E4E4E7' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 12, borderTop: '1px solid #BAE6FD' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={require2FA} onChange={(e) => setRequire2FA(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#000000' }} />
+                  <input type="checkbox" checked={require2FA} onChange={(e) => setRequire2FA(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B' }}>Enforce Two-Factor Authentication (2FA)</div>
-                    <div style={{ fontSize: 12, color: '#71717A' }}>Require 2FA verification for all SUPER_ADMIN and FINANCE logins.</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Enforce Two-Factor Authentication (2FA)</div>
+                    <div style={{ fontSize: 12, color: '#0284C7' }}>Require 2FA verification for all SUPER_ADMIN and FINANCE logins.</div>
                   </div>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={ipWhitelisting} onChange={(e) => setIpWhitelisting(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#000000' }} />
+                  <input type="checkbox" checked={ipWhitelisting} onChange={(e) => setIpWhitelisting(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#09090B' }}>Restrict Console Access to Whitelisted IP Ranges</div>
-                    <div style={{ fontSize: 12, color: '#71717A' }}>Block access from unapproved external networks.</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Restrict Console Access to Whitelisted IP Ranges</div>
+                    <div style={{ fontSize: 12, color: '#0284C7' }}>Block access from unapproved external networks.</div>
                   </div>
                 </label>
               </div>
@@ -762,7 +767,7 @@ export function SettingsPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
+            backgroundColor: 'rgba(8, 47, 73, 0.5)',
             backdropFilter: 'blur(4px)',
             zIndex: 100,
             display: 'flex',
@@ -779,28 +784,28 @@ export function SettingsPage() {
               padding: 24,
               maxWidth: 480,
               width: '100%',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              boxShadow: '0 20px 40px rgba(2, 132, 199, 0.2)',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
-              border: '1px solid #E4E4E7',
+              border: '1px solid #BAE6FD',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#09090B', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
                 Create Custom Policy Page
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAddPageModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#71717A' }}
+                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#0284C7', fontWeight: 700 }}
               >
                 ✕
               </button>
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                 Page Title *
               </label>
               <input
@@ -809,12 +814,12 @@ export function SettingsPage() {
                 placeholder="e.g. Merchant Code of Conduct"
                 value={newPageTitle}
                 onChange={(e) => setNewPageTitle(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, color: '#09090B', backgroundColor: '#FFFFFF' }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
                 Policy Content *
               </label>
               <textarea
@@ -823,7 +828,7 @@ export function SettingsPage() {
                 placeholder="State policy guidelines and operational terms..."
                 value={newPageContent}
                 onChange={(e) => setNewPageContent(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E4E4E7', fontSize: 13, fontFamily: 'inherit', color: '#09090B', backgroundColor: '#FFFFFF' }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontFamily: 'inherit', color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
               />
             </div>
 
@@ -831,7 +836,7 @@ export function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setIsAddPageModalOpen(false)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E4E4E7', backgroundColor: '#F4F4F5', color: '#09090B', fontSize: 13, cursor: 'pointer', fontWeight: 700 }}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', fontSize: 13, cursor: 'pointer', fontWeight: 700 }}
               >
                 Cancel
               </button>
@@ -841,11 +846,12 @@ export function SettingsPage() {
                   padding: '8px 18px',
                   borderRadius: 8,
                   border: 'none',
-                  backgroundColor: '#000000',
+                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                   color: '#FFFFFF',
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                 }}
               >
                 Publish Policy Page

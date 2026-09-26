@@ -46,18 +46,18 @@ export function DarkstoreStaffPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0F3D21', margin: 0 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', margin: 0 }}>
            Darkstore Staff Management
         </h1>
-        <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
+        <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0' }}>
           Role assignments, active pick/pack tasks, shift attendance, and staff directory.
         </p>
       </div>
 
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #BAE6FD', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 700 }}>
+            <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '2px solid #E5E7EB', color: '#374151', fontWeight: 700 }}>
               <th style={{ padding: '14px 16px' }}>Staff Name</th>
               <th style={{ padding: '14px 16px' }}>Role</th>
               <th style={{ padding: '14px 16px' }}>Contact</th>
@@ -68,7 +68,7 @@ export function DarkstoreStaffPage() {
           <tbody>
             {staffList.map((s) => (
               <tr key={s.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0F3D21' }}>{s.name}</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0369A1' }}>{s.name}</td>
                 <td style={{ padding: '14px 16px' }}>
                   <span style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 800, backgroundColor: '#FEF3C7', color: '#92400E' }}>
                     {s.role}
@@ -76,9 +76,9 @@ export function DarkstoreStaffPage() {
                 </td>
                 <td style={{ padding: '14px 16px', color: '#374151' }}>
                   {s.phone}
-                  <div style={{ fontSize: 11, color: '#6B7280' }}>{s.email}</div>
+                  <div style={{ fontSize: 11, color: '#0284C7' }}>{s.email}</div>
                 </td>
-                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#111827' }}>{s.activeTasksCount} Active Orders</td>
+                <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0369A1' }}>{s.activeTasksCount} Active Orders</td>
                 <td style={{ padding: '14px 16px' }}>
                   <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 800, backgroundColor: '#DCFCE7', color: '#15803D' }}>
                     {s.loginStatus}

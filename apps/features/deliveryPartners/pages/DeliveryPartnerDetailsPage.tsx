@@ -105,9 +105,9 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
         style={{
           background: 'none',
           border: 'none',
-          color: tokens.color.accent,
+          color: '#0284C7',
           cursor: 'pointer',
-          fontWeight: 600,
+          fontWeight: 700,
           marginBottom: '20px',
         }}
       >
@@ -116,19 +116,19 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
 
       <div
         style={{
-          backgroundColor: tokens.color.surface,
+          backgroundColor: '#FFFFFF',
           borderRadius: '12px',
-          border: `1px solid ${tokens.color.border}`,
+          border: '1px solid #BAE6FD',
           padding: '24px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          boxShadow: '0 2px 6px rgba(2, 132, 199, 0.05)',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: tokens.color.textPrimary }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: '#0369A1' }}>
               {partner.fullName}
             </h1>
-            <div style={{ color: tokens.color.textSecondary, fontSize: '14px', marginTop: '4px' }}>
+            <div style={{ color: '#0284C7', fontSize: '14px', marginTop: '4px' }}>
               {partner.phoneNumber} • {partner.zone}
             </div>
           </div>
@@ -140,16 +140,17 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
               fontWeight: 700,
               backgroundColor:
                 partner.kycStatus === 'VERIFIED'
-                  ? '#ECFDF5'
+                  ? '#F0F9FF'
                   : partner.kycStatus === 'REJECTED'
-                  ? '#FEF2F2'
-                  : '#FFFBEB',
+                  ? '#F0F9FF'
+                  : '#E0F2FE',
               color:
                 partner.kycStatus === 'VERIFIED'
-                  ? '#059669'
+                  ? '#0369A1'
                   : partner.kycStatus === 'REJECTED'
-                  ? '#DC2626'
-                  : '#D97706',
+                  ? '#0284C7'
+                  : '#0369A1',
+              border: partner.kycStatus === 'PENDING' ? '1px solid #38BDF8' : '1px solid #BAE6FD',
             }}
           >
             KYC: {partner.kycStatus}
@@ -164,33 +165,33 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
             marginBottom: '24px',
           }}
         >
-          <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: tokens.color.background }}>
-            <div style={{ fontSize: '12px', color: tokens.color.textSecondary }}>Vehicle</div>
-            <div style={{ fontSize: '16px', fontWeight: 600, color: tokens.color.textPrimary, marginTop: '4px' }}>
+          <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+            <div style={{ fontSize: '12px', color: '#0284C7', fontWeight: 600 }}>Vehicle</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#0369A1', marginTop: '4px' }}>
               {partner.vehicleType} ({partner.vehicleNumber || 'No plate'})
             </div>
           </div>
-          <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: tokens.color.background }}>
-            <div style={{ fontSize: '12px', color: tokens.color.textSecondary }}>Total Deliveries</div>
-            <div style={{ fontSize: '16px', fontWeight: 600, color: tokens.color.textPrimary, marginTop: '4px' }}>
+          <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+            <div style={{ fontSize: '12px', color: '#0284C7', fontWeight: 600 }}>Total Deliveries</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#0369A1', marginTop: '4px' }}>
               {partner.totalDeliveries}
             </div>
           </div>
-          <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: tokens.color.background }}>
-            <div style={{ fontSize: '12px', color: tokens.color.textSecondary }}>Cash in Hand</div>
-            <div style={{ fontSize: '16px', fontWeight: 600, color: tokens.color.textPrimary, marginTop: '4px' }}>
+          <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+            <div style={{ fontSize: '12px', color: '#0284C7', fontWeight: 600 }}>Cash in Hand</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#0369A1', marginTop: '4px' }}>
               ₹{Number(partner.cashInHand).toFixed(2)}
             </div>
           </div>
-          <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: tokens.color.background }}>
-            <div style={{ fontSize: '12px', color: tokens.color.textSecondary }}>Status</div>
-            <div style={{ fontSize: '16px', fontWeight: 600, color: partner.isOnline ? '#059669' : '#6B7280', marginTop: '4px' }}>
+          <div style={{ padding: '16px', borderRadius: '8px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+            <div style={{ fontSize: '12px', color: '#0284C7', fontWeight: 600 }}>Status</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: partner.isOnline ? '#0284C7' : '#94A3B8', marginTop: '4px' }}>
               {partner.isOnline ? '● Online' : '○ Offline'}
             </div>
           </div>
         </div>
 
-        <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: tokens.color.textPrimary }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '12px', color: '#0369A1' }}>
           KYC Documents ({partner.documents?.length || 0})
         </h3>
         {partner.documents && partner.documents.length > 0 ? (
@@ -204,14 +205,15 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
                   alignItems: 'center',
                   padding: '12px 16px',
                   borderRadius: '8px',
-                  border: `1px solid ${tokens.color.border}`,
+                  border: '1px solid #BAE6FD',
+                  backgroundColor: '#FFFFFF',
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '14px', color: tokens.color.textPrimary }}>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: '#0369A1' }}>
                     {doc.docType}
                   </div>
-                  <div style={{ fontSize: '12px', color: tokens.color.textSecondary }}>
+                  <div style={{ fontSize: '12px', color: '#0284C7' }}>
                     Status: {doc.verificationStatus}
                   </div>
                 </div>
@@ -220,7 +222,7 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
                     href={doc.downloadUrl}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ fontSize: '13px', color: tokens.color.accent, fontWeight: 600 }}
+                    style={{ fontSize: '13px', color: '#0284C7', fontWeight: 700 }}
                   >
                     View Document →
                   </a>
@@ -229,7 +231,7 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
             ))}
           </div>
         ) : (
-          <div style={{ color: tokens.color.textSecondary, fontSize: '14px', marginBottom: '24px' }}>
+          <div style={{ color: '#0284C7', fontSize: '14px', marginBottom: '24px' }}>
             No documents uploaded yet.
           </div>
         )}
@@ -242,11 +244,12 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
               style={{
                 padding: '10px 20px',
                 borderRadius: '8px',
-                backgroundColor: '#059669',
+                background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                 color: '#FFFFFF',
                 border: 'none',
-                fontWeight: 600,
-                cursor: 'pointer',
+                fontWeight: 700,
+                cursor: isApproving ? 'wait' : 'pointer',
+                boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
               }}
             >
               {isApproving ? 'Approving...' : '✓ Approve KYC'}
@@ -257,11 +260,11 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
               style={{
                 padding: '10px 20px',
                 borderRadius: '8px',
-                backgroundColor: '#FEF2F2',
-                color: '#DC2626',
-                border: '1px solid #FECACA',
-                fontWeight: 600,
-                cursor: 'pointer',
+                backgroundColor: '#F0F9FF',
+                color: '#0369A1',
+                border: '1px solid #BAE6FD',
+                fontWeight: 700,
+                cursor: isRejecting ? 'wait' : 'pointer',
               }}
             >
               ✗ Reject KYC
@@ -275,7 +278,8 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
+            backgroundColor: 'rgba(8, 47, 73, 0.5)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -284,17 +288,19 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
         >
           <div
             style={{
-              backgroundColor: tokens.color.surface,
-              borderRadius: '12px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '16px',
               padding: '24px',
               maxWidth: '450px',
               width: '90%',
+              border: '1px solid #BAE6FD',
+              boxShadow: '0 20px 40px rgba(2, 132, 199, 0.2)',
             }}
           >
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: tokens.color.textPrimary }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: 800, color: '#0369A1' }}>
               Reject Delivery Partner KYC
             </h3>
-            <p style={{ color: tokens.color.textSecondary, fontSize: '14px', marginBottom: '16px' }}>
+            <p style={{ color: '#0284C7', fontSize: '14px', marginBottom: '16px' }}>
               Please provide a reason for rejecting {partner.fullName}&apos;s KYC.
             </p>
             <textarea
@@ -305,11 +311,14 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
                 width: '100%',
                 padding: '8px 12px',
                 borderRadius: '8px',
-                border: `1px solid ${tokens.color.border}`,
+                border: '1px solid #BAE6FD',
                 marginBottom: '16px',
                 fontFamily: 'inherit',
                 fontSize: '14px',
                 boxSizing: 'border-box',
+                outline: 'none',
+                color: '#0369A1',
+                backgroundColor: '#FFFFFF',
               }}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
@@ -318,9 +327,11 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
                 style={{
                   padding: '8px 16px',
                   borderRadius: '6px',
-                  background: 'none',
-                  border: `1px solid ${tokens.color.border}`,
+                  backgroundColor: '#F0F9FF',
+                  color: '#0369A1',
+                  border: '1px solid #BAE6FD',
                   cursor: 'pointer',
+                  fontWeight: 600,
                 }}
               >
                 Cancel
@@ -331,11 +342,12 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
                 style={{
                   padding: '8px 16px',
                   borderRadius: '6px',
-                  backgroundColor: '#DC2626',
+                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                   color: '#FFFFFF',
                   border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 600,
+                  cursor: isRejecting ? 'wait' : 'pointer',
+                  fontWeight: 700,
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                 }}
               >
                 {isRejecting ? 'Rejecting...' : 'Confirm Reject'}

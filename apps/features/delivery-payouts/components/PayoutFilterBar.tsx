@@ -20,7 +20,7 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
         padding: '18px 20px',
-        border: '1px solid #E2E8F0',
+        border: '1px solid #BAE6FD',
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         display: 'flex',
         flexDirection: 'column',
@@ -38,7 +38,7 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
       >
         {/* Partner Search */}
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
             Delivery Partner
           </label>
           <input
@@ -51,8 +51,9 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
               padding: '9px 12px',
               fontSize: 13,
               borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              backgroundColor: '#F8FAFC',
+              border: '1px solid #BAE6FD',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
               outline: 'none',
             }}
           />
@@ -60,7 +61,7 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
 
         {/* Payout ID Search */}
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
             Payout ID
           </label>
           <input
@@ -73,8 +74,9 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
               padding: '9px 12px',
               fontSize: 13,
               borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              backgroundColor: '#F8FAFC',
+              border: '1px solid #BAE6FD',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
               outline: 'none',
             }}
           />
@@ -82,7 +84,7 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
 
         {/* Status Dropdown */}
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
             Status
           </label>
           <select
@@ -93,8 +95,9 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
               padding: '9px 12px',
               fontSize: 13,
               borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              backgroundColor: '#F8FAFC',
+              border: '1px solid #BAE6FD',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
               outline: 'none',
               cursor: 'pointer',
             }}
@@ -109,7 +112,7 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
 
         {/* Provider Dropdown */}
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
             Provider
           </label>
           <select
@@ -120,8 +123,9 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
               padding: '9px 12px',
               fontSize: 13,
               borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              backgroundColor: '#F8FAFC',
+              border: '1px solid #BAE6FD',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
               outline: 'none',
               cursor: 'pointer',
             }}
@@ -134,7 +138,7 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
 
         {/* Date From */}
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
             From Date
           </label>
           <input
@@ -146,8 +150,9 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
               padding: '8px 12px',
               fontSize: 13,
               borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              backgroundColor: '#F8FAFC',
+              border: '1px solid #BAE6FD',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
               outline: 'none',
             }}
           />
@@ -155,7 +160,7 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
 
         {/* Date To */}
         <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
             To Date
           </label>
           <input
@@ -167,8 +172,9 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
               padding: '8px 12px',
               fontSize: 13,
               borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              backgroundColor: '#F8FAFC',
+              border: '1px solid #BAE6FD',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
               outline: 'none',
             }}
           />
@@ -183,9 +189,9 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
             padding: '7px 16px',
             fontSize: 12,
             fontWeight: 700,
-            color: '#64748B',
-            backgroundColor: '#F1F5F9',
-            border: '1px solid #CBD5E1',
+            color: '#0369A1',
+            backgroundColor: '#F0F9FF',
+            border: '1px solid #BAE6FD',
             borderRadius: 6,
             cursor: 'pointer',
           }}

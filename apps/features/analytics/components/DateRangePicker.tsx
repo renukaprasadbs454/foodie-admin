@@ -24,7 +24,7 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
       }}
     >
       <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
           From:
         </span>
         <input
@@ -37,11 +37,11 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
           }
           style={{
             padding: '8px 12px',
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 600,
-            color: '#09090B',
+            color: '#0369A1',
             backgroundColor: '#FFFFFF',
             outline: 'none',
             cursor: 'pointer',
@@ -49,7 +49,7 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
         />
       </label>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
           To:
         </span>
         <input
@@ -60,11 +60,11 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
           onChange={(e) => onChange({ ...value, dateTo: e.target.value })}
           style={{
             padding: '8px 12px',
-            border: '1px solid #E4E4E7',
+            border: '1px solid #BAE6FD',
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 600,
-            color: '#09090B',
+            color: '#0369A1',
             backgroundColor: '#FFFFFF',
             outline: 'none',
             cursor: 'pointer',

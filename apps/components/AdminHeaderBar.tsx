@@ -77,7 +77,7 @@ export function AdminHeaderBar({
               style={{
                 fontSize: '0.875rem',
                 lineHeight: '1.6',
-                color: '#334155',
+                color: '#0369A1',
               }}
             >
               <p style={{ margin: '0 0 12px 0' }}>
@@ -108,7 +108,7 @@ export function AdminHeaderBar({
               style={{
                 fontSize: '0.875rem',
                 lineHeight: '1.6',
-                color: '#334155',
+                color: '#0369A1',
               }}
             >
               <p style={{ margin: '0 0 10px 0' }}>
@@ -154,7 +154,7 @@ export function AdminHeaderBar({
               style={{
                 fontSize: '0.875rem',
                 lineHeight: '1.6',
-                color: '#334155',
+                color: '#0369A1',
               }}
             >
               <div
@@ -167,9 +167,9 @@ export function AdminHeaderBar({
                 <div
                   style={{
                     padding: '10px',
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: '#F0F9FF',
                     borderRadius: '8px',
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid #BAE6FD',
                   }}
                 >
                   <strong>Merchant Terms:</strong>{' '}
@@ -180,9 +180,9 @@ export function AdminHeaderBar({
                 <div
                   style={{
                     padding: '10px',
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: '#F0F9FF',
                     borderRadius: '8px',
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid #BAE6FD',
                   }}
                 >
                   <strong>
@@ -196,9 +196,9 @@ export function AdminHeaderBar({
                 <div
                   style={{
                     padding: '10px',
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: '#F0F9FF',
                     borderRadius: '8px',
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid #BAE6FD',
                   }}
                 >
                   <strong>Order Fulfillment:</strong>{' '}
@@ -219,7 +219,7 @@ export function AdminHeaderBar({
               style={{
                 fontSize: '0.875rem',
                 lineHeight: '1.6',
-                color: '#334155',
+                color: '#0369A1',
               }}
             >
               <div
@@ -245,11 +245,11 @@ export function AdminHeaderBar({
 
                 <div
                   style={{
-                    backgroundColor: '#F4F4F5',
+                    backgroundColor: '#F0F9FF',
                     padding: '12px',
                     borderRadius: '8px',
-                    border: '1px solid #E4E4E7',
-                    color: '#09090B',
+                    border: '1px solid #BAE6FD',
+                    color: '#0369A1',
                     fontWeight: 600,
                   }}
                 >
@@ -427,14 +427,14 @@ export function AdminHeaderBar({
         className="admin-header-responsive"
         style={{
           backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #E2E8F0',
+          borderBottom: '1px solid #BAE6FD',
           padding: '12px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.08)',
           position: 'sticky',
           top: 0,
           zIndex: 50,
@@ -463,9 +463,9 @@ export function AdminHeaderBar({
                 width: 38,
                 height: 38,
                 borderRadius: 10,
-                border: isCompact ? '1px solid #000000' : '1px solid #CBD5E1',
-                backgroundColor: isCompact ? '#000000' : '#F8FAFC',
-                color: isCompact ? '#FFFFFF' : '#000000',
+                border: isCompact ? '1px solid #0284C7' : '1px solid #BAE6FD',
+                backgroundColor: isCompact ? '#0284C7' : '#F0F9FF',
+                color: isCompact ? '#FFFFFF' : '#0284C7',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -498,10 +498,10 @@ export function AdminHeaderBar({
               alignItems: 'center',
               gap: 10,
               padding: '8px 14px',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E2E8F0',
+              backgroundColor: '#F0F9FF',
+              border: '1px solid #BAE6FD',
               borderRadius: 10,
-              color: '#64748B',
+              color: '#0284C7',
               fontSize: 13,
               fontWeight: 500,
               cursor: 'pointer',
@@ -515,7 +515,7 @@ export function AdminHeaderBar({
               height="16"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#94A3B8"
+              stroke="#0284C7"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -528,7 +528,8 @@ export function AdminHeaderBar({
               style={{
                 textAlign: 'left',
                 whiteSpace: 'nowrap',
-                color: '#94A3B8',
+                color: '#0369A1',
+                fontWeight: 600,
               }}
             >
               {role === 'AUDITOR' ? 'Search by store name, zone, UID...' : 'Search console...'}
@@ -540,8 +541,8 @@ export function AdminHeaderBar({
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  backgroundColor: '#E2E8F0',
-                  color: '#475569',
+                  backgroundColor: '#BAE6FD',
+                  color: '#0369A1',
                   padding: '2px 6px',
                   borderRadius: 4,
                   marginLeft: 'auto',
@@ -581,11 +582,12 @@ export function AdminHeaderBar({
               width: 38,
               height: 38,
               borderRadius: '50%',
-              backgroundColor: 'transparent',
-              color: '#475569',
+              backgroundColor: '#F0F9FF',
+              border: '1px solid #BAE6FD',
+              color: '#0284C7',
               position: 'relative',
               textDecoration: 'none',
-              transition: 'background-color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             title="Notifications"
           >
@@ -605,13 +607,14 @@ export function AdminHeaderBar({
             <span
               style={{
                 position: 'absolute',
-                top: 8,
-                right: 8,
-                width: 7,
-                height: 7,
+                top: 6,
+                right: 6,
+                width: 8,
+                height: 8,
                 borderRadius: '50%',
-                backgroundColor: '#EF4444',
+                backgroundColor: '#38BDF8',
                 border: '1.5px solid #FFFFFF',
+                boxShadow: '0 0 6px #0EA5E9',
               }}
             />
           </Link>
@@ -640,11 +643,11 @@ export function AdminHeaderBar({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
-                    background: 'none',
-                    border: 'none',
+                    backgroundColor: '#F0F9FF',
+                    border: '1px solid #BAE6FD',
                     cursor: 'pointer',
-                    padding: '4px 8px',
-                    borderRadius: 8,
+                    padding: '6px 12px',
+                    borderRadius: 10,
                     transition: 'background-color 0.15s ease',
                   }}
                   aria-expanded={isProfileOpen}
@@ -653,10 +656,10 @@ export function AdminHeaderBar({
                 >
                   <div
                     style={{
-                      width: 34,
-                      height: 34,
+                      width: 32,
+                      height: 32,
                       borderRadius: '50%',
-                      backgroundColor: '#1E293B',
+                      backgroundColor: '#0284C7',
                       color: '#FFFFFF',
                       display: 'flex',
                       alignItems: 'center',
@@ -672,7 +675,7 @@ export function AdminHeaderBar({
                     style={{
                       fontSize: 13,
                       fontWeight: 700,
-                      color: '#0F172A',
+                      color: '#0369A1',
                     }}
                   >
                     Compliance Auditor
@@ -682,7 +685,7 @@ export function AdminHeaderBar({
                     height="14"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#64748B"
+                    stroke="#0284C7"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -699,21 +702,21 @@ export function AdminHeaderBar({
                     )
                   }
                   style={{
-                    width: 42,
-                    height: 42,
+                    width: 40,
+                    height: 40,
                     borderRadius: '50%',
-                    backgroundColor: '#E5E7EB',
-                    color: '#374151',
+                    backgroundColor: '#F0F9FF',
+                    color: '#0284C7',
                     border: isProfileOpen
-                      ? '2px solid #000000'
-                      : '2px solid transparent',
+                      ? '2px solid #0284C7'
+                      : '1.5px solid #BAE6FD',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     boxShadow: isProfileOpen
-                      ? '0 0 0 3px rgba(0,0,0,0.15)'
+                      ? '0 0 0 3px rgba(14, 165, 233, 0.25)'
                       : 'none',
                     flexShrink: 0,
                   }}
@@ -722,8 +725,8 @@ export function AdminHeaderBar({
                   aria-label="User Profile Menu"
                 >
                   <svg
-                    width="22"
-                    height="22"
+                    width="20"
+                    height="20"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -812,7 +815,7 @@ export function AdminHeaderBar({
                   style={{
                     fontSize: 18,
                     fontWeight: 800,
-                    color: '#000000',
+                    color: '#0369A1',
                     margin: 0,
                   }}
                 >
@@ -822,7 +825,7 @@ export function AdminHeaderBar({
                 <p
                   style={{
                     fontSize: 12,
-                    color: '#64748B',
+                    color: '#0284C7',
                     margin:
                       '4px 0 0 0',
                   }}
@@ -841,10 +844,10 @@ export function AdminHeaderBar({
                   border: 'none',
                   fontSize: 20,
                   cursor: 'pointer',
-                  color: '#64748B',
+                  color: '#0284C7',
                 }}
               >
-
+                ✕
               </button>
             </div>
 
@@ -852,6 +855,7 @@ export function AdminHeaderBar({
             <div
               style={{
                 marginBottom: 20,
+                color: '#0369A1',
               }}
             >
               {modalDetails.body}
@@ -873,7 +877,9 @@ export function AdminHeaderBar({
                 style={{
                   padding: '8px 20px',
                   backgroundColor:
-                    '#000000',
+                    '#0284C7',
+                  backgroundImage:
+                    'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
@@ -895,15 +901,8 @@ export function AdminHeaderBar({
       <style jsx global>{`
         /*
          * ========================================================
-         * PROFILE PANEL
+         * PROFILE PANEL - SKY BLUE THEME
          * ========================================================
-         *
-         * IMPORTANT:
-         * This panel is rendered through createPortal()
-         * directly into document.body.
-         *
-         * Therefore it will NOT be affected by the navbar's
-         * overflowX: auto.
          */
 
         .profile-menu-panel {
@@ -916,14 +915,14 @@ export function AdminHeaderBar({
 
           background: #ffffff;
 
-          border: 1px solid #e2e8f0;
+          border: 1px solid #bae6fd;
           border-right: none;
 
           border-radius: 0 0 0 16px;
 
           box-shadow:
-            -10px 12px 35px rgba(0, 0, 0, 0.15),
-            -3px 5px 15px rgba(0, 0, 0, 0.06);
+            -10px 12px 35px rgba(2, 132, 199, 0.15),
+            -3px 5px 15px rgba(2, 132, 199, 0.08);
 
           z-index: 999999;
 
@@ -959,7 +958,7 @@ export function AdminHeaderBar({
 
           padding: 14px 18px;
 
-          border-bottom: 1px solid #f1f5f9;
+          border-bottom: 1px solid #e0f2fe;
         }
 
         /*
@@ -974,9 +973,9 @@ export function AdminHeaderBar({
 
           border-radius: 50%;
 
-          background: #f4f4f5;
+          background: #e0f2fe;
 
-          color: #000000;
+          color: #0284c7;
 
           display: flex;
           align-items: center;
@@ -996,7 +995,7 @@ export function AdminHeaderBar({
 
           font-weight: 800;
 
-          color: #09090b;
+          color: #0369a1;
 
           line-height: 1.3;
         }
@@ -1004,7 +1003,7 @@ export function AdminHeaderBar({
         .profile-user-role {
           font-size: 12px;
 
-          color: #71717a;
+          color: #0284c7;
 
           font-weight: 600;
 
@@ -1027,13 +1026,13 @@ export function AdminHeaderBar({
 
           border-radius: 7px;
 
-          background: #fafafa;
+          background: #f0f9ff;
 
-          border: 1px solid #e4e4e7;
+          border: 1px solid #bae6fd;
 
           font-size: 11px;
 
-          color: #52525b;
+          color: #0369a1;
 
           word-break: break-all;
         }
@@ -1062,7 +1061,7 @@ export function AdminHeaderBar({
 
           border: none;
 
-          color: #52525b;
+          color: #0369a1;
 
           font-size: 14px;
 
@@ -1078,9 +1077,9 @@ export function AdminHeaderBar({
         }
 
         .profile-menu-item:hover {
-          background-color: #f4f4f5;
+          background-color: #f0f9ff;
 
-          color: #000000;
+          color: #0284c7;
         }
 
         /*
@@ -1100,12 +1099,12 @@ export function AdminHeaderBar({
 
           justify-content: center;
 
-          color: #000000;
+          color: #0284c7;
         }
 
         .profile-menu-item:hover
           .profile-menu-icon {
-          color: #000000;
+          color: #0284c7;
         }
 
         /*
@@ -1115,7 +1114,7 @@ export function AdminHeaderBar({
         .profile-menu-divider {
           height: 1px;
 
-          background-color: #e2e8f0;
+          background-color: #e0f2fe;
 
           margin: 8px 16px;
         }
@@ -1125,23 +1124,23 @@ export function AdminHeaderBar({
          */
 
         .logout-item {
-          color: #ef4444;
+          color: #0284c7;
         }
 
         .logout-item
           .profile-menu-icon {
-          color: #ef4444;
+          color: #0284c7;
         }
 
         .logout-item:hover {
-          background-color: #fef2f2;
+          background-color: #f0f9ff;
 
-          color: #dc2626;
+          color: #0369a1;
         }
 
         .logout-item:hover
           .profile-menu-icon {
-          color: #dc2626;
+          color: #0369a1;
         }
 
         /*
@@ -1176,7 +1175,7 @@ export function AdminHeaderBar({
             width: 100%;
 
             border-top: 1px solid
-              #f1f5f9;
+              #e0f2fe;
 
             padding-top: 8px !important;
 

@@ -29,13 +29,13 @@ const INITIAL_LINKS: SocialMediaLink[] = [
 ];
 
 const PLATFORM_ICONS: Record<string, string> = {
-  pinterest: '',
-  linkedin: '',
-  facebook: '',
-  instagram: '',
+  pinterest: '📌',
+  linkedin: '💼',
+  facebook: '👥',
+  instagram: '📷',
   youtube: '▶',
-  twitter: '',
-  tiktok: '',
+  twitter: '🐦',
+  tiktok: '🎵',
 };
 
 export function SocialMediaStudio() {
@@ -119,14 +119,14 @@ export function SocialMediaStudio() {
             position: 'fixed',
             top: 20,
             right: 20,
-            backgroundColor: '#000000',
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
             color: '#FFFFFF',
             padding: '12px 24px',
             borderRadius: 12,
             fontSize: 14,
             fontWeight: 700,
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
-            border: '1px solid #E4E4E7',
+            boxShadow: '0 10px 30px rgba(2, 132, 199, 0.3)',
+            border: '1px solid #BAE6FD',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
@@ -141,11 +141,11 @@ export function SocialMediaStudio() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#09090B', margin: 0 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', margin: 0 }}>
               Social Media
             </h1>
           </div>
-          <p style={{ fontSize: 14, color: '#71717A', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: 14, color: '#0284C7', margin: '4px 0 0 0' }}>
             Configure official social media links, customer channel URLs, and active display toggles
           </p>
         </div>
@@ -157,9 +157,9 @@ export function SocialMediaStudio() {
         style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 16,
-          border: '1px solid #E4E4E7',
+          border: '1px solid #BAE6FD',
           padding: '24px 28px',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
+          boxShadow: '0 4px 16px rgba(2, 132, 199, 0.04)',
           display: 'flex',
           flexDirection: 'column',
           gap: 20,
@@ -168,7 +168,7 @@ export function SocialMediaStudio() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           {/* Social Media Name Select */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>
+            <label style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
               Social Media Name
             </label>
             <div style={{ position: 'relative' }}>
@@ -179,11 +179,11 @@ export function SocialMediaStudio() {
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: 10,
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                   backgroundColor: '#FFFFFF',
                   fontSize: 14,
                   fontWeight: 500,
-                  color: selectedName ? '#09090B' : '#71717A',
+                  color: selectedName ? '#0369A1' : '#0284C7',
                   outline: 'none',
                   cursor: 'pointer',
                   appearance: 'none',
@@ -191,12 +191,12 @@ export function SocialMediaStudio() {
               >
                 <option value="">---Select---</option>
                 {SOCIAL_MEDIA_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value} style={{ color: '#09090B' }}>
+                  <option key={opt.value} value={opt.value} style={{ color: '#0369A1' }}>
                     {opt.label}
                   </option>
                 ))}
               </select>
-              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#09090B', fontSize: 12 }}>
+              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#0284C7', fontSize: 12 }}>
                 ▼
               </span>
             </div>
@@ -204,7 +204,7 @@ export function SocialMediaStudio() {
 
           {/* Social Media Link Input */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: '#09090B' }}>
+            <label style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
               Social Media Link
             </label>
             <input
@@ -216,10 +216,10 @@ export function SocialMediaStudio() {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: 10,
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 backgroundColor: '#FFFFFF',
                 fontSize: 14,
-                color: '#09090B',
+                color: '#0369A1',
                 outline: 'none',
               }}
             />
@@ -233,9 +233,9 @@ export function SocialMediaStudio() {
             onClick={handleReset}
             style={{
               padding: '10px 24px',
-              backgroundColor: '#F4F4F5',
-              color: '#09090B',
-              border: '1px solid #E4E4E7',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
+              border: '1px solid #BAE6FD',
               borderRadius: 10,
               fontSize: 14,
               fontWeight: 700,
@@ -249,14 +249,14 @@ export function SocialMediaStudio() {
             type="submit"
             style={{
               padding: '10px 36px',
-              backgroundColor: '#000000',
+              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 10,
               fontSize: 14,
               fontWeight: 800,
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
+              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.25)',
               transition: 'all 0.15s ease',
             }}
           >
@@ -270,15 +270,15 @@ export function SocialMediaStudio() {
         style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 16,
-          border: '1px solid #E4E4E7',
+          border: '1px solid #BAE6FD',
           overflow: 'hidden',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
+          boxShadow: '0 4px 16px rgba(2, 132, 199, 0.04)',
         }}
       >
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
             <thead>
-              <tr style={{ backgroundColor: '#F4F4F5', color: '#09090B', fontSize: 13, borderBottom: '1px solid #E4E4E7' }}>
+              <tr style={{ backgroundColor: '#F0F9FF', color: '#0369A1', fontSize: 13, borderBottom: '1px solid #BAE6FD' }}>
                 <th style={{ padding: '16px 24px', fontWeight: 800, width: 80 }}>SL</th>
                 <th style={{ padding: '16px 24px', fontWeight: 800, width: 220 }}>Name</th>
                 <th style={{ padding: '16px 24px', fontWeight: 800 }}>Link</th>
@@ -296,16 +296,16 @@ export function SocialMediaStudio() {
                   <tr
                     key={item.id}
                     style={{
-                      borderBottom: '1px solid #E4E4E7',
-                      backgroundColor: isEditingThis ? '#F4F4F5' : 'transparent',
+                      borderBottom: '1px solid #E0F2FE',
+                      backgroundColor: isEditingThis ? '#F0F9FF' : 'transparent',
                       transition: 'background-color 0.15s ease',
                     }}
                   >
-                    <td style={{ padding: '18px 24px', color: '#71717A', fontWeight: 600 }}>
+                    <td style={{ padding: '18px 24px', color: '#0284C7', fontWeight: 600 }}>
                       {index + 1}
                     </td>
 
-                    <td style={{ padding: '18px 24px', color: '#09090B', fontWeight: 700 }}>
+                    <td style={{ padding: '18px 24px', color: '#0369A1', fontWeight: 700 }}>
                       {icon && <span style={{ marginRight: 8 }}>{icon}</span>}
                       <span>{item.name}</span>
                     </td>
@@ -315,7 +315,7 @@ export function SocialMediaStudio() {
                         href={item.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: '#09090B', fontWeight: 600, textDecoration: 'underline', wordBreak: 'break-all' }}
+                        style={{ color: '#0369A1', fontWeight: 600, textDecoration: 'underline', wordBreak: 'break-all' }}
                       >
                         {item.link}
                       </a>
@@ -331,7 +331,7 @@ export function SocialMediaStudio() {
                           width: 44,
                           height: 24,
                           borderRadius: 12,
-                          backgroundColor: isActive ? '#000000' : '#E4E4E7',
+                          backgroundColor: isActive ? '#0284C7' : '#E0F2FE',
                           border: 'none',
                           padding: 2,
                           cursor: 'pointer',
@@ -360,11 +360,11 @@ export function SocialMediaStudio() {
                         onClick={() => handleEdit(item)}
                         title="Edit Social Media Link"
                         style={{
-                          padding: '6px 12px',
+                          padding: '6px 14px',
                           borderRadius: 8,
-                          border: '1px solid #E4E4E7',
-                          backgroundColor: isEditingThis ? '#000000' : '#F4F4F5',
-                          color: isEditingThis ? '#FFFFFF' : '#09090B',
+                          border: '1px solid #BAE6FD',
+                          backgroundColor: isEditingThis ? '#0369A1' : '#F0F9FF',
+                          color: isEditingThis ? '#FFFFFF' : '#0369A1',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',

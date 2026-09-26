@@ -104,15 +104,15 @@ export function AuditLogPage() {
       case 'APPROVE':
       case 'KYC_APPROVE':
       case 'CREATE':
-        return { color: '#09090B', bg: '#F4F4F5' };
+        return { color: '#0369A1', bg: '#F0F9FF', border: '#BAE6FD' };
       case 'SUSPEND':
       case 'DEACTIVATE':
       case 'REFUND':
-        return { color: '#FFFFFF', bg: '#000000' };
+        return { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' };
       case 'OVERRIDE_STATUS':
-        return { color: '#09090B', bg: '#E4E4E7' };
+        return { color: '#0284C7', bg: '#F0F9FF', border: '#BAE6FD' };
       default:
-        return { color: '#09090B', bg: '#F4F4F5' };
+        return { color: '#0369A1', bg: '#F0F9FF', border: '#BAE6FD' };
     }
   };
 
@@ -134,16 +134,16 @@ export function AuditLogPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <Text as="h1" variant="heading1" color="#09090B" style={{ margin: 0 }}>
+            <Text as="h1" variant="heading1" color="#0369A1" style={{ margin: 0 }}>
               System Audit Logs
             </Text>
             <span
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#09090B',
-                backgroundColor: '#F4F4F5',
-                border: '1px solid #E4E4E7',
+                color: '#0369A1',
+                backgroundColor: '#F0F9FF',
+                border: '1px solid #BAE6FD',
                 padding: '4px 10px',
                 borderRadius: 20,
                 display: 'flex',
@@ -156,14 +156,14 @@ export function AuditLogPage() {
                   display: 'inline-block',
                   width: 7,
                   height: 7,
-                  backgroundColor: '#22C55E',
+                  backgroundColor: '#0284C7',
                   borderRadius: '50%',
                 }}
               />
               Live Database ({totalElements} {totalElements === 1 ? 'entry' : 'entries'})
             </span>
           </div>
-          <Text as="p" variant="caption" color="#71717A" style={{ marginTop: 4 }}>
+          <Text as="p" variant="caption" color="#0284C7" style={{ margin: '4px 0 0' }}>
             Monitor and track administrative changes, vendor approvals, payment refunds, and fleet status updates recorded in the backend.
           </Text>
         </div>
@@ -172,15 +172,15 @@ export function AuditLogPage() {
           onClick={() => refetch()}
           disabled={isLoading}
           style={{
-            padding: '8px 16px',
-            backgroundColor: '#000000',
+            padding: '10px 18px',
+            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: 8,
             fontWeight: 700,
             fontSize: 13,
             cursor: isLoading ? 'default' : 'pointer',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -194,10 +194,10 @@ export function AuditLogPage() {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          borderRadius: 12,
-          border: '1px solid #E4E4E7',
+          borderRadius: 14,
+          border: '1px solid #BAE6FD',
           padding: 20,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)',
           display: 'flex',
           flexDirection: 'column',
           gap: 16,
@@ -206,7 +206,7 @@ export function AuditLogPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
           {/* Admin User ID Search */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Operator (UUID or Name)</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Operator (UUID or Name)</label>
             <input
               type="text"
               value={adminUserId}
@@ -217,11 +217,11 @@ export function AuditLogPage() {
               placeholder="Search by name or UUID..."
               style={{
                 padding: '10px 12px',
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 borderRadius: 8,
                 fontSize: 13,
                 outline: 'none',
-                color: '#09090B',
+                color: '#0369A1',
                 backgroundColor: '#FFFFFF',
               }}
             />
@@ -229,7 +229,7 @@ export function AuditLogPage() {
 
           {/* Resource ID Search */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Target Resource ID (UUID)</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Target Resource ID (UUID)</label>
             <input
               type="text"
               value={resourceId}
@@ -240,11 +240,11 @@ export function AuditLogPage() {
               placeholder="Enter exact resource UUID..."
               style={{
                 padding: '10px 12px',
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 borderRadius: 8,
                 fontSize: 13,
                 outline: 'none',
-                color: '#09090B',
+                color: '#0369A1',
                 backgroundColor: '#FFFFFF',
               }}
             />
@@ -252,7 +252,7 @@ export function AuditLogPage() {
 
           {/* Resource Type Dropdown */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Resource Type</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Resource Type</label>
             <select
               value={resourceType}
               onChange={(e) => {
@@ -261,11 +261,12 @@ export function AuditLogPage() {
               }}
               style={{
                 padding: '10px 12px',
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 borderRadius: 8,
                 fontSize: 13,
                 backgroundColor: '#FFFFFF',
-                color: '#09090B',
+                color: '#0369A1',
+                outline: 'none',
               }}
             >
               <option value="ALL">All Types</option>
@@ -279,7 +280,7 @@ export function AuditLogPage() {
 
           {/* Action Type Dropdown */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Action Type</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Action Type</label>
             <select
               value={action}
               onChange={(e) => {
@@ -288,11 +289,12 @@ export function AuditLogPage() {
               }}
               style={{
                 padding: '10px 12px',
-                border: '1px solid #E4E4E7',
+                border: '1px solid #BAE6FD',
                 borderRadius: 8,
                 fontSize: 13,
                 backgroundColor: '#FFFFFF',
-                color: '#09090B',
+                color: '#0369A1',
+                outline: 'none',
               }}
             >
               <option value="ALL">All Actions</option>
@@ -315,14 +317,14 @@ export function AuditLogPage() {
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: 16,
-            paddingTop: 8,
-            borderTop: '1px dashed #E4E4E7',
+            paddingTop: 12,
+            borderTop: '1px dashed #BAE6FD',
           }}
         >
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             {/* Created From */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Created From</label>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Created From</label>
               <input
                 type="date"
                 value={dateFrom}
@@ -332,18 +334,19 @@ export function AuditLogPage() {
                 }}
                 style={{
                   padding: '8px 12px',
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                   borderRadius: 8,
                   fontSize: 13,
-                  color: '#09090B',
+                  color: '#0369A1',
                   backgroundColor: '#FFFFFF',
+                  outline: 'none',
                 }}
               />
             </div>
 
             {/* Created To */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Created To</label>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Created To</label>
               <input
                 type="date"
                 value={dateTo}
@@ -353,18 +356,19 @@ export function AuditLogPage() {
                 }}
                 style={{
                   padding: '8px 12px',
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                   borderRadius: 8,
                   fontSize: 13,
-                  color: '#09090B',
+                  color: '#0369A1',
                   backgroundColor: '#FFFFFF',
+                  outline: 'none',
                 }}
               />
             </div>
 
             {/* Sort Order */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#09090B' }}>Sorting</label>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Sorting</label>
               <select
                 value={sortOrder}
                 onChange={(e) => {
@@ -373,11 +377,12 @@ export function AuditLogPage() {
                 }}
                 style={{
                   padding: '8px 12px',
-                  border: '1px solid #E4E4E7',
+                  border: '1px solid #BAE6FD',
                   borderRadius: 8,
                   fontSize: 13,
                   backgroundColor: '#FFFFFF',
-                  color: '#09090B',
+                  color: '#0369A1',
+                  outline: 'none',
                 }}
               >
                 <option value="NEWEST">Newest First</option>
@@ -390,15 +395,15 @@ export function AuditLogPage() {
             type="button"
             onClick={handleClearFilters}
             style={{
-              padding: '10px 16px',
-              backgroundColor: '#F4F4F5',
-              color: '#09090B',
-              border: '1px solid #E4E4E7',
+              padding: '9px 16px',
+              backgroundColor: '#F0F9FF',
+              color: '#0369A1',
+              border: '1px solid #BAE6FD',
               borderRadius: 8,
               fontWeight: 700,
               fontSize: 13,
               cursor: 'pointer',
-              transition: 'background-color 0.2s',
+              transition: 'all 0.15s ease',
             }}
           >
             Clear Filters
@@ -410,14 +415,14 @@ export function AuditLogPage() {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          borderRadius: 12,
-          border: '1px solid #E4E4E7',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+          borderRadius: 14,
+          border: '1px solid #BAE6FD',
+          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)',
           overflow: 'hidden',
         }}
       >
         {isLoading ? (
-          <div style={{ padding: 60, textAlign: 'center', color: '#71717A' }}>
+          <div style={{ padding: 60, textAlign: 'center', color: '#0284C7' }}>
             <div style={{ marginTop: 8, fontWeight: 700, fontSize: 14 }}>Loading system audit logs from database...</div>
           </div>
         ) : logsList.length === 0 ? (
@@ -432,7 +437,7 @@ export function AuditLogPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr style={{ backgroundColor: '#F4F4F5', color: '#09090B', borderBottom: '1px solid #E4E4E7', fontSize: 13 }}>
+                <tr style={{ backgroundColor: '#F0F9FF', color: '#0369A1', borderBottom: '1px solid #BAE6FD', fontSize: 13 }}>
                   <th style={{ padding: '16px 20px', fontWeight: 700 }}>Action</th>
                   <th style={{ padding: '16px 20px', fontWeight: 700 }}>Resource Type</th>
                   <th style={{ padding: '16px 20px', fontWeight: 700 }}>Resource ID</th>
@@ -448,13 +453,13 @@ export function AuditLogPage() {
                     <tr
                       key={log.id}
                       style={{
-                        borderBottom: '1px solid #E4E4E7',
+                        borderBottom: '1px solid #E0F2FE',
                         fontSize: 13,
                         transition: 'background-color 0.15s',
-                        color: '#09090B',
+                        color: '#0369A1',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#F4F4F5';
+                        e.currentTarget.style.backgroundColor = '#F0F9FF';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = '#FFFFFF';
@@ -471,7 +476,7 @@ export function AuditLogPage() {
                             fontWeight: 700,
                             color: badge.color,
                             backgroundColor: badge.bg,
-                            border: '1px solid #E4E4E7',
+                            border: `1px solid ${badge.border}`,
                             textTransform: 'uppercase',
                           }}
                         >
@@ -484,23 +489,23 @@ export function AuditLogPage() {
 
                       {/* Target UUID */}
                       <td style={{ padding: '14px 20px' }}>
-                        <code style={{ fontSize: 12, color: '#09090B', fontFamily: 'monospace' }}>
+                        <code style={{ fontSize: 12, color: '#0369A1', fontFamily: 'monospace' }}>
                           {log.resourceId}
                         </code>
                       </td>
 
                       {/* Operator User */}
                       <td style={{ padding: '14px 20px' }}>
-                        <div style={{ fontWeight: 600, color: '#09090B' }}>
+                        <div style={{ fontWeight: 600, color: '#0369A1' }}>
                           {log.adminUserName || log.adminUserId || 'System Operator'}
                         </div>
                         {log.adminUserRole && (
-                          <div style={{ fontSize: 11, color: '#71717A' }}>Role: {log.adminUserRole}</div>
+                          <div style={{ fontSize: 11, color: '#0284C7' }}>Role: {log.adminUserRole}</div>
                         )}
                       </td>
 
                       {/* Timestamp */}
-                      <td style={{ padding: '14px 20px', color: '#71717A' }}>
+                      <td style={{ padding: '14px 20px', color: '#0284C7' }}>
                         {log.createdAt ? new Date(log.createdAt).toLocaleString() : 'N/A'}
                       </td>
 
@@ -510,10 +515,10 @@ export function AuditLogPage() {
                           type="button"
                           onClick={() => setSelectedLog(log)}
                           style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#F4F4F5',
-                            color: '#09090B',
-                            border: '1px solid #E4E4E7',
+                            padding: '6px 14px',
+                            backgroundColor: '#F0F9FF',
+                            color: '#0369A1',
+                            border: '1px solid #BAE6FD',
                             borderRadius: 6,
                             fontSize: 12,
                             fontWeight: 700,
@@ -521,12 +526,14 @@ export function AuditLogPage() {
                             transition: 'all 0.15s ease',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#000000';
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)';
                             e.currentTarget.style.color = '#FFFFFF';
+                            e.currentTarget.style.borderColor = '#0284C7';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#F4F4F5';
-                            e.currentTarget.style.color = '#09090B';
+                            e.currentTarget.style.background = '#F0F9FF';
+                            e.currentTarget.style.color = '#0369A1';
+                            e.currentTarget.style.borderColor = '#BAE6FD';
                           }}
                         >
                           State Diff
@@ -545,14 +552,14 @@ export function AuditLogPage() {
           <div
             style={{
               padding: '16px 20px',
-              borderTop: '1px solid #E4E4E7',
+              borderTop: '1px solid #BAE6FD',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: '#F4F4F5',
+              backgroundColor: '#F0F9FF',
             }}
           >
-            <span style={{ fontSize: 13, color: '#71717A' }}>
+            <span style={{ fontSize: 13, color: '#0284C7' }}>
               Showing Page <strong>{page + 1}</strong> of <strong>{totalPages}</strong> ({totalElements} records in database)
             </span>
 
@@ -562,14 +569,15 @@ export function AuditLogPage() {
                 disabled={page === 0}
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 style={{
-                  padding: '6px 12px',
-                  backgroundColor: '#FFFFFF',
-                  color: page === 0 ? '#71717A' : '#09090B',
-                  border: '1px solid #E4E4E7',
+                  padding: '6px 14px',
+                  backgroundColor: page === 0 ? '#F0F9FF' : '#FFFFFF',
+                  color: page === 0 ? '#94A3B8' : '#0369A1',
+                  border: `1px solid ${page === 0 ? '#E0F2FE' : '#BAE6FD'}`,
                   borderRadius: 6,
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: page === 0 ? 'default' : 'pointer',
+                  boxShadow: page === 0 ? 'none' : '0 1px 3px rgba(2, 132, 199, 0.1)',
                 }}
               >
                 ◀ Previous
@@ -579,14 +587,15 @@ export function AuditLogPage() {
                 disabled={isLastPage}
                 onClick={() => setPage((p) => p + 1)}
                 style={{
-                  padding: '6px 12px',
-                  backgroundColor: '#FFFFFF',
-                  color: isLastPage ? '#71717A' : '#09090B',
-                  border: '1px solid #E4E4E7',
+                  padding: '6px 14px',
+                  backgroundColor: isLastPage ? '#F0F9FF' : '#FFFFFF',
+                  color: isLastPage ? '#94A3B8' : '#0369A1',
+                  border: `1px solid ${isLastPage ? '#E0F2FE' : '#BAE6FD'}`,
                   borderRadius: 6,
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: isLastPage ? 'default' : 'pointer',
+                  boxShadow: isLastPage ? 'none' : '0 1px 3px rgba(2, 132, 199, 0.1)',
                 }}
               >
                 Next ▶
@@ -603,4 +612,3 @@ export function AuditLogPage() {
     </div>
   );
 }
-

@@ -70,7 +70,7 @@ export default function ApprovalsPage() {
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', margin: 0 }}>
             High-Risk Action Approvals
           </h1>
-          <p style={{ fontSize: 14, color: '#64748B', marginTop: 4 }}>
+          <p style={{ fontSize: 14, color: '#0284C7', marginTop: 4 }}>
             Review pending settlement releases, manual ledger adjustments, and financial mutation requests.
           </p>
         </div>
@@ -78,7 +78,7 @@ export default function ApprovalsPage() {
         {loading ? (
           <div>Loading requests…</div>
         ) : requests.length === 0 ? (
-          <div style={{ padding: 32, backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #E2E8F0', textAlign: 'center', color: '#64748B' }}>
+          <div style={{ padding: 32, backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #BAE6FD', textAlign: 'center', color: '#0284C7' }}>
              No pending high-risk approval requests!
           </div>
         ) : (
@@ -90,7 +90,7 @@ export default function ApprovalsPage() {
                   backgroundColor: '#FFFFFF',
                   borderRadius: 12,
                   padding: 20,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid #BAE6FD',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -106,7 +106,7 @@ export default function ApprovalsPage() {
                     </span>
                   </div>
                   {req.reason ? (
-                    <div style={{ fontSize: 13, color: '#475569', marginTop: 6 }}>Reason: {req.reason}</div>
+                    <div style={{ fontSize: 13, color: '#075985', marginTop: 6 }}>Reason: {req.reason}</div>
                   ) : null}
                   <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
                     Requested by: {req.requestedBy?.fullName || 'Admin'}
