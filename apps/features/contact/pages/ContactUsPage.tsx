@@ -235,23 +235,6 @@ export function ContactUsPage() {
     } catch (e) {}
 
     try {
-      const res = await fetch('https://api.foodie.kwiko.org/api/v1/admin/support-tickets', {
-        headers: { 'Accept': 'application/json' },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const dataList = json.data || json;
-        if (Array.isArray(dataList) && dataList.length > 0) {
-          setEnquiries(dataList);
-          try {
-            localStorage.setItem('foodie_support_enquiries', JSON.stringify(dataList));
-          } catch {}
-          return;
-        }
-      }
-    } catch (e) {}
-
-    try {
       const stored = localStorage.getItem('foodie_support_enquiries');
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -336,15 +319,14 @@ export function ContactUsPage() {
       replyMessage: target.replyMessage || 'Issue investigated and marked as resolved by Support team.',
     };
 
-    const nextEnquiries = enquiries.filter((item) => item.id !== enquiryId);
+    const nextEnquiries = enquiries.map((item) => item.id === enquiryId ? resolvedRecord : item);
     saveEnquiriesToStorage(nextEnquiries);
-    setHistory((prev) => [resolvedRecord, ...prev]);
 
-    showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and moved to History!`);
+    showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and moved to Contact History!`);
   };
 
   const handleReopenTicket = (enquiryId: string) => {
-    const target = history.find((item) => item.id === enquiryId);
+    const target = enquiries.find((item) => item.id === enquiryId);
     if (!target) return;
 
     const reopenedRecord: EnquiryRecord = {
@@ -353,8 +335,8 @@ export function ContactUsPage() {
       resolvedAt: undefined,
     };
 
-    setHistory((prev) => prev.filter((item) => item.id !== enquiryId));
-    saveEnquiriesToStorage([reopenedRecord, ...enquiries]);
+    const nextEnquiries = enquiries.map((item) => item.id === enquiryId ? reopenedRecord : item);
+    saveEnquiriesToStorage(nextEnquiries);
 
     showToast(`↺ Ticket ${enquiryId} reopened and restored to active support queue.`);
   };
@@ -466,20 +448,24 @@ export function ContactUsPage() {
   };
 
   const getFilteredEnquiries = (cat: 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'GENERAL') => {
-    return enquiries.filter((item) => item.category === cat && matchesFilters(item));
+    return enquiries.filter((item) => {
+      const matchCat = item.category === cat;
+      const notResolved = statusFilter === 'RESOLVED' ? item.status === 'RESOLVED' : item.status !== 'RESOLVED';
+      return matchCat && notResolved && matchesFilters(item);
+    });
   };
 
   const getFilteredHistory = () => {
-    return history.filter((item) => matchesFilters(item));
+    return enquiries.filter((item) => item.status === 'RESOLVED' && matchesFilters(item));
   };
 
   // Metrics
   const totalOpenCount = enquiries.filter((e) => e.status === 'OPEN').length;
-  const customerCount = enquiries.filter((e) => e.category === 'CUSTOMER').length;
-  const restaurantCount = enquiries.filter((e) => e.category === 'RESTAURANT').length;
-  const deliveryCount = enquiries.filter((e) => e.category === 'DELIVERY').length;
-  const generalCount = enquiries.filter((e) => e.category === 'GENERAL').length;
-  const historyCount = history.length;
+  const customerCount = enquiries.filter((e) => e.category === 'CUSTOMER' && e.status !== 'RESOLVED').length;
+  const restaurantCount = enquiries.filter((e) => e.category === 'RESTAURANT' && e.status !== 'RESOLVED').length;
+  const deliveryCount = enquiries.filter((e) => e.category === 'DELIVERY' && e.status !== 'RESOLVED').length;
+  const generalCount = enquiries.filter((e) => e.category === 'GENERAL' && e.status !== 'RESOLVED').length;
+  const historyCount = enquiries.filter((e) => e.status === 'RESOLVED').length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>

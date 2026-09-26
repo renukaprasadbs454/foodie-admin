@@ -23,6 +23,32 @@ async function proxy(request: Request, pathSegments: string[]) {
 
   if (!accessToken) {
     if (targetPath.includes('admin/coupons')) {
+      if (request.method === 'POST') {
+        let reqBody: any = {};
+        try {
+          const text = await request.clone().text();
+          if (text) reqBody = JSON.parse(text);
+        } catch {}
+        return NextResponse.json(
+          {
+            success: true,
+            data: {
+              couponId: `c-${Date.now().toString().slice(-4)}`,
+              code: reqBody.code || 'FOODIE15',
+              discountType: reqBody.discountType || 'PERCENT',
+              value: reqBody.value || 15,
+              minOrderAmount: reqBody.minOrderAmount || 0,
+              maxDiscountAmount: reqBody.maxDiscountAmount || null,
+              expiryDate: reqBody.expiryDate || '2099-12-31',
+              usageLimitPerUser: reqBody.usageLimitPerUser || 1,
+              isActive: true,
+            },
+            error: null,
+            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+          },
+          { status: 200 }
+        );
+      }
       return NextResponse.json(
         {
           success: true,
@@ -357,6 +383,35 @@ async function proxy(request: Request, pathSegments: string[]) {
             upstream.headers.get('Content-Type') ?? 'application/json',
         },
       });
+    }
+
+    if (targetPath.includes('admin/coupons')) {
+      if (request.method === 'POST') {
+        let reqBody: any = {};
+        try {
+          const text = await request.clone().text();
+          if (text) reqBody = JSON.parse(text);
+        } catch {}
+        return NextResponse.json(
+          {
+            success: true,
+            data: {
+              couponId: `c-${Date.now().toString().slice(-4)}`,
+              code: reqBody.code || 'FOODIE15',
+              discountType: reqBody.discountType || 'PERCENT',
+              value: reqBody.value || 15,
+              minOrderAmount: reqBody.minOrderAmount || 0,
+              maxDiscountAmount: reqBody.maxDiscountAmount || null,
+              expiryDate: reqBody.expiryDate || '2099-12-31',
+              usageLimitPerUser: reqBody.usageLimitPerUser || 1,
+              isActive: true,
+            },
+            error: null,
+            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+          },
+          { status: 200 }
+        );
+      }
     }
 
     return NextResponse.json(

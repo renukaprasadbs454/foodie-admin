@@ -175,6 +175,12 @@ function readStore(): EnquiryRecord[] {
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed) && parsed.length > 0) {
         const cleaned = sanitizeStore(parsed);
+        if (!cleaned.some(item => item.id === 'ENQ-901')) {
+          cleaned.unshift(INITIAL_ENQUIRIES[0]);
+        }
+        if (!cleaned.some(item => item.id === 'ENQ-902')) {
+          cleaned.push(INITIAL_ENQUIRIES[1]);
+        }
         if (cleaned.length !== parsed.length) {
           writeStore(cleaned);
         }
@@ -236,6 +242,73 @@ export async function POST(request: Request) {
       );
     }
 
+    if (body.action === 'connect_agent' || body.action === 'reopen' || body.action === 'create') {
+      const targetId = body.id && body.id.startsWith('ENQ-') ? body.id : 'ENQ-901';
+      let idx = data.findIndex(i => i.id === targetId);
+
+      const nowMsgText = (body.message || 'I want to connect to a live support agent.').trim();
+      const existing = idx !== -1 ? data[idx] : null;
+
+      const custName = body.senderName || existing?.senderName || 'Ananya Sharma';
+      const custEmail = body.senderEmail || existing?.senderEmail || 'ananya.s@gmail.com';
+      const custPhone = body.senderPhone || existing?.senderPhone || '+91 98765 12345';
+
+      const newCustMsg: ChatMessage = {
+        id: `msg-cust-${Date.now()}`,
+        enquiryId: targetId,
+        sender: 'customer',
+        senderName: custName,
+        message: nowMsgText,
+        timestamp: nowTime,
+      };
+
+      if (idx !== -1 && existing) {
+        const prevMsgs = (existing.messages || []).filter(
+          (m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support')
+        );
+
+        data[idx] = {
+          ...existing,
+          category: 'CUSTOMER',
+          senderName: custName,
+          senderEmail: custEmail,
+          senderPhone: custPhone,
+          subject: body.subject || existing.subject || `Live Agent Request: ${nowMsgText.substring(0, 30)}...`,
+          message: nowMsgText,
+          timestamp: 'Just now',
+          status: 'OPEN',
+          priority: 'HIGH',
+          resolvedAt: undefined,
+          messages: [...prevMsgs, newCustMsg],
+        };
+      } else {
+        const newRecord: EnquiryRecord = {
+          id: targetId,
+          category: 'CUSTOMER',
+          senderName: custName,
+          senderEmail: custEmail,
+          senderPhone: custPhone,
+          subject: body.subject || `Live Agent Request: ${nowMsgText.substring(0, 30)}...`,
+          message: nowMsgText,
+          timestamp: 'Just now',
+          status: 'OPEN',
+          priority: 'HIGH',
+          messages: [newCustMsg],
+        };
+        data.unshift(newRecord);
+      }
+
+      writeStore(data);
+      return NextResponse.json(
+        {
+          success: true,
+          data,
+          meta: { timestamp: new Date().toISOString() },
+        },
+        { status: 200, headers: CORS_HEADERS }
+      );
+    }
+
     // Always default to ENQ-901 to avoid creating new duplicate ticket cards
     const ticketId = body.id && body.id.startsWith('ENQ-90') ? body.id : 'ENQ-901';
     let existingIndex = data.findIndex((item) => item.id === ticketId);
@@ -249,24 +322,38 @@ export async function POST(request: Request) {
     if (body.action === 'reply' || body.sender === 'admin') {
       const sender = body.sender || 'admin';
       const senderName = body.senderName || (sender === 'admin' ? 'Admin Support' : rec.senderName);
-      const newMsg: ChatMessage = {
-        id: `msg-admin-${Date.now()}`,
-        enquiryId: rec.id,
-        sender: 'admin',
-        senderName: senderName,
-        message: userText,
-        timestamp: nowTime,
-      };
+      
+      if (userText) {
+        const newMsg: ChatMessage = {
+          id: `msg-admin-${Date.now()}`,
+          enquiryId: rec.id,
+          sender: 'admin',
+          senderName: senderName,
+          message: userText,
+          timestamp: nowTime,
+        };
 
-      const existingMsgs = rec.messages || [];
-      const hasAlready = existingMsgs.some(m => m.message === userText && m.sender === 'admin');
+        const existingMsgs = rec.messages || [];
+        const hasAlready = existingMsgs.some(m => m.message === userText && m.sender === 'admin');
+        const nextMsgs = Array.isArray(body.messages) && body.messages.length > 0 
+          ? body.messages 
+          : (hasAlready ? existingMsgs : [...existingMsgs, newMsg]);
 
-      data[existingIndex] = {
-        ...rec,
-        replyMessage: userText || rec.replyMessage,
-        status: 'IN_PROGRESS',
-        messages: hasAlready ? existingMsgs : [...existingMsgs, newMsg],
-      };
+        data[existingIndex] = {
+          ...rec,
+          replyMessage: userText,
+          status: 'IN_PROGRESS',
+          messages: nextMsgs,
+        };
+      } else if (Array.isArray(body.messages) && body.messages.length > 0) {
+        const lastAdminMsg = [...body.messages].reverse().find((m: ChatMessage) => m.sender === 'admin');
+        data[existingIndex] = {
+          ...rec,
+          replyMessage: lastAdminMsg?.message || rec.replyMessage,
+          status: 'IN_PROGRESS',
+          messages: body.messages,
+        };
+      }
     } else if (body.action === 'status' || body.action === 'resolve') {
       data[existingIndex] = {
         ...rec,
@@ -274,27 +361,32 @@ export async function POST(request: Request) {
         resolvedAt: body.status === 'RESOLVED' || !body.status ? 'Just now by Admin' : undefined,
       };
     } else {
-      // Append customer message directly into ENQ-901
+      // Append customer message to target ticket only & set status to OPEN for live agent attention
       if (userText) {
+        const custName = body.senderName || rec.senderName || 'Customer User';
         const newCustMsg: ChatMessage = {
           id: `msg-cust-${Date.now()}`,
           enquiryId: rec.id,
           sender: 'customer',
-          senderName: rec.senderName || 'Ananya Sharma',
+          senderName: custName,
           message: userText,
           timestamp: nowTime,
         };
 
-        const existingMsgs = (rec.messages || []).filter(
+        const prevMsgs = (rec.messages || []).filter(
           (m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support')
         );
 
         data[existingIndex] = {
           ...rec,
+          senderName: custName,
+          subject: body.subject || rec.subject || `Live Agent Request: ${userText.substring(0, 30)}...`,
           message: userText,
           timestamp: 'Just now',
-          status: rec.status === 'RESOLVED' ? 'IN_PROGRESS' : rec.status,
-          messages: [...existingMsgs, newCustMsg],
+          status: 'OPEN',
+          priority: 'HIGH',
+          resolvedAt: undefined,
+          messages: [...prevMsgs, newCustMsg],
         };
       }
     }
