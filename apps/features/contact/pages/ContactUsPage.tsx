@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Text } from 'foodie-shared-web';
 
 export interface ChatMessage {
@@ -218,6 +218,7 @@ export function ContactUsPage() {
 
   const [enquiries, setEnquiries] = useState<EnquiryRecord[]>(INITIAL_ENQUIRIES);
   const [history, setHistory] = useState<EnquiryRecord[]>(INITIAL_HISTORY);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Persistence, Online Backend API sync, and live cross-app polling
   const fetchTickets = async () => {
@@ -294,6 +295,16 @@ export function ContactUsPage() {
   const [selectedEnquiry, setSelectedEnquiry] = useState<EnquiryRecord | null>(null);
   const [replyText, setReplyText] = useState('');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      setTimeout(() => {
+        if (chatScrollRef.current) {
+          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+      }, 100);
+    }
+  }, [selectedEnquiry?.messages?.length, selectedEnquiry?.id]);
 
   // New Enquiry Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -942,64 +953,6 @@ export function ContactUsPage() {
                   </div>
                 </div>
 
-                {/* Live Customer & Admin Chat Thread */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
-                    Customer Chat Thread ({item.messages?.length || 1} messages):
-                  </div>
-                  <div
-                    style={{
-                      backgroundColor: '#F0F9FF',
-                      padding: 14,
-                      borderRadius: 10,
-                      border: '1px solid #BAE6FD',
-                      fontSize: 13,
-                      color: '#0369A1',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
-                      maxHeight: 180,
-                      overflowY: 'auto',
-                    }}
-                  >
-                    {(item.messages && item.messages.length > 0
-                      ? item.messages.filter((m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support'))
-                      : [
-                        {
-                          id: `msg-orig-${item.id}`,
-                          enquiryId: item.id,
-                          sender: 'customer' as const,
-                          senderName: item.senderName,
-                          message: item.message,
-                          timestamp: item.timestamp,
-                        },
-                      ]
-                    ).map((msg) => {
-                      const isAdmin = msg.sender === 'admin';
-                      return (
-                        <div
-                          key={msg.id}
-                          style={{
-                            alignSelf: isAdmin ? 'flex-end' : 'flex-start',
-                            maxWidth: '90%',
-                            background: isAdmin ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
-                            color: isAdmin ? '#FFFFFF' : '#0369A1',
-                            padding: '8px 12px',
-                            borderRadius: 10,
-                            border: isAdmin ? 'none' : '1px solid #BAE6FD',
-                            fontSize: 13,
-                            boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
-                          }}
-                        >
-                          <div style={{ fontSize: 10, fontWeight: 700, color: isAdmin ? '#E0F2FE' : '#0284C7', marginBottom: 2 }}>
-                            {msg.senderName} • {msg.timestamp}
-                          </div>
-                          <div>{msg.message}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
               </div>
             ))
           )}
@@ -1159,16 +1112,17 @@ export function ContactUsPage() {
                 Conversation History ({(selectedEnquiry.messages && selectedEnquiry.messages.length) || 1} messages)
               </label>
               <div
+                ref={chatScrollRef}
                 style={{
-                  maxHeight: 220,
+                  maxHeight: 280,
                   overflowY: 'auto',
-                  backgroundColor: '#F0F9FF',
+                  backgroundColor: '#F1F5F9',
                   borderRadius: 10,
-                  padding: 12,
+                  padding: 16,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 10,
-                  border: '1px solid #BAE6FD',
+                  gap: 12,
+                  border: '1px solid #CBD5E1',
                 }}
               >
                 {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0
@@ -1191,31 +1145,32 @@ export function ContactUsPage() {
                       style={{
                         alignSelf: isAdmin ? 'flex-end' : 'flex-start',
                         maxWidth: '85%',
-                        background: isAdmin ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
-                        color: isAdmin ? '#FFFFFF' : '#0369A1',
+                        backgroundColor: isAdmin ? '#14532D' : '#FFFFFF',
+                        color: isAdmin ? '#FFFFFF' : '#1E293B',
                         padding: '10px 14px',
-                        borderRadius: 12,
-                        boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
-                        border: isAdmin ? 'none' : '1px solid #BAE6FD',
-                        borderTopRightRadius: isAdmin ? 2 : 12,
-                        borderTopLeftRadius: isAdmin ? 12 : 2,
+                        borderRadius: 16,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                        border: isAdmin ? 'none' : '1px solid #E2E8F0',
+                        borderTopRightRadius: isAdmin ? 4 : 16,
+                        borderTopLeftRadius: isAdmin ? 16 : 4,
                       }}
                     >
                       <div
                         style={{
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: 700,
-                          color: isAdmin ? '#E0F2FE' : '#0284C7',
+                          color: isAdmin ? '#A7F3D0' : '#64748B',
                           marginBottom: 4,
                           display: 'flex',
-                          justifyContent: 'space-between',
-                          gap: 12,
+                          alignItems: 'center',
+                          gap: 6,
                         }}
                       >
-                        <span>{msg.senderName}</span>
+                        <span>{isAdmin ? 'You (Admin)' : msg.senderName}</span>
+                        <span>•</span>
                         <span>{msg.timestamp}</span>
                       </div>
-                      <div style={{ fontSize: 13, lineHeight: 1.4 }}>{msg.message}</div>
+                      <div style={{ fontSize: 13, lineHeight: 1.5 }}>{msg.message}</div>
                     </div>
                   );
                 })}
