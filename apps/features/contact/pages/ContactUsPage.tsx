@@ -395,8 +395,8 @@ export function ContactUsPage() {
 
     saveEnquiriesToStorage(updatedList, selectedEnquiry.id, adminMsgText);
 
-    const updatedCurrent = updatedList.find(i => i.id === selectedEnquiry.id) || null;
-    setSelectedEnquiry(updatedCurrent);
+    // UX feature: auto-collapse modal to avoid staring at a static chatbox
+    setSelectedEnquiry(null);
     setReplyText('');
     showToast(`✉ Response sent & delivered to ${selectedEnquiry.senderName}'s app chat!`);
   };
