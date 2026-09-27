@@ -61,7 +61,7 @@ export function getHomeRouteForRole(role: string | null): string {
   if (r.includes('DARKSTORE')) return '/darkstore-admin/dashboard';
   if (r.includes('FINANCE')) return '/finance-admin/dashboard';
   if (r.includes('RESTAURANT')) return '/restaurant-admin/dashboard';
-  if (r.includes('SUPPORT')) return '/support-admin/dashboard';
+  if (r.includes('SUPPORT')) return '/support';
   if (r.includes('AUDITOR')) return '/compliance-auditor/dashboard';
   return '/dashboard';
 }
@@ -181,7 +181,7 @@ export const DASHBOARD_NAV: readonly NavItem[] = [
   { href: '/', label: 'Home', category: 'MAIN', highlighted: true },
   { href: '/dashboard', label: 'Dashboard', category: 'MAIN' },
   { href: '/analytics', label: 'Analytics', category: 'MAIN' },
-  { href: '/support', label: 'Support', category: 'MAIN', roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN', 'SUPPORT', 'SUPPORT_AGENT'] },
+  { href: '/support', label: 'Support', category: 'MAIN', roles: ['SUPPORT', 'SUPPORT_AGENT'] },
   { href: '/members', label: 'Members', category: 'BUSINESS MANAGERS', highlighted: true, roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN'] },
   { href: '/users', label: 'Users', category: 'BUSINESS MANAGERS', icon: '', roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN', 'FINANCE', 'FINANCE_ADMIN', 'SUPPORT', 'SUPPORT_AGENT'] },
   { href: '/customers', label: 'Customers', category: 'BUSINESS MANAGERS', roles: ['SUPER_ADMIN', 'OPS', 'OPERATIONS_ADMIN', 'SUPPORT', 'SUPPORT_AGENT'] },
@@ -228,6 +228,13 @@ export function filterNavForRole(role: string | null, pathname?: string): NavIte
       { href: '/compliance-auditor/reviews', label: 'Reviews & Complaints', icon: 'star' },
       { href: '/compliance-auditor/audit-log', label: 'Audit Log', icon: 'file-text' },
       { href: '/compliance-auditor/terms', label: 'Terms & Conditions', icon: 'file-lines' },
+    ];
+  }
+
+  const isSupportAgent = Boolean(role && (role.toUpperCase().includes('SUPPORT_AGENT') || role.toUpperCase() === 'SUPPORT AGENT'));
+  if (isSupportAgent) {
+    return [
+      { href: '/support', label: 'Support', category: 'MAIN' },
     ];
   }
 

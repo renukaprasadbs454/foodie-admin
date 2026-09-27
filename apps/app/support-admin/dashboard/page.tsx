@@ -1,7 +1,14 @@
 'use client';
 
-import { SupportAdminDashboardPage } from '@/features/support-admin/SupportAdminDashboardPage';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function SupportAdminDashboardRoutePage() {
-  return <SupportAdminDashboardPage />;
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/support');
+  }, [router]);
+
+  return null;
 }
