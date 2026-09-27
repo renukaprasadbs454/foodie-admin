@@ -27,6 +27,8 @@ export interface EnquiryRecord {
   messages?: ChatMessage[];
   resolvedAt?: string;
   orderId?: string;
+  isAiOnly?: boolean;
+  lastActivityAt?: number;
 }
 
 const INITIAL_ENQUIRIES: EnquiryRecord[] = [
@@ -228,11 +230,11 @@ export function ContactUsPage() {
           setEnquiries(dataList);
           try {
             localStorage.setItem('foodie_support_enquiries_v6', JSON.stringify(dataList));
-          } catch {}
+          } catch { }
           return;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     try {
       const stored = localStorage.getItem('foodie_support_enquiries_v6');
@@ -244,7 +246,7 @@ export function ContactUsPage() {
       } else {
         localStorage.setItem('foodie_support_enquiries_v6', JSON.stringify(INITIAL_ENQUIRIES));
       }
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => {
@@ -269,23 +271,23 @@ export function ContactUsPage() {
     try {
       localStorage.setItem('foodie_support_enquiries_v6', JSON.stringify(newList));
       window.dispatchEvent(new Event('foodie_enquiry_updated'));
-    } catch {}
+    } catch { }
 
     try {
       void fetch('/api/support-tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'sync_all', data: newList }),
-      }).catch(() => {});
+      }).catch(() => { });
 
       if (replyEnquiryId && replyText) {
         void fetch('/api/support-tickets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'reply', id: replyEnquiryId, replyMessage: replyText, sender: 'admin', senderName: 'Admin Support' }),
-        }).catch(() => {});
+        }).catch(() => { });
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   // Reply Modal State
@@ -327,8 +329,8 @@ export function ContactUsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'resolve', id: enquiryId, status: 'RESOLVED' }),
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and moved to Contact History!`);
   };
@@ -371,13 +373,13 @@ export function ContactUsPage() {
         const existingMsgs = item.messages && item.messages.length > 0
           ? item.messages
           : [{
-              id: `msg-orig-${item.id}`,
-              enquiryId: item.id,
-              sender: 'customer' as const,
-              senderName: item.senderName,
-              message: item.message,
-              timestamp: item.timestamp,
-            }];
+            id: `msg-orig-${item.id}`,
+            enquiryId: item.id,
+            sender: 'customer' as const,
+            senderName: item.senderName,
+            message: item.message,
+            timestamp: item.timestamp,
+          }];
 
         const updatedMsgs = [...existingMsgs, newReply];
 
@@ -457,6 +459,7 @@ export function ContactUsPage() {
 
   const getFilteredEnquiries = (cat: 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'GENERAL') => {
     return enquiries.filter((item) => {
+      if (item.isAiOnly) return false;
       const matchCat = item.category === cat;
       const notResolved = statusFilter === 'RESOLVED' ? item.status === 'RESOLVED' : item.status !== 'RESOLVED';
       return matchCat && notResolved && matchesFilters(item);
@@ -464,16 +467,17 @@ export function ContactUsPage() {
   };
 
   const getFilteredHistory = () => {
-    return enquiries.filter((item) => item.status === 'RESOLVED' && matchesFilters(item));
+    return enquiries.filter((item) => item.status === 'RESOLVED' && !item.isAiOnly && matchesFilters(item));
   };
 
   // Metrics
-  const totalOpenCount = enquiries.filter((e) => e.status === 'OPEN').length;
-  const customerCount = enquiries.filter((e) => e.category === 'CUSTOMER' && e.status !== 'RESOLVED').length;
-  const restaurantCount = enquiries.filter((e) => e.category === 'RESTAURANT' && e.status !== 'RESOLVED').length;
-  const deliveryCount = enquiries.filter((e) => e.category === 'DELIVERY' && e.status !== 'RESOLVED').length;
-  const generalCount = enquiries.filter((e) => e.category === 'GENERAL' && e.status !== 'RESOLVED').length;
-  const historyCount = enquiries.filter((e) => e.status === 'RESOLVED').length;
+  const activeEnquiriesForMetrics = enquiries.filter(e => !e.isAiOnly);
+  const totalOpenCount = activeEnquiriesForMetrics.filter((e) => e.status === 'OPEN').length;
+  const customerCount = activeEnquiriesForMetrics.filter((e) => e.category === 'CUSTOMER' && e.status !== 'RESOLVED').length;
+  const restaurantCount = activeEnquiriesForMetrics.filter((e) => e.category === 'RESTAURANT' && e.status !== 'RESOLVED').length;
+  const deliveryCount = activeEnquiriesForMetrics.filter((e) => e.category === 'DELIVERY' && e.status !== 'RESOLVED').length;
+  const generalCount = activeEnquiriesForMetrics.filter((e) => e.category === 'GENERAL' && e.status !== 'RESOLVED').length;
+  const historyCount = activeEnquiriesForMetrics.filter((e) => e.status === 'RESOLVED').length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -849,7 +853,7 @@ export function ContactUsPage() {
                         {item.id}
                       </span>
                       <span style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>{item.subject}</span>
-                      
+
                       <span
                         style={{
                           fontSize: 10,
@@ -961,15 +965,15 @@ export function ContactUsPage() {
                     {(item.messages && item.messages.length > 0
                       ? item.messages.filter((m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support'))
                       : [
-                          {
-                            id: `msg-orig-${item.id}`,
-                            enquiryId: item.id,
-                            sender: 'customer' as const,
-                            senderName: item.senderName,
-                            message: item.message,
-                            timestamp: item.timestamp,
-                          },
-                        ]
+                        {
+                          id: `msg-orig-${item.id}`,
+                          enquiryId: item.id,
+                          sender: 'customer' as const,
+                          senderName: item.senderName,
+                          message: item.message,
+                          timestamp: item.timestamp,
+                        },
+                      ]
                     ).map((msg) => {
                       const isAdmin = msg.sender === 'admin';
                       return (
@@ -1170,15 +1174,15 @@ export function ContactUsPage() {
                 {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0
                   ? selectedEnquiry.messages.filter((m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support'))
                   : [
-                      {
-                        id: `msg-orig-${selectedEnquiry.id}`,
-                        enquiryId: selectedEnquiry.id,
-                        sender: 'customer' as const,
-                        senderName: selectedEnquiry.senderName,
-                        message: selectedEnquiry.message,
-                        timestamp: selectedEnquiry.timestamp,
-                      },
-                    ]
+                    {
+                      id: `msg-orig-${selectedEnquiry.id}`,
+                      enquiryId: selectedEnquiry.id,
+                      sender: 'customer' as const,
+                      senderName: selectedEnquiry.senderName,
+                      message: selectedEnquiry.message,
+                      timestamp: selectedEnquiry.timestamp,
+                    },
+                  ]
                 ).map((msg) => {
                   const isAdmin = msg.sender === 'admin';
                   return (

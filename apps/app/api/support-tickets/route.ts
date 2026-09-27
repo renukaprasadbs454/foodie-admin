@@ -30,6 +30,8 @@ export interface EnquiryRecord {
   messages?: ChatMessage[];
   resolvedAt?: string;
   orderId?: string;
+  lastActivityAt?: number;
+  isAiOnly?: boolean;
 }
 
 const INITIAL_ENQUIRIES: EnquiryRecord[] = [
@@ -178,7 +180,7 @@ function readStore(): EnquiryRecord[] {
         return cleaned;
       }
     }
-  } catch (e) {}
+  } catch (e) { }
 
   writeStore(INITIAL_ENQUIRIES);
   return INITIAL_ENQUIRIES;
@@ -267,8 +269,8 @@ export async function POST(request: Request) {
 
         const existingMsgs = rec.messages || [];
         const hasAlready = existingMsgs.some(m => m.message === userText && m.sender === 'admin');
-        const nextMsgs = Array.isArray(body.messages) && body.messages.length > 0 
-          ? body.messages 
+        const nextMsgs = Array.isArray(body.messages) && body.messages.length > 0
+          ? body.messages
           : (hasAlready ? existingMsgs : [...existingMsgs, newMsg]);
 
         data[idx] = {
@@ -288,24 +290,14 @@ export async function POST(request: Request) {
     const custName = body.senderName || 'Customer User';
     const userText = (body.message || 'I want to connect to a live support agent.').trim();
 
-    // 1. Look for an existing UNRESOLVED ticket for this customer
-    let existingIndex = data.findIndex((item) => {
-      if (item.status === 'RESOLVED') return false;
-      const matchEmail = custEmail && item.senderEmail && item.senderEmail.toLowerCase() === custEmail;
-      const matchPhone = custPhone && item.senderPhone && item.senderPhone === custPhone;
-      const matchId = body.id && item.id === body.id;
-      return matchId || matchEmail || matchPhone;
-    });
-
-    // 2. If no active unresolved ticket found, check if body.id exists and is unresolved
-    if (existingIndex === -1 && body.id) {
+    // 1. Look for an existing ticket strictly by its unique ID
+    let existingIndex = -1;
+    if (body.id) {
       existingIndex = data.findIndex(item => item.id === body.id && item.status !== 'RESOLVED');
     }
 
     const existing = existingIndex !== -1 ? data[existingIndex] : null;
 
-    // KEY RESOLUTION LOGIC:
-    // Create new ticket ONLY if no active unresolved ticket exists for this customer (or explicit create)!
     const shouldCreateNew = !existing || body.action === 'create';
 
     if (shouldCreateNew) {
@@ -333,7 +325,7 @@ export async function POST(request: Request) {
         status: 'OPEN',
         priority: body.priority || 'HIGH',
         orderId: body.orderId,
-        messages: [newCustMsg],
+        messages: Array.isArray(body.messages) && body.messages.length > 0 ? body.messages : [newCustMsg],
       };
 
       data.unshift(newRecord);
@@ -348,9 +340,10 @@ export async function POST(request: Request) {
         timestamp: nowTime,
       };
 
-      const prevMsgs = (existing.messages || []).filter(
-        (m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support')
-      );
+      const prevMsgs = existing.messages || [];
+      const nextMsgs = Array.isArray(body.messages) && body.messages.length > 0
+        ? body.messages
+        : [...prevMsgs, newCustMsg];
 
       data[existingIndex] = {
         ...existing,
@@ -358,12 +351,12 @@ export async function POST(request: Request) {
         senderEmail: custEmail || existing.senderEmail,
         senderPhone: custPhone || existing.senderPhone,
         subject: body.subject || existing.subject || `Live Agent Request: ${userText.substring(0, 30)}...`,
-        message: userText,
+        message: body.message || userText,
         timestamp: 'Just now',
         status: 'OPEN',
         priority: 'HIGH',
         resolvedAt: undefined,
-        messages: [...prevMsgs, newCustMsg],
+        messages: nextMsgs,
       };
     }
 
