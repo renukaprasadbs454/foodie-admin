@@ -36,9 +36,9 @@ const INITIAL_ENQUIRIES: EnquiryRecord[] = [
   {
     id: 'ENQ-901',
     category: 'CUSTOMER',
-    senderName: 'Ananya Sharma',
-    senderEmail: 'ananya.s@gmail.com',
-    senderPhone: '+91 98765 12345',
+    senderName: 'Customer',
+    senderEmail: 'customer@foodie.com',
+    senderPhone: '+91 80731 12274',
     subject: 'Delayed Refund for Order #ORD-9821',
     message: "I was debited ₹450 for a cancelled order yesterday but haven't received refund in my bank account.",
     timestamp: '15 mins ago',
@@ -50,7 +50,7 @@ const INITIAL_ENQUIRIES: EnquiryRecord[] = [
         id: 'msg-101',
         enquiryId: 'ENQ-901',
         sender: 'customer',
-        senderName: 'Ananya Sharma',
+        senderName: 'Customer',
         message: "I was debited ₹450 for a cancelled order yesterday but haven't received refund in my bank account.",
         timestamp: '15 mins ago',
       },
@@ -155,17 +155,11 @@ const INITIAL_ENQUIRIES: EnquiryRecord[] = [
   },
 ];
 
-const STORE_FILE = path.join(os.tmpdir(), 'foodie_support_enquiries_v3.json');
+const STORE_FILE = path.join(os.tmpdir(), 'foodie_support_enquiries_v6.json');
 
 function sanitizeStore(data: EnquiryRecord[]): EnquiryRecord[] {
-  const allowedInitial = new Set(['ENQ-901', 'ENQ-902', 'ENQ-903', 'ENQ-904', 'ENQ-905']);
-  return data.filter((item) => {
-    if (allowedInitial.has(item.id)) return true;
-    const num = parseInt((item.id || '').replace('ENQ-', ''), 10);
-    // Remove all test spam IDs (906, 933, 946, 955, 963, 966, 989, etc.)
-    if (!isNaN(num) && num >= 906) return false;
-    return true;
-  });
+  if (!Array.isArray(data)) return INITIAL_ENQUIRIES;
+  return data.filter((item) => item && typeof item.id === 'string' && item.id.startsWith('ENQ-'));
 }
 
 function readStore(): EnquiryRecord[] {
@@ -180,9 +174,6 @@ function readStore(): EnquiryRecord[] {
         }
         if (!cleaned.some(item => item.id === 'ENQ-902')) {
           cleaned.push(INITIAL_ENQUIRIES[1]);
-        }
-        if (cleaned.length !== parsed.length) {
-          writeStore(cleaned);
         }
         return cleaned;
       }
@@ -242,93 +233,34 @@ export async function POST(request: Request) {
       );
     }
 
-    if (body.action === 'connect_agent' || body.action === 'reopen' || body.action === 'create') {
-      const targetId = body.id && body.id.startsWith('ENQ-') ? body.id : 'ENQ-901';
-      let idx = data.findIndex(i => i.id === targetId);
-
-      const nowMsgText = (body.message || 'I want to connect to a live support agent.').trim();
-      const existing = idx !== -1 ? data[idx] : null;
-
-      const custName = body.senderName || existing?.senderName || 'Ananya Sharma';
-      const custEmail = body.senderEmail || existing?.senderEmail || 'ananya.s@gmail.com';
-      const custPhone = body.senderPhone || existing?.senderPhone || '+91 98765 12345';
-
-      const newCustMsg: ChatMessage = {
-        id: `msg-cust-${Date.now()}`,
-        enquiryId: targetId,
-        sender: 'customer',
-        senderName: custName,
-        message: nowMsgText,
-        timestamp: nowTime,
-      };
-
-      if (idx !== -1 && existing) {
-        const prevMsgs = (existing.messages || []).filter(
-          (m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support')
-        );
-
+    // Explicit Status / Resolve Action
+    if (body.action === 'status' || body.action === 'resolve') {
+      const ticketId = body.id || 'ENQ-901';
+      const idx = data.findIndex(item => item.id === ticketId);
+      if (idx !== -1) {
         data[idx] = {
-          ...existing,
-          category: 'CUSTOMER',
-          senderName: custName,
-          senderEmail: custEmail,
-          senderPhone: custPhone,
-          subject: body.subject || existing.subject || `Live Agent Request: ${nowMsgText.substring(0, 30)}...`,
-          message: nowMsgText,
-          timestamp: 'Just now',
-          status: 'OPEN',
-          priority: 'HIGH',
-          resolvedAt: undefined,
-          messages: [...prevMsgs, newCustMsg],
+          ...data[idx],
+          status: body.status || 'RESOLVED',
+          resolvedAt: body.status === 'RESOLVED' || !body.status ? 'Just now by Admin' : undefined,
         };
-      } else {
-        const newRecord: EnquiryRecord = {
-          id: targetId,
-          category: 'CUSTOMER',
-          senderName: custName,
-          senderEmail: custEmail,
-          senderPhone: custPhone,
-          subject: body.subject || `Live Agent Request: ${nowMsgText.substring(0, 30)}...`,
-          message: nowMsgText,
-          timestamp: 'Just now',
-          status: 'OPEN',
-          priority: 'HIGH',
-          messages: [newCustMsg],
-        };
-        data.unshift(newRecord);
       }
-
       writeStore(data);
-      return NextResponse.json(
-        {
-          success: true,
-          data,
-          meta: { timestamp: new Date().toISOString() },
-        },
-        { status: 200, headers: CORS_HEADERS }
-      );
+      return NextResponse.json({ success: true, data }, { status: 200, headers: CORS_HEADERS });
     }
 
-    // Always default to ENQ-901 to avoid creating new duplicate ticket cards
-    const ticketId = body.id && body.id.startsWith('ENQ-90') ? body.id : 'ENQ-901';
-    let existingIndex = data.findIndex((item) => item.id === ticketId);
-    if (existingIndex === -1) {
-      existingIndex = 0; // Target ENQ-901
-    }
-
-    const rec = data[existingIndex] || INITIAL_ENQUIRIES[0];
-    const userText = (body.message || body.replyMessage || '').trim();
-
+    // Admin Reply Action
     if (body.action === 'reply' || body.sender === 'admin') {
-      const sender = body.sender || 'admin';
-      const senderName = body.senderName || (sender === 'admin' ? 'Admin Support' : rec.senderName);
-      
-      if (userText) {
+      const ticketId = body.id || 'ENQ-901';
+      const idx = data.findIndex(item => item.id === ticketId);
+      const userText = (body.message || body.replyMessage || '').trim();
+
+      if (idx !== -1) {
+        const rec = data[idx];
         const newMsg: ChatMessage = {
           id: `msg-admin-${Date.now()}`,
           enquiryId: rec.id,
           sender: 'admin',
-          senderName: senderName,
+          senderName: body.senderName || 'Admin Support',
           message: userText,
           timestamp: nowTime,
         };
@@ -339,56 +271,100 @@ export async function POST(request: Request) {
           ? body.messages 
           : (hasAlready ? existingMsgs : [...existingMsgs, newMsg]);
 
-        data[existingIndex] = {
+        data[idx] = {
           ...rec,
-          replyMessage: userText,
+          replyMessage: userText || rec.replyMessage,
           status: 'IN_PROGRESS',
           messages: nextMsgs,
         };
-      } else if (Array.isArray(body.messages) && body.messages.length > 0) {
-        const lastAdminMsg = [...body.messages].reverse().find((m: ChatMessage) => m.sender === 'admin');
-        data[existingIndex] = {
-          ...rec,
-          replyMessage: lastAdminMsg?.message || rec.replyMessage,
-          status: 'IN_PROGRESS',
-          messages: body.messages,
-        };
       }
-    } else if (body.action === 'status' || body.action === 'resolve') {
-      data[existingIndex] = {
-        ...rec,
-        status: body.status || 'RESOLVED',
-        resolvedAt: body.status === 'RESOLVED' || !body.status ? 'Just now by Admin' : undefined,
+      writeStore(data);
+      return NextResponse.json({ success: true, data }, { status: 200, headers: CORS_HEADERS });
+    }
+
+    // Customer Messages / Live Agent Connections / New Ticket Creation
+    const custEmail = (body.senderEmail || '').trim().toLowerCase();
+    const custPhone = (body.senderPhone || '').trim();
+    const custName = body.senderName || 'Customer User';
+    const userText = (body.message || 'I want to connect to a live support agent.').trim();
+
+    // 1. Look for an existing UNRESOLVED ticket for this customer
+    let existingIndex = data.findIndex((item) => {
+      if (item.status === 'RESOLVED') return false;
+      const matchEmail = custEmail && item.senderEmail && item.senderEmail.toLowerCase() === custEmail;
+      const matchPhone = custPhone && item.senderPhone && item.senderPhone === custPhone;
+      const matchId = body.id && item.id === body.id;
+      return matchId || matchEmail || matchPhone;
+    });
+
+    // 2. If no active unresolved ticket found, check if body.id exists and is unresolved
+    if (existingIndex === -1 && body.id) {
+      existingIndex = data.findIndex(item => item.id === body.id && item.status !== 'RESOLVED');
+    }
+
+    const existing = existingIndex !== -1 ? data[existingIndex] : null;
+
+    // KEY RESOLUTION LOGIC:
+    // Create new ticket ONLY if no active unresolved ticket exists for this customer (or explicit create)!
+    const shouldCreateNew = !existing || body.action === 'create';
+
+    if (shouldCreateNew) {
+      const newNum = Math.floor(906 + Math.random() * 9000);
+      const newTicketId = body.id && body.id.startsWith('ENQ-') && body.id !== 'ENQ-901' ? body.id : `ENQ-${newNum}`;
+
+      const newCustMsg: ChatMessage = {
+        id: `msg-cust-${Date.now()}`,
+        enquiryId: newTicketId,
+        sender: 'customer',
+        senderName: custName,
+        message: userText,
+        timestamp: nowTime,
       };
-    } else {
-      // Append customer message to target ticket only & set status to OPEN for live agent attention
-      if (userText) {
-        const custName = body.senderName || rec.senderName || 'Customer User';
-        const newCustMsg: ChatMessage = {
-          id: `msg-cust-${Date.now()}`,
-          enquiryId: rec.id,
-          sender: 'customer',
-          senderName: custName,
-          message: userText,
-          timestamp: nowTime,
-        };
 
-        const prevMsgs = (rec.messages || []).filter(
-          (m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support')
-        );
+      const newRecord: EnquiryRecord = {
+        id: newTicketId,
+        category: body.category || 'CUSTOMER',
+        senderName: custName,
+        senderEmail: custEmail || 'customer@foodie.com',
+        senderPhone: custPhone || '+91 98765 12345',
+        subject: body.subject || `Live Agent Request: ${userText.substring(0, 30)}...`,
+        message: userText,
+        timestamp: 'Just now',
+        status: 'OPEN',
+        priority: body.priority || 'HIGH',
+        orderId: body.orderId,
+        messages: [newCustMsg],
+      };
 
-        data[existingIndex] = {
-          ...rec,
-          senderName: custName,
-          subject: body.subject || rec.subject || `Live Agent Request: ${userText.substring(0, 30)}...`,
-          message: userText,
-          timestamp: 'Just now',
-          status: 'OPEN',
-          priority: 'HIGH',
-          resolvedAt: undefined,
-          messages: [...prevMsgs, newCustMsg],
-        };
-      }
+      data.unshift(newRecord);
+    } else if (existingIndex !== -1 && existing) {
+      // Append message to currently active (OPEN / IN_PROGRESS) ticket for this customer
+      const newCustMsg: ChatMessage = {
+        id: `msg-cust-${Date.now()}`,
+        enquiryId: existing.id,
+        sender: 'customer',
+        senderName: custName,
+        message: userText,
+        timestamp: nowTime,
+      };
+
+      const prevMsgs = (existing.messages || []).filter(
+        (m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support')
+      );
+
+      data[existingIndex] = {
+        ...existing,
+        senderName: custName,
+        senderEmail: custEmail || existing.senderEmail,
+        senderPhone: custPhone || existing.senderPhone,
+        subject: body.subject || existing.subject || `Live Agent Request: ${userText.substring(0, 30)}...`,
+        message: userText,
+        timestamp: 'Just now',
+        status: 'OPEN',
+        priority: 'HIGH',
+        resolvedAt: undefined,
+        messages: [...prevMsgs, newCustMsg],
+      };
     }
 
     writeStore(data);

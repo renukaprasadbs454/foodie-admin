@@ -227,7 +227,7 @@ export function ContactUsPage() {
         if (Array.isArray(dataList) && dataList.length > 0) {
           setEnquiries(dataList);
           try {
-            localStorage.setItem('foodie_support_enquiries', JSON.stringify(dataList));
+            localStorage.setItem('foodie_support_enquiries_v6', JSON.stringify(dataList));
           } catch {}
           return;
         }
@@ -235,14 +235,14 @@ export function ContactUsPage() {
     } catch (e) {}
 
     try {
-      const stored = localStorage.getItem('foodie_support_enquiries');
+      const stored = localStorage.getItem('foodie_support_enquiries_v6');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setEnquiries(parsed);
         }
       } else {
-        localStorage.setItem('foodie_support_enquiries', JSON.stringify(INITIAL_ENQUIRIES));
+        localStorage.setItem('foodie_support_enquiries_v6', JSON.stringify(INITIAL_ENQUIRIES));
       }
     } catch {}
   };
@@ -267,7 +267,7 @@ export function ContactUsPage() {
   const saveEnquiriesToStorage = (newList: EnquiryRecord[], replyEnquiryId?: string, replyText?: string) => {
     setEnquiries(newList);
     try {
-      localStorage.setItem('foodie_support_enquiries', JSON.stringify(newList));
+      localStorage.setItem('foodie_support_enquiries_v6', JSON.stringify(newList));
       window.dispatchEvent(new Event('foodie_enquiry_updated'));
     } catch {}
 
@@ -321,6 +321,14 @@ export function ContactUsPage() {
 
     const nextEnquiries = enquiries.map((item) => item.id === enquiryId ? resolvedRecord : item);
     saveEnquiriesToStorage(nextEnquiries);
+
+    try {
+      void fetch('/api/support-tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'resolve', id: enquiryId, status: 'RESOLVED' }),
+      }).catch(() => {});
+    } catch (e) {}
 
     showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and moved to Contact History!`);
   };
