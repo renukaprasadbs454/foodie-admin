@@ -44,7 +44,7 @@ describe('6amMart Admin Panel Navigation & Role Configuration', () => {
 
   it('correctly filters categorized navigation for different roles', () => {
     const superAdminNav = filterNavForRole('SUPER_ADMIN');
-    expect(superAdminNav.length).toBe(17);
+    expect(superAdminNav.length).toBe(18);
 
     const supportNav = filterNavForRole('SUPPORT');
     expect(supportNav.map(i => i.href)).toEqual([

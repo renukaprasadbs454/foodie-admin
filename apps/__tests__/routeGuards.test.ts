@@ -88,5 +88,13 @@ describe('routeGuards', () => {
     const superAdmin = filterNavForRole('SUPER_ADMIN').map((i) => i.href);
     expect(superAdmin).toContain('/audit-log');
   });
+
+  it('exclusively filters navigation to /restaurants for RESTAURANT_MANAGER while preserving /restaurants for SUPER_ADMIN', () => {
+    const restaurantNav = filterNavForRole('RESTAURANT_MANAGER').map((i) => i.href);
+    expect(restaurantNav).toEqual(['/restaurants']);
+
+    const superAdminNav = filterNavForRole('SUPER_ADMIN').map((i) => i.href);
+    expect(superAdminNav).toContain('/restaurants');
+  });
 });
 

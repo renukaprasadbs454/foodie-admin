@@ -60,7 +60,7 @@ export function getHomeRouteForRole(role: string | null): string {
   const r = role.toUpperCase();
   if (r.includes('DARKSTORE')) return '/darkstore-admin/dashboard';
   if (r.includes('FINANCE')) return '/finance-admin/dashboard';
-  if (r.includes('RESTAURANT')) return '/restaurant-admin/dashboard';
+  if (r.includes('RESTAURANT')) return '/restaurants';
   if (r.includes('SUPPORT')) return '/support';
   if (r.includes('AUDITOR')) return '/compliance-auditor/dashboard';
   return '/dashboard';
@@ -235,6 +235,15 @@ export function filterNavForRole(role: string | null, pathname?: string): NavIte
   if (isSupportAgent) {
     return [
       { href: '/support', label: 'Support', category: 'MAIN' },
+    ];
+  }
+
+  const isRestaurantManager = Boolean(
+    role && (role.toUpperCase().includes('RESTAURANT_MANAGER') || role.toUpperCase() === 'RESTAURANT MANAGER' || role.toUpperCase().includes('RESTAURANT'))
+  );
+  if (isRestaurantManager) {
+    return [
+      { href: '/restaurants', label: 'Restaurants', category: 'BUSINESS MANAGERS' },
     ];
   }
 
