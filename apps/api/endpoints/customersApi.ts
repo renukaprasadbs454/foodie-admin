@@ -39,12 +39,13 @@ export const customersApi = baseApi.injectEndpoints({
         return `/api/bff/admin/customers${searchStr ? `?${searchStr}` : ''}`;
       },
       transformResponse: (response: any) => {
-        if (Array.isArray(response)) {
+        const list = Array.isArray(response) ? response : (response?.content || response?.items || []);
+        if (Array.isArray(list)) {
           return {
             summary: {
-              totalRegistered: response.length,
-              activeAccounts: response.filter(c => c.accountStatus === 'ACTIVE').length,
-              suspendedAccounts: response.filter(c => c.accountStatus === 'SUSPENDED').length,
+              totalRegistered: list.length,
+              activeAccounts: list.filter((c: any) => c.accountStatus === 'ACTIVE').length,
+              suspendedAccounts: list.filter((c: any) => c.accountStatus === 'SUSPENDED').length,
               averageCustomerLtv: 0,
             },
             customers: response,
