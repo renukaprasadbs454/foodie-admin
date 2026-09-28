@@ -181,7 +181,7 @@ function readStore(): EnquiryRecord[] {
         return cleaned;
       }
     }
-  } catch (e) {}
+  } catch {}
 
   writeStore(INITIAL_ENQUIRIES);
   return INITIAL_ENQUIRIES;
@@ -221,7 +221,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    let data = readStore();
+    const data = readStore();
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     if (body.action === 'sync_all' && Array.isArray(body.data)) {
@@ -308,9 +308,10 @@ export async function POST(request: Request) {
       },
       { status: 200, headers: CORS_HEADERS }
     );
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const err = e as Error;
     return NextResponse.json(
-      { success: false, error: e?.message || 'Failed to process support ticket' },
+      { success: false, error: err?.message || 'Failed to process support ticket' },
       { status: 500, headers: CORS_HEADERS }
     );
   }

@@ -3,11 +3,6 @@ import dns from 'node:dns';
 
 dns.setDefaultResultOrder('ipv4first');
 
-const nextConfig: NextConfig = {
-  devIndicators: {
-    appIsrStatus: false,
-    buildActivity: false,
-  },
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

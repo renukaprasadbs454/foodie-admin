@@ -3,7 +3,7 @@
 import React, { useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Button, EmptyState, Text } from 'foodie-shared-web';
+import { Button, EmptyState, Text, type AdminRole } from 'foodie-shared-web';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   clearSession,
@@ -45,7 +45,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         dispatch(
           setSession({
             userId: savedUserId,
-            role: savedRole as any,
+            role: savedRole as AdminRole,
             userType: 'ADMIN',
             fullName: savedRole === 'AUDITOR' ? 'Compliance Auditor' : 'Admin Operator',
           }),
@@ -71,7 +71,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       dispatch(
         setSession({
           userId: meProfile.adminUserId || userId || '44444444-4444-4444-4444-444444444001',
-          role: finalRole as any,
+          role: finalRole as AdminRole,
           userType: 'ADMIN',
           fullName: finalRole === 'AUDITOR' ? 'Compliance Auditor' : (meProfile.fullName || 'Admin Operator'),
           permissions: meProfile.permissions || [],
@@ -132,7 +132,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const effectiveRole = isAuditorContext
     ? 'AUDITOR'
-    : (role || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') as any) : null));
+    : (role || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') as AdminRole | null) : null));
   const effectiveUserId = userId || (typeof window !== 'undefined' ? localStorage.getItem('foodie_admin_user_id') : null);
   const activeRole = isAuditorContext ? 'AUDITOR' : (effectiveRole || 'SUPER_ADMIN');
   const activeUserId = effectiveUserId || '44444444-4444-4444-4444-444444444001';
@@ -261,7 +261,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   gap: 4,
                 }}
               >
-                {nav.map((item, idx) => {
+                {nav.map((item) => {
                   const isActive =
                     item.href === '/compliance-auditor/dashboard'
                       ? pathname === '/compliance-auditor/dashboard' || pathname === '/compliance-auditor' || pathname === '/'
