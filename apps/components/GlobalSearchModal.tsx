@@ -270,6 +270,11 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               ✕
             </button>
           ) : null}
+          {isFetching ? (
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', marginRight: 4 }}>
+              Searching...
+            </span>
+          ) : null}
           <span style={{ fontSize: 11, fontWeight: 700, color: '#0369A1', backgroundColor: '#BAE6FD', padding: '3px 8px', borderRadius: 6 }}>
             ESC
           </span>

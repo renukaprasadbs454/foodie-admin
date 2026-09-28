@@ -161,13 +161,13 @@ export async function POST(request: Request) {
       email.endsWith('@foodie.local') ||
       email.endsWith('@foodie.com') ||
       email.endsWith('@foodie.in') ||
-      Boolean((body as any).role) ||
+      Boolean((body as Record<string, unknown>).role) ||
       password === 'FoodieManager@333' ||
       password === 'ChangeMe@123';
 
     if (isDevCredential) {
-      let demoRole = (body as any).role || 'SUPER_ADMIN';
-      if (!(body as any).role) {
+      let demoRole = ((body as Record<string, unknown>).role as string) || 'SUPER_ADMIN';
+      if (!(body as Record<string, unknown>).role) {
         if (email.includes('manager')) demoRole = 'RESTAURANT_MANAGER';
         else if (email.includes('finance')) demoRole = 'FINANCE_ADMIN';
         else if (email.includes('ops')) demoRole = 'OPERATIONS_ADMIN';
@@ -239,13 +239,13 @@ export async function POST(request: Request) {
       email.endsWith('@foodie.local') ||
       email.endsWith('@foodie.com') ||
       email.endsWith('@foodie.in') ||
-      Boolean((body as any).role) ||
+      Boolean((body as Record<string, unknown>).role) ||
       password === 'FoodieManager@333' ||
       password === 'ChangeMe@123';
 
     if (isDevCredential) {
-      let demoRole = (body as any).role || 'SUPER_ADMIN';
-      if (!(body as any).role) {
+      let demoRole = ((body as Record<string, unknown>).role as string) || 'SUPER_ADMIN';
+      if (!(body as Record<string, unknown>).role) {
         if (email.includes('manager')) demoRole = 'RESTAURANT_MANAGER';
         else if (email.includes('finance')) demoRole = 'FINANCE_ADMIN';
         else if (email.includes('ops')) demoRole = 'OPERATIONS_ADMIN';

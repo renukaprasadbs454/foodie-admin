@@ -262,11 +262,11 @@ export function CouponsPage() {
         expiryDate: '2099-12-31',
         usageLimitPerUser: 1,
       }).unwrap();
-    } catch (err) {
-      console.warn('Backend coupon creation warning:', err);
-    }
 
-    setLocalCoupons((prev) => [newCoupon, ...prev]);
+      setLocalCoupons((prev) => [newCoupon, ...prev]);
+    } catch {
+      setLocalCoupons((prev) => [newCoupon, ...prev]);
+    }
 
     setCode('');
     setTitle('');

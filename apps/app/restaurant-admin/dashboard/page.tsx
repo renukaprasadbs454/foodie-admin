@@ -1,15 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { RestaurantsPage } from '@/features/restaurants/pages/RestaurantsPage';
+import { RestaurantAdminDashboardPage } from '@/features/restaurant-admin/RestaurantAdminDashboardPage';
 
 export default function RestaurantAdminDashboardRoutePage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/restaurants');
-  }, [router]);
-
-  return <RestaurantsPage />;
+  return <RestaurantAdminDashboardPage />;
 }

@@ -31,7 +31,6 @@ import {
 
 import { RoleLandingHub } from '@/components/RoleLandingHub';
 import { ComplianceAuditorDashboardPage } from '@/features/compliance-auditor/pages/ComplianceAuditorDashboardPage';
-import { RestaurantsPage } from '@/features/restaurants/pages/RestaurantsPage';
 
 function toUnwrappedApiError(err: unknown): {
   code: string;
@@ -62,10 +61,6 @@ export function DashboardPage() {
 
   if (effectiveRole === 'AUDITOR') {
     return <ComplianceAuditorDashboardPage />;
-  }
-
-  if (effectiveRole && (effectiveRole === 'RESTAURANT_MANAGER' || effectiveRole.toUpperCase().includes('RESTAURANT'))) {
-    return <RestaurantsPage />;
   }
 
   const allowed = canAccessAnalyticsSummary(role);
