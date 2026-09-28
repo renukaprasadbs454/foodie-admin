@@ -52,9 +52,8 @@ public class RestaurantDataSeeder implements ApplicationRunner {
         @Override
         @Transactional
         public void run(ApplicationArguments args) {
-                if (true)
-                        return;
-                log.info("Seeding 4 realistic approved restaurants with 10 menu items each...");
+                if (restaurantRepository.count() > 0) return;
+                log.info("Seeding realistic approved restaurants with menu items...");
 
                 seedRestaurant1();
 

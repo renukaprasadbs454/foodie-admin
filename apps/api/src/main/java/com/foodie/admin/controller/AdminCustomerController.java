@@ -8,6 +8,9 @@ import com.foodie.user.repository.CustomerLoyaltyRepository;
 import com.foodie.user.repository.CustomerRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.foodie.common.enums.UserType;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +21,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.UUID;
 
+import com.foodie.admin.entity.AdminRoleName;
+import com.foodie.admin.entity.AdminUser;
+import com.foodie.admin.entity.Role;
+import com.foodie.admin.repository.AdminUserRepository;
+import com.foodie.admin.repository.RoleRepository;
+
 @RestController
 @RequestMapping("/api/v1/admin/customers")
 @Tag(name = "Admin — Customers")
@@ -26,14 +35,68 @@ public class AdminCustomerController {
     private final CustomerRepository customerRepository;
     private final UserCredentialRepository userCredentialRepository;
     private final CustomerLoyaltyRepository customerLoyaltyRepository;
+    private final AdminUserRepository adminUserRepository;
+    private final RoleRepository roleRepository;
 
     public AdminCustomerController(
             CustomerRepository customerRepository,
             UserCredentialRepository userCredentialRepository,
-            CustomerLoyaltyRepository customerLoyaltyRepository) {
+            CustomerLoyaltyRepository customerLoyaltyRepository,
+            AdminUserRepository adminUserRepository,
+            RoleRepository roleRepository) {
         this.customerRepository = customerRepository;
         this.userCredentialRepository = userCredentialRepository;
         this.customerLoyaltyRepository = customerLoyaltyRepository;
+        this.adminUserRepository = adminUserRepository;
+        this.roleRepository = roleRepository;
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void seedInitialCustomersIfEmpty() {
+        if (adminUserRepository.count() == 0) {
+            System.out.println("Seeding Initial Admin User in Database...");
+            Role superAdminRole = roleRepository.findByName(AdminRoleName.SUPER_ADMIN)
+                    .orElseGet(() -> roleRepository.save(Role.ref(UUID.fromString("11111111-1111-1111-1111-111111111001"), AdminRoleName.SUPER_ADMIN)));
+            
+            UUID adminCredId = UUID.fromString("33333333-3333-3333-3333-333333333001");
+            UserCredential adminCred = userCredentialRepository.findById(adminCredId).orElseGet(() -> {
+                UserCredential uc = UserCredential.phoneSignup("+919999999999", UserType.ADMIN);
+                return userCredentialRepository.save(uc);
+            });
+
+            AdminUser admin = AdminUser.create(adminCred.getId(), superAdminRole, "Bootstrap Super Admin");
+            adminUserRepository.save(admin);
+            System.out.println("Seeded Super Admin User successfully!");
+        }
+        if (customerRepository.count() == 0) {
+            System.out.println("Seeding Initial Customers in Database...");
+
+            UserCredential cred1 = userCredentialRepository.save(
+                    UserCredential.phoneSignup("+919876543210", UserType.CUSTOMER));
+            Customer c1 = Customer.createInitial(cred1.getId(), "ananya.sharma@example.com");
+            c1.updateProfile("Ananya Sharma", "ananya.sharma@example.com");
+            customerRepository.save(c1);
+
+            UserCredential cred2 = userCredentialRepository.save(
+                    UserCredential.phoneSignup("+919876543211", UserType.CUSTOMER));
+            Customer c2 = Customer.createInitial(cred2.getId(), "rahul.verma@example.com");
+            c2.updateProfile("Rahul Verma", "rahul.verma@example.com");
+            customerRepository.save(c2);
+
+            UserCredential cred3 = userCredentialRepository.save(
+                    UserCredential.phoneSignup("+919876543212", UserType.CUSTOMER));
+            Customer c3 = Customer.createInitial(cred3.getId(), "priya.nair@example.com");
+            c3.updateProfile("Priya Nair", "priya.nair@example.com");
+            customerRepository.save(c3);
+
+            UserCredential cred4 = userCredentialRepository.save(
+                    UserCredential.phoneSignup("+919876543213", UserType.CUSTOMER));
+            Customer c4 = Customer.createInitial(cred4.getId(), "karthik.gowda@example.com");
+            c4.updateProfile("Karthik Gowda", "karthik.gowda@example.com");
+            customerRepository.save(c4);
+
+            System.out.println("Seeded 4 Initial Customers successfully!");
+        }
     }
 
     @GetMapping

@@ -224,6 +224,7 @@ public class DeliveryServiceImpl implements DeliveryService {
                     "KYC must be verified before going online.");
         }
         partner.setOnline(request.isOnline());
+        deliveryPartnerRepository.save(partner);
         return new AvailabilityResponseDto(partner.isOnline());
     }
 

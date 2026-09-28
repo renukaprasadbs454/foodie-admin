@@ -43,8 +43,7 @@ public class TumkurDataSeeder implements ApplicationRunner {
 
         @Override
         public void run(ApplicationArguments args) {
-                if (true)
-                        return;
+                if (restaurantRepository.count() >= 5) return;
                 System.out.println("Starting Tumkur Zomato Data Seeder...");
 
                 // Coordinates for Tumkur roughly 13.3379° N, 77.1173° E
