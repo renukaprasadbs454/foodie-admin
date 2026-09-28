@@ -189,27 +189,6 @@ export function PayoutDetailModal({
                     </span>
                   </div>
                 </div>
-
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
-                    Reconciliation
-                  </div>
-                  <div style={{ marginTop: 4 }}>
-                    <span
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 800,
-                        backgroundColor: '#E0F2FE',
-                        color: '#0369A1',
-                        border: '1px solid #BAE6FD',
-                      }}
-                    >
-                      {payout.reconciliationStatus}
-                    </span>
-                  </div>
-                </div>
               </div>
 
               {/* Failure Reason Banner if FAILED */}

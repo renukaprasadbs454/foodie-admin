@@ -137,23 +137,7 @@ export function DeliveryPartnersPage() {
           >
             {isFetching ? '🔄 Refreshing...' : '🔄 Refresh Data'}
           </button>
-          <button
-            type="button"
-            onClick={() => router.push('/delivery-payouts')}
-            style={{
-              padding: '10px 18px',
-              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: 8,
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
-            }}
-          >
-            💸 Payouts & Reconciliation
-          </button>
+
         </div>
       </div>
 

@@ -120,7 +120,7 @@ export function RoleLandingHub() {
                 Finance & Payments Administration Hub
               </h2>
               <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0 0' }}>
-                Manage payment settlements, merchant payouts, refund processing, commission rates, and financial reconciliation.
+                Manage payment settlements, merchant payouts, refund processing, and commission rates.
               </p>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
