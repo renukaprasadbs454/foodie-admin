@@ -66,7 +66,6 @@ export function PayoutListTable({
               <th style={{ padding: '12px 16px', fontWeight: 700 }}>Amount</th>
               <th style={{ padding: '12px 16px', fontWeight: 700 }}>Status</th>
               <th style={{ padding: '12px 16px', fontWeight: 700 }}>Provider</th>
-              <th style={{ padding: '12px 16px', fontWeight: 700 }}>Reconciliation</th>
               <th style={{ padding: '12px 16px', fontWeight: 700 }}>Requested Date</th>
               <th style={{ padding: '12px 16px', fontWeight: 700 }}>Processed Date</th>
               <th style={{ padding: '12px 16px', fontWeight: 700, textAlign: 'right' }}>Actions</th>
@@ -75,14 +74,13 @@ export function PayoutListTable({
           <tbody>
             {payouts.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ padding: '36px 16px', textAlign: 'center', color: '#0284C7' }}>
+                <td colSpan={8} style={{ padding: '36px 16px', textAlign: 'center', color: '#0284C7' }}>
                   No delivery partner payouts found matching current search and filter criteria.
                 </td>
               </tr>
             ) : (
               payouts.map((p) => {
                 const sBadge = getStatusBadge(p.status);
-                const rBadge = getReconciliationBadge(p.reconciliationStatus);
                 return (
                   <tr
                     key={p.id}
@@ -151,25 +149,6 @@ export function PayoutListTable({
                         {p.provider}
                       </span>
                     </td>
-
-                    {/* Reconciliation */}
-                    <td style={{ padding: '12px 16px' }}>
-                      <span
-                        style={{
-                          backgroundColor: rBadge.bg,
-                          color: rBadge.color,
-                          border: '1px solid #BAE6FD',
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          fontSize: 10,
-                          fontWeight: 800,
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {rBadge.label}
-                      </span>
-                    </td>
-
                     {/* Requested Date */}
                     <td style={{ padding: '12px 16px', color: '#0284C7', fontSize: 12, whiteSpace: 'nowrap' }}>
                       {p.requestedAt}

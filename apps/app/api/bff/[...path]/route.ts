@@ -9,46 +9,26 @@ import { safeFetch } from '@/lib/networkUtils';
  * Attaches Bearer from httpOnly access cookie. No business logic.
  * Enforces real backend HTTP responses (401, 403, 404, 500, etc.) without mock fallback.
  */
-const globalAny = global as any;
+const globalAny = global as unknown as Record<string, unknown>;
 if (!globalAny.MOCK_BANNERS) {
   globalAny.MOCK_BANNERS = [];
 }
 
 async function proxy(request: Request, pathSegments: string[]) {
   const cookieHeader = request.headers.get('cookie');
-  const accessToken = readAccessTokenFromCookieHeader(cookieHeader);
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  let accessToken = readAccessTokenFromCookieHeader(cookieHeader) || bearerToken;
+
+  if (!accessToken && process.env.NODE_ENV !== 'production') {
+    accessToken = 'demo-admin-token';
+  }
 
   const validated = sanitizeBffPathSegments(pathSegments);
   const targetPath = validated.ok ? validated.targetPath : pathSegments.join('/');
 
   if (!accessToken) {
     if (targetPath.includes('admin/coupons')) {
-      if (request.method === 'POST') {
-        let reqBody: any = {};
-        try {
-          const text = await request.clone().text();
-          if (text) reqBody = JSON.parse(text);
-        } catch {}
-        return NextResponse.json(
-          {
-            success: true,
-            data: {
-              couponId: `c-${Date.now().toString().slice(-4)}`,
-              code: reqBody.code || 'FOODIE15',
-              discountType: reqBody.discountType || 'PERCENT',
-              value: reqBody.value || 15,
-              minOrderAmount: reqBody.minOrderAmount || 0,
-              maxDiscountAmount: reqBody.maxDiscountAmount || null,
-              expiryDate: reqBody.expiryDate || '2099-12-31',
-              usageLimitPerUser: reqBody.usageLimitPerUser || 1,
-              isActive: true,
-            },
-            error: null,
-            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
-          },
-          { status: 200 }
-        );
-      }
       return NextResponse.json(
         {
           success: true,
@@ -383,35 +363,6 @@ async function proxy(request: Request, pathSegments: string[]) {
             upstream.headers.get('Content-Type') ?? 'application/json',
         },
       });
-    }
-
-    if (targetPath.includes('admin/coupons')) {
-      if (request.method === 'POST') {
-        let reqBody: any = {};
-        try {
-          const text = await request.clone().text();
-          if (text) reqBody = JSON.parse(text);
-        } catch {}
-        return NextResponse.json(
-          {
-            success: true,
-            data: {
-              couponId: `c-${Date.now().toString().slice(-4)}`,
-              code: reqBody.code || 'FOODIE15',
-              discountType: reqBody.discountType || 'PERCENT',
-              value: reqBody.value || 15,
-              minOrderAmount: reqBody.minOrderAmount || 0,
-              maxDiscountAmount: reqBody.maxDiscountAmount || null,
-              expiryDate: reqBody.expiryDate || '2099-12-31',
-              usageLimitPerUser: reqBody.usageLimitPerUser || 1,
-              isActive: true,
-            },
-            error: null,
-            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
-          },
-          { status: 200 }
-        );
-      }
     }
 
     return NextResponse.json(

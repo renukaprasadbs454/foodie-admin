@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text } from 'foodie-shared-web';
 
 export interface ChatMessage {
@@ -27,8 +27,6 @@ export interface EnquiryRecord {
   messages?: ChatMessage[];
   resolvedAt?: string;
   orderId?: string;
-  isAiOnly?: boolean;
-  lastActivityAt?: number;
 }
 
 const INITIAL_ENQUIRIES: EnquiryRecord[] = [
@@ -218,7 +216,6 @@ export function ContactUsPage() {
 
   const [enquiries, setEnquiries] = useState<EnquiryRecord[]>(INITIAL_ENQUIRIES);
   const [history, setHistory] = useState<EnquiryRecord[]>(INITIAL_HISTORY);
-  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Persistence, Online Backend API sync, and live cross-app polling
   const fetchTickets = async () => {
@@ -230,24 +227,41 @@ export function ContactUsPage() {
         if (Array.isArray(dataList) && dataList.length > 0) {
           setEnquiries(dataList);
           try {
-            localStorage.setItem('foodie_support_enquiries_v6', JSON.stringify(dataList));
-          } catch { }
+            localStorage.setItem('foodie_support_enquiries', JSON.stringify(dataList));
+          } catch {}
           return;
         }
       }
-    } catch (e) { }
+    } catch (e) {}
 
     try {
-      const stored = localStorage.getItem('foodie_support_enquiries_v6');
+      const res = await fetch('https://api.foodie.kwiko.org/api/v1/admin/support-tickets', {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const dataList = json.data || json;
+        if (Array.isArray(dataList) && dataList.length > 0) {
+          setEnquiries(dataList);
+          try {
+            localStorage.setItem('foodie_support_enquiries', JSON.stringify(dataList));
+          } catch {}
+          return;
+        }
+      }
+    } catch (e) {}
+
+    try {
+      const stored = localStorage.getItem('foodie_support_enquiries');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setEnquiries(parsed);
         }
       } else {
-        localStorage.setItem('foodie_support_enquiries_v6', JSON.stringify(INITIAL_ENQUIRIES));
+        localStorage.setItem('foodie_support_enquiries', JSON.stringify(INITIAL_ENQUIRIES));
       }
-    } catch { }
+    } catch {}
   };
 
   useEffect(() => {
@@ -270,41 +284,31 @@ export function ContactUsPage() {
   const saveEnquiriesToStorage = (newList: EnquiryRecord[], replyEnquiryId?: string, replyText?: string) => {
     setEnquiries(newList);
     try {
-      localStorage.setItem('foodie_support_enquiries_v6', JSON.stringify(newList));
+      localStorage.setItem('foodie_support_enquiries', JSON.stringify(newList));
       window.dispatchEvent(new Event('foodie_enquiry_updated'));
-    } catch { }
+    } catch {}
 
     try {
       void fetch('/api/support-tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'sync_all', data: newList }),
-      }).catch(() => { });
+      }).catch(() => {});
 
       if (replyEnquiryId && replyText) {
         void fetch('/api/support-tickets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'reply', id: replyEnquiryId, replyMessage: replyText, sender: 'admin', senderName: 'Admin Support' }),
-        }).catch(() => { });
+        }).catch(() => {});
       }
-    } catch (e) { }
+    } catch (e) {}
   };
 
   // Reply Modal State
   const [selectedEnquiry, setSelectedEnquiry] = useState<EnquiryRecord | null>(null);
   const [replyText, setReplyText] = useState('');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (chatScrollRef.current) {
-      setTimeout(() => {
-        if (chatScrollRef.current) {
-          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-        }
-      }, 100);
-    }
-  }, [selectedEnquiry?.messages?.length, selectedEnquiry?.id]);
 
   // New Enquiry Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -332,22 +336,15 @@ export function ContactUsPage() {
       replyMessage: target.replyMessage || 'Issue investigated and marked as resolved by Support team.',
     };
 
-    const nextEnquiries = enquiries.map((item) => item.id === enquiryId ? resolvedRecord : item);
+    const nextEnquiries = enquiries.filter((item) => item.id !== enquiryId);
     saveEnquiriesToStorage(nextEnquiries);
+    setHistory((prev) => [resolvedRecord, ...prev]);
 
-    try {
-      void fetch('/api/support-tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'resolve', id: enquiryId, status: 'RESOLVED' }),
-      }).catch(() => { });
-    } catch (e) { }
-
-    showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and moved to Contact History!`);
+    showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and moved to History!`);
   };
 
   const handleReopenTicket = (enquiryId: string) => {
-    const target = enquiries.find((item) => item.id === enquiryId);
+    const target = history.find((item) => item.id === enquiryId);
     if (!target) return;
 
     const reopenedRecord: EnquiryRecord = {
@@ -356,8 +353,8 @@ export function ContactUsPage() {
       resolvedAt: undefined,
     };
 
-    const nextEnquiries = enquiries.map((item) => item.id === enquiryId ? reopenedRecord : item);
-    saveEnquiriesToStorage(nextEnquiries);
+    setHistory((prev) => prev.filter((item) => item.id !== enquiryId));
+    saveEnquiriesToStorage([reopenedRecord, ...enquiries]);
 
     showToast(`↺ Ticket ${enquiryId} reopened and restored to active support queue.`);
   };
@@ -384,13 +381,13 @@ export function ContactUsPage() {
         const existingMsgs = item.messages && item.messages.length > 0
           ? item.messages
           : [{
-            id: `msg-orig-${item.id}`,
-            enquiryId: item.id,
-            sender: 'customer' as const,
-            senderName: item.senderName,
-            message: item.message,
-            timestamp: item.timestamp,
-          }];
+              id: `msg-orig-${item.id}`,
+              enquiryId: item.id,
+              sender: 'customer' as const,
+              senderName: item.senderName,
+              message: item.message,
+              timestamp: item.timestamp,
+            }];
 
         const updatedMsgs = [...existingMsgs, newReply];
 
@@ -406,8 +403,8 @@ export function ContactUsPage() {
 
     saveEnquiriesToStorage(updatedList, selectedEnquiry.id, adminMsgText);
 
-    // UX feature: auto-collapse modal to avoid staring at a static chatbox
-    setSelectedEnquiry(null);
+    const updatedCurrent = updatedList.find(i => i.id === selectedEnquiry.id) || null;
+    setSelectedEnquiry(updatedCurrent);
     setReplyText('');
     showToast(`✉ Response sent & delivered to ${selectedEnquiry.senderName}'s app chat!`);
   };
@@ -469,26 +466,20 @@ export function ContactUsPage() {
   };
 
   const getFilteredEnquiries = (cat: 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'GENERAL') => {
-    return enquiries.filter((item) => {
-      if (item.isAiOnly) return false;
-      const matchCat = item.category === cat;
-      const notResolved = statusFilter === 'RESOLVED' ? item.status === 'RESOLVED' : item.status !== 'RESOLVED';
-      return matchCat && notResolved && matchesFilters(item);
-    });
+    return enquiries.filter((item) => item.category === cat && matchesFilters(item));
   };
 
   const getFilteredHistory = () => {
-    return enquiries.filter((item) => item.status === 'RESOLVED' && !item.isAiOnly && matchesFilters(item));
+    return history.filter((item) => matchesFilters(item));
   };
 
   // Metrics
-  const activeEnquiriesForMetrics = enquiries.filter(e => !e.isAiOnly);
-  const totalOpenCount = activeEnquiriesForMetrics.filter((e) => e.status === 'OPEN').length;
-  const customerCount = activeEnquiriesForMetrics.filter((e) => e.category === 'CUSTOMER' && e.status !== 'RESOLVED').length;
-  const restaurantCount = activeEnquiriesForMetrics.filter((e) => e.category === 'RESTAURANT' && e.status !== 'RESOLVED').length;
-  const deliveryCount = activeEnquiriesForMetrics.filter((e) => e.category === 'DELIVERY' && e.status !== 'RESOLVED').length;
-  const generalCount = activeEnquiriesForMetrics.filter((e) => e.category === 'GENERAL' && e.status !== 'RESOLVED').length;
-  const historyCount = activeEnquiriesForMetrics.filter((e) => e.status === 'RESOLVED').length;
+  const totalOpenCount = enquiries.filter((e) => e.status === 'OPEN').length;
+  const customerCount = enquiries.filter((e) => e.category === 'CUSTOMER').length;
+  const restaurantCount = enquiries.filter((e) => e.category === 'RESTAURANT').length;
+  const deliveryCount = enquiries.filter((e) => e.category === 'DELIVERY').length;
+  const generalCount = enquiries.filter((e) => e.category === 'GENERAL').length;
+  const historyCount = history.length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -864,7 +855,7 @@ export function ContactUsPage() {
                         {item.id}
                       </span>
                       <span style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>{item.subject}</span>
-
+                      
                       <span
                         style={{
                           fontSize: 10,
@@ -953,6 +944,64 @@ export function ContactUsPage() {
                   </div>
                 </div>
 
+                {/* Live Customer & Admin Chat Thread */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
+                    Customer Chat Thread ({item.messages?.length || 1} messages):
+                  </div>
+                  <div
+                    style={{
+                      backgroundColor: '#F0F9FF',
+                      padding: 14,
+                      borderRadius: 10,
+                      border: '1px solid #BAE6FD',
+                      fontSize: 13,
+                      color: '#0369A1',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      maxHeight: 180,
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {(item.messages && item.messages.length > 0
+                      ? item.messages.filter((m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support'))
+                      : [
+                          {
+                            id: `msg-orig-${item.id}`,
+                            enquiryId: item.id,
+                            sender: 'customer' as const,
+                            senderName: item.senderName,
+                            message: item.message,
+                            timestamp: item.timestamp,
+                          },
+                        ]
+                    ).map((msg) => {
+                      const isAdmin = msg.sender === 'admin';
+                      return (
+                        <div
+                          key={msg.id}
+                          style={{
+                            alignSelf: isAdmin ? 'flex-end' : 'flex-start',
+                            maxWidth: '90%',
+                            background: isAdmin ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
+                            color: isAdmin ? '#FFFFFF' : '#0369A1',
+                            padding: '8px 12px',
+                            borderRadius: 10,
+                            border: isAdmin ? 'none' : '1px solid #BAE6FD',
+                            fontSize: 13,
+                            boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
+                          }}
+                        >
+                          <div style={{ fontSize: 10, fontWeight: 700, color: isAdmin ? '#E0F2FE' : '#0284C7', marginBottom: 2 }}>
+                            {msg.senderName} • {msg.timestamp}
+                          </div>
+                          <div>{msg.message}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             ))
           )}
@@ -1112,31 +1161,30 @@ export function ContactUsPage() {
                 Conversation History ({(selectedEnquiry.messages && selectedEnquiry.messages.length) || 1} messages)
               </label>
               <div
-                ref={chatScrollRef}
                 style={{
-                  maxHeight: 280,
+                  maxHeight: 220,
                   overflowY: 'auto',
-                  backgroundColor: '#F1F5F9',
+                  backgroundColor: '#F0F9FF',
                   borderRadius: 10,
-                  padding: 16,
+                  padding: 12,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 12,
-                  border: '1px solid #CBD5E1',
+                  gap: 10,
+                  border: '1px solid #BAE6FD',
                 }}
               >
                 {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0
                   ? selectedEnquiry.messages.filter((m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support'))
                   : [
-                    {
-                      id: `msg-orig-${selectedEnquiry.id}`,
-                      enquiryId: selectedEnquiry.id,
-                      sender: 'customer' as const,
-                      senderName: selectedEnquiry.senderName,
-                      message: selectedEnquiry.message,
-                      timestamp: selectedEnquiry.timestamp,
-                    },
-                  ]
+                      {
+                        id: `msg-orig-${selectedEnquiry.id}`,
+                        enquiryId: selectedEnquiry.id,
+                        sender: 'customer' as const,
+                        senderName: selectedEnquiry.senderName,
+                        message: selectedEnquiry.message,
+                        timestamp: selectedEnquiry.timestamp,
+                      },
+                    ]
                 ).map((msg) => {
                   const isAdmin = msg.sender === 'admin';
                   return (
@@ -1145,32 +1193,31 @@ export function ContactUsPage() {
                       style={{
                         alignSelf: isAdmin ? 'flex-end' : 'flex-start',
                         maxWidth: '85%',
-                        backgroundColor: isAdmin ? '#14532D' : '#FFFFFF',
-                        color: isAdmin ? '#FFFFFF' : '#1E293B',
+                        background: isAdmin ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
+                        color: isAdmin ? '#FFFFFF' : '#0369A1',
                         padding: '10px 14px',
-                        borderRadius: 16,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                        border: isAdmin ? 'none' : '1px solid #E2E8F0',
-                        borderTopRightRadius: isAdmin ? 4 : 16,
-                        borderTopLeftRadius: isAdmin ? 16 : 4,
+                        borderRadius: 12,
+                        boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
+                        border: isAdmin ? 'none' : '1px solid #BAE6FD',
+                        borderTopRightRadius: isAdmin ? 2 : 12,
+                        borderTopLeftRadius: isAdmin ? 12 : 2,
                       }}
                     >
                       <div
                         style={{
-                          fontSize: 10,
+                          fontSize: 11,
                           fontWeight: 700,
-                          color: isAdmin ? '#A7F3D0' : '#64748B',
+                          color: isAdmin ? '#E0F2FE' : '#0284C7',
                           marginBottom: 4,
                           display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
+                          justifyContent: 'space-between',
+                          gap: 12,
                         }}
                       >
-                        <span>{isAdmin ? 'You (Admin)' : msg.senderName}</span>
-                        <span>•</span>
+                        <span>{msg.senderName}</span>
                         <span>{msg.timestamp}</span>
                       </div>
-                      <div style={{ fontSize: 13, lineHeight: 1.5 }}>{msg.message}</div>
+                      <div style={{ fontSize: 13, lineHeight: 1.4 }}>{msg.message}</div>
                     </div>
                   );
                 })}

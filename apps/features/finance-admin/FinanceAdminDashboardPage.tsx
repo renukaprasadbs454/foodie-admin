@@ -45,8 +45,8 @@ export function FinanceAdminDashboardPage() {
           style={{ backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, border: '1px solid #BAE6FD', textDecoration: 'none', color: 'inherit', boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}
         >
           <div style={{ fontSize: 28, marginBottom: 8 }}></div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>Delivery Partner Payouts & Reconciliation</div>
-          <p style={{ fontSize: 12, color: '#0284C7', margin: '4px 0 0' }}>Investigate partner payouts, retry failed transactions, and run reconciliation audits.</p>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>Delivery Partner Payouts</div>
+          <p style={{ fontSize: 12, color: '#0284C7', margin: '4px 0 0' }}>Investigate partner payouts and retry failed transactions.</p>
         </Link>
 
         <Link

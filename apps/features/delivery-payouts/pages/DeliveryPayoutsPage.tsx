@@ -167,7 +167,7 @@ export function DeliveryPayoutsPage() {
             Delivery Partner Payout Studio
           </h1>
           <p style={{ fontSize: 13, color: '#0284C7', marginTop: 4, margin: 0 }}>
-            Manage deliveryman payout requests, gateway settlements, automated reconciliation, and wallet ledger audits.
+            Manage deliveryman payout requests, gateway settlements, and wallet ledger audits.
           </p>
         </div>
 
@@ -253,27 +253,6 @@ export function DeliveryPayoutsPage() {
             {successCount} successfully settled
           </div>
         </div>
-
-        {/* Reconciliation Discrepancies */}
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 12,
-            padding: 20,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-          }}
-        >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
-            Audit Discrepancies
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>
-            {discrepancyCount}
-          </div>
-          <div style={{ fontSize: 12, color: '#0284C7', marginTop: 4, fontWeight: 700 }}>
-            {discrepancyCount > 0 ? 'Requires reconciliation attention' : 'All transactions matched'}
-          </div>
-        </div>
       </div>
 
       {/* Primary Studio Tabs */}
@@ -295,25 +274,6 @@ export function DeliveryPayoutsPage() {
           }}
         >
           Payout Requests & History ({payouts.length})
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('RECONCILIATION')}
-          style={{
-            padding: '12px 6px',
-            fontSize: 15,
-            fontWeight: 800,
-            color: activeTab === 'RECONCILIATION' ? '#0369A1' : '#0284C7',
-            borderBottom: activeTab === 'RECONCILIATION' ? '4px solid #0369A1' : '4px solid transparent',
-            background: 'none',
-            borderTop: 'none',
-            borderLeft: 'none',
-            borderRight: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          Reconciliation Studio ({discrepancyCount > 0 ? ` ${discrepancyCount}` : 'OK'})
         </button>
 
         <button
@@ -353,14 +313,6 @@ export function DeliveryPayoutsPage() {
             onViewWalletLedger={(p) => handleOpenDetailModal(p, 'WALLET')}
           />
         </>
-      )}
-
-      {/* Tab 2: Reconciliation Studio */}
-      {activeTab === 'RECONCILIATION' && (
-        <ReconciliationStudio
-          overview={reconciliationOverview}
-          onSelectPayout={(p) => handleOpenDetailModal(p, 'DETAILS')}
-        />
       )}
 
       {/* Tab 3: Provider Config (Read-Only) */}
