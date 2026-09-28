@@ -173,7 +173,7 @@ async function proxy(request: Request, pathSegments: string[]) {
       throw fetchErr;
     }
 
-    if (upstream && upstream.ok) {
+    if (upstream && (upstream.ok || upstream.status === 401 || upstream.status === 403)) {
       const body = await upstream.arrayBuffer();
       return new NextResponse(body, {
         status: upstream.status,
@@ -183,8 +183,6 @@ async function proxy(request: Request, pathSegments: string[]) {
         },
       });
     }
-
-
 
     // Graceful fallback for GET endpoints when backend is unreachable or returns 404/500/502/503
     if (request.method === 'GET') {

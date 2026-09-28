@@ -148,64 +148,7 @@ export async function POST(request: Request) {
       return response;
     }
 
-    // Dev / Demo login fallback when backend is unreachable or account is local dev
-    const isDevCredential =
-      email.includes('manager') ||
-      email.includes('admin') ||
-      email.includes('finance') ||
-      email.includes('ops') ||
-      email.includes('support') ||
-      email.includes('audit') ||
-      email.includes('compliance') ||
-      email.includes('darkstore') ||
-      email.endsWith('@foodie.local') ||
-      email.endsWith('@foodie.com') ||
-      email.endsWith('@foodie.in') ||
-      Boolean((body as Record<string, unknown>).role) ||
-      password === 'FoodieManager@333' ||
-      password === 'ChangeMe@123';
 
-    if (isDevCredential) {
-      let demoRole = ((body as Record<string, unknown>).role as string) || 'SUPER_ADMIN';
-      if (!(body as Record<string, unknown>).role) {
-        if (email.includes('manager')) demoRole = 'RESTAURANT_MANAGER';
-        else if (email.includes('finance')) demoRole = 'FINANCE_ADMIN';
-        else if (email.includes('ops')) demoRole = 'OPERATIONS_ADMIN';
-        else if (email.includes('support')) demoRole = 'SUPPORT_AGENT';
-        else if (email.includes('audit') || email.includes('compliance')) demoRole = 'AUDITOR';
-        else if (email.includes('darkstore')) demoRole = 'DARKSTORE_ADMIN';
-      }
-
-      const response = NextResponse.json({
-        success: true,
-        data: {
-          userId: '44444444-4444-4444-4444-444444444001',
-          userType: 'ADMIN',
-          role: demoRole,
-        },
-        error: null,
-        meta: {
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-          pagination: null,
-        },
-      });
-
-      const tokenSlug = demoRole.toLowerCase().replace(/_/g, '-');
-      for (const header of buildAuthSetCookieHeaders(
-        {
-          accessToken: `demo-admin-${tokenSlug}-access-token`,
-          refreshToken: `demo-admin-${tokenSlug}-refresh-token`,
-        },
-        {
-          access: { secure: false },
-          refresh: { secure: false },
-        },
-      )) {
-        response.headers.append('Set-Cookie', header);
-      }
-      return response;
-    }
 
     const response = NextResponse.json(
       {
@@ -227,63 +170,7 @@ export async function POST(request: Request) {
     }
     return response;
   } catch {
-    const isDevCredential =
-      email.includes('manager') ||
-      email.includes('admin') ||
-      email.includes('finance') ||
-      email.includes('ops') ||
-      email.includes('support') ||
-      email.includes('audit') ||
-      email.includes('compliance') ||
-      email.includes('darkstore') ||
-      email.endsWith('@foodie.local') ||
-      email.endsWith('@foodie.com') ||
-      email.endsWith('@foodie.in') ||
-      Boolean((body as Record<string, unknown>).role) ||
-      password === 'FoodieManager@333' ||
-      password === 'ChangeMe@123';
 
-    if (isDevCredential) {
-      let demoRole = ((body as Record<string, unknown>).role as string) || 'SUPER_ADMIN';
-      if (!(body as Record<string, unknown>).role) {
-        if (email.includes('manager')) demoRole = 'RESTAURANT_MANAGER';
-        else if (email.includes('finance')) demoRole = 'FINANCE_ADMIN';
-        else if (email.includes('ops')) demoRole = 'OPERATIONS_ADMIN';
-        else if (email.includes('support')) demoRole = 'SUPPORT_AGENT';
-        else if (email.includes('audit') || email.includes('compliance')) demoRole = 'AUDITOR';
-        else if (email.includes('darkstore')) demoRole = 'DARKSTORE_ADMIN';
-      }
-
-      const response = NextResponse.json({
-        success: true,
-        data: {
-          userId: '44444444-4444-4444-4444-444444444001',
-          userType: 'ADMIN',
-          role: demoRole,
-        },
-        error: null,
-        meta: {
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-          pagination: null,
-        },
-      });
-
-      const tokenSlug = demoRole.toLowerCase().replace(/_/g, '-');
-      for (const header of buildAuthSetCookieHeaders(
-        {
-          accessToken: `demo-admin-${tokenSlug}-access-token`,
-          refreshToken: `demo-admin-${tokenSlug}-refresh-token`,
-        },
-        {
-          access: { secure: false },
-          refresh: { secure: false },
-        },
-      )) {
-        response.headers.append('Set-Cookie', header);
-      }
-      return response;
-    }
 
     const response = NextResponse.json(
       {
