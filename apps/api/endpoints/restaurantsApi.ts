@@ -42,6 +42,10 @@ export const restaurantsApi = baseApi.injectEndpoints({
           ...(sort ? { sort } : {}),
         },
       }),
+      transformResponse: (response: any) => ({
+        items: response?.content || response?.items || response || [],
+        pagination: response?.pageable || response?.pagination || response || null,
+      }),
       providesTags: ['Admin', 'Restaurant', { type: 'Admin', id: 'LIST' }],
     }),
     getRestaurantReviews: builder.query<

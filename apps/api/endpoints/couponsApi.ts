@@ -37,6 +37,12 @@ export const couponsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getCoupons: builder.query<Coupon[], void>({
       query: () => '/api/bff/admin/coupons',
+      transformResponse: (res: any) => {
+        if (res?.content) return res.content;
+        if (Array.isArray(res)) return res;
+        if (res?.items) return res.items;
+        return [];
+      },
       providesTags: [{ type: 'Coupon', id: 'LIST' }],
       keepUnusedDataFor: 60,
     }),
