@@ -17,6 +17,7 @@ public record CreateMenuItemRequestDto(
         Boolean isVeg,
         String foodType,
         String packageSize,
+        String preparationTime,
         BigDecimal gstPct) {
     public CreateMenuItemRequestDto(
             UUID categoryId,
@@ -25,7 +26,7 @@ public record CreateMenuItemRequestDto(
             BigDecimal basePrice,
             Boolean isVeg,
             String foodType) {
-        this(categoryId, name, description, basePrice, isVeg, foodType, null, null);
+        this(categoryId, name, description, basePrice, isVeg, foodType, null, null, null);
     }
 
     public CreateMenuItemRequestDto(
@@ -35,7 +36,7 @@ public record CreateMenuItemRequestDto(
             BigDecimal basePrice,
             Boolean isVeg) {
         this(categoryId, name, description, basePrice, isVeg, isVeg != null ? (isVeg ? "VEG" : "NON_VEG") : null, null,
-                null);
+                null, null);
     }
 
     public boolean resolveIsVeg() {

@@ -58,6 +58,9 @@ public class Order extends BaseEntity {
     @Column(name = "placed_at", nullable = false, updatable = false)
     private Instant placedAt;
 
+    @Column(name = "preparation_time")
+    private Integer preparationTime;
+
     protected Order() {
     }
 
@@ -71,8 +74,7 @@ public class Order extends BaseEntity {
             BigDecimal discountAmount,
             BigDecimal taxAmount,
             BigDecimal totalAmount,
-            String idempotencyKey
-    ) {
+            String idempotencyKey) {
         Order order = new Order();
         order.orderNumber = orderNumber;
         order.customerId = customerId;
@@ -89,7 +91,10 @@ public class Order extends BaseEntity {
         return order;
     }
 
-    /** Attaches a server-validated coupon after {@link #place}; discount is already in totals. */
+    /**
+     * Attaches a server-validated coupon after {@link #place}; discount is already
+     * in totals.
+     */
     public void attachCoupon(UUID couponId) {
         this.couponId = couponId;
     }
@@ -156,5 +161,13 @@ public class Order extends BaseEntity {
 
     public Instant getPlacedAt() {
         return placedAt;
+    }
+
+    public Integer getPreparationTime() {
+        return preparationTime;
+    }
+
+    public void setPreparationTime(Integer preparationTime) {
+        this.preparationTime = preparationTime;
     }
 }

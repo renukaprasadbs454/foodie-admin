@@ -263,7 +263,7 @@ class OrderServiceImplTest {
                                 new CustomerSummaryProvider.CustomerSummary(customerId, "A", null)));
 
                 assertThatThrownBy(() -> service.transition(
-                                order.getId(), OrderStatus.CANCELLED, null, credentialId, UserType.CUSTOMER))
+                                order.getId(), OrderStatus.CANCELLED, null, null, credentialId, UserType.CUSTOMER))
                                 .isInstanceOf(BadRequestException.class);
         }
 

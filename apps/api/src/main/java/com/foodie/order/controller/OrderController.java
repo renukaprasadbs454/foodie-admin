@@ -46,8 +46,7 @@ public class OrderController {
     public ResponseEntity<ApiResponse<OrderResponseDto>> createOrder(
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @Valid @RequestBody CreateOrderRequestDto request
-    ) {
+            @Valid @RequestBody CreateOrderRequestDto request) {
         OrderResponseDto created = orderService.createFromCart(principal.userId(), request, idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
@@ -60,8 +59,7 @@ public class OrderController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String sort
-    ) {
+            @RequestParam(required = false) String sort) {
         var result = orderService.listForCustomer(
                 principal.userId(), parseStatus(status), page, size, sort);
         return ResponseEntity.ok(ApiResponse.success(result.items(), result.pagination()));
@@ -71,8 +69,7 @@ public class OrderController {
     @PreAuthorize("hasRole('CUSTOMER')")
     @Operation(summary = "Get my current active order (for live tracking bar)")
     public ResponseEntity<ApiResponse<OrderResponseDto>> getActiveOrder(
-            @AuthenticationPrincipal AuthPrincipal principal
-    ) {
+            @AuthenticationPrincipal AuthPrincipal principal) {
         return ResponseEntity.ok(ApiResponse.success(orderService.getActiveOrderForCustomer(principal.userId())));
     }
 
@@ -82,8 +79,7 @@ public class OrderController {
     public ResponseEntity<ApiResponse<OrderResponseDto>> cancelOrder(
             @AuthenticationPrincipal AuthPrincipal principal,
             @PathVariable UUID id,
-            @RequestParam(required = false) String reason
-    ) {
+            @RequestParam(required = false) String reason) {
         return ResponseEntity.ok(ApiResponse.success(orderService.cancelOrder(id, principal.userId(), reason)));
     }
 
@@ -95,8 +91,7 @@ public class OrderController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String sort
-    ) {
+            @RequestParam(required = false) String sort) {
         var result = orderService.listForRestaurant(
                 principal.userId(), parseStatus(status), page, size, sort);
         return ResponseEntity.ok(ApiResponse.success(result.items(), result.pagination()));
@@ -107,8 +102,7 @@ public class OrderController {
     @Operation(summary = "Get order by id (visibility scoped by role)")
     public ResponseEntity<ApiResponse<OrderResponseDto>> getOrder(
             @AuthenticationPrincipal AuthPrincipal principal,
-            @PathVariable UUID id
-    ) {
+            @PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(
                 orderService.getById(id, principal.userId(), principal.userType())));
     }
@@ -119,15 +113,14 @@ public class OrderController {
     public ResponseEntity<ApiResponse<OrderResponseDto>> transitionStatus(
             @AuthenticationPrincipal AuthPrincipal principal,
             @PathVariable UUID id,
-            @Valid @RequestBody TransitionOrderStatusRequestDto request
-    ) {
+            @Valid @RequestBody TransitionOrderStatusRequestDto request) {
         return ResponseEntity.ok(ApiResponse.success(orderService.transition(
                 id,
                 request.targetStatus(),
                 request.reason(),
+                request.preparationTime(),
                 principal.userId(),
-                principal.userType()
-        )));
+                principal.userType())));
     }
 
     private static OrderStatus parseStatus(String status) {

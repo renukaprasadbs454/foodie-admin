@@ -44,6 +44,9 @@ public class MenuItem extends BaseEntity {
     @Column(name = "package_size", length = 100)
     private String packageSize;
 
+    @Column(name = "preparation_time", length = 50)
+    private String preparationTime;
+
     @Column(name = "gst_pct", precision = 5, scale = 2)
     private BigDecimal gstPct;
 

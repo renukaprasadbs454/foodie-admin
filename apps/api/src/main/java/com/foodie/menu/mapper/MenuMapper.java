@@ -30,6 +30,7 @@ public class MenuMapper {
                 item.isAvailable(),
                 imageUrl,
                 item.getPackageSize(),
+                item.getPreparationTime(),
                 item.getGstPct());
     }
 
@@ -55,6 +56,7 @@ public class MenuMapper {
                 item.isAvailable(),
                 imageUrl,
                 item.getPackageSize(),
+                item.getPreparationTime(),
                 item.getGstPct(),
                 variants);
     }

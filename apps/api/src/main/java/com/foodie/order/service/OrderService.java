@@ -38,6 +38,7 @@ public interface OrderService {
                         UUID orderId,
                         OrderStatus targetStatus,
                         String reason,
+                        Integer preparationTime,
                         UUID actorUserCredentialId,
                         UserType userType);
 

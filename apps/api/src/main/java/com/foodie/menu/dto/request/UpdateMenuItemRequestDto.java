@@ -24,6 +24,8 @@ public record UpdateMenuItemRequestDto(
 
         @Size(max = 100) String packageSize,
 
+        @Size(max = 50) String preparationTime,
+
         @DecimalMin(value = "0.00", inclusive = true) @Digits(integer = 3, fraction = 2) BigDecimal gstPct) {
     public UpdateMenuItemRequestDto(
             UUID categoryId,
@@ -32,7 +34,7 @@ public record UpdateMenuItemRequestDto(
             BigDecimal basePrice,
             Boolean isVeg,
             String foodType) {
-        this(categoryId, name, description, basePrice, isVeg, foodType, null, null);
+        this(categoryId, name, description, basePrice, isVeg, foodType, null, null, null);
     }
 
     public UpdateMenuItemRequestDto(

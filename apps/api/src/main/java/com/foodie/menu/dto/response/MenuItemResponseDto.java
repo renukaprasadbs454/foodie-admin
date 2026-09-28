@@ -14,6 +14,7 @@ public record MenuItemResponseDto(
                 boolean isAvailable,
                 String imageUrl,
                 String packageSize,
+                String preparationTime,
                 BigDecimal gstPct) {
         public MenuItemResponseDto(
                         UUID menuItemId,
@@ -34,6 +35,7 @@ public record MenuItemResponseDto(
                                 isVeg ? "VEG" : "NON_VEG",
                                 isAvailable,
                                 imageUrl,
+                                null,
                                 null,
                                 BigDecimal.ZERO);
         }

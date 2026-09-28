@@ -24,6 +24,7 @@ public record FullMenuResponseDto(
                         boolean isAvailable,
                         String imageUrl,
                         String packageSize,
+                        String preparationTime,
                         BigDecimal gstPct,
                         List<VariantResponseDto> variants) {
         }

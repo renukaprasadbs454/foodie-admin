@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 
 public record TransitionOrderStatusRequestDto(
         @NotNull OrderStatus targetStatus,
-        @Size(max = 500) String reason
+        @Size(max = 500) String reason,
+        Integer preparationTime
 ) {
 }

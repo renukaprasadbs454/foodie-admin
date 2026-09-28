@@ -373,6 +373,7 @@ public class OrderServiceImpl implements OrderService {
             UUID orderId,
             OrderStatus targetStatus,
             String reason,
+            Integer preparationTime,
             UUID actorUserCredentialId,
             UserType userType) {
         Order order = orderRepository.findById(orderId)
@@ -411,6 +412,10 @@ public class OrderServiceImpl implements OrderService {
             throw new UnprocessableEntityException(
                     ErrorCode.ILLEGAL_STATUS_TRANSITION,
                     "Transition from " + order.getStatus() + " to " + targetStatus + " is not allowed.");
+        }
+
+        if (targetStatus == OrderStatus.ACCEPTED && preparationTime != null) {
+            order.setPreparationTime(preparationTime);
         }
 
         return applyTransition(order, targetStatus, actorType, actorId, reason);

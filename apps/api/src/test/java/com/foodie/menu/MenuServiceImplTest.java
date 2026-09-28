@@ -126,7 +126,7 @@ class MenuServiceImplTest {
 
                 assertThatThrownBy(() -> service.createItem(ownerId, new CreateMenuItemRequestDto(
                                 foreignCategory, "Paneer Tikka", "desc", new BigDecimal("220.00"), true, null, null,
-                                null)))
+                                null, null)))
                                 .isInstanceOf(UnprocessableEntityException.class)
                                 .extracting(ex -> ((UnprocessableEntityException) ex).getErrorCode())
                                 .isEqualTo(ErrorCode.CATEGORY_NOT_OWNED);
@@ -148,7 +148,7 @@ class MenuServiceImplTest {
                 // Non-veg creation
                 MenuItemResponseDto dto = service.createItem(ownerId, new CreateMenuItemRequestDto(
                                 category.getId(), "Chicken Biryani", "Fragrant", new BigDecimal("320.00"), null,
-                                "NON_VEG", null, null));
+                                "NON_VEG", null, null, null));
 
                 assertThat(dto.isAvailable()).isTrue();
                 assertThat(dto.basePrice()).isEqualByComparingTo("320.00");
@@ -171,7 +171,7 @@ class MenuServiceImplTest {
 
                 UpdateMenuItemRequestDto updateReq = new UpdateMenuItemRequestDto(
                                 category.getId(), "Updated Item", "New Desc", new BigDecimal("150.00"), null,
-                                "NON_VEG", null, null);
+                                "NON_VEG", null, null, null);
                 MenuItemResponseDto updatedDto = service.updateItem(ownerId, item.getId(), updateReq);
 
                 assertThat(updatedDto.name()).isEqualTo("Updated Item");
