@@ -5,7 +5,9 @@
 export const ENV = {
   /** Server-only. Used by app/api BFF routes — never expose via NEXT_PUBLIC. */
   apiBaseUrl:
-    process.env.FOODIE_API_BASE_URL ?? 'https://api.foodie.kwiko.org',
+    process.env.NEXT_PUBLIC_API_URL ??
+    process.env.FOODIE_API_BASE_URL ??
+    'https://api.foodie.kwiko.org',
   /** Client RTK Query hits same-origin BFF. */
   bffBaseUrl: '' as const,
   wsUrl:
