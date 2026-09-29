@@ -330,7 +330,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderResponseDto cancelOrder(UUID orderId, UUID userCredentialId, String reason) {
-        return transition(orderId, OrderStatus.CANCELLED, reason, userCredentialId, UserType.CUSTOMER);
+        return transition(orderId, OrderStatus.CANCELLED, reason, null, userCredentialId, UserType.CUSTOMER);
     }
 
     @Override

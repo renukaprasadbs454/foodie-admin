@@ -281,6 +281,7 @@ public class AdminOperationsServiceImpl implements AdminOperationsService {
                 orderId,
                 request.targetStatus(),
                 request.reason(),
+                null,
                 actorCredentialId,
                 UserType.ADMIN);
         adminService.recordAudit(

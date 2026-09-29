@@ -175,4 +175,8 @@ public class MenuItem extends BaseEntity {
     public Instant getDeletedAt() {
         return deletedAt;
     }
+
+    public String getPreparationTime() {
+        return preparationTime;
+    }
 }

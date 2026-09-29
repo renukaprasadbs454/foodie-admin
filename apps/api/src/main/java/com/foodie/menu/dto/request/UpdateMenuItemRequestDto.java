@@ -44,7 +44,7 @@ public record UpdateMenuItemRequestDto(
             BigDecimal basePrice,
             Boolean isVeg) {
         this(categoryId, name, description, basePrice, isVeg, isVeg != null ? (isVeg ? "VEG" : "NON_VEG") : null, null,
-                null);
+                null, null);
     }
 
     public boolean resolveIsVeg() {
