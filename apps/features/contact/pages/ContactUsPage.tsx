@@ -282,6 +282,16 @@ export function ContactUsPage() {
     };
   }, []);
 
+  // Fix React closure stale state for live chat auto-refresh
+  useEffect(() => {
+    if (selectedEnquiry) {
+      const updated = enquiries.find(e => e.id === selectedEnquiry.id);
+      if (updated && JSON.stringify(updated.messages) !== JSON.stringify(selectedEnquiry.messages)) {
+        setSelectedEnquiry(updated);
+      }
+    }
+  }, [enquiries]);
+
   const saveEnquiriesToStorage = (newList: EnquiryRecord[], replyEnquiryId?: string, replyText?: string) => {
     setEnquiries(newList);
     try {
@@ -296,12 +306,26 @@ export function ContactUsPage() {
         body: JSON.stringify({ action: 'sync_all', data: newList }),
       }).catch(() => { });
 
-      if (replyEnquiryId && replyText) {
-        void fetch('/api/support-tickets', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'reply', id: replyEnquiryId, replyMessage: replyText, sender: 'admin', senderName: 'Admin Support' }),
-        }).catch(() => { });
+      if (replyEnquiryId) {
+        if (replyText) {
+          void fetch('/api/support-tickets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reply', id: replyEnquiryId, replyMessage: replyText, sender: 'admin', senderName: 'Admin Support' }),
+          }).catch(() => { });
+
+          void fetch(`https://api.foodie.kwiko.org/api/v1/admin/support-tickets/${replyEnquiryId}/reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: replyText, senderName: 'Admin Support' }),
+          }).catch(() => { });
+        } else if (replyText === '') { // Used as a hack for resolved status
+          void fetch(`https://api.foodie.kwiko.org/api/v1/admin/support-tickets/${replyEnquiryId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'RESOLVED' }),
+          }).catch(() => { });
+        }
       }
     } catch (e) { }
   };
@@ -348,10 +372,13 @@ export function ContactUsPage() {
     };
 
     const nextEnquiries = enquiries.filter((item) => item.id !== enquiryId);
-    saveEnquiriesToStorage(nextEnquiries);
-    setHistory((prev) => [resolvedRecord, ...prev]);
+    // Passing empty string for replyText triggers string match for resolving in save function sync block above
+    saveEnquiriesToStorage(nextEnquiries, enquiryId, '');
 
-    showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and moved to History!`);
+    // Explicitly do not add to history to ensure the convo completely disappears
+    // setHistory((prev) => [resolvedRecord, ...prev]);
+
+    showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and completely deleted!`);
   };
 
   const handleReopenTicket = (enquiryId: string) => {
@@ -865,7 +892,9 @@ export function ContactUsPage() {
                       <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#0284C7', color: '#FFFFFF', padding: '2px 6px', borderRadius: 4 }}>
                         {item.id}
                       </span>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>{item.subject}</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>
+                        {item.senderName} - {item.orderId ? `Order #${item.orderId}` : 'No Order ID'}
+                      </span>
 
                       <span
                         style={{
@@ -1151,7 +1180,7 @@ export function ContactUsPage() {
                       letterSpacing: '0.01em',
                     }}
                   >
-                    Reply to Customer ({selectedEnquiry.id})
+                    Reply to {selectedEnquiry.senderName} ({selectedEnquiry.orderId ? `#${selectedEnquiry.orderId}` : selectedEnquiry.id})
                   </h3>
                   <div
                     style={{
@@ -1292,20 +1321,20 @@ export function ContactUsPage() {
 
               {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0
                 ? selectedEnquiry.messages.filter(
-                    (m) =>
-                      !m.message.includes('Message delivered to Admin Support') &&
-                      !m.message.includes('Message sent to Admin Support')
-                  )
+                  (m) =>
+                    !m.message.includes('Message delivered to Admin Support') &&
+                    !m.message.includes('Message sent to Admin Support')
+                )
                 : [
-                    {
-                      id: `msg-orig-${selectedEnquiry.id}`,
-                      enquiryId: selectedEnquiry.id,
-                      sender: 'customer' as const,
-                      senderName: selectedEnquiry.senderName,
-                      message: selectedEnquiry.message,
-                      timestamp: selectedEnquiry.timestamp,
-                    },
-                  ]
+                  {
+                    id: `msg-orig-${selectedEnquiry.id}`,
+                    enquiryId: selectedEnquiry.id,
+                    sender: 'customer' as const,
+                    senderName: selectedEnquiry.senderName,
+                    message: selectedEnquiry.message,
+                    timestamp: selectedEnquiry.timestamp,
+                  },
+                ]
               ).map((msg) => {
                 const isAdmin = msg.sender === 'admin';
                 return (

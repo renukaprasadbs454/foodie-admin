@@ -158,14 +158,8 @@ const INITIAL_ENQUIRIES: EnquiryRecord[] = [
 const STORE_FILE = path.join(os.tmpdir(), 'foodie_support_enquiries_v3.json');
 
 function sanitizeStore(data: EnquiryRecord[]): EnquiryRecord[] {
-  const allowedInitial = new Set(['ENQ-901', 'ENQ-902', 'ENQ-903', 'ENQ-904', 'ENQ-905']);
-  return data.filter((item) => {
-    if (allowedInitial.has(item.id)) return true;
-    const num = parseInt((item.id || '').replace('ENQ-', ''), 10);
-    // Remove all test spam IDs (906, 933, 946, 955, 963, 966, 989, etc.)
-    if (!isNaN(num) && num >= 906) return false;
-    return true;
-  });
+  // Let dynamic tickets persist
+  return data;
 }
 
 function readStore(): EnquiryRecord[] {
@@ -181,7 +175,7 @@ function readStore(): EnquiryRecord[] {
         return cleaned;
       }
     }
-  } catch {}
+  } catch { }
 
   writeStore(INITIAL_ENQUIRIES);
   return INITIAL_ENQUIRIES;
@@ -236,11 +230,32 @@ export async function POST(request: Request) {
       );
     }
 
-    // Always default to ENQ-901 to avoid creating new duplicate ticket cards
-    const ticketId = body.id && body.id.startsWith('ENQ-90') ? body.id : 'ENQ-901';
+    const ticketId = body.id || `ENQ-${Math.floor(100 + Math.random() * 900)}`;
     let existingIndex = data.findIndex((item) => item.id === ticketId);
+
+    // If ticket doesn't exist yet, push a new blank/initial record
     if (existingIndex === -1) {
-      existingIndex = 0; // Target ENQ-901
+      const newRec: EnquiryRecord = {
+        id: ticketId,
+        category: body.category || 'CUSTOMER',
+        senderName: body.senderName || 'Customer',
+        senderEmail: body.senderEmail || 'customer@example.com',
+        senderPhone: body.senderPhone || '',
+        subject: body.subject || 'Support Request',
+        message: body.message || '',
+        timestamp: 'Just now',
+        status: 'OPEN',
+        priority: 'MEDIUM',
+        orderId: body.orderId,
+      };
+      // For connect_agent, body might have `messages` payload from the customer
+      if (body.action === 'connect_agent' && Array.isArray(body.messages)) {
+        newRec.messages = body.messages;
+      }
+      data.unshift(newRec);
+      existingIndex = 0; // point to the unshifted record
+    } else if (body.action === 'connect_agent' && Array.isArray(body.messages)) {
+      data[existingIndex].messages = body.messages;
     }
 
     const rec = data[existingIndex] || INITIAL_ENQUIRIES[0];
@@ -273,8 +288,8 @@ export async function POST(request: Request) {
         status: body.status || 'RESOLVED',
         resolvedAt: body.status === 'RESOLVED' || !body.status ? 'Just now by Admin' : undefined,
       };
-    } else {
-      // Append customer message directly into ENQ-901
+    } else if (body.action !== 'connect_agent') {
+      // Append customer message normally for other actions
       if (userText) {
         const newCustMsg: ChatMessage = {
           id: `msg-cust-${Date.now()}`,
