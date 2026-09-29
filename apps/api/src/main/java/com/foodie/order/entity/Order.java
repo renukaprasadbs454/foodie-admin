@@ -61,6 +61,12 @@ public class Order extends BaseEntity {
     @Column(name = "preparation_time")
     private Integer preparationTime;
 
+    @Column(name = "food_ready_at")
+    private Instant foodReadyAt;
+
+    @Column(name = "assignment_scheduled_at")
+    private Instant assignmentScheduledAt;
+
     protected Order() {
     }
 
@@ -169,5 +175,21 @@ public class Order extends BaseEntity {
 
     public void setPreparationTime(Integer preparationTime) {
         this.preparationTime = preparationTime;
+    }
+
+    public Instant getFoodReadyAt() {
+        return foodReadyAt;
+    }
+
+    public void setFoodReadyAt(Instant foodReadyAt) {
+        this.foodReadyAt = foodReadyAt;
+    }
+
+    public Instant getAssignmentScheduledAt() {
+        return assignmentScheduledAt;
+    }
+
+    public void setAssignmentScheduledAt(Instant assignmentScheduledAt) {
+        this.assignmentScheduledAt = assignmentScheduledAt;
     }
 }

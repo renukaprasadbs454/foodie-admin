@@ -29,6 +29,7 @@ public final class OrderStateMachine {
                 || status == OrderStatus.CONFIRMED
                 || status == OrderStatus.ACCEPTED
                 || status == OrderStatus.PREPARING
+                || status == OrderStatus.WAITING_FOR_DELIVERY_PARTNER
                 || status == OrderStatus.READY_FOR_PICKUP;
     }
 
@@ -63,6 +64,7 @@ public final class OrderStateMachine {
                             : Decision.ILLEGAL;
                 case READY_FOR_PICKUP ->
                     (from == OrderStatus.PREPARING || from == OrderStatus.ACCEPTED || from == OrderStatus.CONFIRMED
+                            || from == OrderStatus.WAITING_FOR_DELIVERY_PARTNER || from == OrderStatus.ASSIGNED
                             || from == OrderStatus.PLACED) ? Decision.ALLOW : Decision.ILLEGAL;
                 case PICKED_UP ->
                     (from == OrderStatus.READY_FOR_PICKUP || from == OrderStatus.PREPARING
@@ -86,6 +88,12 @@ public final class OrderStateMachine {
         return (from == OrderStatus.PENDING_PAYMENT && to == OrderStatus.CONFIRMED)
                 || (from == OrderStatus.PENDING_PAYMENT && to == OrderStatus.CANCELLED)
                 || (from == OrderStatus.PLACED && to == OrderStatus.CONFIRMED)
+                || (from == OrderStatus.ACCEPTED && to == OrderStatus.WAITING_FOR_DELIVERY_PARTNER)
+                || (from == OrderStatus.PREPARING && to == OrderStatus.WAITING_FOR_DELIVERY_PARTNER)
+                || (from == OrderStatus.CONFIRMED && to == OrderStatus.WAITING_FOR_DELIVERY_PARTNER)
+                || (from == OrderStatus.WAITING_FOR_DELIVERY_PARTNER && to == OrderStatus.ASSIGNED)
+                || (from == OrderStatus.ACCEPTED && to == OrderStatus.ASSIGNED)
+                || (from == OrderStatus.PREPARING && to == OrderStatus.ASSIGNED)
                 || (from == OrderStatus.READY_FOR_PICKUP && to == OrderStatus.ASSIGNED)
                 || (from == OrderStatus.ASSIGNED && to == OrderStatus.PICKED_UP)
                 || (from == OrderStatus.PICKED_UP && to == OrderStatus.OUT_FOR_DELIVERY)

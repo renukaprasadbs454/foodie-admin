@@ -118,6 +118,16 @@ public class DeliveryController {
         return ResponseEntity.ok(ApiResponse.success(deliveryService.accept(principal.userId(), id)));
     }
 
+    @PostMapping("/assignments/{id}/reject")
+    @PreAuthorize("hasRole('DELIVERY_PARTNER')")
+    @Operation(summary = "Reject a delivery assignment offer")
+    public ResponseEntity<ApiResponse<Void>> reject(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable UUID id) {
+        deliveryService.reject(principal.userId(), id);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
     @PostMapping("/assignments/{id}/verify-pickup")
     @PreAuthorize("hasRole('DELIVERY_PARTNER')")
     @Operation(summary = "Verify restaurant pickup OTP")

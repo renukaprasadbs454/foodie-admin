@@ -72,6 +72,13 @@ public class OrderDeliveryPortImpl implements OrderDeliveryPort {
         eventPublisher.publishEvent(OrderDeliveredEvent.of(orderId));
     }
 
+    @Override
+    @Transactional
+    public void updateStatus(UUID orderId, OrderStatus status) {
+        Order order = require(orderId);
+        apply(order, status, null);
+    }
+
     private void apply(Order order, OrderStatus target, String reason) {
         OrderStateMachine.Decision decision =
                 OrderStateMachine.evaluate(order.getStatus(), target, OrderActorType.SYSTEM);

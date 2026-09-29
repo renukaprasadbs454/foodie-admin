@@ -36,6 +36,8 @@ public interface DeliveryService {
 
         DeliveryAssignmentResponseDto accept(UUID userCredentialId, UUID assignmentId);
 
+        void reject(UUID userCredentialId, UUID assignmentId);
+
         DeliveryAssignmentResponseDto verifyPickup(UUID userCredentialId, UUID assignmentId,
                         VerifyOtpRequestDto request);
 

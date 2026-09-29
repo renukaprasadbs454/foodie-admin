@@ -17,6 +17,8 @@ public interface OrderDeliveryPort {
 
     void markDelivered(UUID orderId);
 
+    void updateStatus(UUID orderId, OrderStatus status);
+
     record OrderDeliverySnapshot(
             UUID orderId,
             UUID restaurantId,

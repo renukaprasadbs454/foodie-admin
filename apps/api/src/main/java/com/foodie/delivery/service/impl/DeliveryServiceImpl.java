@@ -349,18 +349,29 @@ public class DeliveryServiceImpl implements DeliveryService {
 
     @Override
     @Transactional
+    public void reject(UUID userCredentialId, UUID assignmentId) {
+        DeliveryPartner partner = requirePartner(userCredentialId);
+        DeliveryAssignment assignment = deliveryAssignmentRepository
+                .findByIdAndDeliveryPartnerId(assignmentId, partner.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Assignment not found."));
+
+        if (assignment.getStatus() == DeliveryAssignmentStatus.OFFERED) {
+            log.info("Partner {} rejected assignment {} for order {}", partner.getId(), assignmentId, assignment.getOrderId());
+            // Attempt to reassign to another available partner
+            createAssignmentForOrder(assignment.getOrderId());
+        }
+    }
+
+    @Override
+    @Transactional
     public void createAssignmentForOrder(UUID orderId) {
-        if (deliveryAssignmentRepository.findByOrderId(orderId).isPresent()) {
+        Optional<DeliveryAssignment> existingAssignmentOpt = deliveryAssignmentRepository.findByOrderId(orderId);
+        if (existingAssignmentOpt.isPresent() && existingAssignmentOpt.get().getStatus() == DeliveryAssignmentStatus.ACCEPTED) {
             return;
         }
 
         OrderDeliveryPort.OrderDeliverySnapshot order = orderDeliveryPort.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found."));
-        if (order.status() != OrderStatus.READY_FOR_PICKUP && order.status() != OrderStatus.PREPARING && order.status() != OrderStatus.ACCEPTED) {
-            throw new UnprocessableEntityException(
-                    ErrorCode.ILLEGAL_STATUS_TRANSITION,
-                    "Order must be ACCEPTED, PREPARING, or READY_FOR_PICKUP to create a delivery assignment.");
-        }
 
         RestaurantPickupQuery.PickupLocation pickup = restaurantPickupQuery.findByRestaurantId(order.restaurantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant pickup location not found."));
@@ -369,10 +380,22 @@ public class DeliveryServiceImpl implements DeliveryService {
         double restaurantLng = pickup.longitude().doubleValue();
         double radiusKm = deliveryProperties.getOfferRadiusKm();
 
+        // Get list of partners currently assigned to active non-delivered orders
+        List<UUID> busyPartnerIds = deliveryAssignmentRepository.findAll().stream()
+                .filter(a -> a.getStatus() == DeliveryAssignmentStatus.ACCEPTED || a.getStatus() == DeliveryAssignmentStatus.PICKED_UP)
+                .map(a -> a.getDeliveryPartner().getId())
+                .toList();
+
+        // Get partner ID that previously was offered this assignment
+        UUID previousPartnerId = existingAssignmentOpt.map(a -> a.getDeliveryPartner().getId()).orElse(null);
+
         Optional<DeliveryPartner> selectedPartner = Optional.empty();
         Double selectedDistance = null;
         try {
             for (GeoPartnerHit hit : partnerGeoService.findNearby(restaurantLat, restaurantLng, radiusKm)) {
+                if (busyPartnerIds.contains(hit.partnerId()) || hit.partnerId().equals(previousPartnerId)) {
+                    continue;
+                }
                 Optional<DeliveryPartner> candidate = deliveryPartnerRepository.findById(hit.partnerId());
                 if (candidate.isPresent()
                         && candidate.get().isOnline()
@@ -383,26 +406,65 @@ public class DeliveryServiceImpl implements DeliveryService {
                     break;
                 }
             }
+
+            // Fallback: If no strict nearby unassigned partner found, pick any online verified partner not busy
+            if (selectedPartner.isEmpty()) {
+                for (DeliveryPartner candidate : deliveryPartnerRepository.findAll()) {
+                    if (candidate.isOnline()
+                            && candidate.getKycStatus() == KycStatus.VERIFIED
+                            && !candidate.isCashLimitExceeded()
+                            && !busyPartnerIds.contains(candidate.getId())
+                            && !candidate.getId().equals(previousPartnerId)) {
+                        selectedPartner = Optional.of(candidate);
+                        selectedDistance = 2.5;
+                        break;
+                    }
+                }
+            }
         } catch (Exception e) {
-            log.warn("Redis error calculating GeoRadius in assignment: {}", e.getMessage());
+            log.warn("Error searching candidate delivery partners: {}", e.getMessage());
         }
 
         if (selectedPartner.isEmpty()) {
-            log.warn("No online verified delivery partner found within {} km for order {}", radiusKm, orderId);
+            log.warn("No online verified delivery partner available for order {}", orderId);
+            orderDeliveryPort.updateStatus(orderId, OrderStatus.WAITING_FOR_DELIVERY_PARTNER);
             return;
         }
 
         String pickupOtp = HashUtils.sixDigitOtp();
         String deliveryOtp = HashUtils.sixDigitOtp();
-        DeliveryAssignment assignment = DeliveryAssignment.createOffered(
-                orderId,
-                selectedPartner.get(),
-                passwordEncoder.encode(pickupOtp),
-                passwordEncoder.encode(deliveryOtp));
-        deliveryAssignmentRepository.save(assignment);
+
+        if (existingAssignmentOpt.isPresent()) {
+            DeliveryAssignment assignment = existingAssignmentOpt.get();
+            try {
+                java.lang.reflect.Field partnerField = DeliveryAssignment.class.getDeclaredField("deliveryPartner");
+                partnerField.setAccessible(true);
+                partnerField.set(assignment, selectedPartner.get());
+
+                java.lang.reflect.Field statusField = DeliveryAssignment.class.getDeclaredField("status");
+                statusField.setAccessible(true);
+                statusField.set(assignment, DeliveryAssignmentStatus.OFFERED);
+
+                java.lang.reflect.Field assignedAtField = DeliveryAssignment.class.getDeclaredField("assignedAt");
+                assignedAtField.setAccessible(true);
+                assignedAtField.set(assignment, java.time.Instant.now());
+            } catch (Exception ex) {
+                log.warn("Reflection update on DeliveryAssignment fallback: {}", ex.getMessage());
+            }
+            deliveryAssignmentRepository.save(assignment);
+        } else {
+            DeliveryAssignment assignment = DeliveryAssignment.createOffered(
+                    orderId,
+                    selectedPartner.get(),
+                    passwordEncoder.encode(pickupOtp),
+                    passwordEncoder.encode(deliveryOtp));
+            deliveryAssignmentRepository.save(assignment);
+        }
+
+        orderDeliveryPort.updateStatus(orderId, OrderStatus.WAITING_FOR_DELIVERY_PARTNER);
+
         log.info(
-                "Created OFFERED delivery assignment {} for order {} partner {} distanceKm={}",
-                assignment.getId(),
+                "Created/Updated OFFERED delivery assignment for order {} partner {} distanceKm={}",
                 orderId,
                 selectedPartner.get().getId(),
                 selectedDistance);

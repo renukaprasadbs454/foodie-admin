@@ -414,8 +414,15 @@ public class OrderServiceImpl implements OrderService {
                     "Transition from " + order.getStatus() + " to " + targetStatus + " is not allowed.");
         }
 
-        if (targetStatus == OrderStatus.ACCEPTED && preparationTime != null) {
+        if ((targetStatus == OrderStatus.ACCEPTED || targetStatus == OrderStatus.PREPARING) && preparationTime != null) {
             order.setPreparationTime(preparationTime);
+            java.time.Instant now = java.time.Instant.now();
+            java.time.Instant readyAt = now.plus(java.time.Duration.ofMinutes(preparationTime));
+            java.time.Instant scheduledAt = preparationTime > 10
+                    ? readyAt.minus(java.time.Duration.ofMinutes(10))
+                    : now;
+            order.setFoodReadyAt(readyAt);
+            order.setAssignmentScheduledAt(scheduledAt);
         }
 
         return applyTransition(order, targetStatus, actorType, actorId, reason);
