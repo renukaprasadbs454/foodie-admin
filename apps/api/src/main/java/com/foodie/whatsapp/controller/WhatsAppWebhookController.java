@@ -21,7 +21,7 @@ public class WhatsAppWebhookController {
 
     private static final Logger log = LoggerFactory.getLogger(WhatsAppWebhookController.class);
 
-    @Value("${whatsapp.verify-token:foodie_whatsapp_verify_token_2026}")
+    @Value("${foodie.whatsapp.verify-token:${whatsapp.verify-token:foodie_whatsapp_verify_token_2026}}")
     private String verifyToken;
 
     @GetMapping

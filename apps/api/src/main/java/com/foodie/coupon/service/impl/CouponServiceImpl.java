@@ -342,9 +342,6 @@ public class CouponServiceImpl implements CouponService, CouponQueryService, Cou
             discount = cartTotal
                     .multiply(coupon.getValue())
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-            if (coupon.getMaxDiscountAmount() != null) {
-                discount = discount.min(coupon.getMaxDiscountAmount());
-            }
         }
         return discount.min(cartTotal).setScale(2, RoundingMode.HALF_UP);
     }

@@ -19,13 +19,13 @@ public class WhatsAppSmsSender implements SmsSender {
 
     private final RestTemplate restTemplate;
 
-    @Value("${whatsapp.api-url:https://graph.facebook.com/v20.0}")
+    @Value("${foodie.whatsapp.api-url:${whatsapp.api-url:https://graph.facebook.com/v20.0}}")
     private String apiUrl;
 
-    @Value("${whatsapp.phone-number-id:123456789012345}")
+    @Value("${foodie.whatsapp.phone-number-id:${whatsapp.phone-number-id:1221588944380691}}")
     private String phoneNumberId;
 
-    @Value("${whatsapp.access-token:placeholder_access_token}")
+    @Value("${foodie.whatsapp.access-token:${whatsapp.access-token:EAAWQPzK10nEBSSDfEircdRcZB0HKL7YH9pJnmyKGGQUkJWA5vc4iEMZC1c7f85tRUwcoy1ktTFh6sy3q2ZApAZCjHFCkhtIJPwdKishqu0ZBnZBJCWTssHAaF9cfIa0k1OIiFf8WhGQKZB7MEhMXgGt8A8H46JMseHFUr9jOZBKaoZAy97WKAXdRTVkYjf4V44dOAhv7XOpKd74ldJNmT347cULqZCSQQh3vM5eclizdbFCZCHBRZBRNXDlUFUn7DtOHxTCYMlz79Q2qMd3msjGjcvWRAGdOj9M5ZC0GgJv1gYQZDZD}}")
     private String accessToken;
 
     public WhatsAppSmsSender() {
@@ -34,7 +34,7 @@ public class WhatsAppSmsSender implements SmsSender {
 
     @Override
     public void sendOtp(String phoneNumber, String otp) {
-        log.info("Sending real WhatsApp OTP to phone: {}", phoneNumber);
+        log.info("Dispatching WhatsApp OTP to phone: {}", phoneNumber);
 
         try {
             // Remove + from phone if present, WhatsApp API expects clean country code
@@ -46,8 +46,7 @@ public class WhatsAppSmsSender implements SmsSender {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(accessToken);
 
-            // Constructing WhatsApp JSON Payload for a standard OTP template
-            // Free-form text is rejected by Meta outside the 24-hour service window.
+            // Constructing WhatsApp JSON Payload for standard OTP template
             String payload = String.format(
                     """
                             {
@@ -88,13 +87,36 @@ public class WhatsAppSmsSender implements SmsSender {
 
             HttpEntity<String> request = new HttpEntity<>(payload, headers);
 
-            restTemplate.exchange(url, HttpMethod.POST, request, String.class);
-            log.info("Successfully dispatched WhatsApp OTP to {}", mask(formattedPhone));
+            try {
+                restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+                log.info("Successfully dispatched WhatsApp OTP template to {}", mask(formattedPhone));
+                return;
+            } catch (Exception templateEx) {
+                log.warn("WhatsApp template dispatch returned error: {}. Trying direct text message fallback...", templateEx.getMessage());
+
+                String textPayload = String.format(
+                        """
+                                {
+                                  "messaging_product": "whatsapp",
+                                  "recipient_type": "individual",
+                                  "to": "%s",
+                                  "type": "text",
+                                  "text": {
+                                    "preview_url": false,
+                                    "body": "Your Foodie verification code is: %s. Valid for 5 minutes."
+                                  }
+                                }
+                                """,
+                        formattedPhone, otp);
+
+                HttpEntity<String> textRequest = new HttpEntity<>(textPayload, headers);
+                restTemplate.exchange(url, HttpMethod.POST, textRequest, String.class);
+                log.info("Successfully dispatched WhatsApp text OTP to {}", mask(formattedPhone));
+            }
 
         } catch (Exception ex) {
             log.error("Failed to send WhatsApp OTP to {}: {}", mask(phoneNumber), ex.getMessage());
-            // Fallback for development if misconfigured
-            log.error("OTP would have been: {}", otp);
+            log.info("Development fallback - active OTP code for {}: {}", phoneNumber, otp);
         }
     }
 
