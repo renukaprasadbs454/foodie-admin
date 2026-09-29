@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Text } from 'foodie-shared-web';
+import { useGetAllTicketsQuery, useReplyToTicketMutation, useResolveTicketMutation, useGetTicketMessagesQuery } from '../../../api/endpoints/supportApi';
 
 export interface ChatMessage {
   id: string;
@@ -218,132 +219,14 @@ export function ContactUsPage() {
   const [history, setHistory] = useState<EnquiryRecord[]>(INITIAL_HISTORY);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  // Persistence, Online Backend API sync, and live cross-app polling
-  const fetchTickets = async () => {
-    try {
-      const res = await fetch('/api/support-tickets');
-      if (res.ok) {
-        const json = await res.json();
-        const dataList = json.data || json;
-        if (Array.isArray(dataList) && dataList.length > 0) {
-          setEnquiries(dataList);
-          try {
-            localStorage.setItem('foodie_support_enquiries', JSON.stringify(dataList));
-          } catch { }
-          return;
-        }
-      }
-    } catch (e) { }
-
-    try {
-      const res = await fetch('https://api.foodie.kwiko.org/api/v1/admin/support-tickets', {
-        headers: { 'Accept': 'application/json' },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const dataList = json.data || json;
-        if (Array.isArray(dataList) && dataList.length > 0) {
-          setEnquiries(dataList);
-          try {
-            localStorage.setItem('foodie_support_enquiries', JSON.stringify(dataList));
-          } catch { }
-          return;
-        }
-      }
-    } catch (e) { }
-
-    try {
-      const stored = localStorage.getItem('foodie_support_enquiries');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setEnquiries(parsed);
-        }
-      } else {
-        localStorage.setItem('foodie_support_enquiries', JSON.stringify(INITIAL_ENQUIRIES));
-      }
-    } catch { }
-  };
-
-  useEffect(() => {
-    fetchTickets();
-    const intervalId = setInterval(fetchTickets, 1500);
-
-    const handleSync = () => {
-      fetchTickets();
-    };
-
-    window.addEventListener('storage', handleSync);
-    window.addEventListener('foodie_enquiry_updated', handleSync);
-    return () => {
-      clearInterval(intervalId);
-      window.removeEventListener('storage', handleSync);
-      window.removeEventListener('foodie_enquiry_updated', handleSync);
-    };
-  }, []);
-
-  // Fix React closure stale state for live chat auto-refresh
-  useEffect(() => {
-    if (selectedEnquiry) {
-      const updated = enquiries.find(e => e.id === selectedEnquiry.id);
-      if (updated && JSON.stringify(updated.messages) !== JSON.stringify(selectedEnquiry.messages)) {
-        setSelectedEnquiry(updated);
-      }
-    }
-  }, [enquiries]);
-
-  const saveEnquiriesToStorage = (newList: EnquiryRecord[], replyEnquiryId?: string, replyText?: string) => {
-    setEnquiries(newList);
-    try {
-      localStorage.setItem('foodie_support_enquiries', JSON.stringify(newList));
-      window.dispatchEvent(new Event('foodie_enquiry_updated'));
-    } catch { }
-
-    try {
-      void fetch('/api/support-tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'sync_all', data: newList }),
-      }).catch(() => { });
-
-      if (replyEnquiryId) {
-        if (replyText) {
-          void fetch('/api/support-tickets', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'reply', id: replyEnquiryId, replyMessage: replyText, sender: 'admin', senderName: 'Admin Support' }),
-          }).catch(() => { });
-
-          void fetch(`https://api.foodie.kwiko.org/api/v1/admin/support-tickets/${replyEnquiryId}/reply`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: replyText, senderName: 'Admin Support' }),
-          }).catch(() => { });
-        } else if (replyText === '') { // Used as a hack for resolved status
-          void fetch(`https://api.foodie.kwiko.org/api/v1/admin/support-tickets/${replyEnquiryId}/status`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'RESOLVED' }),
-          }).catch(() => { });
-        }
-      }
-    } catch (e) { }
-  };
+  const { data: apiTickets } = useGetAllTicketsQuery(undefined, { pollingInterval: 2000 });
+  const [replyMutation] = useReplyToTicketMutation();
+  const [resolveMutation] = useResolveTicketMutation();
 
   // Reply Modal State
   const [selectedEnquiry, setSelectedEnquiry] = useState<EnquiryRecord | null>(null);
   const [replyText, setReplyText] = useState('');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (chatScrollRef.current) {
-      setTimeout(() => {
-        if (chatScrollRef.current) {
-          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-        }
-      }, 100);
-    }
-  }, [selectedEnquiry?.messages?.length, selectedEnquiry?.id]);
 
   // New Enquiry Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -360,25 +243,61 @@ export function ContactUsPage() {
     setTimeout(() => setToastMsg(null), 3500);
   };
 
-  const handleMarkAsResolved = (enquiryId: string) => {
-    const target = enquiries.find((item) => item.id === enquiryId);
-    if (!target) return;
+  useEffect(() => {
+    if (apiTickets) {
+      const mapped: EnquiryRecord[] = apiTickets.map(t => ({
+        id: t.id,
+        category: t.category as any,
+        senderName: 'Customer', // Derived via generic mapping or left simple
+        senderEmail: 'N/A',
+        senderPhone: 'N/A',
+        subject: t.subject,
+        message: 'View details',
+        timestamp: new Date(t.createdAt).toLocaleTimeString(),
+        status: t.status as any,
+        priority: 'MEDIUM',
+        orderId: t.orderId
+      }));
+      setEnquiries(mapped);
+    }
+  }, [apiTickets]);
 
-    const resolvedRecord: EnquiryRecord = {
-      ...target,
-      status: 'RESOLVED',
-      resolvedAt: 'Just now by Operations Desk',
-      replyMessage: target.replyMessage || 'Issue investigated and marked as resolved by Support team.',
-    };
+  // Fix React closure stale state for live chat auto-refresh
+  useEffect(() => {
+    if (selectedEnquiry) {
+      const updated = enquiries.find(e => e.id === selectedEnquiry.id);
+      if (updated && JSON.stringify(updated.messages) !== JSON.stringify(selectedEnquiry.messages)) {
+        setSelectedEnquiry(updated);
+      }
+    }
+  }, [enquiries]);
 
-    const nextEnquiries = enquiries.filter((item) => item.id !== enquiryId);
-    // Passing empty string for replyText triggers string match for resolving in save function sync block above
-    saveEnquiriesToStorage(nextEnquiries, enquiryId, '');
+  const { data: currentMessages } = useGetTicketMessagesQuery(selectedEnquiry?.id || '', { skip: !selectedEnquiry, pollingInterval: 2000 });
 
-    // Explicitly do not add to history to ensure the convo completely disappears
-    // setHistory((prev) => [resolvedRecord, ...prev]);
+  useEffect(() => {
+    if (selectedEnquiry && currentMessages) {
+      const msgs: ChatMessage[] = currentMessages.map((m: any) => ({
+        id: m.id,
+        enquiryId: m.conversationId,
+        sender: m.senderType === 'CUSTOMER' ? 'customer' : 'admin',
+        senderName: m.senderName || 'Admin Support',
+        message: m.content,
+        timestamp: new Date(m.createdAt).toLocaleTimeString(),
+      }));
+      if (JSON.stringify(msgs) !== JSON.stringify(selectedEnquiry.messages)) {
+        setSelectedEnquiry({ ...selectedEnquiry, messages: msgs });
+      }
+    }
+  }, [currentMessages]);
 
+  const saveEnquiriesToStorage = (newList: EnquiryRecord[], replyEnquiryId?: string, replyText?: string) => {
+    setEnquiries(newList);
+  };
+
+  const handleMarkAsResolved = async (enquiryId: string) => {
+    await resolveMutation(enquiryId);
     showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and completely deleted!`);
+    setSelectedEnquiry(null);
   };
 
   const handleReopenTicket = (enquiryId: string) => {
@@ -397,54 +316,24 @@ export function ContactUsPage() {
     showToast(`↺ Ticket ${enquiryId} reopened and restored to active support queue.`);
   };
 
-  const handleSendReply = (e: React.FormEvent) => {
+  const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEnquiry || !replyText.trim()) {
       alert('Please enter your response message.');
       return;
     }
 
-    const adminMsgText = replyText.trim();
-    const newReply: ChatMessage = {
-      id: `MSG-${Date.now()}`,
-      enquiryId: selectedEnquiry.id,
-      sender: 'admin',
-      senderName: 'Admin Support',
-      message: adminMsgText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    const updatedList = enquiries.map((item) => {
-      if (item.id === selectedEnquiry.id) {
-        const existingMsgs = item.messages && item.messages.length > 0
-          ? item.messages
-          : [{
-            id: `msg-orig-${item.id}`,
-            enquiryId: item.id,
-            sender: 'customer' as const,
-            senderName: item.senderName,
-            message: item.message,
-            timestamp: item.timestamp,
-          }];
-
-        const updatedMsgs = [...existingMsgs, newReply];
-
-        return {
-          ...item,
-          replyMessage: adminMsgText,
-          status: 'IN_PROGRESS' as const,
-          messages: updatedMsgs,
-        };
-      }
-      return item;
-    });
-
-    saveEnquiriesToStorage(updatedList, selectedEnquiry.id, adminMsgText);
-
-    const updatedCurrent = updatedList.find(i => i.id === selectedEnquiry.id) || null;
-    setSelectedEnquiry(updatedCurrent);
-    setReplyText('');
-    showToast(`✉ Response sent & delivered to ${selectedEnquiry.senderName}'s app chat!`);
+    try {
+      await replyMutation({
+        ticketId: selectedEnquiry.id,
+        message: replyText.trim(),
+        senderName: 'Admin Support'
+      });
+      setReplyText('');
+      showToast(`✉ Response sent & delivered to customer's app chat!`);
+    } catch (e) {
+      showToast('Failed to send reply');
+    }
   };
 
   const handleCreateEnquiry = (e: React.FormEvent) => {

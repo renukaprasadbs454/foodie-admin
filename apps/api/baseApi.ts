@@ -21,6 +21,8 @@ export const baseApi = createBaseApi({
     'Payment',
     'Coupon',
     'Banners',
+    'SupportConversation',
+    'SupportMessage',
   ] as const,
   refreshPath: '/api/auth/refresh',
   onTokenReuseDetected: () => {
