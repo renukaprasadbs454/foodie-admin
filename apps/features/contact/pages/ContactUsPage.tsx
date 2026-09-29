@@ -1059,14 +1059,14 @@ export function ContactUsPage() {
         </div>
       )}
 
-      {/* MESSAGE REPLY MODAL */}
+      {/* MESSAGE REPLY MODAL - WHATSAPP-STYLE CONVERSATION UI */}
       {selectedEnquiry && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(8, 47, 73, 0.5)',
-            backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(5px)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
@@ -1080,57 +1080,223 @@ export function ContactUsPage() {
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: 16,
-              maxWidth: 580,
+              maxWidth: 620,
               width: '100%',
-              padding: 28,
-              boxShadow: '0 20px 40px rgba(14, 165, 233, 0.2)',
-              border: '1px solid #BAE6FD',
+              maxHeight: '94vh',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.05)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 16,
+              overflow: 'hidden',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
-                Reply to {selectedEnquiry.senderName} ({selectedEnquiry.id})
-              </h3>
+            {/* 1. WHATSAPP-STYLE HEADER (PROFESSIONAL BLUE THEME) */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #12658F 0%, #168BC4 100%)',
+                padding: '12px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* Circular Customer Avatar with Online Indicator */}
+                <div style={{ position: 'relative' }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(255, 255, 255, 0.22)',
+                      border: '1.5px solid rgba(255, 255, 255, 0.45)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FFFFFF',
+                      fontWeight: 800,
+                      fontSize: 14,
+                      boxShadow: '0 2px 5px rgba(0, 0, 0, 0.15)',
+                    }}
+                  >
+                    {selectedEnquiry.senderName
+                      ? selectedEnquiry.senderName.trim().split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+                      : 'CU'}
+                  </div>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 0,
+                      width: 11,
+                      height: 11,
+                      backgroundColor: '#25D366',
+                      border: '2px solid #12658F',
+                      borderRadius: '50%',
+                    }}
+                    title="Online"
+                  />
+                </div>
+
+                {/* Title & Customer Status */}
+                <div>
+                  <h3
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 800,
+                      color: '#FFFFFF',
+                      margin: 0,
+                      lineHeight: 1.25,
+                      letterSpacing: '0.01em',
+                    }}
+                  >
+                    Reply to Customer ({selectedEnquiry.id})
+                  </h3>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      marginTop: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{selectedEnquiry.senderName}</span>
+                    <span>•</span>
+                    <span style={{ color: '#BAE6FD', fontWeight: 600 }}>online • active enquiry</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Close (X) Button */}
               <button
                 type="button"
                 onClick={() => setSelectedEnquiry(null)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#0284C7' }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.18)',
+                  border: 'none',
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  color: '#FFFFFF',
+                  fontSize: 16,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.32)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.18)';
+                }}
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ backgroundColor: '#F0F9FF', padding: 12, borderRadius: 8, fontSize: 12, color: '#0369A1', lineHeight: 1.4, border: '1px solid #BAE6FD' }}>
-              <strong>Subject:</strong> {selectedEnquiry.subject}<br />
-              <strong>Recipient Email:</strong> {selectedEnquiry.senderEmail} ({selectedEnquiry.senderPhone})
-            </div>
-
-            {/* Live 2-Way Chat Thread */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>
-                Conversation History ({(selectedEnquiry.messages && selectedEnquiry.messages.length) || 1} messages)
-              </label>
+            {/* 2. CUSTOMER / ORDER INFORMATION */}
+            <div
+              style={{
+                backgroundColor: '#F5FBFE',
+                borderBottom: '1px solid #E2E8F0',
+                padding: '9px 18px',
+                fontSize: 12,
+                lineHeight: 1.45,
+                color: '#334155',
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+                <strong style={{ color: '#12658F' }}>Subject:</strong>
+                <span style={{ color: '#0F172A', fontWeight: 600 }}>{selectedEnquiry.subject}</span>
+              </div>
               <div
-                ref={chatScrollRef}
                 style={{
-                  maxHeight: 280,
-                  overflowY: 'auto',
-                  backgroundColor: '#F1F5F9',
-                  borderRadius: 10,
-                  padding: 16,
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                  border: '1px solid #CBD5E1',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  columnGap: 16,
+                  rowGap: 4,
+                  marginTop: 3,
                 }}
               >
-                {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0
-                  ? selectedEnquiry.messages.filter((m) => !m.message.includes('Message delivered to Admin Support') && !m.message.includes('Message sent to Admin Support'))
-                  : [
+                <div>
+                  <strong style={{ color: '#12658F' }}>Recipient Email:</strong>{' '}
+                  <span style={{ color: '#0F172A', fontWeight: 600 }}>
+                    {selectedEnquiry.senderEmail} {selectedEnquiry.senderPhone ? `(${selectedEnquiry.senderPhone})` : ''}
+                  </span>
+                </div>
+                <div>
+                  <strong style={{ color: '#12658F' }}>Order ID:</strong>{' '}
+                  <span
+                    style={{
+                      color: '#12658F',
+                      fontWeight: 700,
+                      backgroundColor: '#EAF7FC',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      border: '1px solid #BAE6FD',
+                    }}
+                  >
+                    {selectedEnquiry.orderId
+                      ? `#${selectedEnquiry.orderId.replace(/^#/, '')}`
+                      : (selectedEnquiry.subject.match(/#([A-Za-z0-9-]+)/)?.[0] || 'ORD-9821')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. CONVERSATION HISTORY (WHATSAPP-STYLE CHAT BUBBLES IN CLEAN BLUE/NEUTRAL THEME) */}
+            <div
+              ref={chatScrollRef}
+              style={{
+                flex: '1 1 auto',
+                minHeight: 200,
+                maxHeight: 280,
+                overflowY: 'auto',
+                backgroundColor: '#F5FBFE',
+                backgroundImage: 'radial-gradient(#CBD5E1 0.75px, transparent 0.75px)',
+                backgroundSize: '16px 16px',
+                padding: '14px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              {/* WhatsApp-style Centered Date/History Badge */}
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 6px 0' }}>
+                <span
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    color: '#12658F',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    padding: '3px 12px',
+                    borderRadius: 8,
+                    boxShadow: '0 1px 2px rgba(18, 101, 143, 0.08)',
+                    border: '1px solid #E0F2FE',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  Conversation History ({(selectedEnquiry.messages && selectedEnquiry.messages.length) || 1}{' '}
+                  {((selectedEnquiry.messages && selectedEnquiry.messages.length) || 1) === 1 ? 'Message' : 'Messages'})
+                </span>
+              </div>
+
+              {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0
+                ? selectedEnquiry.messages.filter(
+                    (m) =>
+                      !m.message.includes('Message delivered to Admin Support') &&
+                      !m.message.includes('Message sent to Admin Support')
+                  )
+                : [
                     {
                       id: `msg-orig-${selectedEnquiry.id}`,
                       enquiryId: selectedEnquiry.id,
@@ -1140,51 +1306,119 @@ export function ContactUsPage() {
                       timestamp: selectedEnquiry.timestamp,
                     },
                   ]
-                ).map((msg) => {
-                  const isAdmin = msg.sender === 'admin';
-                  return (
+              ).map((msg) => {
+                const isAdmin = msg.sender === 'admin';
+                return (
+                  <div
+                    key={msg.id}
+                    style={{
+                      alignSelf: isAdmin ? 'flex-end' : 'flex-start',
+                      maxWidth: '82%',
+                      backgroundColor: isAdmin ? '#EAF7FC' : '#FFFFFF',
+                      color: '#0F172A',
+                      padding: '8px 12px',
+                      borderRadius: 10,
+                      borderTopRightRadius: isAdmin ? 2 : 10,
+                      borderTopLeftRadius: isAdmin ? 10 : 2,
+                      border: isAdmin ? '1px solid #BAE6FD' : '1px solid #E2E8F0',
+                      boxShadow: '0 1px 2px rgba(15, 23, 42, 0.06)',
+                      position: 'relative',
+                    }}
+                  >
+                    {/* Sender Name */}
                     <div
-                      key={msg.id}
                       style={{
-                        alignSelf: isAdmin ? 'flex-end' : 'flex-start',
-                        maxWidth: '85%',
-                        backgroundColor: isAdmin ? '#14532D' : '#FFFFFF',
-                        color: isAdmin ? '#FFFFFF' : '#1E293B',
-                        padding: '10px 14px',
-                        borderRadius: 16,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                        border: isAdmin ? 'none' : '1px solid #E2E8F0',
-                        borderTopRightRadius: isAdmin ? 4 : 16,
-                        borderTopLeftRadius: isAdmin ? 16 : 4,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: isAdmin ? '#0369A1' : '#12658F',
+                        marginBottom: 3,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: isAdmin ? '#A7F3D0' : '#64748B',
-                          marginBottom: 4,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                        }}
-                      >
-                        <span>{isAdmin ? 'You (Admin)' : msg.senderName}</span>
-                        <span>•</span>
-                        <span>{msg.timestamp}</span>
-                      </div>
-                      <div style={{ fontSize: 13, lineHeight: 1.5 }}>{msg.message}</div>
+                      <span>{isAdmin ? 'You (Admin Support)' : msg.senderName || selectedEnquiry.senderName}</span>
                     </div>
-                  );
-                })}
-              </div>
+
+                    {/* Chat Message Content */}
+                    <div
+                      style={{
+                        fontSize: 13.5,
+                        lineHeight: 1.45,
+                        color: '#0F172A',
+                        wordBreak: 'break-word',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      {msg.message}
+                    </div>
+
+                    {/* Timestamp & Read Receipts */}
+                    <div
+                      style={{
+                        fontSize: 10.5,
+                        color: '#64748B',
+                        textAlign: 'right',
+                        marginTop: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        gap: 4,
+                      }}
+                    >
+                      <span>{msg.timestamp || '15 mins ago'}</span>
+                      {isAdmin && (
+                        <span
+                          style={{
+                            color: '#0284C7',
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: '-1px',
+                          }}
+                          title="Delivered & Read"
+                        >
+                          ✓✓
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Quick Templates */}
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>
-                Quick Response Templates
-              </label>
+            {/* 4. QUICK RESPONSE TEMPLATES (COMPACT ROUNDED BLUE CHIPS) */}
+            <div
+              style={{
+                backgroundColor: '#F8FAFC',
+                borderTop: '1px solid #E2E8F0',
+                padding: '9px 18px 6px 18px',
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 6,
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: '#12658F',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <span style={{ fontSize: 12, color: '#168BC4' }}>⚡</span> Quick Response Templates
+                </label>
+                <span style={{ fontSize: 10.5, color: '#64748B' }}>Click template to insert</span>
+              </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {QUICK_TEMPLATES.map((tmpl) => (
                   <button
@@ -1192,69 +1426,199 @@ export function ContactUsPage() {
                     type="button"
                     onClick={() => setReplyText(tmpl.text)}
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: 6,
+                      padding: '4px 11px',
+                      borderRadius: 16,
                       border: '1px solid #BAE6FD',
-                      backgroundColor: '#F0F9FF',
-                      color: '#0369A1',
-                      fontSize: 11,
+                      backgroundColor: '#FFFFFF',
+                      color: '#12658F',
+                      fontSize: 11.5,
                       fontWeight: 600,
                       cursor: 'pointer',
+                      boxShadow: '0 1px 2px rgba(22, 139, 196, 0.06)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#EAF7FC';
+                      e.currentTarget.style.borderColor = '#168BC4';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#FFFFFF';
+                      e.currentTarget.style.borderColor = '#BAE6FD';
                     }}
                   >
-                    + {tmpl.label}
+                    <span style={{ fontWeight: 800, color: '#168BC4' }}>+</span>
+                    <span>{tmpl.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 6 }}>
+            {/* 5. WHATSAPP-STYLE MESSAGE COMPOSER (BLUE ACCENT) */}
+            <div
+              style={{
+                backgroundColor: '#F8FAFC',
+                padding: '8px 18px 14px 18px',
+                flexShrink: 0,
+              }}
+            >
+              <label
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#12658F',
+                  display: 'block',
+                  marginBottom: 6,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}
+              >
                 Compose Response Message *
               </label>
-              <textarea
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                rows={5}
-                placeholder="Type your official reply message to be dispatched via email and SMS notification..."
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, resize: 'vertical', backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
-                required
-              />
-            </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
-              <button
-                type="button"
-                onClick={() => setSelectedEnquiry(null)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#F0F9FF',
-                  color: '#0369A1',
-                  border: '1px solid #BAE6FD',
-                  borderRadius: 8,
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                style={{
-                  padding: '10px 20px',
-                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 8,
-                  fontWeight: 800,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
-                }}
-              >
-                Dispatch Response Now
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Optional Attachment Icon */}
+                <button
+                  type="button"
+                  title="Attachment"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    border: '1px solid #BAE6FD',
+                    backgroundColor: '#FFFFFF',
+                    color: '#168BC4',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    boxShadow: '0 1px 2px rgba(22, 139, 196, 0.06)',
+                  }}
+                  onClick={() => {
+                    // Non-intrusive cosmetic trigger
+                  }}
+                >
+                  <svg
+                    width="17"
+                    height="17"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                  </svg>
+                </button>
+
+                {/* Rounded Message Input Box */}
+                <div
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 20,
+                    border: '1px solid #BAE6FD',
+                    padding: '6px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    boxShadow: '0 1px 2px rgba(22, 139, 196, 0.05)',
+                  }}
+                >
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendReply(e);
+                      }
+                    }}
+                    rows={2}
+                    placeholder="Type your official reply message to be dispatched via email and SMS notification..."
+                    style={{
+                      width: '100%',
+                      border: 'none',
+                      outline: 'none',
+                      backgroundColor: 'transparent',
+                      color: '#0F172A',
+                      fontSize: 13,
+                      lineHeight: 1.4,
+                      resize: 'none',
+                      fontFamily: 'inherit',
+                      padding: 0,
+                    }}
+                    required
+                  />
+                </div>
+
+                {/* Cancel Button */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedEnquiry(null)}
+                  style={{
+                    padding: '9px 14px',
+                    backgroundColor: '#FFFFFF',
+                    color: '#475569',
+                    border: '1px solid #BAE6FD',
+                    borderRadius: 20,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#F0F9FF';
+                    e.currentTarget.style.color = '#12658F';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#FFFFFF';
+                    e.currentTarget.style.color = '#475569';
+                  }}
+                >
+                  Cancel
+                </button>
+
+                {/* WhatsApp-Styled Blue Send / Dispatch Button */}
+                <button
+                  type="submit"
+                  title="Dispatch Response Now"
+                  aria-label="Dispatch Response Now"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '9px 16px',
+                    background: 'linear-gradient(135deg, #168BC4 0%, #12658F 100%)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 20,
+                    fontWeight: 800,
+                    fontSize: 12.5,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(22, 139, 196, 0.35)',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(22, 139, 196, 0.48)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(22, 139, 196, 0.35)';
+                  }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
+                  <span>Dispatch Response Now</span>
+                </button>
+              </div>
             </div>
           </form>
         </div>

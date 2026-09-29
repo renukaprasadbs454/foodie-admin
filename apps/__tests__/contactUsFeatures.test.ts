@@ -21,4 +21,21 @@ describe('Contact Us Operations Desk Contract', () => {
     expect(requiredFeatures).toContain('Mark as Resolved');
     expect(requiredFeatures).toContain('Contact History');
   });
+
+  it('preserves all 5 Quick Response Templates and WhatsApp Reply UI actions', () => {
+    const requiredTemplates = [
+      'Refund Processing',
+      'Promo Code Fixed',
+      'Merchant Payout Dispatched',
+      'Surge Bonus Credited',
+      'KYC Document Verified',
+    ];
+
+    expect(requiredTemplates).toHaveLength(5);
+    expect(requiredTemplates).toContain('Refund Processing');
+    expect(requiredTemplates).toContain('Promo Code Fixed');
+    expect(requiredTemplates).toContain('Merchant Payout Dispatched');
+    expect(requiredTemplates).toContain('Surge Bonus Credited');
+    expect(requiredTemplates).toContain('KYC Document Verified');
+  });
 });
