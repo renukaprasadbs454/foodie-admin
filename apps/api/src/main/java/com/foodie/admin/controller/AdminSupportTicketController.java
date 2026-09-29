@@ -110,32 +110,59 @@ public class AdminSupportTicketController {
 
     @PostMapping
     @Operation(summary = "Create or submit a support ticket / message")
-    public ResponseEntity<ApiResponse<SupportTicketDto>> createTicket(@RequestBody Map<String, String> request) {
-        String id = request.getOrDefault("id", "ENQ-" + (100 + (int)(Math.random() * 900)));
-        String category = request.getOrDefault("category", "CUSTOMER");
-        String senderName = request.getOrDefault("senderName", "Customer User");
-        String senderEmail = request.getOrDefault("senderEmail", "customer@foodie.com");
-        String senderPhone = request.getOrDefault("senderPhone", "+91 98765 43210");
-        String subject = request.getOrDefault("subject", "Support Enquiry");
-        String message = request.getOrDefault("message", "");
-        String orderId = request.get("orderId");
+    public ResponseEntity<ApiResponse<SupportTicketDto>> createTicket(@RequestBody Map<String, Object> request) {
+        String idObj = (String) request.get("id");
+        String id = idObj != null ? idObj : "ENQ-" + (100 + (int)(Math.random() * 900));
+        String category = (String) request.getOrDefault("category", "CUSTOMER");
+        String senderName = (String) request.getOrDefault("senderName", "Customer User");
+        String senderEmail = (String) request.getOrDefault("senderEmail", "customer@foodie.com");
+        String senderPhone = (String) request.getOrDefault("senderPhone", "+91 98765 43210");
+        String subject = (String) request.getOrDefault("subject", "Support Enquiry");
+        String message = (String) request.getOrDefault("message", "");
+        String orderId = (String) request.get("orderId");
+        String action = (String) request.get("action");
         String nowStr = "Just now";
-
-        ChatMessageDto msgObj = new ChatMessageDto(
-                "msg-" + System.currentTimeMillis(),
-                id,
-                "customer",
-                senderName,
-                message,
-                nowStr
-        );
 
         SupportTicketDto existing = ticketStore.get(id);
         SupportTicketDto savedTicket;
+        
+        List<ChatMessageDto> newMsgs = new ArrayList<>();
+        
+        if ("connect_agent".equals(action) && request.containsKey("messages")) {
+            Object msgsObj = request.get("messages");
+            if (msgsObj instanceof List) {
+                for (Object msgItem : (List<?>) msgsObj) {
+                    if (msgItem instanceof Map) {
+                        Map<?, ?> msgMap = (Map<?, ?>) msgItem;
+                        newMsgs.add(new ChatMessageDto(
+                                (String) msgMap.get("id"),
+                                (String) msgMap.get("enquiryId"),
+                                (String) msgMap.get("sender"),
+                                (String) msgMap.get("senderName"),
+                                (String) msgMap.get("message"),
+                                (String) msgMap.get("timestamp")
+                        ));
+                    }
+                }
+            }
+        } else {
+            newMsgs.add(new ChatMessageDto(
+                    "msg-" + System.currentTimeMillis(),
+                    id,
+                    "customer",
+                    senderName,
+                    message,
+                    nowStr
+            ));
+        }
 
         if (existing != null) {
             List<ChatMessageDto> updatedMsgs = new ArrayList<>(existing.messages() != null ? existing.messages() : List.of());
-            updatedMsgs.add(msgObj);
+            if ("connect_agent".equals(action)) {
+                updatedMsgs = newMsgs; // Override with the full history since it contains all messages
+            } else {
+                updatedMsgs.addAll(newMsgs);
+            }
             savedTicket = new SupportTicketDto(
                     existing.id(),
                     existing.category(),
@@ -143,7 +170,7 @@ public class AdminSupportTicketController {
                     existing.senderEmail(),
                     existing.senderPhone(),
                     existing.subject(),
-                    message,
+                    message != null && !message.isEmpty() ? message : existing.message(),
                     nowStr,
                     "OPEN",
                     "HIGH",
@@ -165,7 +192,7 @@ public class AdminSupportTicketController {
                     "OPEN",
                     "HIGH",
                     null,
-                    List.of(msgObj),
+                    newMsgs,
                     null,
                     orderId
             );
