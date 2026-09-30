@@ -31,18 +31,18 @@ export interface SupportMessage {
 export const adminSupportApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
         getAllTickets: builder.query<SupportConversation[], void>({
-            query: () => ({ url: '/api/v1/admin/support-tickets' }),
+            query: () => ({ url: '/api/support-tickets' }),
             providesTags: ['SupportConversation'],
         }),
         getTicketMessages: builder.query<SupportMessage[], string>({
-            query: (id) => ({ url: `/api/v1/admin/support-tickets/${id}/messages` }),
+            query: (id) => ({ url: `/api/support-tickets/${id}/messages` }),
             providesTags: (result, error, id) => [{ type: 'SupportMessage', id }],
         }),
         replyToTicket: builder.mutation<SupportMessage, { ticketId: string; message: string; senderName?: string }>({
             query: ({ ticketId, ...body }) => ({
-                url: `/api/v1/admin/support-tickets/${ticketId}/reply`,
+                url: `/api/support-tickets`,
                 method: 'POST',
-                body,
+                body: { ...body, action: 'reply', id: ticketId },
             }),
             invalidatesTags: (result, error, { ticketId }) => [
                 { type: 'SupportMessage', id: ticketId },
@@ -51,9 +51,9 @@ export const adminSupportApi = baseApi.injectEndpoints({
         }),
         resolveTicket: builder.mutation<SupportConversation, string>({
             query: (id) => ({
-                url: `/api/v1/admin/support-tickets/${id}/status`,
-                method: 'PATCH',
-                body: { status: 'RESOLVED' }
+                url: `/api/support-tickets`,
+                method: 'POST',
+                body: { id, action: 'resolve', status: 'RESOLVED' }
             }),
             invalidatesTags: ['SupportConversation'],
         }),

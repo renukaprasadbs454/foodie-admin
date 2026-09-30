@@ -263,21 +263,25 @@ export async function POST(request: Request) {
 
     if (body.action === 'reply' || body.sender === 'admin') {
       const sender = body.sender || 'admin';
-      const senderName = body.senderName || (sender === 'admin' ? 'Admin Support' : rec.senderName);
+      const senderName = body.senderName || (sender === 'admin' ? 'Admin Support' : (rec.senderName || 'Customer'));
       const newMsg: ChatMessage = {
-        id: `msg-admin-${Date.now()}`,
+        id: body.messageId || `msg-${sender}-${Date.now()}`,
         enquiryId: rec.id,
-        sender: 'admin',
+        sender: sender as 'customer' | 'admin',
         senderName: senderName,
         message: userText,
         timestamp: nowTime,
       };
 
       const existingMsgs = rec.messages || [];
-      const hasAlready = existingMsgs.some(m => m.message === userText && m.sender === 'admin');
+      const hasAlready = existingMsgs.some(m => m.message === userText && m.sender === sender);
 
       data[existingIndex] = {
         ...rec,
+        senderName: body.senderName && body.senderName !== 'Customer' ? body.senderName : rec.senderName,
+        senderEmail: body.senderEmail || rec.senderEmail,
+        senderPhone: body.senderPhone || rec.senderPhone,
+        orderId: body.orderId || rec.orderId,
         replyMessage: userText || rec.replyMessage,
         status: 'IN_PROGRESS',
         messages: hasAlready ? existingMsgs : [...existingMsgs, newMsg],
@@ -295,7 +299,7 @@ export async function POST(request: Request) {
           id: `msg-cust-${Date.now()}`,
           enquiryId: rec.id,
           sender: 'customer',
-          senderName: rec.senderName || 'Ananya Sharma',
+          senderName: rec.senderName || 'Customer',
           message: userText,
           timestamp: nowTime,
         };
@@ -306,6 +310,10 @@ export async function POST(request: Request) {
 
         data[existingIndex] = {
           ...rec,
+          senderName: body.senderName && body.senderName !== 'Customer' ? body.senderName : rec.senderName,
+          senderEmail: body.senderEmail || rec.senderEmail,
+          senderPhone: body.senderPhone || rec.senderPhone,
+          orderId: body.orderId || rec.orderId,
           message: userText,
           timestamp: 'Just now',
           status: rec.status === 'RESOLVED' ? 'IN_PROGRESS' : rec.status,

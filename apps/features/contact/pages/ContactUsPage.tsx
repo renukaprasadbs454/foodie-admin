@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Text } from 'foodie-shared-web';
-import { useGetAllTicketsQuery, useReplyToTicketMutation, useResolveTicketMutation, useGetTicketMessagesQuery } from '../../../api/endpoints/supportApi';
+import { useGetAllTicketsQuery, useReplyToTicketMutation, useResolveTicketMutation } from '../../../api/endpoints/supportApi';
 
 export interface ChatMessage {
   id: string;
@@ -245,18 +245,20 @@ export function ContactUsPage() {
 
   useEffect(() => {
     if (apiTickets) {
-      const mapped: EnquiryRecord[] = apiTickets.map(t => ({
+      const mapped: EnquiryRecord[] = (apiTickets as any).map((t: any) => ({
         id: t.id,
-        category: t.category as any,
-        senderName: 'Customer', // Derived via generic mapping or left simple
-        senderEmail: 'N/A',
-        senderPhone: 'N/A',
+        category: t.category,
+        senderName: t.senderName || 'Customer',
+        senderEmail: t.senderEmail || 'N/A',
+        senderPhone: t.senderPhone || 'N/A',
         subject: t.subject,
-        message: 'View details',
-        timestamp: new Date(t.createdAt).toLocaleTimeString(),
-        status: t.status as any,
-        priority: 'MEDIUM',
-        orderId: t.orderId
+        message: t.message || 'View details',
+        timestamp: t.timestamp || new Date(t.createdAt || Date.now()).toLocaleTimeString(),
+        status: t.status,
+        priority: t.priority || 'MEDIUM',
+        orderId: t.orderId,
+        messages: t.messages || [],
+        replyMessage: t.replyMessage
       }));
       setEnquiries(mapped);
     }
@@ -268,27 +270,14 @@ export function ContactUsPage() {
       const updated = enquiries.find(e => e.id === selectedEnquiry.id);
       if (updated && JSON.stringify(updated.messages) !== JSON.stringify(selectedEnquiry.messages)) {
         setSelectedEnquiry(updated);
+        setTimeout(() => {
+          if (chatScrollRef.current) {
+            chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+          }
+        }, 100);
       }
     }
   }, [enquiries]);
-
-  const { data: currentMessages } = useGetTicketMessagesQuery(selectedEnquiry?.id || '', { skip: !selectedEnquiry, pollingInterval: 2000 });
-
-  useEffect(() => {
-    if (selectedEnquiry && currentMessages) {
-      const msgs: ChatMessage[] = currentMessages.map((m: any) => ({
-        id: m.id,
-        enquiryId: m.conversationId,
-        sender: m.senderType === 'CUSTOMER' ? 'customer' : 'admin',
-        senderName: m.senderName || 'Admin Support',
-        message: m.content,
-        timestamp: new Date(m.createdAt).toLocaleTimeString(),
-      }));
-      if (JSON.stringify(msgs) !== JSON.stringify(selectedEnquiry.messages)) {
-        setSelectedEnquiry({ ...selectedEnquiry, messages: msgs });
-      }
-    }
-  }, [currentMessages]);
 
   const saveEnquiriesToStorage = (newList: EnquiryRecord[], replyEnquiryId?: string, replyText?: string) => {
     setEnquiries(newList);
@@ -738,8 +727,8 @@ export function ContactUsPage() {
         })}
       </div>
 
-      {/* Active Tab Enquiries List */}
-      {activeTab !== 'HISTORY' && (
+      {/* Active Tab Enquiries List (Non-Customer) */}
+      {activeTab !== 'HISTORY' && activeTab !== 'CUSTOMER' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {getFilteredEnquiries(activeTab as any).length === 0 ? (
             <div
@@ -880,6 +869,129 @@ export function ContactUsPage() {
         </div>
       )}
 
+      {/* CUSTOMER Chat Split-Pane (Admin Panel Theme) */}
+      {activeTab === 'CUSTOMER' && (
+        <div style={{ display: 'flex', height: 600, backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+
+          {/* LEFT 1/3 - Chat List */}
+          <div style={{ width: 340, borderRight: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF' }}>
+              <h3 style={{ margin: 0, color: '#0369A1', fontSize: 15, fontWeight: 800 }}>Customer Chats</h3>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#0284C7' }}>{getFilteredEnquiries('CUSTOMER').length} Open Conversations</p>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#FFFFFF' }}>
+              {getFilteredEnquiries('CUSTOMER').length === 0 ? (
+                <div style={{ padding: 40, textAlign: 'center', color: '#0284C7', fontSize: 13 }}>No active customer chats.</div>
+              ) : (
+                getFilteredEnquiries('CUSTOMER').map(item => (
+                  <div
+                    key={item.id}
+                    onClick={() => { setSelectedEnquiry(item); setReplyText(''); }}
+                    style={{
+                      padding: '14px 16px',
+                      borderBottom: '1px solid #F0F9FF',
+                      cursor: 'pointer',
+                      backgroundColor: selectedEnquiry?.id === item.id ? '#E0F2FE' : '#FFFFFF',
+                      borderLeft: selectedEnquiry?.id === item.id ? '4px solid #0369A1' : '4px solid transparent',
+                      transition: 'background 0.1s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
+                      <span style={{ fontWeight: 800, color: '#0369A1', fontSize: 13, textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden', flex: 1, paddingRight: 8 }}>
+                        {item.senderName}
+                      </span>
+                      <span style={{ fontSize: 10, color: selectedEnquiry?.id === item.id ? '#0369A1' : '#0284C7', fontWeight: 600 }}>{item.timestamp}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#0284C7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.orderId ? `Order #${item.orderId} - ` : ''}{item.subject}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT 2/3 - Active Chat Window */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC' }}>
+            {selectedEnquiry ? (
+              <form
+                onSubmit={handleSendReply}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Chat Header (Admin Panel Blue Theme) */}
+                <div style={{ background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: 'rgba(255, 255, 255, 0.2)', border: '1px solid rgba(255, 255, 255, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 800, fontSize: 14 }}>
+                      {selectedEnquiry.senderName ? selectedEnquiry.senderName.substring(0, 2).toUpperCase() : 'CU'}
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: 16, fontWeight: 800, color: '#FFFFFF', margin: 0, lineHeight: 1.25 }}>
+                        {selectedEnquiry.senderName}
+                        {selectedEnquiry.orderId && <span style={{ fontSize: 14, opacity: 0.9, fontWeight: 600 }}> (Order #{selectedEnquiry.orderId})</span>}
+                      </h3>
+                      <div style={{ fontSize: 11, color: '#E0F2FE', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ display: 'inline-block', width: 6, height: 6, backgroundColor: '#34D399', borderRadius: '50%' }}></span>
+                        {selectedEnquiry.senderEmail} • {selectedEnquiry.senderPhone}
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => handleMarkAsResolved(selectedEnquiry.id)} style={{ padding: '6px 14px', background: 'rgba(255, 255, 255, 0.15)', color: '#FFFFFF', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                    ✓ Mark Resolved
+                  </button>
+                </div>
+
+                {/* Sub-header / Subject bar */}
+                <div style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', padding: '8px 20px', fontSize: 12, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <strong style={{ color: '#0284C7' }}>Subject:</strong> <span style={{ fontWeight: 600 }}>{selectedEnquiry.subject}</span>
+                </div>
+
+                {/* Chat Middle - Messages Area */}
+                <div ref={chatScrollRef} style={{ flex: '1 1 auto', overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0 ? selectedEnquiry.messages : [{ id: '1', enquiryId: selectedEnquiry.id, sender: 'customer' as const, senderName: selectedEnquiry.senderName, message: selectedEnquiry.message, timestamp: selectedEnquiry.timestamp }]).map(msg => {
+                    const isAdmin = msg.sender === 'admin';
+                    return (
+                      <div key={msg.id} style={{ alignSelf: isAdmin ? 'flex-end' : 'flex-start', maxWidth: '82%', backgroundColor: isAdmin ? '#E0F2FE' : '#FFFFFF', padding: '10px 14px', borderRadius: 12, borderTopRightRadius: isAdmin ? 4 : 12, borderTopLeftRadius: isAdmin ? 12 : 4, border: isAdmin ? '1px solid #BAE6FD' : '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: isAdmin ? '#0369A1' : '#0284C7', marginBottom: 4 }}>
+                          {isAdmin ? 'Admin Support' : msg.senderName || selectedEnquiry.senderName}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#0F172A', whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{msg.message}</div>
+                        <div style={{ fontSize: 10, color: '#64748B', textAlign: 'right', marginTop: 6 }}>{msg.timestamp || 'Just now'}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Chat Footer - Composer Bar */}
+                <div style={{ backgroundColor: '#FFFFFF', padding: '12px 18px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <input
+                    type="text"
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Type a message to customer..."
+                    style={{ flex: 1, backgroundColor: '#F8FAFC', border: '1px solid #BAE6FD', borderRadius: 24, padding: '10px 18px', fontSize: 13, color: '#0369A1', outline: 'none' }}
+                  />
+                  <button type="submit" disabled={!replyText.trim()} style={{ background: replyText.trim() ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#CBD5E1', color: '#FFFFFF', border: 'none', width: 44, height: 44, borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: replyText.trim() ? 'pointer' : 'default' }}>
+                    <span style={{ fontSize: 18 }}>➤</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#0284C7' }}>
+                <div style={{ fontSize: 42, marginBottom: 16 }}>💬</div>
+                <h3 style={{ margin: 0, color: '#0369A1', fontSize: 20 }}>Select a Conversation</h3>
+                <p style={{ marginTop: 8, fontSize: 13 }}>Click on any customer ticket to view the live chat thread.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* TAB 5: CONTACT HISTORY */}
       {activeTab === 'HISTORY' && (
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
@@ -977,8 +1089,8 @@ export function ContactUsPage() {
         </div>
       )}
 
-      {/* MESSAGE REPLY MODAL - WHATSAPP-STYLE CONVERSATION UI */}
-      {selectedEnquiry && (
+      {/* MESSAGE REPLY MODAL - WHATSAPP-STYLE CONVERSATION UI (Only for Non-Customer tabs) */}
+      {selectedEnquiry && activeTab !== 'CUSTOMER' && (
         <div
           style={{
             position: 'fixed',
