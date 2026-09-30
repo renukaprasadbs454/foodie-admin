@@ -90,7 +90,13 @@ public class SupportController {
             for (Map<String, String> msgData : messages) {
                 String content = msgData.get("message");
                 if (content != null && !content.isEmpty()) {
-                    String sender = "customer".equalsIgnoreCase(msgData.get("sender")) ? "CUSTOMER" : "AGENT";
+                    String senderVal = msgData.get("sender");
+                    String sender = "AGENT";
+                    if ("customer".equalsIgnoreCase(senderVal))
+                        sender = "CUSTOMER";
+                    else if ("restaurant".equalsIgnoreCase(senderVal))
+                        sender = "RESTAURANT";
+
                     // Only add if not exist? Just push through
                     supportService.addMessage(conv.getId(), sender, extractCustomerId(), senderName, content);
                 }
