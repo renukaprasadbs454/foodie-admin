@@ -67,11 +67,21 @@ export function DeliveryPartnersPage() {
   const [approveKyc, { isLoading: isApproving }] = useApproveDeliveryPartnerKycMutation();
   const [rejectKyc, { isLoading: isRejecting }] = useRejectDeliveryPartnerKycMutation();
 
-  const partners: AdminDeliveryPartner[] = partnersData?.items ?? [];
-  const allPartners: AdminDeliveryPartner[] = allPartnersData?.items ?? partners;
+  const partners: AdminDeliveryPartner[] =
+    (partnersData as any)?.items ??
+    (partnersData as any)?.data?.items ??
+    (Array.isArray(partnersData) ? partnersData : []);
+
+  const allPartners: AdminDeliveryPartner[] =
+    (allPartnersData as any)?.items ??
+    (allPartnersData as any)?.data?.items ??
+    (Array.isArray(allPartnersData) ? allPartnersData : partners);
 
   // Dynamic Dashboard Counts
-  const totalFleetCount = allPartnersData?.pagination?.totalElements ?? allPartners.length;
+  const totalFleetCount =
+    (allPartnersData as any)?.pagination?.totalElements ??
+    (allPartnersData as any)?.data?.pagination?.totalElements ??
+    allPartners.length;
   const currentlyOnlineCount = allPartners.filter((p) => p.isOnline).length;
   const pendingKycCount = allPartners.filter((p) => p.kycStatus === 'PENDING').length;
   const verifiedCount = allPartners.filter((p) => p.kycStatus === 'VERIFIED').length;
@@ -335,7 +345,8 @@ export function DeliveryPartnersPage() {
               </tr>
             ) : (
               partners.map((p) => {
-                const docCount = p.documents?.length ?? 0;
+                const docs = p.documents || (p as any).docs || [];
+                const docCount = docs.length;
                 return (
                   <tr key={p.id} style={{ borderBottom: '1px solid #BAE6FD', transition: 'background-color 0.15s' }}>
                     <td style={{ padding: '16px 20px' }}>
@@ -356,27 +367,32 @@ export function DeliveryPartnersPage() {
                     <td style={{ padding: '16px 20px' }}>
                       {docCount > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {p.documents.map((d, dIdx) => (
-                            <div
-                              key={d.id ? `${p.id}-doc-${d.id}` : `${p.id}-doc-${d.docType || 'doc'}-${dIdx}`}
-                              style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
-                            >
-                              <span style={{ fontWeight: 600, color: '#0369A1' }}>📄 {d.docType}</span>
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 700,
-                                  padding: '1px 6px',
-                                  borderRadius: 4,
-                                  backgroundColor: '#F0F9FF',
-                                  border: '1px solid #BAE6FD',
-                                  color: '#0369A1',
-                                }}
+                          {docs.map((d: any, dIdx: number) => {
+                            const docType = d.docType || d.type || 'DOCUMENT';
+                            const status = d.verificationStatus || d.status || 'PENDING';
+                            const key = d.documentId || d.id || `${p.id}-doc-${docType}-${dIdx}`;
+                            return (
+                              <div
+                                key={key}
+                                style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
                               >
-                                {d.verificationStatus}
-                              </span>
-                            </div>
-                          ))}
+                                <span style={{ fontWeight: 600, color: '#0369A1' }}>📄 {docType}</span>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    padding: '1px 6px',
+                                    borderRadius: 4,
+                                    backgroundColor: '#F0F9FF',
+                                    border: '1px solid #BAE6FD',
+                                    color: '#0369A1',
+                                  }}
+                                >
+                                  {status}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <div style={{ fontSize: 12, color: '#0284C7' }}>
