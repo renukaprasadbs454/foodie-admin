@@ -16,6 +16,7 @@ import {
   useGetAdminPayoutsQuery,
   useApproveSinglePayoutMutation,
   useRejectPayoutMutation,
+  useGetLedgerQuery,
 } from '../../../api/endpoints/paymentsApi';
 
 // Replaced INITIAL_MOCK_PAYOUTS with real API data
@@ -35,6 +36,7 @@ export function DeliveryPayoutsPage() {
   const { tokens } = useTheme();
 
   const { data: serverPayouts = [] } = useGetAdminPayoutsQuery();
+  const { data: serverLedger = [] } = useGetLedgerQuery();
   const [approvePayoutMutation] = useApproveSinglePayoutMutation();
   const [rejectPayoutMutation] = useRejectPayoutMutation();
 
@@ -278,6 +280,25 @@ export function DeliveryPayoutsPage() {
 
         <button
           type="button"
+          onClick={() => setActiveTab('RECONCILIATION')}
+          style={{
+            padding: '12px 6px',
+            fontSize: 15,
+            fontWeight: 800,
+            color: activeTab === 'RECONCILIATION' ? '#0369A1' : '#0284C7',
+            borderBottom: activeTab === 'RECONCILIATION' ? '4px solid #0369A1' : '4px solid transparent',
+            background: 'none',
+            borderTop: 'none',
+            borderLeft: 'none',
+            borderRight: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          Reconciliation Studio ({reconciliationOverview.discrepancies.length} Issues)
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('PROVIDERS')}
           style={{
             padding: '12px 6px',
@@ -292,7 +313,7 @@ export function DeliveryPayoutsPage() {
             cursor: 'pointer',
           }}
         >
-          Provider Config (Read-Only)
+          Provider Config (Cashfree Active)
         </button>
       </div>
 
@@ -315,10 +336,18 @@ export function DeliveryPayoutsPage() {
         </>
       )}
 
+      {/* Tab 2: Reconciliation Studio */}
+      {activeTab === 'RECONCILIATION' && (
+        <ReconciliationStudio
+          overview={reconciliationOverview}
+          onSelectPayout={(p) => handleOpenDetailModal(p, 'DETAILS')}
+        />
+      )}
+
       {/* Tab 3: Provider Config (Read-Only) */}
       {activeTab === 'PROVIDERS' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-          {/* Razorpay Card */}
+          {/* Cashfree Card (Primary) */}
           <div
             style={{
               backgroundColor: '#FFFFFF',
@@ -330,34 +359,34 @@ export function DeliveryPayoutsPage() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: '#0369A1' }}>
-                Razorpay Payout Gateway
+                Cashfree Payout Gateway
               </div>
-              <span style={{ backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 800 }}>
-                ONLINE / OPERATIONAL
+              <span style={{ backgroundColor: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0', padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 800 }}>
+                PRIMARY / OPERATIONAL
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
               <div>
-                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>ACCOUNT ID</span>
-                <strong style={{ color: '#0369A1' }}>rzp_account_live_490182390</strong>
+                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>APP ID</span>
+                <strong style={{ color: '#0369A1' }}>cf_app_live_8839021940</strong>
               </div>
               <div>
                 <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>PAYOUT DISPATCH MODE</span>
-                <span style={{ fontWeight: 700, color: '#0369A1' }}>Automated Direct Bank Transfer (IMPS/NEFT)</span>
+                <span style={{ fontWeight: 700, color: '#0369A1' }}>Direct UPI & Automated Bank Transfer (IMPS/NEFT)</span>
               </div>
               <div>
                 <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>WEBHOOK LISTENER</span>
                 <code style={{ fontSize: 12, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '2px 6px', borderRadius: 4 }}>
-                  /api/v1/payments/razorpay-webhook
+                  /api/v1/payments/cashfree-webhook
                 </code>
               </div>
               <div style={{ fontSize: 11, color: '#0284C7', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: 10, borderRadius: 8, marginTop: 8 }}>
-                Provider credentials and secret keys are stored in encrypted environment variables and never returned over API endpoints.
+                Cashfree provider credentials and payout keys are secured in KMS and active for automated batch dispatches.
               </div>
             </div>
           </div>
 
-          {/* Cashfree Card */}
+          {/* Razorpay Card (Standby) */}
           <div
             style={{
               backgroundColor: '#FFFFFF',
@@ -369,29 +398,29 @@ export function DeliveryPayoutsPage() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: '#0284C7' }}>
-                Cashfree Payout Gateway
+                Razorpay Payout Gateway
               </div>
               <span style={{ backgroundColor: '#F0F9FF', color: '#0284C7', border: '1px solid #BAE6FD', padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 800 }}>
-                STANDBY / SECONDARY
+                STANDBY / BACKUP
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
               <div>
-                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>APP ID</span>
-                <strong style={{ color: '#0369A1' }}>cf_app_live_8839021940</strong>
+                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>ACCOUNT ID</span>
+                <strong style={{ color: '#0369A1' }}>rzp_account_live_490182390</strong>
               </div>
               <div>
                 <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>PAYOUT DISPATCH MODE</span>
-                <span style={{ fontWeight: 700, color: '#0369A1' }}>Fallback Instant UPI Transfer</span>
+                <span style={{ fontWeight: 700, color: '#0369A1' }}>Secondary Fallback Payout Rail</span>
               </div>
               <div>
                 <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 700 }}>WEBHOOK LISTENER</span>
                 <code style={{ fontSize: 12, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '2px 6px', borderRadius: 4 }}>
-                  /api/v1/payments/cashfree-webhook
+                  /api/v1/payments/razorpay-webhook
                 </code>
               </div>
               <div style={{ fontSize: 11, color: '#0284C7', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: 10, borderRadius: 8, marginTop: 8 }}>
-                Provider credentials and secret keys are stored in encrypted environment variables and never returned over API endpoints.
+                Secondary gateway standing by in case of primary gateway timeouts or failovers.
               </div>
             </div>
           </div>
@@ -404,7 +433,25 @@ export function DeliveryPayoutsPage() {
           payout={selectedPayout}
           walletBalance={12450.0}
           totalEarned={38900.0}
-          ledgerHistory={[]}
+          ledgerHistory={
+            serverLedger
+              .filter(
+                (l: any) =>
+                  (selectedPayout.partnerName && l.walletAccountId?.toLowerCase().includes(selectedPayout.partnerName.toLowerCase())) ||
+                  l.referenceId === selectedPayout.id ||
+                  l.referenceType?.includes('DELIVERY')
+              )
+              .slice(0, 10)
+              .map((l: any) => ({
+                ledgerEntryId: l.id,
+                walletAccountId: l.walletAccountId,
+                entryType: l.entryType,
+                amount: l.amount,
+                referenceType: l.referenceType,
+                referenceId: l.referenceId,
+                createdAt: l.createdAt,
+              }))
+          }
           onClose={() => setSelectedPayout(null)}
           onRetry={handleRetryPayout}
           onApprove={handleApprovePayout}

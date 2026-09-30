@@ -88,5 +88,22 @@ describe('routeGuards', () => {
     const superAdmin = filterNavForRole('SUPER_ADMIN').map((i) => i.href);
     expect(superAdmin).toContain('/audit-log');
   });
+
+  it('provides the 4 finance portal navigation headings for finance admin portal', () => {
+    const financeNav = filterNavForRole('FINANCE_ADMIN', '/finance-admin/dashboard');
+    expect(financeNav).toHaveLength(4);
+    expect(financeNav.map((i) => i.label)).toEqual([
+      'Executive Overview',
+      'Delivery Partner Payouts',
+      'Customer Payment Transactions',
+      'High-Risk Approvals',
+    ]);
+    expect(financeNav.map((i) => i.href)).toEqual([
+      '/finance-admin/dashboard',
+      '/delivery-payouts',
+      '/payments',
+      '/approvals',
+    ]);
+  });
 });
 

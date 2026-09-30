@@ -90,7 +90,7 @@ export async function GET(request: Request) {
           Accept: 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
-        timeoutMs: 3000,
+        timeoutMs: 10000,
       },
     );
 

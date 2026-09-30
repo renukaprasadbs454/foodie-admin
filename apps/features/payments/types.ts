@@ -116,6 +116,29 @@ export interface PayoutRecord {
   ownerName?: string;
 }
 
+export interface CancelledOrderRefundRequest {
+  id: string;
+  orderId: string;
+  orderNumber?: string;
+  customerId: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  paymentUuid: string;
+  amount: number;
+  paymentMethod: string;
+  isOnlinePayment: boolean;
+  gatewayTransactionId?: string;
+  gatewayProvider: 'RAZORPAY' | 'CASHFREE' | 'PAYTM' | 'STRIPE';
+  cancellationReason: string;
+  cancelledBy: 'CUSTOMER' | 'RESTAURANT' | 'ADMIN';
+  cancelledAt: string;
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'REFUNDED';
+  refundReference?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+}
+
 /**
  * Utility for local calculation preview if needed.
  */

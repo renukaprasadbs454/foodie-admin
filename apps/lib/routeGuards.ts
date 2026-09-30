@@ -231,6 +231,26 @@ export function filterNavForRole(role: string | null, pathname?: string): NavIte
     ];
   }
 
+  const isFinanceAdminPortal = Boolean(
+    pathname && (
+      pathname.startsWith('/finance-admin') ||
+      ((role && role.toUpperCase().includes('FINANCE')) && (
+        pathname.startsWith('/delivery-payouts') ||
+        pathname.startsWith('/payments') ||
+        pathname.startsWith('/approvals')
+      ))
+    )
+  );
+
+  if (isFinanceAdminPortal) {
+    return [
+      { href: '/finance-admin/dashboard', label: 'Executive Overview', icon: 'bar-chart' },
+      { href: '/delivery-payouts', label: 'Delivery Partner Payouts', icon: 'truck' },
+      { href: '/payments', label: 'Customer Payment Transactions', icon: 'credit-card' },
+      { href: '/approvals', label: 'High-Risk Approvals', icon: 'shield-alert' },
+    ];
+  }
+
   return DASHBOARD_NAV.filter((item) => {
     if (!item.roles) return true;
     if (!role) return false;

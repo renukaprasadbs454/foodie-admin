@@ -39,24 +39,24 @@ export const customersApi = baseApi.injectEndpoints({
         return `/api/bff/admin/customers${searchStr ? `?${searchStr}` : ''}`;
       },
       transformResponse: (response: any) => {
-        const list = Array.isArray(response) ? response : (response?.content || response?.items || []);
-        if (Array.isArray(list)) {
-          return {
-            summary: {
-              totalRegistered: list.length,
-              activeAccounts: list.filter((c: any) => c.accountStatus === 'ACTIVE').length,
-              suspendedAccounts: list.filter((c: any) => c.accountStatus === 'SUSPENDED').length,
-              averageCustomerLtv: 0,
-            },
-            customers: response,
-            total: response.length,
-            openTicketsCount: 0,
-          };
+        if (response?.customers && Array.isArray(response.customers)) {
+          return response;
         }
-        return response;
+        const list = Array.isArray(response) ? response : (response?.content || response?.items || []);
+        return {
+          summary: response?.summary || {
+            totalRegistered: list.length,
+            activeAccounts: list.filter((c: any) => c?.accountStatus === 'ACTIVE').length,
+            suspendedAccounts: list.filter((c: any) => c?.accountStatus === 'SUSPENDED').length,
+            averageCustomerLtv: 0,
+          },
+          customers: list,
+          total: response?.total ?? list.length,
+          openTicketsCount: response?.openTicketsCount ?? 0,
+        };
       },
       providesTags: [{ type: 'Admin', id: 'CUSTOMERS' }],
-      keepUnusedDataFor: 30,
+      keepUnusedDataFor: 300,
     }),
     updateCustomerStatus: builder.mutation<CustomerProfile, UpdateCustomerStatusRequest>({
       query: ({ id, accountStatus, reason }) => ({
@@ -69,7 +69,7 @@ export const customersApi = baseApi.injectEndpoints({
     getSupportTickets: builder.query<SupportTicket[], void>({
       query: () => '/api/bff/admin/support-tickets',
       providesTags: [{ type: 'Admin', id: 'SUPPORT_TICKETS' }],
-      keepUnusedDataFor: 30,
+      keepUnusedDataFor: 180,
     }),
     updateTicketStatus: builder.mutation<SupportTicket, UpdateTicketStatusRequest>({
       query: ({ id, status, agentNotes }) => ({

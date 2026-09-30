@@ -31,13 +31,13 @@ export function CustomerManagementStudio() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // RTK Query Hooks
+  // RTK Query Hooks - Fetches live database records once and keeps cache warm for instant client-side search/filter
   const {
     data: customerData,
     isLoading: isLoadingCustomers,
     isError: isCustomersError,
     refetch: refetchCustomers,
-  } = useGetCustomersQuery({ search: debouncedSearch, status: statusFilter });
+  } = useGetCustomersQuery();
 
   const {
     data: ticketsData,
@@ -56,19 +56,19 @@ export function CustomerManagementStudio() {
     averageCustomerLtv: 0,
   };
 
-  const rawCustomersList = customerData?.customers ?? [];
+  const rawCustomersList = Array.isArray(customerData?.customers) ? customerData.customers : [];
   const customersList = rawCustomersList.filter((cust) => {
     const q = searchQuery.trim().toLowerCase();
     const matchesSearch =
       !q ||
-      cust.name.toLowerCase().includes(q) ||
-      cust.email.toLowerCase().includes(q) ||
-      cust.phone.includes(q) ||
-      cust.id.toLowerCase().includes(q);
+      cust.name?.toLowerCase().includes(q) ||
+      cust.email?.toLowerCase().includes(q) ||
+      cust.phone?.includes(q) ||
+      cust.id?.toLowerCase().includes(q);
     const matchesStatus = statusFilter === 'ALL' || cust.accountStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
-  const ticketsList = ticketsData ?? [];
+  const ticketsList = Array.isArray(ticketsData) ? ticketsData : [];
   const openTicketsCount = customerData?.openTicketsCount ?? ticketsList.filter((t) => t.status === 'OPEN').length;
 
   const handleToggleAccountStatus = async (id: string, newStatus: AccountStatus) => {

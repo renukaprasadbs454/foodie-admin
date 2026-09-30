@@ -34,7 +34,7 @@ export async function safeFetch(
   url: string | URL,
   options: SafeFetchOptions = {},
 ): Promise<{ response: Response | null; error: Error | null }> {
-  const { timeoutMs = 3000, ...fetchInit } = options;
+  const { timeoutMs = 10000, ...fetchInit } = options;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 

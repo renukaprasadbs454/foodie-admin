@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import {
   buildAuthSetCookieHeaders,
   buildClearAuthSetCookieHeaders,
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       method: 'POST',
       headers,
       body: payload,
-      timeoutMs: 3000,
+      timeoutMs: 10000,
     });
 
     if (!fetchErr && upstream && upstream.ok) {
