@@ -33,7 +33,26 @@ public class AdminAccess {
         if (name == AdminRoleName.SUPER_ADMIN) {
             return true;
         }
-        return Arrays.stream(roles).anyMatch(r -> name.name().equals(r));
+        return Arrays.stream(roles).anyMatch(r -> isRoleMatch(name, r));
+    }
+
+    private boolean isRoleMatch(AdminRoleName name, String r) {
+        if (name.name().equalsIgnoreCase(r)) {
+            return true;
+        }
+        if (("OPS".equalsIgnoreCase(r) || "OPERATIONS_ADMIN".equalsIgnoreCase(r))
+                && (name == AdminRoleName.OPS || name == AdminRoleName.OPERATIONS_ADMIN)) {
+            return true;
+        }
+        if (("FINANCE".equalsIgnoreCase(r) || "FINANCE_ADMIN".equalsIgnoreCase(r))
+                && (name == AdminRoleName.FINANCE || name == AdminRoleName.FINANCE_ADMIN)) {
+            return true;
+        }
+        if (("SUPPORT".equalsIgnoreCase(r) || "SUPPORT_AGENT".equalsIgnoreCase(r))
+                && (name == AdminRoleName.SUPPORT || name == AdminRoleName.SUPPORT_AGENT)) {
+            return true;
+        }
+        return false;
     }
 
     public boolean can(Authentication authentication, String resource, String action) {
