@@ -315,7 +315,34 @@ export function ContactUsPage() {
 
   useEffect(() => {
     if (apiTickets && Array.isArray(apiTickets)) {
-      const nonGeneral = apiTickets.filter((t) => (t.category as string) !== 'GENERAL');
+      const mapped: EnquiryRecord[] = (apiTickets as any).map((t: any) => {
+        const firstUserMsg = t.messages?.find((m: any) => m.senderType !== 'AGENT' && m.senderType !== 'AI');
+        return {
+          id: t.id,
+          category: t.category || 'CUSTOMER',
+          senderName: t.senderName || firstUserMsg?.senderName || 'User',
+          senderEmail: t.senderEmail || t.customerId || 'N/A',
+          senderPhone: t.senderPhone || 'N/A',
+          subject: t.subject || 'Support Ticket',
+          message: t.message || firstUserMsg?.content || firstUserMsg?.message || 'View details',
+          timestamp: t.timestamp || (t.createdAt ? new Date(t.createdAt).toLocaleTimeString() : 'Just now'),
+          status: t.status || 'OPEN',
+          priority: t.priority || 'MEDIUM',
+          orderId: t.orderId,
+          messages: Array.isArray(t.messages)
+            ? t.messages.map((m: any) => ({
+                id: m.id,
+                enquiryId: t.id,
+                sender: (m.sender === 'admin' || m.senderType === 'AGENT' || m.senderType === 'AI') ? 'admin' : 'customer',
+                senderName: m.senderName || (m.senderType === 'AGENT' ? 'Admin Support' : 'User'),
+                message: m.message || m.content || '',
+                timestamp: m.timestamp || (m.createdAt ? new Date(m.createdAt).toLocaleTimeString() : 'Just now')
+              }))
+            : [],
+          replyMessage: t.replyMessage
+        };
+      });
+      const nonGeneral = mapped.filter((t) => (t.category as string) !== 'GENERAL');
       const active = nonGeneral.filter((t) => t.status !== 'RESOLVED');
       setEnquiries(active);
       setHistory(nonGeneral);
