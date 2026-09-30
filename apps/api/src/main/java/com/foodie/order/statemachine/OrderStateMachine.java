@@ -90,6 +90,7 @@ public final class OrderStateMachine {
                 || (from == OrderStatus.PLACED && to == OrderStatus.CONFIRMED)
                 || (from == OrderStatus.ACCEPTED && to == OrderStatus.WAITING_FOR_DELIVERY_PARTNER)
                 || (from == OrderStatus.PREPARING && to == OrderStatus.WAITING_FOR_DELIVERY_PARTNER)
+                || (from == OrderStatus.READY_FOR_PICKUP && to == OrderStatus.WAITING_FOR_DELIVERY_PARTNER)
                 || (from == OrderStatus.CONFIRMED && to == OrderStatus.WAITING_FOR_DELIVERY_PARTNER)
                 || (from == OrderStatus.WAITING_FOR_DELIVERY_PARTNER && to == OrderStatus.ASSIGNED)
                 || (from == OrderStatus.ACCEPTED && to == OrderStatus.ASSIGNED)
