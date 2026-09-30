@@ -15,6 +15,7 @@ import com.foodie.delivery.dto.response.DeliveryDocumentResponseDto;
 import com.foodie.delivery.dto.response.DeliveryProfileResponseDto;
 import com.foodie.delivery.dto.response.LivePartnerLocationDto;
 import com.foodie.delivery.entity.DeliveryPartner;
+import com.foodie.delivery.entity.DeliveryPartnerDocument;
 import com.foodie.delivery.mapper.DeliveryMapper;
 import com.foodie.delivery.repository.DeliveryAssignmentRepository;
 import com.foodie.delivery.repository.DeliveryPartnerDocumentRepository;
@@ -55,6 +56,7 @@ public class AdminDeliveryController {
     private final DeliveryPartnerDocumentRepository deliveryPartnerDocumentRepository;
     private final DeliveryAssignmentRepository deliveryAssignmentRepository;
     private final UserCredentialRepository userCredentialRepository;
+    private final com.foodie.admin.repository.AdminUserRepository adminUserRepository;
     private final DeliveryService deliveryService;
     private final DeliveryMapper deliveryMapper;
 
@@ -63,12 +65,14 @@ public class AdminDeliveryController {
             DeliveryPartnerDocumentRepository deliveryPartnerDocumentRepository,
             DeliveryAssignmentRepository deliveryAssignmentRepository,
             UserCredentialRepository userCredentialRepository,
+            com.foodie.admin.repository.AdminUserRepository adminUserRepository,
             DeliveryService deliveryService,
             DeliveryMapper deliveryMapper) {
         this.deliveryPartnerRepository = deliveryPartnerRepository;
         this.deliveryPartnerDocumentRepository = deliveryPartnerDocumentRepository;
         this.deliveryAssignmentRepository = deliveryAssignmentRepository;
         this.userCredentialRepository = userCredentialRepository;
+        this.adminUserRepository = adminUserRepository;
         this.deliveryService = deliveryService;
         this.deliveryMapper = deliveryMapper;
     }
@@ -149,6 +153,12 @@ public class AdminDeliveryController {
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery partner not found."));
         partner.verifyKyc();
         deliveryPartnerRepository.save(partner);
+        UUID adminUserId = resolveAdminUserId(principal != null ? principal.userId() : null);
+        List<DeliveryPartnerDocument> docs = deliveryPartnerDocumentRepository.findByDeliveryPartnerId(partner.getId());
+        for (DeliveryPartnerDocument doc : docs) {
+            doc.verify(adminUserId);
+            deliveryPartnerDocumentRepository.save(doc);
+        }
         return ResponseEntity.ok(ApiResponse.success(toAdminDto(partner)));
     }
 
@@ -164,7 +174,22 @@ public class AdminDeliveryController {
         String reason = (body != null && body.containsKey("reason")) ? body.get("reason") : "Documents incomplete or invalid.";
         partner.rejectKyc(reason);
         deliveryPartnerRepository.save(partner);
+        UUID adminUserId = resolveAdminUserId(principal != null ? principal.userId() : null);
+        List<DeliveryPartnerDocument> docs = deliveryPartnerDocumentRepository.findByDeliveryPartnerId(partner.getId());
+        for (DeliveryPartnerDocument doc : docs) {
+            doc.reject(adminUserId, reason);
+            deliveryPartnerDocumentRepository.save(doc);
+        }
         return ResponseEntity.ok(ApiResponse.success(toAdminDto(partner)));
+    }
+
+    private UUID resolveAdminUserId(UUID userCredentialId) {
+        if (userCredentialId == null) {
+            return null;
+        }
+        return adminUserRepository.findByUserCredentialId(userCredentialId)
+                .map(com.foodie.admin.entity.AdminUser::getId)
+                .orElseGet(() -> adminUserRepository.findAll().stream().findFirst().map(com.foodie.admin.entity.AdminUser::getId).orElse(null));
     }
 
     @GetMapping("/live-locations")

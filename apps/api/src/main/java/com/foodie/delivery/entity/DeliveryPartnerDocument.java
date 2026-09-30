@@ -58,6 +58,27 @@ public class DeliveryPartnerDocument extends BaseEntity {
         return document;
     }
 
+    public void updateDocument(String s3Key) {
+        this.s3Key = s3Key;
+        this.verificationStatus = DocumentVerificationStatus.PENDING;
+        this.verifiedBy = null;
+        this.verifiedAt = null;
+        this.remarks = null;
+    }
+
+    public void verify(UUID verifiedBy) {
+        this.verificationStatus = DocumentVerificationStatus.VERIFIED;
+        this.verifiedBy = verifiedBy;
+        this.verifiedAt = Instant.now();
+    }
+
+    public void reject(UUID verifiedBy, String remarks) {
+        this.verificationStatus = DocumentVerificationStatus.REJECTED;
+        this.verifiedBy = verifiedBy;
+        this.verifiedAt = Instant.now();
+        this.remarks = remarks;
+    }
+
     public DeliveryPartner getDeliveryPartner() {
         return deliveryPartner;
     }
@@ -78,3 +99,4 @@ public class DeliveryPartnerDocument extends BaseEntity {
         return verifiedAt;
     }
 }
+

@@ -106,6 +106,11 @@ public class AdminPaymentController {
             String ownerName = p.getAccountHolderName();
             String partnerPhone = "";
             UUID partnerId = null;
+            String accHolder = p.getAccountHolderName();
+            String accNumber = p.getAccountNumber();
+            String ifsc = p.getIfscCode();
+            String bName = p.getBankName();
+
             WalletAccount acc = walletAccountRepository.findById(p.getWalletAccountId()).orElse(null);
             if (acc != null) {
                 partnerId = acc.getOwnerId();
@@ -121,6 +126,23 @@ public class AdminPaymentController {
                     } else {
                         ownerName = deliveryPartnerLookup.findPartnerNameById(acc.getOwnerId()).orElse(ownerName);
                     }
+
+                    var bankDetails = deliveryPartnerLookup.findBankDetailsByPartnerId(acc.getOwnerId());
+                    if (bankDetails.isPresent()) {
+                        var b = bankDetails.get();
+                        if ((accHolder == null || accHolder.isBlank() || "Saved in Profile".equalsIgnoreCase(accHolder)) && b.accountHolderName() != null && !b.accountHolderName().isBlank()) {
+                            accHolder = b.accountHolderName();
+                        }
+                        if ((accNumber == null || accNumber.isBlank() || "****".equals(accNumber)) && b.accountNumber() != null && !b.accountNumber().isBlank()) {
+                            accNumber = b.accountNumber();
+                        }
+                        if ((ifsc == null || ifsc.isBlank() || "****".equals(ifsc)) && b.ifscCode() != null && !b.ifscCode().isBlank()) {
+                            ifsc = b.ifscCode();
+                        }
+                        if ((bName == null || bName.isBlank() || "Saved in Profile".equalsIgnoreCase(bName)) && b.bankName() != null && !b.bankName().isBlank()) {
+                            bName = b.bankName();
+                        }
+                    }
                 }
             }
             return new AdminPayoutResponseDto(
@@ -129,10 +151,10 @@ public class AdminPaymentController {
                     partnerId,
                     p.getAmount(),
                     p.getStatus().name(),
-                    p.getAccountHolderName(),
-                    p.getAccountNumber(),
-                    p.getIfscCode(),
-                    p.getBankName(),
+                    accHolder,
+                    accNumber,
+                    ifsc,
+                    bName,
                     p.getProvider() != null ? p.getProvider() : "CASHFREE",
                     p.getProviderPayoutId(),
                     p.getProviderReferenceId(),
@@ -160,6 +182,11 @@ public class AdminPaymentController {
         String ownerName = p.getAccountHolderName();
         String partnerPhone = "";
         UUID partnerId = null;
+        String accHolder = p.getAccountHolderName();
+        String accNumber = p.getAccountNumber();
+        String ifsc = p.getIfscCode();
+        String bName = p.getBankName();
+
         WalletAccount acc = walletAccountRepository.findById(p.getWalletAccountId()).orElse(null);
         if (acc != null) {
             partnerId = acc.getOwnerId();
@@ -175,6 +202,23 @@ public class AdminPaymentController {
                 } else {
                     ownerName = deliveryPartnerLookup.findPartnerNameById(acc.getOwnerId()).orElse(ownerName);
                 }
+
+                var bankDetails = deliveryPartnerLookup.findBankDetailsByPartnerId(acc.getOwnerId());
+                if (bankDetails.isPresent()) {
+                    var b = bankDetails.get();
+                    if ((accHolder == null || accHolder.isBlank() || "Saved in Profile".equalsIgnoreCase(accHolder)) && b.accountHolderName() != null && !b.accountHolderName().isBlank()) {
+                        accHolder = b.accountHolderName();
+                    }
+                    if ((accNumber == null || accNumber.isBlank() || "****".equals(accNumber)) && b.accountNumber() != null && !b.accountNumber().isBlank()) {
+                        accNumber = b.accountNumber();
+                    }
+                    if ((ifsc == null || ifsc.isBlank() || "****".equals(ifsc)) && b.ifscCode() != null && !b.ifscCode().isBlank()) {
+                        ifsc = b.ifscCode();
+                    }
+                    if ((bName == null || bName.isBlank() || "Saved in Profile".equalsIgnoreCase(bName)) && b.bankName() != null && !b.bankName().isBlank()) {
+                        bName = b.bankName();
+                    }
+                }
             }
         }
         return ResponseEntity.ok(ApiResponse.success(new AdminPayoutResponseDto(
@@ -183,10 +227,10 @@ public class AdminPaymentController {
                 partnerId,
                 p.getAmount(),
                 p.getStatus().name(),
-                p.getAccountHolderName(),
-                p.getAccountNumber(),
-                p.getIfscCode(),
-                p.getBankName(),
+                accHolder,
+                accNumber,
+                ifsc,
+                bName,
                 p.getProvider() != null ? p.getProvider() : "CASHFREE",
                 p.getProviderPayoutId(),
                 p.getProviderReferenceId(),

@@ -72,7 +72,8 @@ public class DeliveryController {
             @RequestParam("file") MultipartFile file) {
         DeliveryDocType type;
         try {
-            type = DeliveryDocType.valueOf(docType);
+            String cleanDocType = (docType != null) ? docType.split(",")[0].trim().toUpperCase() : "";
+            type = DeliveryDocType.valueOf(cleanDocType);
         } catch (IllegalArgumentException | NullPointerException ex) {
             throw new BadRequestException(
                     ErrorCode.VALIDATION_FAILED,
@@ -197,5 +198,22 @@ public class DeliveryController {
             @Valid @RequestBody com.foodie.delivery.dto.request.CashDepositRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(deliveryService.submitCashDeposit(principal.userId(), request)));
+    }
+
+    @GetMapping("/me/bank-details")
+    @PreAuthorize("hasRole('DELIVERY_PARTNER')")
+    @Operation(summary = "Get delivery partner bank details")
+    public ResponseEntity<ApiResponse<com.foodie.delivery.dto.response.DeliveryBankDetailsResponseDto>> getBankDetails(
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return ResponseEntity.ok(ApiResponse.success(deliveryService.getBankDetails(principal.userId())));
+    }
+
+    @PutMapping("/me/bank-details")
+    @PreAuthorize("hasRole('DELIVERY_PARTNER')")
+    @Operation(summary = "Save or update delivery partner bank details")
+    public ResponseEntity<ApiResponse<com.foodie.delivery.dto.response.DeliveryBankDetailsResponseDto>> updateBankDetails(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @Valid @RequestBody com.foodie.delivery.dto.request.DeliveryBankDetailsRequestDto request) {
+        return ResponseEntity.ok(ApiResponse.success(deliveryService.updateBankDetails(principal.userId(), request)));
     }
 }

@@ -54,4 +54,16 @@ public class DeliveryPartnerLookupImpl implements DeliveryPartnerLookup {
                         ""
                 ));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<PartnerBankDetails> findBankDetailsByPartnerId(UUID deliveryPartnerId) {
+        return deliveryPartnerRepository.findById(deliveryPartnerId)
+                .map(partner -> new PartnerBankDetails(
+                        partner.getAccountHolderName(),
+                        partner.getAccountNumber(),
+                        partner.getIfscCode(),
+                        partner.getBankName()
+                ));
+    }
 }

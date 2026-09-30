@@ -346,10 +346,32 @@ public class WalletServiceImpl implements WalletService {
                     "Requested payout exceeds available wallet balance.");
         }
 
+        String accHolder = request.accountHolderName();
+        String accNumber = request.accountNumber();
+        String ifsc = request.ifscCode();
+        String bName = request.bankName();
+
+        var bankDetails = deliveryPartnerLookup.findBankDetailsByPartnerId(partnerId);
+        if (bankDetails.isPresent()) {
+            var b = bankDetails.get();
+            if ((accHolder == null || accHolder.isBlank() || "Saved in Profile".equalsIgnoreCase(accHolder)) && b.accountHolderName() != null && !b.accountHolderName().isBlank()) {
+                accHolder = b.accountHolderName();
+            }
+            if ((accNumber == null || accNumber.isBlank() || "****".equals(accNumber)) && b.accountNumber() != null && !b.accountNumber().isBlank()) {
+                accNumber = b.accountNumber();
+            }
+            if ((ifsc == null || ifsc.isBlank() || "****".equals(ifsc)) && b.ifscCode() != null && !b.ifscCode().isBlank()) {
+                ifsc = b.ifscCode();
+            }
+            if ((bName == null || bName.isBlank() || "Saved in Profile".equalsIgnoreCase(bName)) && b.bankName() != null && !b.bankName().isBlank()) {
+                bName = b.bankName();
+            }
+        }
+
         // REQUESTED does not debit the ledger — bank settlement (out of Module 9 scope)
         // will.
-        Payout payout = payoutRepository.save(Payout.request(account.getId(), amount, request.accountHolderName(),
-                request.accountNumber(), request.ifscCode(), request.bankName()));
+        Payout payout = payoutRepository.save(Payout.request(account.getId(), amount, accHolder,
+                accNumber, ifsc, bName));
         PayoutResponseDto response = WalletMapper.toPayout(payout);
         eventPublisher.publishEvent(PayoutRequestedEvent.of(
                 payout.getId(), account.getId(), partnerId, amount));

@@ -20,5 +20,16 @@ public interface DeliveryPartnerLookup {
     default Optional<PartnerSummary> findPartnerSummaryById(UUID deliveryPartnerId) {
         return Optional.empty();
     }
+
+    record PartnerBankDetails(
+            String accountHolderName,
+            String accountNumber,
+            String ifscCode,
+            String bankName
+    ) {}
+
+    default Optional<PartnerBankDetails> findBankDetailsByPartnerId(UUID deliveryPartnerId) {
+        return Optional.empty();
+    }
 }
 

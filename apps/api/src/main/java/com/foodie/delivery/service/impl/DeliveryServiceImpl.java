@@ -187,8 +187,14 @@ public class DeliveryServiceImpl implements DeliveryService {
         String key = "delivery-partners/" + partner.getId() + "/documents/" + docType.name()
                 + "/" + UUID.randomUUID() + "." + detected.extension();
         objectStorageClient.putObject(key, new ByteArrayInputStream(bytes), bytes.length, detected.contentType());
-        DeliveryPartnerDocument document = deliveryPartnerDocumentRepository.save(
-                DeliveryPartnerDocument.create(partner, docType, key));
+        DeliveryPartnerDocument document = deliveryPartnerDocumentRepository
+                .findByDeliveryPartnerIdAndDocType(partner.getId(), docType)
+                .map(existingDoc -> {
+                    existingDoc.updateDocument(key);
+                    return deliveryPartnerDocumentRepository.save(existingDoc);
+                })
+                .orElseGet(() -> deliveryPartnerDocumentRepository.save(
+                        DeliveryPartnerDocument.create(partner, docType, key)));
         return deliveryMapper.toDocument(document);
     }
 
@@ -782,6 +788,48 @@ public class DeliveryServiceImpl implements DeliveryService {
                 deposit.getRejectionReason(),
                 deposit.getCreatedAt(),
                 deposit.getApprovedAt()
+        );
+    }
+
+    @Override
+    @Transactional
+    public com.foodie.delivery.dto.response.DeliveryBankDetailsResponseDto getBankDetails(UUID userCredentialId) {
+        DeliveryPartner partner = deliveryPartnerRepository.findByUserCredentialId(userCredentialId)
+                .orElseGet(() -> deliveryPartnerRepository.save(DeliveryPartner.create(
+                        userCredentialId,
+                        DEFAULT_FULL_NAME,
+                        VehicleType.BIKE,
+                        null)));
+        return new com.foodie.delivery.dto.response.DeliveryBankDetailsResponseDto(
+                partner.getAccountHolderName() != null ? partner.getAccountHolderName() : "",
+                partner.getAccountNumber() != null ? partner.getAccountNumber() : "",
+                partner.getIfscCode() != null ? partner.getIfscCode() : "",
+                partner.getBankName() != null ? partner.getBankName() : ""
+        );
+    }
+
+    @Override
+    @Transactional
+    public com.foodie.delivery.dto.response.DeliveryBankDetailsResponseDto updateBankDetails(
+            UUID userCredentialId, com.foodie.delivery.dto.request.DeliveryBankDetailsRequestDto request) {
+        DeliveryPartner partner = deliveryPartnerRepository.findByUserCredentialId(userCredentialId)
+                .orElseGet(() -> deliveryPartnerRepository.save(DeliveryPartner.create(
+                        userCredentialId,
+                        DEFAULT_FULL_NAME,
+                        VehicleType.BIKE,
+                        null)));
+        partner.updateBankDetails(
+                request.accountHolderName(),
+                request.accountNumber(),
+                request.ifscCode(),
+                request.bankName()
+        );
+        partner = deliveryPartnerRepository.save(partner);
+        return new com.foodie.delivery.dto.response.DeliveryBankDetailsResponseDto(
+                partner.getAccountHolderName(),
+                partner.getAccountNumber(),
+                partner.getIfscCode(),
+                partner.getBankName()
         );
     }
 }

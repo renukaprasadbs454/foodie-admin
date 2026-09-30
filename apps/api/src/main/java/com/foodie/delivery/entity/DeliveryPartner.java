@@ -46,6 +46,18 @@ public class DeliveryPartner extends BaseEntity {
     @Column(name = "max_cash_in_hand_limit", nullable = false, precision = 10, scale = 2)
     private java.math.BigDecimal maxCashInHandLimit = new java.math.BigDecimal("2000.00");
 
+    @Column(name = "account_holder_name", length = 100)
+    private String accountHolderName;
+
+    @Column(name = "account_number", length = 100)
+    private String accountNumber;
+
+    @Column(name = "ifsc_code", length = 30)
+    private String ifscCode;
+
+    @Column(name = "bank_name", length = 100)
+    private String bankName;
+
     protected DeliveryPartner() {
     }
 
@@ -157,5 +169,28 @@ public class DeliveryPartner extends BaseEntity {
 
     public boolean isOnline() {
         return online;
+    }
+
+    public void updateBankDetails(String accountHolderName, String accountNumber, String ifscCode, String bankName) {
+        if (accountHolderName != null) this.accountHolderName = accountHolderName;
+        if (accountNumber != null) this.accountNumber = accountNumber;
+        if (ifscCode != null) this.ifscCode = ifscCode;
+        if (bankName != null) this.bankName = bankName;
+    }
+
+    public String getAccountHolderName() {
+        return accountHolderName;
+    }
+
+    public String getAccountNumber() {
+        return accountNumber;
+    }
+
+    public String getIfscCode() {
+        return ifscCode;
+    }
+
+    public String getBankName() {
+        return bankName;
     }
 }
