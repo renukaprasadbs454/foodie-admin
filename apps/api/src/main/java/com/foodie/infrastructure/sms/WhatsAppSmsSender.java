@@ -67,23 +67,12 @@ public class WhatsAppSmsSender implements SmsSender {
                                         "text": "%s"
                                       }
                                     ]
-                                  },
-                                  {
-                                    "type": "button",
-                                    "sub_type": "url",
-                                    "index": "0",
-                                    "parameters": [
-                                      {
-                                        "type": "text",
-                                        "text": "%s"
-                                      }
-                                    ]
                                   }
                                 ]
                               }
                             }
                             """,
-                    formattedPhone, otp, otp);
+                    formattedPhone, otp);
 
             HttpEntity<String> request = new HttpEntity<>(payload, headers);
 
@@ -92,7 +81,11 @@ public class WhatsAppSmsSender implements SmsSender {
                 log.info("Successfully dispatched WhatsApp OTP template to {}", mask(formattedPhone));
                 return;
             } catch (Exception templateEx) {
-                log.warn("WhatsApp template dispatch returned error: {}. Trying direct text message fallback...", templateEx.getMessage());
+                String metaError = templateEx.getMessage();
+                if (templateEx instanceof org.springframework.web.client.RestClientResponseException rce) {
+                    metaError = rce.getResponseBodyAsString();
+                }
+                log.warn("WhatsApp template dispatch returned error: {}. Trying direct text message fallback...", metaError);
 
                 String textPayload = String.format(
                         """
@@ -115,7 +108,11 @@ public class WhatsAppSmsSender implements SmsSender {
             }
 
         } catch (Exception ex) {
-            log.error("Failed to send WhatsApp OTP to {}: {}", mask(phoneNumber), ex.getMessage());
+            String metaError = ex.getMessage();
+            if (ex instanceof org.springframework.web.client.RestClientResponseException rce) {
+                metaError = rce.getResponseBodyAsString();
+            }
+            log.error("Failed to send WhatsApp OTP to {}: {}", mask(phoneNumber), metaError);
             log.info("Development fallback - active OTP code for {}: {}", phoneNumber, otp);
         }
     }
