@@ -1,0 +1,15 @@
+{
+    "success":  true,
+    "data":  {
+                 "restaurantId":  "b0a028e3-38a3-4079-9373-c39c90758c2f",
+                 "categories":  [
+
+                                ]
+             },
+    "error":  null,
+    "meta":  {
+                 "timestamp":  "2026-09-02T08:31:39.269508100Z",
+                 "requestId":  "bcb96254-dc05-4506-8636-a3cfc6a6251f",
+                 "pagination":  null
+             }
+}

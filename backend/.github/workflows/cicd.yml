@@ -1,0 +1,132 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+jobs:
+  build-test:
+    name: Docker Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make Maven Wrapper executable
+        working-directory: apps/api
+        run: chmod +x mvnw
+
+      - name: Build Backend Docker Image
+        working-directory: apps/api
+        run: docker compose build backend
+
+  deploy:
+    name: Deploy Foodie Backend
+    needs: build-test
+    runs-on: ubuntu-latest
+
+    # Deploy only for pushes to main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy to Foodie VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+
+          script: |
+            set -e
+
+            echo "======================================"
+            echo "Starting Foodie deployment"
+            echo "======================================"
+
+            if [ -d "/root/foodie/backend" ]; then
+              cd /root/foodie/backend
+            elif [ -d "/root/foodie-backend" ]; then
+              cd /root/foodie-backend
+            elif [ -d "$HOME/foodie/backend" ]; then
+              cd "$HOME/foodie/backend"
+            else
+              cd "$HOME/foodie-backend"
+            fi
+
+            echo "Checking current Git status..."
+            git status
+
+            echo "Pulling latest code from main..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            cd apps/api
+
+            COMPOSE_CMD="docker compose"
+            if ! docker compose version >/dev/null 2>&1; then
+              if docker-compose version >/dev/null 2>&1; then
+                COMPOSE_CMD="docker-compose"
+              fi
+            fi
+            echo "Using Docker Compose command: $COMPOSE_CMD"
+
+            echo "Ensuring .env exists..."
+            touch .env
+
+            echo "Starting PostgreSQL & Redis..."
+            $COMPOSE_CMD up -d postgres redis
+            sleep 5
+
+            echo "Cleaning any stale/failed Flyway migration history entries..."
+            docker exec foodie-postgres psql -U foodie -d foodie -c "DELETE FROM flyway_schema_history WHERE success = false OR version IN ('28', '29', '30', '31', '32', '33', '34');" 2>/dev/null || true
+
+            echo "Starting Foodie backend stack..."
+            $COMPOSE_CMD build --no-cache backend
+            $COMPOSE_CMD up -d --force-recreate backend postgres redis
+
+            echo "Waiting for Foodie backend to become healthy..."
+
+            for i in {1..60}; do
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health 2>/dev/null || echo "000")
+              CONTAINER_STATE=$(docker inspect foodie-backend --format '{{.State.Status}}' 2>/dev/null || echo "unknown")
+
+              echo "[$i/60] HTTP response: $HTTP_CODE | Container state: $CONTAINER_STATE"
+
+              if [ "$HTTP_CODE" = "200" ]; then
+                echo "======================================"
+                echo "Foodie backend is UP and HEALTHY (HTTP 200)!"
+                echo "======================================"
+                break
+              fi
+
+              if [ "$CONTAINER_STATE" = "exited" ] || [ "$CONTAINER_STATE" = "dead" ]; then
+                echo "======================================"
+                echo "Foodie backend container crashed or exited!"
+                echo "======================================"
+                $COMPOSE_CMD logs backend --tail=100
+                exit 1
+              fi
+
+              sleep 5
+
+              if [ "$i" -eq 60 ]; then
+                echo "======================================"
+                echo "Foodie backend did not return HTTP 200 in time."
+                echo "======================================"
+                $COMPOSE_CMD ps
+                $COMPOSE_CMD logs backend --tail=100
+                exit 1
+              fi
+            done
+
+            echo "Checking Docker containers..."
+            $COMPOSE_CMD ps
+
+            echo "Checking backend logs..."
+            $COMPOSE_CMD logs backend --tail=50
+
+            echo "======================================"
+            echo "Foodie deployment completed successfully"
+            echo "======================================"

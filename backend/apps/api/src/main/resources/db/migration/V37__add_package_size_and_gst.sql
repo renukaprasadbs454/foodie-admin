@@ -1,0 +1,2 @@
+ALTER TABLE menu_item ADD COLUMN package_size VARCHAR(100);
+ALTER TABLE menu_item ADD COLUMN gst_pct DECIMAL(5, 2) DEFAULT 0.00;

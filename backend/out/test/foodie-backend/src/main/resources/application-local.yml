@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:foodie}
+    username: ${DB_USER:foodie}
+    password: ${DB_PASSWORD:foodie}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    com.foodie: DEBUG
+    org.springframework.security: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always

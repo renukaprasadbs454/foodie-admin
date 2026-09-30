@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build
+        run: ./mvnw -B -DskipTests package
+
+      - name: Unit & integration tests
+        run: ./mvnw -B test
+
+      - name: Upload surefire reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+
+  deploy:
+    name: Deploy Foodie Backend
+    needs: build-test
+    runs-on: ubuntu-latest
+
+    # Deploy only for pushes to main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy to Foodie VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+
+          script: |
+            set -e
+
+            echo "======================================"
+            echo "Starting Foodie deployment"
+            echo "======================================"
+
+            cd /root/foodie/backend/apps/api
+
+            echo "Checking current Git status..."
+            git status
+
+            echo "Pulling latest code from main..."
+            git pull origin main
+
+            echo "Building Foodie backend Docker image..."
+            docker compose build backend
+
+            echo "Starting Foodie backend..."
+            docker compose up -d backend
+
+            echo "Waiting for backend to start..."
+            sleep 10
+
+            echo "Checking Docker containers..."
+            docker compose ps
+
+            echo "Checking backend logs..."
+            docker compose logs backend --tail=50
+
+            echo "======================================"
+            echo "Foodie deployment completed"
+            echo "======================================"

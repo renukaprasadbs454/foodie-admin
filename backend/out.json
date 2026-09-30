@@ -1,0 +1,87 @@
+{
+    "success":  true,
+    "data":  [
+                 {
+                     "restaurantId":  "b0a028e3-38a3-4079-9373-c39c90758c2f",
+                     "name":  "Ganesha restaurant",
+                     "cuisineTypes":  [
+                                          "SOUTH_INDIAN",
+                                          "NORTH_INDIAN",
+                                          "VEGETARIAN",
+                                          "CHINESE",
+                                          "BIRYANI"
+                                      ],
+                     "avgRating":  0.0,
+                     "latitude":  13.316850,
+                     "longitude":  77.094245,
+                     "imageUrl":  "/api/v1/storage/restaurants/b0a028e3-38a3-4079-9373-c39c90758c2f/images/23e5e02f-064a-4b58-b4d6-78703745c494.png"
+                 },
+                 {
+                     "restaurantId":  "1cd80a7c-6ac3-4a40-b737-f9dc1d60d625",
+                     "name":  "Asian Wok \u0026 Noodle House",
+                     "cuisineTypes":  [
+                                          "Asian",
+                                          "Chinese",
+                                          "Thai",
+                                          "Seafood"
+                                      ],
+                     "avgRating":  4.8,
+                     "latitude":  12.912100,
+                     "longitude":  77.644600,
+                     "imageUrl":  "https://images.unsplash.com/photo-1617093727343-374698b1b08d?q=80\u0026w=800"
+                 },
+                 {
+                     "restaurantId":  "36386b0d-eaec-4223-a763-eee29cdbb115",
+                     "name":  "Burger \u0026 Bowl Co.",
+                     "cuisineTypes":  [
+                                          "American",
+                                          "Burgers",
+                                          "Fast Food",
+                                          "Beverages"
+                                      ],
+                     "avgRating":  4.6,
+                     "latitude":  12.975600,
+                     "longitude":  77.606700,
+                     "imageUrl":  "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80\u0026w=800"
+                 },
+                 {
+                     "restaurantId":  "bd99f822-f290-4045-be4a-211bc1276e40",
+                     "name":  "Pizza Horizon \u0026 Italian Bistro",
+                     "cuisineTypes":  [
+                                          "Italian",
+                                          "Pizza",
+                                          "Pasta",
+                                          "Fast Food"
+                                      ],
+                     "avgRating":  4.7,
+                     "latitude":  12.935200,
+                     "longitude":  77.624500,
+                     "imageUrl":  "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80\u0026w=800"
+                 },
+                 {
+                     "restaurantId":  "dbda21c7-c3d8-4172-828b-8c906adedced",
+                     "name":  "Spice Garden Biryani \u0026 North Indian",
+                     "cuisineTypes":  [
+                                          "Indian",
+                                          "Biryani",
+                                          "North Indian",
+                                          "Mughlai"
+                                      ],
+                     "avgRating":  4.8,
+                     "latitude":  12.978400,
+                     "longitude":  77.640800,
+                     "imageUrl":  "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80\u0026w=800"
+                 }
+             ],
+    "error":  null,
+    "meta":  {
+                 "timestamp":  "2026-09-02T08:31:20.166301800Z",
+                 "requestId":  "6b31bd69-5911-4de7-8305-9fc84367ae42",
+                 "pagination":  {
+                                    "page":  0,
+                                    "size":  20,
+                                    "totalElements":  5,
+                                    "totalPages":  1
+                                }
+             }
+}

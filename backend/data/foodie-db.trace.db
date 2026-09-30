@@ -1,0 +1,12 @@
+2026-09-01 00:45:06.637210+05:30 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "RESTAURANT" not found (this database is empty); SQL statement:
+UPDATE restaurant SET status = 'APPROVED' WHERE owner_user_credential_id = (SELECT id FROM user_credential WHERE phone_number = '9686753394'); [42104-224]
+2026-09-01 00:45:20.792369+05:30 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "RESTAURANT" not found (this database is empty); SQL statement:
+UPDATE restaurant SET status = 'APPROVED' WHERE owner_user_credential_id = (SELECT id FROM user_credential WHERE phone_number = '9686753394'); [42104-224]
+2026-09-01 00:46:16.824147+05:30 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "RESTAURANT" not found (this database is empty); SQL statement:
+UPDATE restaurant SET status = 'APPROVED' WHERE owner_user_credential_id = (SELECT id FROM user_credential WHERE phone_number = '9686753394'); [42104-224]
+2026-09-01 00:46:58.113213+05:30 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "RESTAURANT" not found (this database is empty); SQL statement:
+UPDATE restaurant SET status = 'APPROVED' WHERE owner_user_credential_id = (SELECT id FROM user_credential WHERE phone_number = '9686753394'); [42104-224]
