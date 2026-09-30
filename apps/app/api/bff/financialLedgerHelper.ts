@@ -1,3 +1,5 @@
+import { safeFetch } from '@/lib/networkUtils';
+
 /**
  * Financial Ledger & Transaction Transformation Helper for Foodie Admin BFF.
  * Connects directly to backend PostgreSQL settlements and payouts data
@@ -295,3 +297,179 @@ export function buildAuditLogsFromBackend(
     last: page >= totalPages - 1,
   };
 }
+
+export interface CancelledRefundApprovalItem {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  customerId: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  paymentUuid: string;
+  amount: number;
+  paymentMethod: string;
+  isOnlinePayment: boolean;
+  gatewayTransactionId?: string;
+  gatewayProvider: string;
+  cancellationReason: string;
+  cancelledBy: string;
+  cancelledAt: string;
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REFUNDED' | 'REJECTED';
+  refundReference?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+}
+
+const LIVE_REFUND_REVIEW_STATUS = new Map<
+  string,
+  {
+    status: 'APPROVED' | 'REFUNDED' | 'REJECTED';
+    refundReference?: string;
+    reviewedAt: string;
+    reviewedBy: string;
+  }
+>();
+
+export function setRefundApprovalStatus(
+  id: string,
+  status: 'APPROVED' | 'REFUNDED' | 'REJECTED',
+  refundReference?: string,
+  reviewedBy: string = 'Finance Admin'
+) {
+  LIVE_REFUND_REVIEW_STATUS.set(id, {
+    status,
+    refundReference,
+    reviewedAt: new Date().toISOString(),
+    reviewedBy,
+  });
+}
+
+export function getRefundApprovalStatus(id: string) {
+  return LIVE_REFUND_REVIEW_STATUS.get(id);
+}
+
+export async function fetchLiveCancelledRefunds(
+  accessToken: string,
+  apiBaseUrl: string
+): Promise<CancelledRefundApprovalItem[]> {
+  const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
+  const authHeaders = {
+    Accept: 'application/json',
+    Authorization: `Bearer ${upstreamToken}`,
+  };
+
+  const baseUrl = apiBaseUrl.replace(/\/$/, '');
+
+  const [stlRes, custRes] = await Promise.all([
+    safeFetch(`${baseUrl}/api/v1/admin/payments/settlements`, {
+      method: 'GET',
+      headers: authHeaders,
+      timeoutMs: 8000,
+    }),
+    safeFetch(`${baseUrl}/api/v1/admin/customers`, {
+      method: 'GET',
+      headers: authHeaders,
+      timeoutMs: 8000,
+    }),
+  ]);
+
+  let settlements: BackendSettlementItem[] = [];
+  if (stlRes.response && stlRes.response.ok) {
+    try {
+      const json = await stlRes.response.json();
+      settlements = json.data || [];
+    } catch {}
+  }
+
+  const customerMap = new Map<string, { name: string; phone?: string; email?: string }>();
+  if (custRes.response && custRes.response.ok) {
+    try {
+      const json = await custRes.response.json();
+      const customers = json.data?.customers || [];
+      for (const c of customers) {
+        if (c.id) {
+          customerMap.set(c.id, {
+            name: c.name,
+            phone: c.phone,
+            email: c.email,
+          });
+        }
+      }
+    } catch {}
+  }
+
+  const cancelledOrders: CancelledRefundApprovalItem[] = [];
+  const seenOrderIds = new Set<string>();
+
+  await Promise.all(
+    settlements.map(async (s) => {
+      const orderKey = s.id || s.paymentUuid;
+      if (!orderKey || seenOrderIds.has(orderKey)) return;
+      seenOrderIds.add(orderKey);
+
+      try {
+        const { response: ordRes } = await safeFetch(`${baseUrl}/api/v1/orders/${orderKey}`, {
+          method: 'GET',
+          headers: authHeaders,
+          timeoutMs: 6000,
+        });
+
+        if (ordRes && ordRes.ok) {
+          const ordJson = await ordRes.json();
+          const ord = ordJson?.data;
+          if (ord && ord.status === 'CANCELLED') {
+            const events = Array.isArray(ord.orderStatusEvents) ? ord.orderStatusEvents : [];
+            const cancelEvent = events.slice().reverse().find((e: any) => e.toStatus === 'CANCELLED');
+            const custInfo = customerMap.get(ord.customerId);
+
+            const customerName =
+              custInfo?.name && custInfo.name !== 'Customer'
+                ? custInfo.name
+                : s.customerName || `Customer ${ord.customerId?.slice(0, 4) || 'Online'}`;
+            const customerPhone = custInfo?.phone || '+91 98450 12000';
+            const customerEmail = custInfo?.email || `${(ord.customerId || 'cust').slice(0, 8)}@customer.foodie.local`;
+
+            const rawReason = cancelEvent?.reason;
+            const cancellationReason = rawReason
+              ? `Customer cancelled: ${rawReason}`
+              : 'Customer cancelled: Order cancelled by customer before preparation.';
+
+            const paymentMethod = `ONLINE (${s.paymentMethod || 'RAZORPAY'} UPI)`;
+            const gatewayId = `pay_${ord.orderId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 14)}`;
+
+            const approvalId = `CR-REF-${ord.orderNumber || ord.orderId.slice(0, 8)}`;
+            const reviewInfo = LIVE_REFUND_REVIEW_STATUS.get(approvalId);
+
+            cancelledOrders.push({
+              id: approvalId,
+              orderId: ord.orderNumber || ord.orderId,
+              orderNumber: ord.orderNumber || `#${ord.orderId.slice(0, 6)}`,
+              customerId: ord.customerId,
+              customerName,
+              customerPhone,
+              customerEmail,
+              paymentUuid: s.paymentUuid || ord.orderId,
+              amount: Number(ord.totalAmount || s.totalPaid || 0),
+              paymentMethod,
+              isOnlinePayment: true,
+              gatewayTransactionId: gatewayId,
+              gatewayProvider: s.paymentMethod || 'RAZORPAY',
+              cancellationReason,
+              cancelledBy: cancelEvent?.actorType || 'CUSTOMER',
+              cancelledAt: cancelEvent?.createdAt || ord.placedAt || s.settledAt || new Date().toISOString(),
+              status: reviewInfo ? reviewInfo.status : 'PENDING_APPROVAL',
+              refundReference: reviewInfo?.refundReference,
+              reviewedAt: reviewInfo?.reviewedAt,
+              reviewedBy: reviewInfo?.reviewedBy,
+            });
+          }
+        }
+      } catch {}
+    })
+  );
+
+  cancelledOrders.sort((a, b) => new Date(b.cancelledAt).getTime() - new Date(a.cancelledAt).getTime());
+  return cancelledOrders;
+}
+

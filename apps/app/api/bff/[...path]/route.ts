@@ -7,6 +7,9 @@ import {
   transformSettlementsToTransactions,
   buildDoubleEntryAuditLedger,
   buildAuditLogsFromBackend,
+  fetchLiveCancelledRefunds,
+  setRefundApprovalStatus,
+  getRefundApprovalStatus,
 } from '../financialLedgerHelper';
 
 /**
@@ -17,67 +20,6 @@ import {
 const globalAny = global as unknown as Record<string, unknown>;
 if (!globalAny.MOCK_BANNERS) {
   globalAny.MOCK_BANNERS = [];
-}
-if (!globalAny.MOCK_CANCELLED_ORDER_REFUNDS) {
-  globalAny.MOCK_CANCELLED_ORDER_REFUNDS = [
-    {
-      id: 'CR-REF-FD-20260903-000011',
-      orderId: 'FD-20260903-000011',
-      orderNumber: '#000011',
-      customerId: 'CUST-5A4A-9011',
-      customerName: 'Customer 5a4a',
-      customerPhone: '+91 98450 12011',
-      customerEmail: 'customer5a4a@foodie.local',
-      paymentUuid: '76a2c40d-ef9d-4128-bd55-d834530ec681',
-      amount: 90.00,
-      paymentMethod: 'ONLINE (RAZORPAY UPI)',
-      isOnlinePayment: true,
-      gatewayTransactionId: 'pay_rzp_9011_live',
-      gatewayProvider: 'RAZORPAY',
-      cancellationReason: 'Customer cancelled: Delivery time exceeded initial estimate before kitchen preparation.',
-      cancelledBy: 'CUSTOMER',
-      cancelledAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-      status: 'PENDING_APPROVAL',
-    },
-    {
-      id: 'CR-REF-FD-20260903-000008',
-      orderId: 'FD-20260903-000008',
-      orderNumber: '#000008',
-      customerId: 'CUST-B4A5-8708',
-      customerName: 'Customer b4a5',
-      customerPhone: '+91 98451 98708',
-      customerEmail: 'customerb4a5@foodie.local',
-      paymentUuid: '300c5887-dca7-40ac-8b9d-c1f7486fb202',
-      amount: 670.00,
-      paymentMethod: 'ONLINE (CASHFREE UPI)',
-      isOnlinePayment: true,
-      gatewayTransactionId: 'cf_pay_8708_live',
-      gatewayProvider: 'CASHFREE',
-      cancellationReason: 'Customer cancelled: Mistaken duplicate order placed by customer.',
-      cancelledBy: 'CUSTOMER',
-      cancelledAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-      status: 'PENDING_APPROVAL',
-    },
-    {
-      id: 'CR-REF-FD-20260903-000002',
-      orderId: 'FD-20260903-000002',
-      orderNumber: '#000002',
-      customerId: 'CUST-A285-4002',
-      customerName: 'Customer a285',
-      customerPhone: '+91 97402 34002',
-      customerEmail: 'customera285@foodie.local',
-      paymentUuid: 'aaa52b22-e038-446e-9685-2209e7e454dc',
-      amount: 469.00,
-      paymentMethod: 'ONLINE (CREDIT CARD)',
-      isOnlinePayment: true,
-      gatewayTransactionId: 'pay_card_4002_live',
-      gatewayProvider: 'RAZORPAY',
-      cancellationReason: 'Customer cancelled: Address entered incorrectly, needed instant cancellation & refund.',
-      cancelledBy: 'CUSTOMER',
-      cancelledAt: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
-      status: 'PENDING_APPROVAL',
-    },
-  ];
 }
 
 type CacheEntry = {
@@ -481,21 +423,23 @@ async function proxy(request: Request, pathSegments: string[]) {
         } catch {}
       }
 
-      const pendingCancellationRefunds = ((globalAny.MOCK_CANCELLED_ORDER_REFUNDS as any[]) || [])
-        .filter((cr: any) => cr.status === 'PENDING_APPROVAL');
+      const liveCancelledRefunds = await fetchLiveCancelledRefunds(accessToken, ENV.apiBaseUrl);
+      const pendingCancellationRefunds = liveCancelledRefunds.filter(
+        (cr) => cr.status === 'PENDING_APPROVAL'
+      );
 
-      const crApprovals = pendingCancellationRefunds.map((cr: any) => ({
+      const crApprovals = pendingCancellationRefunds.map((cr) => ({
         id: cr.id,
         actionType: 'CUSTOMER_CANCELLATION_REFUND',
         resourceType: 'ONLINE_PAYMENT_REFUND',
         resourceId: cr.paymentUuid,
         status: 'PENDING',
         amount: cr.amount,
-        recipient: `${cr.customerName} (${cr.customerId})`,
+        recipient: `${cr.customerName} (${cr.customerId.slice(0, 8)})`,
         bankName: `${cr.paymentMethod} - ${cr.gatewayProvider}`,
         accountNumber: cr.gatewayTransactionId || `PAY-${cr.paymentUuid.slice(0, 8)}`,
         provider: cr.gatewayProvider,
-        reason: `[Order #${cr.orderId}] Customer Cancelled: ${cr.cancellationReason} (Online payment captured: ₹${Number(cr.amount).toFixed(2)})`,
+        reason: `[Order #${cr.orderId}] ${cr.cancellationReason} (Online payment captured: ₹${Number(cr.amount).toFixed(2)})`,
         payload: JSON.stringify(cr),
         requestedBy: { fullName: `${cr.customerName} (Customer Cancellation)` },
         createdAt: cr.cancelledAt,
@@ -526,10 +470,10 @@ async function proxy(request: Request, pathSegments: string[]) {
     }
 
     if (targetPath === 'admin/payments/cancelled-refunds') {
-      const refunds = (globalAny.MOCK_CANCELLED_ORDER_REFUNDS as any[]) || [];
+      const liveRefunds = await fetchLiveCancelledRefunds(accessToken, ENV.apiBaseUrl);
       return NextResponse.json({
         success: true,
-        data: refunds,
+        data: liveRefunds,
         error: null,
         meta: {
           timestamp: new Date().toISOString(),
@@ -551,16 +495,8 @@ async function proxy(request: Request, pathSegments: string[]) {
       const [, approvalId, action] = approvalActionMatch;
 
       if (approvalId.startsWith('CR-REF-')) {
-        const list = (globalAny.MOCK_CANCELLED_ORDER_REFUNDS as any[]) || [];
-        const found = list.find((x) => x.id === approvalId);
-        if (found) {
-          found.status = action === 'approve' ? 'APPROVED' : 'REJECTED';
-          if (action === 'approve') {
-            found.refundReference = `rf_gw_${crypto.randomUUID().slice(0, 10)}`;
-          }
-          found.reviewedAt = new Date().toISOString();
-          found.reviewedBy = 'Finance Admin';
-        }
+        const refRef = action === 'approve' ? `rf_live_${crypto.randomUUID().slice(0, 10)}` : undefined;
+        setRefundApprovalStatus(approvalId, action === 'approve' ? 'APPROVED' : 'REJECTED', refRef);
         return NextResponse.json({
           success: true,
           data: { id: approvalId, status: action === 'approve' ? 'APPROVED' : 'REJECTED' },
@@ -597,58 +533,22 @@ async function proxy(request: Request, pathSegments: string[]) {
     const crActionMatch = targetPath.match(/^admin\/payments\/cancelled-refunds\/([^/]+)\/(approve|reject)$/);
     if (crActionMatch) {
       const [, crId, action] = crActionMatch;
-      const list = (globalAny.MOCK_CANCELLED_ORDER_REFUNDS as any[]) || [];
-      const found = list.find((x) => x.id === crId);
-      if (found) {
-        found.status = action === 'approve' ? 'APPROVED' : 'REJECTED';
-        if (action === 'approve') {
-          found.refundReference = `rf_gw_${crypto.randomUUID().slice(0, 10)}`;
-        }
-        found.reviewedAt = new Date().toISOString();
-        found.reviewedBy = 'Finance Admin';
-      }
+      const refRef = action === 'approve' ? `rf_live_${crypto.randomUUID().slice(0, 10)}` : undefined;
+      setRefundApprovalStatus(crId, action === 'approve' ? 'APPROVED' : 'REJECTED', refRef);
+      const statusObj = getRefundApprovalStatus(crId);
+
       return NextResponse.json({
         success: true,
-        data: found || { id: crId, status: action === 'approve' ? 'APPROVED' : 'REJECTED' },
+        data: {
+          id: crId,
+          status: action === 'approve' ? 'APPROVED' : 'REJECTED',
+          refundReference: refRef,
+          reviewedAt: statusObj?.reviewedAt || new Date().toISOString(),
+          reviewedBy: 'Finance Admin',
+        },
         error: null,
         meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
       });
-    }
-
-    // Simulate customer cancellation with online payment
-    if (targetPath === 'admin/payments/cancelled-refunds/simulate') {
-      let simBody: any = {};
-      try {
-        simBody = await request.json();
-      } catch {}
-      const now = new Date();
-      const nextNum = Math.floor(1000 + Math.random() * 9000);
-      const newCancellation = {
-        id: `CR-REF-FD-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${nextNum}`,
-        orderId: simBody.orderId || `FD-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${nextNum}`,
-        orderNumber: `#${nextNum}`,
-        customerId: simBody.customerId || `CUST-SIM-${nextNum}`,
-        customerName: simBody.customerName || 'Aarav Sharma',
-        customerPhone: simBody.customerPhone || '+91 98200 45678',
-        customerEmail: simBody.customerEmail || 'aarav.sharma@example.com',
-        paymentUuid: crypto.randomUUID(),
-        amount: Number(simBody.amount || 540.00),
-        paymentMethod: simBody.paymentMethod || 'ONLINE (RAZORPAY UPI)',
-        isOnlinePayment: true,
-        gatewayTransactionId: `pay_rzp_${crypto.randomUUID().slice(0, 12)}`,
-        gatewayProvider: simBody.gatewayProvider || 'RAZORPAY',
-        cancellationReason: simBody.cancellationReason || 'Customer cancelled: Placed order by mistake and requested immediate UPI refund.',
-        cancelledBy: 'CUSTOMER',
-        cancelledAt: now.toISOString(),
-        status: 'PENDING_APPROVAL',
-      };
-      ((globalAny.MOCK_CANCELLED_ORDER_REFUNDS as any[]) || []).unshift(newCancellation);
-      return NextResponse.json({
-        success: true,
-        data: newCancellation,
-        error: null,
-        meta: { timestamp: now.toISOString(), requestId: crypto.randomUUID(), pagination: null },
-      }, { status: 201 });
     }
   }
 

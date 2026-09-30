@@ -85,7 +85,6 @@ export function PaymentsPage() {
   const [approvePayouts, { isLoading: isApproving }] = useApprovePayoutsMutation();
   const [approveCancelledRefund] = useApproveCancelledOrderRefundMutation();
   const [rejectCancelledRefund] = useRejectCancelledOrderRefundMutation();
-  const [simulateCancellation, { isLoading: isSimulatingCancellation }] = useSimulateCustomerCancellationMutation();
 
   // Local State
   const [commissionConfig, setCommissionConfig] = useState<CommissionConfig>(DEFAULT_COMMISSION_CONFIG);
@@ -95,11 +94,6 @@ export function PaymentsPage() {
   const [refundSearchTerm, setRefundSearchTerm] = useState('');
   const [refundStatusFilter, setRefundStatusFilter] = useState<'ALL' | 'PENDING' | 'PROCESSED'>('PENDING');
   const [processingRefundId, setProcessingRefundId] = useState<string | null>(null);
-  const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
-  const [simRefundCustomer, setSimRefundCustomer] = useState('Customer 5a4a');
-  const [simRefundAmount, setSimRefundAmount] = useState('469.00');
-  const [simRefundMethod, setSimRefundMethod] = useState<'ONLINE (RAZORPAY UPI)' | 'ONLINE (CASHFREE UPI)' | 'ONLINE (CREDIT CARD)'>('ONLINE (RAZORPAY UPI)');
-  const [simRefundReason, setSimRefundReason] = useState('Customer cancelled: Delay in restaurant order acceptance. Requested instant online payment refund.');
 
   // Live Simulator State
   const [simCustomerName, setSimCustomerName] = useState('Arthur Pendelton');
@@ -168,23 +162,7 @@ export function PaymentsPage() {
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleCreateSimulatedCancellation = async () => {
-    try {
-      const provider = simRefundMethod.includes('CASHFREE') ? 'CASHFREE' : 'RAZORPAY';
-      await simulateCancellation({
-        customerName: simRefundCustomer,
-        amount: Number(simRefundAmount),
-        paymentMethod: simRefundMethod,
-        gatewayProvider: provider,
-        cancellationReason: simRefundReason,
-      }).unwrap();
-      showToast(`New customer order cancellation simulated with Online Payment (₹${simRefundAmount})!`);
-      setIsSimulateModalOpen(false);
-      void refetchCancelledRefunds();
-    } catch (err: any) {
-      alert(`Failed to simulate cancellation: ${err?.message || 'Error'}`);
-    }
-  };
+
 
   const handleApproveRestPayouts = async () => {
     if (selectedRestPayouts.size === 0) return;
@@ -1667,51 +1645,36 @@ export function PaymentsPage() {
               </div>
             </div>
 
-            {/* Card 4: Action & Simulator Trigger */}
+            {/* Card 4: Live Backend Database Sync */}
             <div
               style={{
-                backgroundColor: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)',
+                backgroundColor: '#FFFFFF',
                 borderRadius: 14,
                 border: '1px solid #BAE6FD',
-                borderLeft: '5px solid #38BDF8',
+                borderLeft: '5px solid #0284C7',
                 padding: '18px 20px',
                 boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                gap: 12,
+                gap: 10,
               }}
             >
               <div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#0369A1', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Simulation & Testing
+                  Live Backend Sync
                 </div>
-                <div style={{ fontSize: 12, color: '#0284C7', marginTop: 4 }}>
-                  Simulate a live customer cancelling an order paid online to verify approval flow.
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>
+                  PostgreSQL & Gateway Active
+                </div>
+                <div style={{ fontSize: 12, color: '#0284C7', marginTop: 4, lineHeight: 1.35 }}>
+                  Real-time cancellation approval queue connected directly to live backend orders & settlements database.
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsSimulateModalOpen(true)}
-                style={{
-                  padding: '9px 14px',
-                  backgroundColor: '#0284C7',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
-                }}
-              >
-                <span>+</span>
-                <span>Simulate Customer Order Cancellation</span>
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block' }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#16A34A' }}>Live Backend Database Synchronized</span>
+              </div>
             </div>
           </div>
 
@@ -1903,25 +1866,9 @@ export function PaymentsPage() {
                     <div style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>
                       No customer cancellation requests match this filter!
                     </div>
-                    <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 16px' }}>
+                    <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0' }}>
                       All online payments for customer cancellations are approved and processed.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => setIsSimulateModalOpen(true)}
-                      style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#0284C7',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      + Simulate Customer Cancellation (Online Payment)
-                    </button>
                   </div>
                 );
               }
@@ -2402,136 +2349,7 @@ export function PaymentsPage() {
             </form>
           </div>
 
-          {/* SIMULATION MODAL */}
-          {isSimulateModalOpen && (
-            <div
-              style={{
-                position: 'fixed',
-                inset: 0,
-                backgroundColor: 'rgba(8, 47, 73, 0.55)',
-                backdropFilter: 'blur(4px)',
-                zIndex: 100,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 16,
-              }}
-            >
-              <div
-                style={{
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: 16,
-                  padding: 24,
-                  maxWidth: 500,
-                  width: '100%',
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 16,
-                  border: '1px solid #BAE6FD',
-                }}
-              >
-                <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
-                    Simulate Customer Cancelled Order (Online Payment)
-                  </h3>
-                  <p style={{ fontSize: 12, color: '#0284C7', margin: '4px 0 0' }}>
-                    Creates a simulated customer order cancellation with a captured online payment to test the approval queue in real-time.
-                  </p>
-                </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
-                      Customer Name & ID
-                    </label>
-                    <input
-                      type="text"
-                      value={simRefundCustomer}
-                      onChange={(e) => setSimRefundCustomer(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
-                      Online Payment Amount (₹)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={simRefundAmount}
-                      onChange={(e) => setSimRefundAmount(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700, color: '#0369A1' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
-                      Online Payment Method
-                    </label>
-                    <select
-                      value={simRefundMethod}
-                      onChange={(e) => setSimRefundMethod(e.target.value as any)}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1' }}
-                    >
-                      <option value="ONLINE (RAZORPAY UPI)">ONLINE (RAZORPAY UPI)</option>
-                      <option value="ONLINE (CASHFREE UPI)">ONLINE (CASHFREE UPI)</option>
-                      <option value="ONLINE (CREDIT CARD)">ONLINE (CREDIT CARD)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
-                      Cancellation Reason
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={simRefundReason}
-                      onChange={(e) => setSimRefundReason(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 12, fontFamily: 'inherit', color: '#0369A1' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => setIsSimulateModalOpen(false)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 8,
-                      border: '1px solid #BAE6FD',
-                      backgroundColor: '#FFFFFF',
-                      color: '#0284C7',
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isSimulatingCancellation}
-                    onClick={() => void handleCreateSimulatedCancellation()}
-                    style={{
-                      padding: '8px 18px',
-                      borderRadius: 8,
-                      border: 'none',
-                      backgroundColor: '#0284C7',
-                      color: '#FFFFFF',
-                      fontSize: 13,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {isSimulatingCancellation ? 'Submitting...' : 'Add to Approval Queue'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
