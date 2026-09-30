@@ -245,21 +245,31 @@ export function ContactUsPage() {
 
   useEffect(() => {
     if (apiTickets) {
-      const mapped: EnquiryRecord[] = (apiTickets as any).map((t: any) => ({
-        id: t.id,
-        category: t.category,
-        senderName: t.senderName || 'Customer',
-        senderEmail: t.senderEmail || 'N/A',
-        senderPhone: t.senderPhone || 'N/A',
-        subject: t.subject,
-        message: t.message || 'View details',
-        timestamp: t.timestamp || new Date(t.createdAt || Date.now()).toLocaleTimeString(),
-        status: t.status,
-        priority: t.priority || 'MEDIUM',
-        orderId: t.orderId,
-        messages: t.messages || [],
-        replyMessage: t.replyMessage
-      }));
+      const mapped: EnquiryRecord[] = (apiTickets as any).map((t: any) => {
+        const firstUserMsg = t.messages?.find((m: any) => m.senderType !== 'AGENT' && m.senderType !== 'AI');
+        return {
+          id: t.id,
+          category: t.category || 'CUSTOMER',
+          senderName: firstUserMsg?.senderName || t.senderName || 'User',
+          senderEmail: t.customerId || t.senderEmail || 'N/A',
+          senderPhone: t.senderPhone || 'N/A',
+          subject: t.subject || 'Support Ticket',
+          message: firstUserMsg?.content || firstUserMsg?.message || t.message || 'View details',
+          timestamp: t.createdAt ? new Date(t.createdAt).toLocaleTimeString() : (t.timestamp || 'Just now'),
+          status: t.status || 'OPEN',
+          priority: t.priority || 'MEDIUM',
+          orderId: t.orderId,
+          messages: (t.messages || []).map((m: any) => ({
+            id: m.id,
+            enquiryId: t.id,
+            sender: (m.senderType === 'AGENT' || m.senderType === 'AI' || m.sender === 'admin') ? 'admin' : 'customer',
+            senderName: m.senderName || (m.senderType === 'AGENT' ? 'Admin Support' : 'User'),
+            message: m.content || m.message || '',
+            timestamp: m.createdAt ? new Date(m.createdAt).toLocaleTimeString() : (m.timestamp || 'Just now')
+          })),
+          replyMessage: t.replyMessage
+        };
+      });
       setEnquiries(mapped);
     }
   }, [apiTickets]);
