@@ -60,8 +60,8 @@ export function getHomeRouteForRole(role: string | null): string {
   const r = role.toUpperCase();
   if (r.includes('DARKSTORE')) return '/darkstore-admin/dashboard';
   if (r.includes('FINANCE')) return '/finance-admin/dashboard';
-  if (r.includes('RESTAURANT')) return '/restaurant-admin/dashboard';
-  if (r.includes('SUPPORT')) return '/support-admin/dashboard';
+  if (r.includes('RESTAURANT')) return '/restaurants';
+  if (r === 'SUPPORT_AGENT' || r.includes('SUPPORT')) return '/support';
   if (r.includes('AUDITOR')) return '/compliance-auditor/dashboard';
   return '/dashboard';
 }
@@ -96,23 +96,26 @@ export function isRouteAllowedForRole(pathname: string, role: string | null): bo
     );
   }
 
-  // Restaurant Admin access
+  // Restaurant Admin / Manager access - isolated to restaurant part only
   if (r.includes('RESTAURANT')) {
-    if (pathname.startsWith('/users') || pathname.startsWith('/roles') || pathname.startsWith('/darkstore-admin') || pathname.startsWith('/approvals') || pathname.startsWith('/delivery-payouts')) {
-      return false;
-    }
     return (
-      pathname.startsWith('/restaurant-admin') ||
       pathname.startsWith('/restaurants') ||
-      pathname.startsWith('/orders') ||
-      pathname.startsWith('/reviews') ||
-      pathname === '/' ||
-      pathname === '/dashboard' ||
+      pathname.startsWith('/restaurant-admin') ||
       pathname === '/login'
     );
   }
 
-  // Support Agent access
+  // Support Agent access - strictly isolated to support only
+  if (r === 'SUPPORT_AGENT') {
+    return (
+      pathname.startsWith('/support') ||
+      pathname.startsWith('/contact-us') ||
+      pathname.startsWith('/support-admin') ||
+      pathname === '/login'
+    );
+  }
+
+  // Support Agent general access
   if (r.includes('SUPPORT')) {
     if (pathname.startsWith('/users') || pathname.startsWith('/roles') || pathname.startsWith('/darkstore-admin') || pathname.startsWith('/approvals') || pathname.startsWith('/delivery-payouts') || pathname.startsWith('/audit-log')) {
       return false;
@@ -228,6 +231,20 @@ export function filterNavForRole(role: string | null, pathname?: string): NavIte
       { href: '/compliance-auditor/reviews', label: 'Reviews & Complaints', icon: 'star' },
       { href: '/compliance-auditor/audit-log', label: 'Audit Log', icon: 'file-text' },
       { href: '/compliance-auditor/terms', label: 'Terms & Conditions', icon: 'file-lines' },
+    ];
+  }
+
+  const isRestaurant = role && role.toUpperCase().includes('RESTAURANT');
+  if (isRestaurant) {
+    return [
+      { href: '/restaurants', label: 'Restaurants', category: 'BUSINESS MANAGERS', icon: '' },
+    ];
+  }
+
+  const isSupportAgent = role && role.toUpperCase() === 'SUPPORT_AGENT';
+  if (isSupportAgent) {
+    return [
+      { href: '/support', label: 'Support', category: 'MAIN' },
     ];
   }
 

@@ -140,6 +140,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const nav = filterNavForRole(activeRole, pathname);
   const isAllowedRoute = isRouteAllowedForRole(pathname, activeRole);
 
+  useEffect(() => {
+    if (activeRole && activeRole.toUpperCase().includes('RESTAURANT') && (pathname === '/' || pathname === '/dashboard')) {
+      router.replace('/restaurants');
+    } else if (activeRole && activeRole.toUpperCase() === 'SUPPORT_AGENT' && (pathname === '/' || pathname === '/dashboard')) {
+      router.replace('/support');
+    }
+  }, [activeRole, pathname, router]);
+
   return (
     <div
       style={{
@@ -266,9 +274,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                     item.href === '/compliance-auditor/dashboard'
                       ? pathname === '/compliance-auditor/dashboard' || pathname === '/compliance-auditor' || pathname === '/'
                       : item.href === '/'
-                      ? pathname === '/'
-                      : pathname.startsWith(item.href) ||
-                      (item.href === '/support' && pathname.startsWith('/contact-us'));
+                        ? pathname === '/'
+                        : pathname.startsWith(item.href) ||
+                        (item.href === '/support' && pathname.startsWith('/contact-us'));
 
                   const isHighlighted = item.highlighted ?? false;
                   const isAuditor = activeRole === 'AUDITOR';
@@ -302,10 +310,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                             borderLeft: isAuditor
                               ? 'none'
                               : isActive
-                              ? '4px solid #38BDF8'
-                              : isHighlighted
                                 ? '4px solid #38BDF8'
-                                : '4px solid transparent',
+                                : isHighlighted
+                                  ? '4px solid #38BDF8'
+                                  : '4px solid transparent',
                             boxShadow: isActive ? '0 4px 12px rgba(14, 165, 233, 0.4)' : 'none',
                             textDecoration: 'none',
                             transition: 'all 0.15s ease-in-out',
