@@ -1444,6 +1444,23 @@ async function proxy(request: Request, pathSegments: string[]) {
         }, { status: 200 });
       }
 
+      if (targetPath.includes('admin/customers')) {
+        return NextResponse.json(
+          {
+            success: true,
+            data: {
+              summary: { totalRegistered: 0, activeAccounts: 0, suspendedAccounts: 0, averageCustomerLtv: 0 },
+              customers: [],
+              total: 0,
+              openTicketsCount: 0,
+            },
+            error: null,
+            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+          },
+          { status: 200 }
+        );
+      }
+
       if (
         targetPath.includes('admin/support-tickets') ||
         targetPath.includes('admin/payments') ||
@@ -1589,6 +1606,23 @@ async function proxy(request: Request, pathSegments: string[]) {
             pagination: null,
           },
         }, { status: 200 });
+      }
+
+      if (targetPath.includes('admin/customers')) {
+        return NextResponse.json(
+          {
+            success: true,
+            data: {
+              summary: { totalRegistered: 0, activeAccounts: 0, suspendedAccounts: 0, averageCustomerLtv: 0 },
+              customers: [],
+              total: 0,
+              openTicketsCount: 0,
+            },
+            error: null,
+            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+          },
+          { status: 200 }
+        );
       }
 
       return NextResponse.json(

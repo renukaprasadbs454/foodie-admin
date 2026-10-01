@@ -9,12 +9,12 @@ export const ENV = {
   apiBaseUrl:
     process.env.NEXT_PUBLIC_API_URL ??
     process.env.FOODIE_API_BASE_URL ??
-    (isDev ? 'http://localhost:8082' : 'https://api.foodie.kwiko.org'),
+    (isDev ? 'http://localhost:8080' : 'https://api.foodie.kwiko.org'),
   /** Client RTK Query hits same-origin BFF. */
   bffBaseUrl: '' as const,
   wsUrl:
     process.env.NEXT_PUBLIC_WS_URL ??
-    (isDev ? 'ws://localhost:8082/ws' : 'wss://api.foodie.kwiko.org/ws'),
+    (isDev ? 'ws://localhost:8080/ws' : 'wss://api.foodie.kwiko.org/ws'),
   cookieSecure: process.env.FOODIE_COOKIE_SECURE === 'true',
   appName: 'foodie-admin',
   appVersion: '0.1.0',
