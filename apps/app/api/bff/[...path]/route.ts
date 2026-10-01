@@ -1371,7 +1371,7 @@ async function proxy(request: Request, pathSegments: string[]) {
   try {
     let { response: upstream, error: fetchErr } = await safeFetch(targetUrl, {
       ...init,
-      timeoutMs: 3000,
+      timeoutMs: 10000,
     });
 
     if (fetchErr) {
@@ -1395,12 +1395,17 @@ async function proxy(request: Request, pathSegments: string[]) {
 
     if (upstream && !(upstream.status === 500 && targetPath.includes('admin/audit-logs'))) {
       const body = await upstream.arrayBuffer();
+      const responseHeaders: Record<string, string> = {
+        'Content-Type':
+          upstream.headers.get('Content-Type') ?? 'application/json',
+      };
+      const disposition = upstream.headers.get('Content-Disposition');
+      if (disposition) {
+        responseHeaders['Content-Disposition'] = disposition;
+      }
       return new NextResponse(body, {
         status: upstream.status,
-        headers: {
-          'Content-Type':
-            upstream.headers.get('Content-Type') ?? 'application/json',
-        },
+        headers: responseHeaders,
       });
     }
 

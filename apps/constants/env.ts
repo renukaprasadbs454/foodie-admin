@@ -7,8 +7,8 @@ const isDev = process.env.NODE_ENV === 'development';
 export const ENV = {
   /** Server-only. Used by app/api BFF routes — never expose via NEXT_PUBLIC. */
   apiBaseUrl:
-    process.env.NEXT_PUBLIC_API_URL ??
     process.env.FOODIE_API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
     (isDev ? 'http://localhost:8080' : 'https://api.foodie.kwiko.org'),
   /** Client RTK Query hits same-origin BFF. */
   bffBaseUrl: '' as const,

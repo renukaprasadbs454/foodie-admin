@@ -65,8 +65,8 @@ export function PaymentsPage() {
   const { data: serverTransactions = [], isLoading: transactionsLoading } = useGetTransactionsQuery();
   const { data: serverLedger = [], isLoading: ledgerLoading } = useGetLedgerQuery();
   const { data: restaurantSettlements = [], isLoading: restSettlementsLoading } = useGetRestaurantSettlementsQuery();
-  const { data: restaurantPayouts = [], isLoading: restPayoutsLoading } = useGetAdminPayoutsQuery({ ownerType: 'RESTAURANT' });
-  const { data: deliveryPayouts = [], isLoading: delivPayoutsLoading } = useGetAdminPayoutsQuery({ ownerType: 'DELIVERY_PARTNER' });
+  const { data: restaurantPayouts = [], isLoading: restPayoutsLoading, refetch: refetchRestPayouts } = useGetAdminPayoutsQuery({ ownerType: 'RESTAURANT' });
+  const { data: deliveryPayouts = [], isLoading: delivPayoutsLoading, refetch: refetchDelivPayouts } = useGetAdminPayoutsQuery({ ownerType: 'DELIVERY_PARTNER' });
   const { data: restaurantsData } = useGetAdminRestaurantsQuery({});
   const { data: partnersData } = useGetAdminDeliveryPartnersQuery();
 
@@ -108,12 +108,37 @@ export function PaymentsPage() {
   const [selectedRestPayouts, setSelectedRestPayouts] = useState<Set<string>>(new Set());
   const [selectedDelivPayouts, setSelectedDelivPayouts] = useState<Set<string>>(new Set());
 
+  const handleApproveSinglePayout = async (payoutId: string, type: 'DELIVERY' | 'RESTAURANT' = 'DELIVERY') => {
+    try {
+      await approvePayouts({ payoutIds: [payoutId] }).unwrap();
+      showToast(`Successfully initiated disbursal via Cashfree for ${type === 'DELIVERY' ? 'Delivery Partner' : 'Restaurant'} Payout!`);
+      setSelectedDelivPayouts((prev) => {
+        const next = new Set(prev);
+        next.delete(payoutId);
+        return next;
+      });
+      setSelectedRestPayouts((prev) => {
+        const next = new Set(prev);
+        next.delete(payoutId);
+        return next;
+      });
+      if (type === 'DELIVERY') {
+        refetchDelivPayouts();
+      } else {
+        refetchRestPayouts();
+      }
+    } catch (err) {
+      showToast(`Failed to approve ${type === 'DELIVERY' ? 'delivery partner' : 'restaurant'} payout.`);
+    }
+  };
+
   const handleApproveRestPayouts = async () => {
     if (selectedRestPayouts.size === 0) return;
     try {
       await approvePayouts({ payoutIds: Array.from(selectedRestPayouts) }).unwrap();
       showToast(`Successfully initiated disbursal via Cashfree for ${selectedRestPayouts.size} Restaurant Payouts!`);
       setSelectedRestPayouts(new Set());
+      refetchRestPayouts();
     } catch (err) {
       showToast('Failed to approve restaurant payouts.');
     }
@@ -125,6 +150,7 @@ export function PaymentsPage() {
       await approvePayouts({ payoutIds: Array.from(selectedDelivPayouts) }).unwrap();
       showToast(`Successfully initiated disbursal via Cashfree for ${selectedDelivPayouts.size} Delivery Partner Payouts!`);
       setSelectedDelivPayouts(new Set());
+      refetchDelivPayouts();
     } catch (err) {
       showToast('Failed to approve delivery partner payouts.');
     }
@@ -1114,17 +1140,17 @@ export function PaymentsPage() {
                         {(p.status === 'REQUESTED' || p.status === 'FAILED') ? (
                           <button
                             type="button"
-                            disabled={isApproving || !selectedRestPayouts.has(p.id)}
-                            onClick={() => approvePayouts({ payoutIds: [p.id] })}
+                            disabled={isApproving}
+                            onClick={() => handleApproveSinglePayout(p.id, 'RESTAURANT')}
                             style={{
                               padding: '6px 12px',
-                              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                              background: isApproving ? '#94A3B8' : 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                               color: '#FFFFFF',
                               border: 'none',
                               borderRadius: 6,
                               fontSize: 12,
                               fontWeight: 700,
-                              cursor: (isApproving || !selectedRestPayouts.has(p.id)) ? 'not-allowed' : 'pointer',
+                              cursor: isApproving ? 'not-allowed' : 'pointer',
                               boxShadow: '0 2px 6px rgba(2, 132, 199, 0.2)',
                             }}
                           >
@@ -1278,17 +1304,17 @@ export function PaymentsPage() {
                         {(p.status === 'REQUESTED' || p.status === 'FAILED') ? (
                           <button
                             type="button"
-                            disabled={isApproving || !selectedDelivPayouts.has(p.id)}
-                            onClick={() => approvePayouts({ payoutIds: [p.id] })}
+                            disabled={isApproving}
+                            onClick={() => handleApproveSinglePayout(p.id, 'DELIVERY')}
                             style={{
                               padding: '6px 12px',
-                              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                              background: isApproving ? '#94A3B8' : 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
                               color: '#FFFFFF',
                               border: 'none',
                               borderRadius: 6,
                               fontSize: 12,
                               fontWeight: 700,
-                              cursor: (isApproving || !selectedDelivPayouts.has(p.id)) ? 'not-allowed' : 'pointer',
+                              cursor: isApproving ? 'not-allowed' : 'pointer',
                               boxShadow: '0 2px 6px rgba(2, 132, 199, 0.2)',
                             }}
                           >
