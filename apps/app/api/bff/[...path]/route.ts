@@ -270,148 +270,7 @@ interface SupportEnquiryRecord {
   orderId?: string;
 }
 
-const DEFAULT_SUPPORT_ENQUIRIES: SupportEnquiryRecord[] = [
-  {
-    id: 'ENQ-901',
-    category: 'CUSTOMER',
-    senderName: 'Ananya Sharma',
-    senderEmail: 'ananya.s@gmail.com',
-    senderPhone: '+91 98765 12345',
-    subject: 'Delayed Refund for Order #ORD-9821',
-    message: "I was debited ₹450 for a cancelled order yesterday but haven't received refund in my bank account.",
-    timestamp: '15 mins ago',
-    status: 'OPEN',
-    priority: 'HIGH',
-    orderId: 'ORD-9821',
-    messages: [
-      {
-        id: 'msg-101',
-        enquiryId: 'ENQ-901',
-        sender: 'customer',
-        senderName: 'Ananya Sharma',
-        message: "I was debited ₹450 for a cancelled order yesterday but haven't received refund in my bank account.",
-        timestamp: '15 mins ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-902',
-    category: 'CUSTOMER',
-    senderName: 'Vikram Mehta',
-    senderEmail: 'vikram.m@yahoo.com',
-    senderPhone: '+91 98123 45678',
-    subject: 'Unable to apply promo code WELCOME100',
-    message: 'The promo code states invalid even though I am placing my first order.',
-    timestamp: '40 mins ago',
-    status: 'IN_PROGRESS',
-    priority: 'MEDIUM',
-    replyMessage: 'Our tech team is validating your first order eligibility status.',
-    messages: [
-      {
-        id: 'msg-201',
-        enquiryId: 'ENQ-902',
-        sender: 'customer',
-        senderName: 'Vikram Mehta',
-        message: 'The promo code states invalid even though I am placing my first order.',
-        timestamp: '40 mins ago',
-      },
-      {
-        id: 'msg-202',
-        enquiryId: 'ENQ-902',
-        sender: 'admin',
-        senderName: 'Admin Support',
-        message: 'Our tech team is validating your first order eligibility status.',
-        timestamp: '25 mins ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-2093BD86',
-    category: 'RESTAURANT',
-    senderName: 'Rajesh Gupta (Royal Biryani)',
-    senderEmail: 'contact@royalbiryani.in',
-    senderPhone: '+91 99001 88776',
-    subject: 'Request to update menu prices & commission statement',
-    message: 'We have updated our GST details and require our weekly commission payout report.',
-    timestamp: '1 hour ago',
-    status: 'OPEN',
-    priority: 'MEDIUM',
-    messages: [
-      {
-        id: 'msg-301',
-        enquiryId: 'ENQ-2093BD86',
-        sender: 'customer',
-        senderName: 'Rajesh Gupta (Royal Biryani)',
-        message: 'We have updated our GST details and require our weekly commission payout report.',
-        timestamp: '1 hour ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-74B1721D',
-    category: 'DELIVERY',
-    senderName: 'Ramesh Kumar (Rider #DRV-402)',
-    senderEmail: 'ramesh.rider@gmail.com',
-    senderPhone: '+91 97400 33211',
-    subject: 'Rain Surge Payout Incentive Not Credited',
-    message: 'I completed 12 orders during rain surge hours in Indiranagar yesterday. Rain bonus ₹300 is missing.',
-    timestamp: '2 hours ago',
-    status: 'OPEN',
-    priority: 'HIGH',
-    messages: [
-      {
-        id: 'msg-401',
-        enquiryId: 'ENQ-74B1721D',
-        sender: 'customer',
-        senderName: 'Ramesh Kumar (Rider #DRV-402)',
-        message: 'I completed 12 orders during rain surge hours in Indiranagar yesterday. Rain bonus ₹300 is missing.',
-        timestamp: '2 hours ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-880',
-    category: 'CUSTOMER',
-    senderName: 'Priya Nair',
-    senderEmail: 'priya.nair@outlook.com',
-    senderPhone: '+91 96555 44332',
-    subject: 'Address change for live order',
-    message: 'Please change delivery address from Flat 201 to Flat 405.',
-    timestamp: '1 day ago',
-    status: 'RESOLVED',
-    priority: 'MEDIUM',
-    replyMessage: 'Address updated and driver notified successfully via dispatch desk.',
-    resolvedAt: '1 day ago by Admin',
-  },
-  {
-    id: 'ENQ-881',
-    category: 'RESTAURANT',
-    senderName: 'Chef Marco (Bella Italia)',
-    senderEmail: 'info@bellaitalia.com',
-    senderPhone: '+91 98888 12121',
-    subject: 'POS Integration API Credentials Request',
-    message: 'We require sandbox API keys to integrate our kitchen POS with Foodie Merchant SDK.',
-    timestamp: '2 days ago',
-    status: 'RESOLVED',
-    priority: 'LOW',
-    replyMessage: 'API Credentials and Sandbox documentation dispatched to vendor email.',
-    resolvedAt: '2 days ago by Tech Desk',
-  },
-  {
-    id: 'ENQ-879',
-    category: 'DELIVERY',
-    senderName: 'Sunita Rao (Rider #DRV-112)',
-    senderEmail: 'sunita.rao@gmail.com',
-    senderPhone: '+91 98441 55900',
-    subject: 'Emergency vehicle breakdown assistance during delivery',
-    message: 'Tire puncture on Ring Road while carrying Order #ORD-7710. Requested re-assignment.',
-    timestamp: '3 days ago',
-    status: 'RESOLVED',
-    priority: 'HIGH',
-    replyMessage: 'Backup delivery partner assigned and order delivered with 8 min delay. Bonus credited to Sunita.',
-    resolvedAt: '3 days ago by Dispatch Desk',
-  },
-];
+const DEFAULT_SUPPORT_ENQUIRIES: SupportEnquiryRecord[] = [];
 
 if (!globalAny.SUPPORT_LOCAL_STORE) {
   globalAny.SUPPORT_LOCAL_STORE = [...DEFAULT_SUPPORT_ENQUIRIES];
@@ -601,40 +460,40 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
               const senderName = isRamesh
                 ? 'Ramesh Kumar (Rider #DRV-402)'
                 : isKarishma
-                ? 'karishma (Delivery Fleet)'
-                : isMayura
-                ? 'Hotel Mayura'
-                : isRoyalBiryani
-                ? 'Rajesh Gupta (Royal Biryani)'
-                : info.originalSenderName;
+                  ? 'karishma (Delivery Fleet)'
+                  : isMayura
+                    ? 'Hotel Mayura'
+                    : isRoyalBiryani
+                      ? 'Rajesh Gupta (Royal Biryani)'
+                      : info.originalSenderName;
 
               const senderEmail = isRamesh
                 ? 'ramesh.rider@gmail.com'
                 : isKarishma
-                ? 'karishma.rider@foodie.local'
-                : isMayura
-                ? 'hotelmayura@restaurant.foodie.local'
-                : isRoyalBiryani
-                ? 'contact@royalbiryani.in'
-                : `${pKey}@foodie.local`;
+                  ? 'karishma.rider@foodie.local'
+                  : isMayura
+                    ? 'hotelmayura@restaurant.foodie.local'
+                    : isRoyalBiryani
+                      ? 'contact@royalbiryani.in'
+                      : `${pKey}@foodie.local`;
 
               const senderPhone = isRamesh
                 ? '+91 97400 33211'
                 : isKarishma
-                ? '+91 98450 77123'
-                : isMayura
-                ? '+91 98888 55443'
-                : '+91 98000 00000';
+                  ? '+91 98450 77123'
+                  : isMayura
+                    ? '+91 98888 55443'
+                    : '+91 98000 00000';
 
               const lastCustMsg = info.customerMessages[info.customerMessages.length - 1];
               const firstCustMsg = info.customerMessages[0];
               const cardSubject = isRamesh
                 ? 'Rain Surge Payout Incentive Not Credited'
                 : isKarishma
-                ? 'Payment & Login Issue'
-                : isMayura
-                ? 'Payment Settlement Issue'
-                : (lastCustMsg?.content || lastCustMsg?.message || `${info.category === 'RESTAURANT' ? 'Restaurant' : 'Delivery'} Partner Support`);
+                  ? 'Payment & Login Issue'
+                  : isMayura
+                    ? 'Payment Settlement Issue'
+                    : (lastCustMsg?.content || lastCustMsg?.message || `${info.category === 'RESTAURANT' ? 'Restaurant' : 'Delivery'} Partner Support`);
 
               // Filter messages belonging to this partner
               const partnerMessagesList: any[] = [];
@@ -763,17 +622,11 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
         let senderPhone = '+91 98000 00000';
 
         if (t.category === 'RESTAURANT' || t.id === 'ENQ-2093BD86') {
-          senderName = customerMsg?.senderName || 'Rajesh Gupta (Royal Biryani)';
-          senderEmail = 'contact@royalbiryani.in';
-          senderPhone = '+91 99001 88776';
+          senderName = customerMsg?.senderName || t.senderName || 'Restaurant User';
+          senderEmail = t.customerId || 'restaurant@foodie.local';
         } else if (t.category === 'DELIVERY' || t.id === 'ENQ-74B1721D') {
-          senderName = customerMsg?.senderName || 'Ramesh Kumar (Rider #DRV-402)';
-          senderEmail = 'ramesh.rider@gmail.com';
-          senderPhone = '+91 97400 33211';
-        } else if (t.customerId === 'CUST-MOCK-123') {
-          senderName = customerMsg?.senderName || 'Ananya Sharma';
-          senderEmail = 'ananya.s@gmail.com';
-          senderPhone = '+91 98765 12345';
+          senderName = customerMsg?.senderName || t.senderName || 'Delivery Rider';
+          senderEmail = t.customerId || 'rider@foodie.local';
         }
 
         let normalizedStatus: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' = 'OPEN';
@@ -885,115 +738,115 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
 
       if (rawList.length > 0) {
 
-          if (rawId.startsWith('ENQ-DELIV-') || rawId.startsWith('ENQ-REST-')) {
-            const partnerKey = rawId.replace(/^(ENQ-DELIV-|ENQ-REST-)/, '').toLowerCase();
-            const isMayura = partnerKey.includes('mayura');
-            const senderDisplayName = partnerKey === 'karishma'
-              ? 'karishma (Delivery Fleet)'
-              : isMayura
+        if (rawId.startsWith('ENQ-DELIV-') || rawId.startsWith('ENQ-REST-')) {
+          const partnerKey = rawId.replace(/^(ENQ-DELIV-|ENQ-REST-)/, '').toLowerCase();
+          const isMayura = partnerKey.includes('mayura');
+          const senderDisplayName = partnerKey === 'karishma'
+            ? 'karishma (Delivery Fleet)'
+            : isMayura
               ? 'Hotel Mayura'
               : partnerKey;
 
-            for (let i = 0; i < rawList.length; i++) {
-              const m = rawList[i];
-              const isAgent = m.senderType === 'AGENT' || String(m.senderName || '').toLowerCase().includes('admin');
-              const isSystem = m.senderType === 'SYSTEM' || String(m.senderName || '').toLowerCase().includes('system');
-              const isAi = m.senderType === 'AI' || String(m.senderName || '').toLowerCase().includes('ai') || String(m.senderName || '').toLowerCase().includes('bot');
+          for (let i = 0; i < rawList.length; i++) {
+            const m = rawList[i];
+            const isAgent = m.senderType === 'AGENT' || String(m.senderName || '').toLowerCase().includes('admin');
+            const isSystem = m.senderType === 'SYSTEM' || String(m.senderName || '').toLowerCase().includes('system');
+            const isAi = m.senderType === 'AI' || String(m.senderName || '').toLowerCase().includes('ai') || String(m.senderName || '').toLowerCase().includes('bot');
 
-              if (!isAgent && !isSystem && !isAi && m.senderName && getDeliveryPartnerKey(m.senderName) === partnerKey) {
+            if (!isAgent && !isSystem && !isAi && m.senderName && getDeliveryPartnerKey(m.senderName) === partnerKey) {
+              messages.push({
+                id: m.id,
+                enquiryId: rawId,
+                sender: 'customer',
+                senderName: senderDisplayName,
+                message: m.content || m.message || '',
+                timestamp: formatSupportTime(m.createdAt),
+              });
+            } else if (isSystem) {
+              const prevCust = rawList.slice(0, i).reverse().find(
+                (prev: any) => prev.senderType !== 'AGENT' && !String(prev.senderName || '').toLowerCase().includes('admin') && !String(prev.senderName || '').toLowerCase().includes('system') && !String(prev.senderName || '').toLowerCase().includes('ai')
+              );
+              if (prevCust && getDeliveryPartnerKey(prevCust.senderName) === partnerKey) {
                 messages.push({
                   id: m.id,
                   enquiryId: rawId,
                   sender: 'customer',
-                  senderName: senderDisplayName,
+                  senderName: 'Foodie System',
                   message: m.content || m.message || '',
                   timestamp: formatSupportTime(m.createdAt),
                 });
-              } else if (isSystem) {
-                const prevCust = rawList.slice(0, i).reverse().find(
-                  (prev: any) => prev.senderType !== 'AGENT' && !String(prev.senderName || '').toLowerCase().includes('admin') && !String(prev.senderName || '').toLowerCase().includes('system') && !String(prev.senderName || '').toLowerCase().includes('ai')
-                );
-                if (prevCust && getDeliveryPartnerKey(prevCust.senderName) === partnerKey) {
-                  messages.push({
-                    id: m.id,
-                    enquiryId: rawId,
-                    sender: 'customer',
-                    senderName: 'Foodie System',
-                    message: m.content || m.message || '',
-                    timestamp: formatSupportTime(m.createdAt),
-                  });
-                }
-              } else if (isAi) {
-                const prevCust = rawList.slice(0, i).reverse().find(
-                  (prev: any) => prev.senderType !== 'AGENT' && !String(prev.senderName || '').toLowerCase().includes('admin') && !String(prev.senderName || '').toLowerCase().includes('system') && !String(prev.senderName || '').toLowerCase().includes('ai')
-                );
-                if (prevCust && getDeliveryPartnerKey(prevCust.senderName) === partnerKey) {
-                  messages.push({
-                    id: m.id,
-                    enquiryId: rawId,
-                    sender: 'admin',
-                    senderName: 'Foodie AI Support',
-                    message: m.content || m.message || '',
-                    timestamp: formatSupportTime(m.createdAt),
-                  });
-                }
               }
-            }
-
-            const storedReplies = partnerRepliesMap.get(rawId) || [];
-            for (const r of storedReplies) {
-              if (!messages.some((existing) => existing.id === r.id)) {
-                messages.push(r);
-              }
-            }
-          } else if (rawId === 'ENQ-74B1721D' || rawId === 'ENQ-904') {
-            for (let i = 0; i < rawList.length; i++) {
-              const m = rawList[i];
-              const isAgent = m.senderType === 'AGENT' || String(m.senderName || '').toLowerCase().includes('admin');
-              const isSystem = m.senderType === 'SYSTEM' || String(m.senderName || '').toLowerCase().includes('system');
-              const isAi = m.senderType === 'AI' || String(m.senderName || '').toLowerCase().includes('ai') || String(m.senderName || '').toLowerCase().includes('bot');
-
-              if (!isAgent && !isSystem && !isAi && m.senderName && getDeliveryPartnerKey(m.senderName) === 'rameshkumar') {
-                messages.push({
-                  id: m.id,
-                  enquiryId: rawId,
-                  sender: 'customer',
-                  senderName: 'Ramesh Kumar (Rider #DRV-402)',
-                  message: m.content || m.message || '',
-                  timestamp: formatSupportTime(m.createdAt),
-                });
-              } else if (isAgent && !String(m.content || '').toLowerCase().includes('karishma') && !String(m.content || '').toLowerCase().includes('mayura')) {
+            } else if (isAi) {
+              const prevCust = rawList.slice(0, i).reverse().find(
+                (prev: any) => prev.senderType !== 'AGENT' && !String(prev.senderName || '').toLowerCase().includes('admin') && !String(prev.senderName || '').toLowerCase().includes('system') && !String(prev.senderName || '').toLowerCase().includes('ai')
+              );
+              if (prevCust && getDeliveryPartnerKey(prevCust.senderName) === partnerKey) {
                 messages.push({
                   id: m.id,
                   enquiryId: rawId,
                   sender: 'admin',
-                  senderName: 'Admin Support',
+                  senderName: 'Foodie AI Support',
                   message: m.content || m.message || '',
                   timestamp: formatSupportTime(m.createdAt),
                 });
               }
             }
+          }
 
-            const storedReplies = partnerRepliesMap.get('ENQ-74B1721D') || [];
-            for (const r of storedReplies) {
-              if (!messages.some((existing) => existing.id === r.id)) {
-                messages.push(r);
-              }
+          const storedReplies = partnerRepliesMap.get(rawId) || [];
+          for (const r of storedReplies) {
+            if (!messages.some((existing) => existing.id === r.id)) {
+              messages.push(r);
             }
-          } else {
-            messages = rawList.map((m: any) => {
-              const isAgent = m.senderType === 'AGENT' || String(m.senderName || '').toLowerCase().includes('admin');
-              return {
+          }
+        } else if (rawId === 'ENQ-74B1721D' || rawId === 'ENQ-904') {
+          for (let i = 0; i < rawList.length; i++) {
+            const m = rawList[i];
+            const isAgent = m.senderType === 'AGENT' || String(m.senderName || '').toLowerCase().includes('admin');
+            const isSystem = m.senderType === 'SYSTEM' || String(m.senderName || '').toLowerCase().includes('system');
+            const isAi = m.senderType === 'AI' || String(m.senderName || '').toLowerCase().includes('ai') || String(m.senderName || '').toLowerCase().includes('bot');
+
+            if (!isAgent && !isSystem && !isAi && m.senderName && getDeliveryPartnerKey(m.senderName) === 'rameshkumar') {
+              messages.push({
                 id: m.id,
                 enquiryId: rawId,
-                sender: isAgent ? 'admin' : 'customer',
-                senderName: m.senderName || (isAgent ? 'Admin Support' : 'Customer'),
+                sender: 'customer',
+                senderName: 'Ramesh Kumar (Rider #DRV-402)',
                 message: m.content || m.message || '',
                 timestamp: formatSupportTime(m.createdAt),
-              };
-            });
+              });
+            } else if (isAgent && !String(m.content || '').toLowerCase().includes('karishma') && !String(m.content || '').toLowerCase().includes('mayura')) {
+              messages.push({
+                id: m.id,
+                enquiryId: rawId,
+                sender: 'admin',
+                senderName: 'Admin Support',
+                message: m.content || m.message || '',
+                timestamp: formatSupportTime(m.createdAt),
+              });
+            }
           }
+
+          const storedReplies = partnerRepliesMap.get('ENQ-74B1721D') || [];
+          for (const r of storedReplies) {
+            if (!messages.some((existing) => existing.id === r.id)) {
+              messages.push(r);
+            }
+          }
+        } else {
+          messages = rawList.map((m: any) => {
+            const isAgent = m.senderType === 'AGENT' || String(m.senderName || '').toLowerCase().includes('admin');
+            return {
+              id: m.id,
+              enquiryId: rawId,
+              sender: isAgent ? 'admin' : 'customer',
+              senderName: m.senderName || (isAgent ? 'Admin Support' : 'Customer'),
+              message: m.content || m.message || '',
+              timestamp: formatSupportTime(m.createdAt),
+            };
+          });
         }
+      }
     } catch {
       messages = [];
     }

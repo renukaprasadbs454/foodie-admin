@@ -36,229 +36,8 @@ export interface EnquiryRecord {
   orderId?: string;
 }
 
-const INITIAL_ENQUIRIES: EnquiryRecord[] = [
-  {
-    id: 'ENQ-901',
-    category: 'CUSTOMER',
-    senderName: 'Ananya Sharma',
-    senderEmail: 'ananya.s@gmail.com',
-    senderPhone: '+91 98765 12345',
-    subject: 'Delayed Refund for Order #ORD-9821',
-    message: 'I was debited ₹450 for a cancelled order yesterday but haven\'t received refund in my bank account.',
-    timestamp: '15 mins ago',
-    status: 'OPEN',
-    priority: 'HIGH',
-    orderId: 'ORD-9821',
-    messages: [
-      {
-        id: 'msg-101',
-        enquiryId: 'ENQ-901',
-        sender: 'customer',
-        senderName: 'Ananya Sharma',
-        message: 'I was debited ₹450 for a cancelled order yesterday but haven\'t received refund in my bank account.',
-        timestamp: '15 mins ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-902',
-    category: 'CUSTOMER',
-    senderName: 'Vikram Mehta',
-    senderEmail: 'vikram.m@yahoo.com',
-    senderPhone: '+91 98123 45678',
-    subject: 'Unable to apply promo code WELCOME100',
-    message: 'The promo code states invalid even though I am placing my first order.',
-    timestamp: '40 mins ago',
-    status: 'IN_PROGRESS',
-    priority: 'MEDIUM',
-    replyMessage: 'Our tech team is validating your first order eligibility status.',
-    messages: [
-      {
-        id: 'msg-201',
-        enquiryId: 'ENQ-902',
-        sender: 'customer',
-        senderName: 'Vikram Mehta',
-        message: 'The promo code states invalid even though I am placing my first order.',
-        timestamp: '40 mins ago',
-      },
-      {
-        id: 'msg-202',
-        enquiryId: 'ENQ-902',
-        sender: 'admin',
-        senderName: 'Admin Support',
-        message: 'Our tech team is validating your first order eligibility status.',
-        timestamp: '25 mins ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-2093BD86',
-    category: 'RESTAURANT',
-    senderName: 'Rajesh Gupta (Royal Biryani)',
-    senderEmail: 'contact@royalbiryani.in',
-    senderPhone: '+91 99001 88776',
-    subject: 'Request to update menu prices & commission statement',
-    message: 'We have updated our GST details and require our weekly commission payout report.',
-    timestamp: '1 hour ago',
-    status: 'IN_PROGRESS',
-    priority: 'MEDIUM',
-    messages: [
-      {
-        id: 'MSG-1ACC1508',
-        enquiryId: 'ENQ-2093BD86',
-        sender: 'customer',
-        senderName: 'Rajesh Gupta (Royal Biryani)',
-        message: 'We have updated our GST details and require our weekly commission payout report.',
-        timestamp: '1 hour ago',
-      },
-      {
-        id: 'MSG-99ADFF03',
-        enquiryId: 'ENQ-2093BD86',
-        sender: 'admin',
-        senderName: 'Admin Support',
-        message: 'Hello Rajesh, we have processed your weekly statement.',
-        timestamp: '30 mins ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-74B1721D',
-    category: 'DELIVERY',
-    senderName: 'Ramesh Kumar (Rider #DRV-402)',
-    senderEmail: 'ramesh.rider@gmail.com',
-    senderPhone: '+91 97400 33211',
-    subject: 'Rain Surge Payout Incentive Not Credited',
-    message: 'I completed 12 orders during rain surge hours in Indiranagar yesterday. Rain bonus ₹300 is missing.',
-    timestamp: '2 hours ago',
-    status: 'IN_PROGRESS',
-    priority: 'HIGH',
-    messages: [
-      {
-        id: 'MSG-978C1CB1',
-        enquiryId: 'ENQ-74B1721D',
-        sender: 'customer',
-        senderName: 'Ramesh Kumar (Rider #DRV-402)',
-        message: 'I completed 12 orders during rain surge hours in Indiranagar yesterday. Rain bonus ₹300 is missing.',
-        timestamp: '2 hours ago',
-      },
-      {
-        id: 'MSG-9154FEFF',
-        enquiryId: 'ENQ-74B1721D',
-        sender: 'admin',
-        senderName: 'Admin Support',
-        message: 'Hello Ramesh, checking your surge bonus now.',
-        timestamp: '45 mins ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-DELIV-KARISHMA',
-    category: 'DELIVERY',
-    senderName: 'karishma (Delivery Fleet)',
-    senderEmail: 'karishma.rider@foodie.local',
-    senderPhone: '+91 98450 77123',
-    subject: 'Payment & Login Issue',
-    message: 'payment issue',
-    timestamp: '5 mins ago',
-    status: 'IN_PROGRESS',
-    priority: 'HIGH',
-    messages: [
-      {
-        id: 'MSG-13BDEB64',
-        enquiryId: 'ENQ-DELIV-KARISHMA',
-        sender: 'customer',
-        senderName: 'karishma (Delivery Fleet)',
-        message: 'i have issue while login',
-        timestamp: '15 mins ago',
-      },
-      {
-        id: 'MSG-4422FF06',
-        enquiryId: 'ENQ-DELIV-KARISHMA',
-        sender: 'customer',
-        senderName: 'Foodie System',
-        message: 'Escalated to human agent. Please wait.',
-        timestamp: '15 mins ago',
-      },
-      {
-        id: 'MSG-94F80FA6',
-        enquiryId: 'ENQ-DELIV-KARISHMA',
-        sender: 'customer',
-        senderName: 'karishma (Delivery Fleet)',
-        message: 'issue while login',
-        timestamp: '10 mins ago',
-      },
-      {
-        id: 'MSG-10A87425',
-        enquiryId: 'ENQ-DELIV-KARISHMA',
-        sender: 'customer',
-        senderName: 'Foodie System',
-        message: 'Escalated to human agent. Please wait.',
-        timestamp: '10 mins ago',
-      },
-      {
-        id: 'MSG-0721825D',
-        enquiryId: 'ENQ-DELIV-KARISHMA',
-        sender: 'customer',
-        senderName: 'karishma (Delivery Fleet)',
-        message: 'payment issue',
-        timestamp: '5 mins ago',
-      },
-      {
-        id: 'MSG-8FF6E0D4',
-        enquiryId: 'ENQ-DELIV-KARISHMA',
-        sender: 'customer',
-        senderName: 'Foodie System',
-        message: 'Escalated to human agent. Please wait.',
-        timestamp: '5 mins ago',
-      },
-    ],
-  },
-];
-
-const INITIAL_HISTORY: EnquiryRecord[] = [
-  {
-    id: 'ENQ-880',
-    category: 'CUSTOMER',
-    senderName: 'Priya Nair',
-    senderEmail: 'priya.nair@outlook.com',
-    senderPhone: '+91 96555 44332',
-    subject: 'Address change for live order',
-    message: 'Please change delivery address from Flat 201 to Flat 405.',
-    timestamp: '1 day ago',
-    status: 'RESOLVED',
-    priority: 'MEDIUM',
-    replyMessage: 'Address updated and driver notified successfully via dispatch desk.',
-    resolvedAt: '1 day ago by Admin',
-  },
-  {
-    id: 'ENQ-881',
-    category: 'RESTAURANT',
-    senderName: 'Chef Marco (Bella Italia)',
-    senderEmail: 'info@bellaitalia.com',
-    senderPhone: '+91 98888 12121',
-    subject: 'POS Integration API Credentials Request',
-    message: 'We require sandbox API keys to integrate our kitchen POS with Foodie Merchant SDK.',
-    timestamp: '2 days ago',
-    status: 'RESOLVED',
-    priority: 'LOW',
-    replyMessage: 'API Credentials and Sandbox documentation dispatched to vendor email.',
-    resolvedAt: '2 days ago by Tech Desk',
-  },
-  {
-    id: 'ENQ-879',
-    category: 'DELIVERY',
-    senderName: 'Sunita Rao (Rider #DRV-112)',
-    senderEmail: 'sunita.rao@gmail.com',
-    senderPhone: '+91 98441 55900',
-    subject: 'Emergency vehicle breakdown assistance during delivery',
-    message: 'Tire puncture on Ring Road while carrying Order #ORD-7710. Requested re-assignment.',
-    timestamp: '3 days ago',
-    status: 'RESOLVED',
-    priority: 'HIGH',
-    replyMessage: 'Backup delivery partner assigned and order delivered with 8 min delay. Bonus credited to Sunita.',
-    resolvedAt: '3 days ago by Dispatch Desk',
-  },
-];
+const INITIAL_ENQUIRIES: EnquiryRecord[] = [];
+const INITIAL_HISTORY: EnquiryRecord[] = [];
 
 const QUICK_TEMPLATES = [
   { label: 'Refund Processing', text: 'We have processed the refund for your order. Funds will reflect in your account within 3-5 business days.' },
@@ -278,8 +57,8 @@ export function ContactUsPage() {
   const [dateFilter, setDateFilter] = useState<'ALL' | 'TODAY' | 'WEEK' | 'MONTH'>('ALL');
   const [historyCategoryFilter, setHistoryCategoryFilter] = useState<'ALL' | 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY'>('ALL');
 
-  const [enquiries, setEnquiries] = useState<EnquiryRecord[]>(INITIAL_ENQUIRIES);
-  const [history, setHistory] = useState<EnquiryRecord[]>(INITIAL_HISTORY);
+  const [enquiries, setEnquiries] = useState<EnquiryRecord[]>([]);
+  const [history, setHistory] = useState<EnquiryRecord[]>([]);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   const { data: apiTickets } = useGetAllTicketsQuery(undefined, { pollingInterval: 2500 });
@@ -331,13 +110,13 @@ export function ContactUsPage() {
           orderId: t.orderId,
           messages: Array.isArray(t.messages)
             ? t.messages.map((m: any) => ({
-                id: m.id,
-                enquiryId: t.id,
-                sender: (m.sender === 'admin' || m.senderType === 'AGENT' || m.senderType === 'AI') ? 'admin' : 'customer',
-                senderName: m.senderName || (m.senderType === 'AGENT' ? 'Admin Support' : 'User'),
-                message: m.message || m.content || '',
-                timestamp: m.timestamp || (m.createdAt ? new Date(m.createdAt).toLocaleTimeString() : 'Just now')
-              }))
+              id: m.id,
+              enquiryId: t.id,
+              sender: (m.sender === 'admin' || m.senderType === 'AGENT' || m.senderType === 'AI') ? 'admin' : 'customer',
+              senderName: m.senderName || (m.senderType === 'AGENT' ? 'Admin Support' : 'User'),
+              message: m.message || m.content || '',
+              timestamp: m.timestamp || (m.createdAt ? new Date(m.createdAt).toLocaleTimeString() : 'Just now')
+            }))
             : [],
           replyMessage: t.replyMessage
         };
