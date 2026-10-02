@@ -761,7 +761,7 @@ export function LocationManagementPage() {
       alert('Please enter a Zone Name');
       return;
     }
-    void createZone({
+    createZone({
       zoneName: newZoneName.trim(),
       cityName: newZoneCity,
       latitude: parseFloat(newLat) || 12.9716,
@@ -774,11 +774,13 @@ export function LocationManagementPage() {
       restaurantEnabled: newRestEnabled,
       deliveryPartnerEnabled: newDriverEnabled,
       customerOrderingEnabled: newCustomerEnabled,
+    }).unwrap().then(() => {
+      setIsCreatingZone(false);
+      showToast(`Multi-Zone "${newZoneName.trim()}" dispatched successfully via DB creation!`);
+      setNewZoneName('');
+    }).catch((err) => {
+      showToast(`Failed to create zone: ${err?.message || 'Server Error'}`);
     });
-
-    setIsCreatingZone(false);
-    showToast(`Multi-Zone "${newZoneName.trim()}" dispatched successfully via DB creation!`);
-    setNewZoneName('');
   };
 
   // Submit unserviceable restaurant request
@@ -1576,18 +1578,21 @@ export function LocationManagementPage() {
               e.preventDefault();
               if (!newCityName.trim() || !newState.trim()) return;
               const addedCityName = newCityName.trim();
-              void createCity({
+              createCity({
                 cityName: addedCityName,
                 state: newState.trim(),
                 activeZonesCount: 1,
                 activeMerchantsCount: 0,
                 status: 'ACTIVE'
+              }).unwrap().then(() => {
+                setNewZoneCity(addedCityName);
+                void handleCityMapUpdate(addedCityName);
+                setNewCityName('');
+                setNewState('');
+                showToast(`City added successfully! Map prepared for ${addedCityName}.`);
+              }).catch(() => {
+                showToast(`Failed to establish new city record.`);
               });
-              setNewZoneCity(addedCityName);
-              void handleCityMapUpdate(addedCityName);
-              setNewCityName('');
-              setNewState('');
-              showToast(`City added successfully! Map prepared for ${addedCityName}.`);
             }}
             style={{
               backgroundColor: '#FFFFFF',

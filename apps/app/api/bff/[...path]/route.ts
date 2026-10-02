@@ -1175,7 +1175,7 @@ async function getDevBackendToken(): Promise<string | null> {
         return json.data.accessToken;
       }
     }
-  } catch {}
+  } catch { }
   return null;
 }
 
@@ -1476,13 +1476,13 @@ async function proxy(request: Request, pathSegments: string[]) {
         try {
           const json = await stlUp.response.json();
           rawSettlements = json.data || [];
-        } catch {}
+        } catch { }
       }
       if (payUp.response && payUp.response.ok) {
         try {
           const json = await payUp.response.json();
           rawPayouts = json.data || [];
-        } catch {}
+        } catch { }
       }
 
       const ledger = buildDoubleEntryAuditLedger(rawSettlements, rawPayouts);
@@ -1535,13 +1535,13 @@ async function proxy(request: Request, pathSegments: string[]) {
         try {
           const json = await stlUp.response.json();
           rawSettlements = json.data || [];
-        } catch {}
+        } catch { }
       }
       if (payUp.response && payUp.response.ok) {
         try {
           const json = await payUp.response.json();
           rawPayouts = json.data || [];
-        } catch {}
+        } catch { }
       }
 
       const auditData = buildAuditLogsFromBackend(rawSettlements, rawPayouts, incomingUrl.searchParams);
@@ -1596,7 +1596,7 @@ async function proxy(request: Request, pathSegments: string[]) {
           if (Array.isArray(items) && items.length > 0) {
             approvalList = items;
           }
-        } catch {}
+        } catch { }
       }
 
       if (approvalList.length === 0 && payUp.response && payUp.response.ok) {
@@ -1626,7 +1626,7 @@ async function proxy(request: Request, pathSegments: string[]) {
               requestedBy: { fullName: p.ownerName || 'Finance Partner' },
               createdAt: p.createdAt,
             }));
-        } catch {}
+        } catch { }
       }
 
       const liveCancelledRefunds = await fetchLiveCancelledRefunds(accessToken, ENV.apiBaseUrl);
@@ -1761,6 +1761,7 @@ async function proxy(request: Request, pathSegments: string[]) {
   const init: RequestInit = {
     method: request.method,
     headers,
+    cache: 'no-store',
   };
 
   if (request.method !== 'GET' && request.method !== 'HEAD') {
