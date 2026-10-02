@@ -1394,7 +1394,8 @@ async function proxy(request: Request, pathSegments: string[]) {
 
   if (isGet) {
     const cached = BFF_CACHE.get(cacheKey);
-    if (cached && Date.now() < cached.expiresAt) {
+    // Let location requests stay live while developing DB integrations
+    if (cached && Date.now() < cached.expiresAt && !targetPath.includes('admin/location')) {
       return new NextResponse(cached.body as BodyInit, {
         status: cached.status,
         headers: {
@@ -2019,7 +2020,7 @@ async function proxy(request: Request, pathSegments: string[]) {
       );
     }
 
-    if (accessToken.startsWith('demo-') && request.method === 'GET') {
+    if (accessToken.startsWith('demo-') && request.method === 'GET' && !targetPath.includes('admin/location')) {
       return NextResponse.json(
         {
           success: true,
