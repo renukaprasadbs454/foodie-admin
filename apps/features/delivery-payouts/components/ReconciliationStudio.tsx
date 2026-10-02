@@ -38,7 +38,7 @@ export function ReconciliationStudio({ overview, onSelectPayout }: Reconciliatio
             Payout Reconciliation Studio
           </div>
           <div style={{ fontSize: 13, color: '#BAE6FD', marginTop: 4, maxWidth: 600 }}>
-            Automated cross-reconciliation engine auditing local ledger entries against Razorpay and Cashfree provider settlement logs.
+            Automated cross-reconciliation engine auditing local ledger entries against Cashfree provider settlement logs.
           </div>
         </div>
         <div

@@ -157,7 +157,7 @@ export function SettingsPage() {
   const [tcsTaxRate, setTcsTaxRate] = useState('1.0');
 
   // 6. Payment Settings State
-  const [razorpayEnabled, setRazorpayEnabled] = useState(true);
+  const [cashfreeEnabled, setCashfreeEnabled] = useState(true);
   const [stripeEnabled, setStripeEnabled] = useState(true);
   const [codEnabled, setCodEnabled] = useState(true);
   const [codMaxLimit, setCodMaxLimit] = useState('2000');
@@ -678,8 +678,8 @@ export function SettingsPage() {
               <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Payment Gateways & COD Rules</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={razorpayEnabled} onChange={(e) => setRazorpayEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Enable Razorpay Gateway (UPI, Netbanking, Cards)</span>
+                  <input type="checkbox" checked={cashfreeEnabled} onChange={(e) => setCashfreeEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Enable Cashfree Gateway (UPI, Netbanking, Cards)</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>

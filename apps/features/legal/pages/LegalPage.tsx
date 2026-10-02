@@ -154,7 +154,7 @@ export function LegalPage({ initialTab = 'TERMS' }: { initialTab?: LegalTab }) {
             <div style={{ backgroundColor: '#F0F9FF', padding: 18, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#0369A1' }}>PCI-DSS Payment Standards</div>
               <div style={{ fontSize: 13, color: '#0284C7' }}>
-                Credit/Debit card details and UPI payment hashes are processed via PCI-DSS Level 1 certified gateways (Razorpay, Stripe, Paytm).
+                Credit/Debit card details and UPI payment hashes are processed via PCI-DSS Level 1 certified gateway (Cashfree).
               </div>
             </div>
           </div>

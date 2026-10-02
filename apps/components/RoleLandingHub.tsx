@@ -171,7 +171,7 @@ export function RoleLandingHub() {
             </div>
             <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>REFUND DISPATCH</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1' }}>Razorpay Sync</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1' }}>Cashfree Sync</div>
               <div style={{ fontSize: 11, color: '#0284C7' }}>Approved Requests Only</div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 export type PayoutStatus = 'REQUESTED' | 'APPROVED' | 'PROCESSING' | 'SUCCESS' | 'COMPLETED' | 'FAILED' | 'REJECTED';
 
 
-export type PayoutProvider = 'RAZORPAY' | 'CASHFREE';
+export type PayoutProvider = 'CASHFREE';
 
 export type ReconciliationStatus =
   | 'MATCHED'

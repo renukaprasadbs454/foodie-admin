@@ -3,13 +3,19 @@
  */
 
 export interface DeliveryDocument {
-  id: string;
+  id?: string;
+  documentId?: string;
   docType: string;
+  type?: string;
   s3Key?: string | null;
+  fileKey?: string | null;
+  fileUrl?: string | null;
   downloadUrl?: string | null;
   verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  status?: 'PENDING' | 'VERIFIED' | 'REJECTED';
   remarks?: string | null;
   createdAt?: string | null;
+  uploadedAt?: string | null;
 }
 
 export type DeliveryPartnerProfile = {

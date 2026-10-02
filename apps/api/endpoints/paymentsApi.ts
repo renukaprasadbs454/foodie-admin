@@ -9,6 +9,7 @@ import type {
   RefundInitiation,
   RefundPaymentBody,
   RestaurantSettlementRecord,
+  CancelledOrderRefundRequest,
 } from '../../features/payments/types';
 
 /**
@@ -22,18 +23,21 @@ export const paymentsApi = baseApi.injectEndpoints({
       query: () => '/api/bff/admin/payments/settlements',
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
       providesTags: [{ type: 'Payment', id: 'SETTLEMENTS' }],
+      keepUnusedDataFor: 120,
     }),
 
     getTransactions: builder.query<PaymentTransactionRecord[], void>({
       query: () => '/api/bff/admin/payments/transactions',
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
       providesTags: [{ type: 'Payment', id: 'TRANSACTIONS' }],
+      keepUnusedDataFor: 120,
     }),
 
     getLedger: builder.query<LedgerEntryRecord[], void>({
       query: () => '/api/bff/admin/payments/ledger',
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
       providesTags: [{ type: 'Payment', id: 'LEDGER' }],
+      keepUnusedDataFor: 120,
     }),
 
     getRestaurantSettlements: builder.query<
@@ -46,6 +50,7 @@ export const paymentsApi = baseApi.injectEndpoints({
       }),
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
       providesTags: [{ type: 'Payment', id: 'RESTAURANT_SETTLEMENTS' }],
+      keepUnusedDataFor: 120,
     }),
 
     disburseRestaurantSettlement: builder.mutation<
@@ -72,6 +77,7 @@ export const paymentsApi = baseApi.injectEndpoints({
       },
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
       providesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
+      keepUnusedDataFor: 120,
     }),
 
     approvePayouts: builder.mutation<string, { payoutIds: string[] }>({
@@ -147,6 +153,56 @@ export const paymentsApi = baseApi.injectEndpoints({
         { type: 'Order', id: 'LIST' },
       ],
     }),
+
+    getCancelledOrderRefunds: builder.query<CancelledOrderRefundRequest[], void>({
+      query: () => '/api/bff/admin/payments/cancelled-refunds',
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
+      providesTags: [{ type: 'Payment', id: 'CANCELLED_REFUNDS' as any }],
+      keepUnusedDataFor: 30,
+    }),
+
+    approveCancelledOrderRefund: builder.mutation<
+      CancelledOrderRefundRequest,
+      { id: string }
+    >({
+      query: ({ id }) => ({
+        url: `/api/bff/admin/payments/cancelled-refunds/${id}/approve`,
+        method: 'POST',
+      }),
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
+      invalidatesTags: [
+        { type: 'Payment', id: 'CANCELLED_REFUNDS' as any },
+        { type: 'Payment', id: 'SETTLEMENTS' },
+        { type: 'Payment', id: 'TRANSACTIONS' },
+        { type: 'Payment', id: 'LEDGER' },
+      ],
+    }),
+
+    rejectCancelledOrderRefund: builder.mutation<
+      CancelledOrderRefundRequest,
+      { id: string; reason?: string }
+    >({
+      query: ({ id, reason }) => ({
+        url: `/api/bff/admin/payments/cancelled-refunds/${id}/reject`,
+        method: 'POST',
+        body: { reason },
+      }),
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Payment', id: 'CANCELLED_REFUNDS' as any }],
+    }),
+
+    simulateCustomerCancellation: builder.mutation<
+      CancelledOrderRefundRequest,
+      Partial<CancelledOrderRefundRequest> | void
+    >({
+      query: (body) => ({
+        url: '/api/bff/admin/payments/cancelled-refunds/simulate',
+        method: 'POST',
+        body: body || {},
+      }),
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Payment', id: 'CANCELLED_REFUNDS' as any }],
+    }),
   }),
 });
 
@@ -164,5 +220,9 @@ export const {
   useApprovePayoutsMutation,
   useApproveSinglePayoutMutation,
   useRejectPayoutMutation,
+  useGetCancelledOrderRefundsQuery,
+  useApproveCancelledOrderRefundMutation,
+  useRejectCancelledOrderRefundMutation,
+  useSimulateCustomerCancellationMutation,
 } = paymentsApi;
 

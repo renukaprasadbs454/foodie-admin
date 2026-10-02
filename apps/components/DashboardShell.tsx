@@ -39,7 +39,16 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isAuditorPath = Boolean(pathname && pathname.startsWith('/compliance-auditor'));
-      const savedRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role') || (isAuditorPath ? 'AUDITOR' : null);
+      const isFinancePath = Boolean(
+        pathname && (
+          pathname.startsWith('/finance-admin') ||
+          pathname.startsWith('/delivery-payouts') ||
+          pathname.startsWith('/payments') ||
+          pathname.startsWith('/approvals')
+        )
+      );
+      const defaultRoleForPath = isAuditorPath ? 'AUDITOR' : (isFinancePath ? 'FINANCE_ADMIN' : null);
+      const savedRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role') || defaultRoleForPath;
       const savedUserId = localStorage.getItem('foodie_admin_user_id') || sessionStorage.getItem('foodie_admin_user_id') || '44444444-4444-4444-4444-444444444001';
       if (savedRole && savedUserId) {
         dispatch(
@@ -47,7 +56,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             userId: savedUserId,
             role: savedRole as AdminRole,
             userType: 'ADMIN',
-            fullName: savedRole === 'AUDITOR' ? 'Compliance Auditor' : 'Admin Operator',
+            fullName: savedRole === 'AUDITOR' ? 'Compliance Auditor' : (savedRole === 'FINANCE_ADMIN' ? 'Finance Admin' : 'Admin Operator'),
           }),
         );
       }
@@ -62,25 +71,35 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const isAuditorPath = Boolean(pathname && pathname.startsWith('/compliance-auditor'));
+    const isFinancePath = Boolean(
+      pathname && (
+        pathname.startsWith('/finance-admin') ||
+        pathname.startsWith('/delivery-payouts') ||
+        pathname.startsWith('/payments') ||
+        pathname.startsWith('/approvals')
+      )
+    );
     const storedRole = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null;
 
     if (meProfile) {
       const finalRole = (isAuditorPath || storedRole === 'AUDITOR')
         ? 'AUDITOR'
+        : (isFinancePath || storedRole === 'FINANCE_ADMIN' || (storedRole && storedRole.toUpperCase().includes('FINANCE')))
+        ? 'FINANCE_ADMIN'
         : ((storedRole && storedRole !== 'SUPER_ADMIN' ? storedRole : meProfile.role) || storedRole || role || 'SUPER_ADMIN');
       dispatch(
         setSession({
           userId: meProfile.adminUserId || userId || '44444444-4444-4444-4444-444444444001',
           role: finalRole as AdminRole,
           userType: 'ADMIN',
-          fullName: finalRole === 'AUDITOR' ? 'Compliance Auditor' : (meProfile.fullName || 'Admin Operator'),
+          fullName: finalRole === 'AUDITOR' ? 'Compliance Auditor' : (finalRole === 'FINANCE_ADMIN' ? 'Finance Admin' : (meProfile.fullName || 'Admin Operator')),
           permissions: meProfile.permissions || [],
         }),
       );
     } else if (isMeError) {
       const status = (meError as { status?: number })?.status;
       if (status === 401 || status === 403) {
-        if (!isAuditorPath && storedRole !== 'AUDITOR' && !storedRole && !role && !userId) {
+        if (!isAuditorPath && !isFinancePath && storedRole !== 'AUDITOR' && storedRole !== 'FINANCE_ADMIN' && !storedRole && !role && !userId) {
           dispatch(clearSession());
           router.replace('/login');
         } else if (isAuditorPath || storedRole === 'AUDITOR') {
@@ -94,6 +113,17 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               permissions: ['*'],
             }),
           );
+        } else if (isFinancePath || storedRole === 'FINANCE_ADMIN' || (storedRole && storedRole.toUpperCase().includes('FINANCE'))) {
+          // Keep finance admin session alive on API error
+          dispatch(
+            setSession({
+              userId: userId || '44444444-4444-4444-4444-444444444001',
+              role: 'FINANCE_ADMIN',
+              userType: 'ADMIN',
+              fullName: 'Finance Admin',
+              permissions: ['*'],
+            }),
+          );
         }
       }
     }
@@ -102,8 +132,16 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (hasHydrated && authStatus === 'unauthenticated' && !role && !userId) {
       const isAuditorPath = Boolean(pathname && pathname.startsWith('/compliance-auditor'));
+      const isFinancePath = Boolean(
+        pathname && (
+          pathname.startsWith('/finance-admin') ||
+          pathname.startsWith('/delivery-payouts') ||
+          pathname.startsWith('/payments') ||
+          pathname.startsWith('/approvals')
+        )
+      );
       const savedRole = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null;
-      if (!savedRole && !isAuditorPath) {
+      if (!savedRole && !isAuditorPath && !isFinancePath) {
         router.replace('/login');
       } else if (isAuditorPath || savedRole === 'AUDITOR') {
         dispatch(
@@ -112,6 +150,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             role: 'AUDITOR',
             userType: 'ADMIN',
             fullName: 'Compliance Auditor',
+          }),
+        );
+      } else if (isFinancePath || savedRole === 'FINANCE_ADMIN' || (savedRole && savedRole.toUpperCase().includes('FINANCE'))) {
+        dispatch(
+          setSession({
+            userId: '44444444-4444-4444-4444-444444444001',
+            role: 'FINANCE_ADMIN',
+            userType: 'ADMIN',
+            fullName: 'Finance Admin',
           }),
         );
       }
@@ -130,11 +177,23 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     role === 'AUDITOR' ||
     (typeof window !== 'undefined' && localStorage.getItem('foodie_admin_role') === 'AUDITOR');
 
+  const isFinanceContext =
+    Boolean(pathname && (
+      pathname.startsWith('/finance-admin') ||
+      pathname.startsWith('/delivery-payouts') ||
+      pathname.startsWith('/payments') ||
+      pathname.startsWith('/approvals')
+    )) ||
+    Boolean(role && role.toUpperCase().includes('FINANCE')) ||
+    (typeof window !== 'undefined' && (localStorage.getItem('foodie_admin_role') || '').toUpperCase().includes('FINANCE'));
+
   const effectiveRole = isAuditorContext
     ? 'AUDITOR'
-    : (role || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') as AdminRole | null) : null));
+    : (isFinanceContext
+      ? 'FINANCE_ADMIN'
+      : (role || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') as AdminRole | null) : null)));
   const effectiveUserId = userId || (typeof window !== 'undefined' ? localStorage.getItem('foodie_admin_user_id') : null);
-  const activeRole = isAuditorContext ? 'AUDITOR' : (effectiveRole || 'SUPER_ADMIN');
+  const activeRole = isAuditorContext ? 'AUDITOR' : (isFinanceContext ? 'FINANCE_ADMIN' : (effectiveRole || 'SUPER_ADMIN'));
   const activeUserId = effectiveUserId || '44444444-4444-4444-4444-444444444001';
 
   const nav = filterNavForRole(activeRole, pathname);
@@ -213,6 +272,18 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                       Compliance Auditor
                     </div>
                   </div>
+                ) : activeRole === 'FINANCE_ADMIN' || isFinanceContext ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ color: '#38BDF8', display: 'flex', alignItems: 'center' }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                        <line x1="2" y1="10" x2="22" y2="10" />
+                      </svg>
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
+                      Foodie <span style={{ color: '#38BDF8' }}>Finance</span>
+                    </div>
+                  </div>
                 ) : (
                   <div style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
                     Foodie <span style={{ color: '#38BDF8' }}>Admin</span>
@@ -241,7 +312,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                     Active Role
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap' }}>
-                    {activeRole === 'AUDITOR' ? 'ADMIN' : activeRole}
+                    {activeRole === 'AUDITOR' ? 'ADMIN' : (activeRole === 'FINANCE_ADMIN' ? 'FINANCE ADMIN' : activeRole)}
                   </div>
                 </div>
                 <span
@@ -273,6 +344,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   const isActive =
                     item.href === '/compliance-auditor/dashboard'
                       ? pathname === '/compliance-auditor/dashboard' || pathname === '/compliance-auditor' || pathname === '/'
+                      : item.href === '/finance-admin/dashboard'
+                      ? pathname === '/finance-admin/dashboard' || pathname === '/finance-admin'
                       : item.href === '/'
                         ? pathname === '/'
                         : pathname.startsWith(item.href) ||
@@ -320,6 +393,34 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            {item.icon === 'bar-chart' && (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="20" x2="12" y2="10" />
+                                <line x1="18" y1="20" x2="18" y2="4" />
+                                <line x1="6" y1="20" x2="6" y2="16" />
+                              </svg>
+                            )}
+                            {item.icon === 'truck' && (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="1" y="3" width="15" height="13" />
+                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                                <circle cx="5.5" cy="18.5" r="2.5" />
+                                <circle cx="18.5" cy="18.5" r="2.5" />
+                              </svg>
+                            )}
+                            {item.icon === 'credit-card' && (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                                <line x1="1" y1="10" x2="23" y2="10" />
+                              </svg>
+                            )}
+                            {item.icon === 'shield-alert' && (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                              </svg>
+                            )}
                             {item.icon === 'home' && (
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -419,14 +520,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   boxShadow: '0 0 10px rgba(14, 165, 233, 0.4)',
                 }}
               >
-                {activeRole === 'AUDITOR' ? 'CA' : 'AD'}
+                {activeRole === 'AUDITOR' ? 'CA' : (activeRole === 'FINANCE_ADMIN' || isFinanceContext ? 'FA' : 'AD')}
               </div>
               <div style={{ overflow: 'hidden' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                  {activeRole === 'AUDITOR' ? 'Compliance Auditor' : 'Admin'}
+                  {activeRole === 'AUDITOR' ? 'Compliance Auditor' : (activeRole === 'FINANCE_ADMIN' || isFinanceContext ? 'Finance Admin' : 'Admin')}
                 </div>
                 <div style={{ fontSize: 11, color: '#7DD3FC', marginTop: 1 }}>
-                  admin
+                  {activeRole === 'FINANCE_ADMIN' || isFinanceContext ? 'finance.admin' : 'admin'}
                 </div>
               </div>
             </div>

@@ -31,13 +31,13 @@ export function CustomerManagementStudio() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // RTK Query Hooks
+  // RTK Query Hooks - Fetches live database records once and keeps cache warm for instant client-side search/filter
   const {
     data: customerData,
     isLoading: isLoadingCustomers,
     isError: isCustomersError,
     refetch: refetchCustomers,
-  } = useGetCustomersQuery({ search: debouncedSearch, status: statusFilter });
+  } = useGetCustomersQuery();
 
   const {
     data: ticketsData,
@@ -56,20 +56,39 @@ export function CustomerManagementStudio() {
     averageCustomerLtv: 0,
   };
 
-  const rawCustomersList = customerData?.customers ?? [];
-  const customersList = rawCustomersList.filter((cust) => {
+  const rawCustomersList: CustomerProfile[] = Array.isArray(customerData?.customers)
+    ? customerData.customers
+    : Array.isArray(customerData)
+    ? (customerData as CustomerProfile[])
+    : Array.isArray((customerData as any)?.data?.customers)
+    ? (customerData as any).data.customers
+    : Array.isArray((customerData as any)?.data)
+    ? (customerData as any).data
+    : [];
+
+  const customersList: CustomerProfile[] = rawCustomersList.filter((cust: CustomerProfile) => {
+    if (!cust) return false;
     const q = searchQuery.trim().toLowerCase();
     const matchesSearch =
       !q ||
-      cust.name.toLowerCase().includes(q) ||
-      cust.email.toLowerCase().includes(q) ||
-      cust.phone.includes(q) ||
-      cust.id.toLowerCase().includes(q);
+      (cust.name && cust.name.toLowerCase().includes(q)) ||
+      (cust.email && cust.email.toLowerCase().includes(q)) ||
+      (cust.phone && cust.phone.includes(q)) ||
+      (cust.id && cust.id.toLowerCase().includes(q));
     const matchesStatus = statusFilter === 'ALL' || cust.accountStatus === statusFilter;
-    return matchesSearch && matchesStatus;
+    return Boolean(matchesSearch && matchesStatus);
   });
-  const ticketsList = ticketsData ?? [];
-  const openTicketsCount = customerData?.openTicketsCount ?? ticketsList.filter((t) => t.status === 'OPEN').length;
+
+  const ticketsList: SupportTicket[] = Array.isArray(ticketsData)
+    ? ticketsData
+    : Array.isArray((ticketsData as any)?.data)
+    ? (ticketsData as any).data
+    : [];
+
+  const openTicketsCount =
+    typeof customerData?.openTicketsCount === 'number'
+      ? customerData.openTicketsCount
+      : ticketsList.filter((t: SupportTicket) => t?.status === 'OPEN').length;
 
   const handleToggleAccountStatus = async (id: string, newStatus: AccountStatus) => {
     try {
