@@ -636,7 +636,7 @@ export function LocationManagementPage() {
   const [activeTab, setActiveTab] = useState<LocationTab>('DELIVERY_ZONES');
 
   // RTK Query Real Data Source
-  const { data: dbCities = [] } = useGetCitiesQuery();
+  const { data: dbCities = [], refetch: refetchCities } = useGetCitiesQuery();
   const [createCity] = useCreateCityMutation();
   const { data: dbDeliveryZones = [] } = useGetZonesQuery();
   const [createZone] = useCreateZoneMutation();
@@ -1584,7 +1584,9 @@ export function LocationManagementPage() {
                 activeZonesCount: 1,
                 activeMerchantsCount: 0,
                 status: 'ACTIVE'
-              }).unwrap().then(() => {
+              }).unwrap().then(async () => {
+                await refetchCities(); // FORCE WAIT FOR REFETCH so UI table doesn't map early
+
                 setNewZoneCity(addedCityName);
                 void handleCityMapUpdate(addedCityName);
                 setNewCityName('');
