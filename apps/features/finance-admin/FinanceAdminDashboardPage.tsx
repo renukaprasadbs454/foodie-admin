@@ -330,7 +330,7 @@ export function FinanceAdminDashboardPage() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#F0F9FF', borderRadius: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#075985' }}>Payment Gateway Processing (PG)</span>
-              <span style={{ fontSize: 14, fontWeight: 800, color: '#0284C7' }}>Razorpay / Cashfree Live</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#0284C7' }}>Cashfree PG Live</span>
             </div>
           </div>
         </div>
@@ -424,7 +424,7 @@ export function FinanceAdminDashboardPage() {
                       ₹{Number(tx.amount || 0).toFixed(2)}
                     </td>
                     <td style={{ padding: '12px', color: '#075985' }}>
-                      {tx.gatewayName ? tx.gatewayName.replace(/RAZORPAY/g, 'Cashfree') : 'Cashfree'}
+                      Cashfree
                     </td>
                     <td style={{ padding: '12px' }}>
                       <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 6, backgroundColor: '#D1FAE5', color: '#047857' }}>

@@ -17,7 +17,7 @@ import type {
   RestaurantSettlementRecord,
   CancelledOrderRefundRequest,
 } from '../types';
-import { calculatePaymentSplit, validateRefundForm } from '../types';
+import { calculatePaymentSplit } from '../types';
 
 import {
   useCalculateSplitMutation,
@@ -28,7 +28,6 @@ import {
   useGetRestaurantSettlementsQuery,
   useGetSettlementsQuery,
   useGetTransactionsQuery,
-  useRefundPaymentMutation,
   useUpdateCommissionRulesMutation,
   useApprovePayoutsMutation,
   useGetCancelledOrderRefundsQuery,
@@ -80,7 +79,6 @@ export function PaymentsPage() {
   // RTK Mutations
   const [updateRules, { isLoading: isSavingRules }] = useUpdateCommissionRulesMutation();
   const [disburseSettlement, { isLoading: isDisbursing }] = useDisburseRestaurantSettlementMutation();
-  const [executeRefund, { isLoading: isRefunding }] = useRefundPaymentMutation();
   const [calculateSplitApi] = useCalculateSplitMutation();
   const [approvePayouts, { isLoading: isApproving }] = useApprovePayoutsMutation();
   const [approveCancelledRefund] = useApproveCancelledOrderRefundMutation();
@@ -113,11 +111,6 @@ export function PaymentsPage() {
   const [selectedDisburseId, setSelectedDisburseId] = useState<string | null>(null);
   const [disburseTxRef, setDisburseTxRef] = useState('');
 
-  // Refund Form State
-  const [refundPaymentUuid, setRefundPaymentUuid] = useState('');
-  const [refundAmount, setRefundAmount] = useState('');
-  const [refundReason, setRefundReason] = useState('');
-
   // Bulk Approval State
   const [selectedRestPayouts, setSelectedRestPayouts] = useState<Set<string>>(new Set());
   const [selectedDelivPayouts, setSelectedDelivPayouts] = useState<Set<string>>(new Set());
@@ -129,7 +122,7 @@ export function PaymentsPage() {
     setProcessingRefundId(request.id);
     try {
       await approveCancelledRefund({ id: request.id }).unwrap();
-      showToast(`Refund of ₹${request.amount.toFixed(2)} approved & disbursed to ${request.customerName} via ${request.paymentMethod}!`);
+      showToast(`Refund of ₹${request.amount.toFixed(2)} approved & disbursed to ${request.customerName} via Cashfree Payment Gateway!`);
       void refetchCancelledRefunds();
     } catch (err: any) {
       alert(`Approval error: ${err?.data?.error?.message || err?.message || 'Failed'}`);
@@ -153,14 +146,7 @@ export function PaymentsPage() {
     }
   };
 
-  const handlePreFillRefundForm = (request: CancelledOrderRefundRequest) => {
-    setRefundPaymentUuid(request.paymentUuid);
-    setRefundAmount(String(request.amount));
-    setRefundReason(`Customer cancellation for Order #${request.orderId}: ${request.cancellationReason}`);
-    showToast(`Pre-filled manual refund form for ${request.customerName} (₹${request.amount.toFixed(2)})`);
-    const el = document.getElementById('manual-refund-section');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  };
+
 
 
 
@@ -291,26 +277,7 @@ export function PaymentsPage() {
     }
   };
 
-  const handleProcessRefund = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const validation = validateRefundForm(refundPaymentUuid, refundAmount, refundReason);
-    if (!validation.ok) {
-      alert(validation.message);
-      return;
-    }
-    try {
-      await executeRefund({
-        paymentId: validation.paymentId,
-        body: validation.body,
-      }).unwrap();
-      showToast(`Refund of ₹${validation.body.amount} executed successfully for Payment ID: ${validation.paymentId.slice(0, 8)}...`);
-      setRefundPaymentUuid('');
-      setRefundAmount('');
-      setRefundReason('');
-    } catch (err: any) {
-      alert(`Refund failed: ${err?.data?.error?.message || err?.message || 'Failed to execute refund'}`);
-    }
-  };
+
 
   const renderTabsHeader = () => (
     <div style={{ display: 'flex', borderBottom: '2px solid #BAE6FD', gap: 4, overflowX: 'auto', paddingBottom: 2 }}>
@@ -721,10 +688,10 @@ export function PaymentsPage() {
                         ₹{(tx.amount || 0).toFixed(2)}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#0369A1' }}>
-                        {tx.paymentMethod ? tx.paymentMethod.replace(/RAZORPAY/g, 'CASHFREE') : 'CASHFREE_UPI'}
+                        {tx.paymentMethod ? tx.paymentMethod.replace(/RAZORPAY/gi, 'CASHFREE') : 'CASHFREE_UPI'}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#0284C7' }}>
-                        {tx.gatewayName ? tx.gatewayName.replace(/RAZORPAY/g, 'CASHFREE') : 'CASHFREE'} ({tx.gatewayTransactionId ? tx.gatewayTransactionId.slice(0, 10) : 'N/A'})
+                        Cashfree ({tx.gatewayTransactionId ? tx.gatewayTransactionId.slice(0, 10) : 'N/A'})
                       </td>
                       <td style={{ padding: '14px 16px' }}>
                         <span
@@ -811,7 +778,7 @@ export function PaymentsPage() {
 
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ fontWeight: 700, color: '#0369A1' }}>{s.customerName || 'Customer'}</div>
-                        <div style={{ fontSize: 11, color: '#0284C7' }}>{s.paymentMethod ? s.paymentMethod.replace(/RAZORPAY/g, 'CASHFREE') : 'CASHFREE_UPI'}</div>
+                        <div style={{ fontSize: 11, color: '#0284C7' }}>{s.paymentMethod ? s.paymentMethod.replace(/RAZORPAY/gi, 'CASHFREE') : 'CASHFREE_UPI'}</div>
                       </td>
 
                       <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0369A1' }}>
@@ -1626,10 +1593,10 @@ export function PaymentsPage() {
                 </span>
               </div>
               <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1' }}>
-                Razorpay & Cashfree
+                Cashfree Payment Gateway
               </div>
               <div style={{ fontSize: 12, color: '#0284C7' }}>
-                Online payments are debited at checkout. Gateway reversal is released once approved.
+                Online payments are processed via Cashfree. Gateway refund is initiated directly via Cashfree once approved.
               </div>
             </div>
 
@@ -1740,8 +1707,8 @@ export function PaymentsPage() {
                   </span>
                 </div>
                 <p style={{ fontSize: 13, color: '#0284C7', margin: '6px 0 0', maxWidth: 840, lineHeight: 1.45 }}>
-                  When a customer cancels an order paid via <strong>Online Payments (Razorpay UPI, Cashfree, Credit/Debit Card)</strong>,
-                  funds were already debited from their account. Review the Customer Name, Customer ID, Order ID, and Amount below to authorize instant refund disbursal back to their original payment instrument.
+                  When a customer cancels an order paid via <strong>Online Payments (Cashfree PG - UPI, Cards, Netbanking)</strong>,
+                  funds were already debited from their account. Review the Customer Name, Customer ID, Order ID, and Amount below to authorize instant refund disbursal back to their original payment instrument via Cashfree.
                 </p>
               </div>
 
@@ -2131,35 +2098,13 @@ export function PaymentsPage() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                           <div style={{ fontSize: 12, color: '#0284C7' }}>
                             {isPending
-                              ? 'Approving will trigger the backend refund gateway reversal and update customer ledger.'
+                              ? 'Approving will trigger the backend Cashfree refund gateway reversal and update customer ledger.'
                               : `Processed by ${req.reviewedBy || 'Finance Admin'}.`}
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             {isPending && (
                               <>
-                                {/* Auto-Fill Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => handlePreFillRefundForm(req)}
-                                  style={{
-                                    padding: '8px 14px',
-                                    borderRadius: 8,
-                                    border: '1px solid #BAE6FD',
-                                    backgroundColor: '#FFFFFF',
-                                    color: '#0284C7',
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 5,
-                                  }}
-                                  title="Load this cancellation data into the manual form"
-                                >
-                                  <span>Pre-fill Form</span>
-                                </button>
-
                                 {/* Reject Button */}
                                 <button
                                   type="button"
@@ -2200,31 +2145,12 @@ export function PaymentsPage() {
                                   }}
                                 >
                                   {isActioning ? (
-                                    <span>Processing Refund...</span>
+                                    <span>Processing Refund via Cashfree...</span>
                                   ) : (
-                                    <span>Approve & Disburse Refund (₹{req.amount.toFixed(2)})</span>
+                                    <span>Approve & Disburse Refund via Cashfree (₹{req.amount.toFixed(2)})</span>
                                   )}
                                 </button>
                               </>
-                            )}
-
-                            {isApproved && (
-                              <button
-                                type="button"
-                                onClick={() => handlePreFillRefundForm(req)}
-                                style={{
-                                  padding: '6px 12px',
-                                  borderRadius: 8,
-                                  border: '1px solid #BAE6FD',
-                                  backgroundColor: '#FFFFFF',
-                                  color: '#0284C7',
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                View / Re-verify
-                              </button>
                             )}
                           </div>
                         </div>
@@ -2236,145 +2162,7 @@ export function PaymentsPage() {
             })()}
           </div>
 
-          {/* Section 2: Manual / Custom Customer Refund / Reversal */}
-          <div
-            id="manual-refund-section"
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 16,
-              border: '1px solid #BAE6FD',
-              borderTop: '4px solid #0369A1',
-              padding: 24,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.06)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
-                  Initiate Manual Customer Refund / Reversal
-                </h3>
-                <p style={{ fontSize: 12, color: '#0284C7', margin: '4px 0 0' }}>
-                  Execute a custom or partial refund through backend Payment Service & Cashfree / Razorpay gateway.
-                  You can also click <strong>&ldquo;Pre-fill Form&rdquo;</strong> above to automatically load any cancelled order here.
-                </p>
-              </div>
 
-              {refundPaymentUuid && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    backgroundColor: '#E0F2FE',
-                    color: '#0369A1',
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    border: '1px solid #BAE6FD',
-                  }}
-                >
-                  Pre-filled from Cancellation Approval Queue
-                </span>
-              )}
-            </div>
-
-            <form onSubmit={handleProcessRefund} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
-                    Payment UUID / ID *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter Payment UUID (e.g. 76a2c40d-ef9d-...)"
-                    value={refundPaymentUuid}
-                    onChange={(e) => setRefundPaymentUuid(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', outline: 'none' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
-                    Refund Amount (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    step="0.01"
-                    placeholder="0.00"
-                    value={refundAmount}
-                    onChange={(e) => setRefundAmount(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700, color: '#0369A1', outline: 'none' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
-                  Reason for Refund *
-                </label>
-                <textarea
-                  rows={2}
-                  required
-                  placeholder="Order cancellation, food quality complaint, or missing item..."
-                  value={refundReason}
-                  onChange={(e) => setRefundReason(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 12, fontFamily: 'inherit', color: '#0369A1', outline: 'none' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                <div style={{ fontSize: 12, color: '#0284C7' }}>
-                  Backend integration forwards directly to <code>/api/v1/payments/:id/refund</code>.
-                </div>
-
-                <div style={{ display: 'flex', gap: 10 }}>
-                  {(refundPaymentUuid || refundAmount || refundReason) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRefundPaymentUuid('');
-                        setRefundAmount('');
-                        setRefundReason('');
-                      }}
-                      style={{
-                        padding: '10px 14px',
-                        border: '1px solid #BAE6FD',
-                        backgroundColor: '#FFFFFF',
-                        color: '#0284C7',
-                        borderRadius: 8,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Clear
-                    </button>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={isRefunding}
-                    style={{
-                      padding: '10px 20px',
-                      background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 8,
-                      fontSize: 13,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
-                    }}
-                  >
-                    {isRefunding ? 'Processing Refund...' : 'Execute Payment Refund'}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
 
 
         </div>

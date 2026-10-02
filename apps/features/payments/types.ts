@@ -129,7 +129,7 @@ export interface CancelledOrderRefundRequest {
   paymentMethod: string;
   isOnlinePayment: boolean;
   gatewayTransactionId?: string;
-  gatewayProvider: 'RAZORPAY' | 'CASHFREE' | 'PAYTM' | 'STRIPE';
+  gatewayProvider: 'CASHFREE';
   cancellationReason: string;
   cancelledBy: 'CUSTOMER' | 'RESTAURANT' | 'ADMIN';
   cancelledAt: string;

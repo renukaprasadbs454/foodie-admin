@@ -435,8 +435,8 @@ export async function fetchLiveCancelledRefunds(
               ? `Customer cancelled: ${rawReason}`
               : 'Customer cancelled: Order cancelled by customer before preparation.';
 
-            const paymentMethod = `ONLINE (${s.paymentMethod || 'RAZORPAY'} UPI)`;
-            const gatewayId = `pay_${ord.orderId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 14)}`;
+            const paymentMethod = 'ONLINE (CASHFREE UPI)';
+            const gatewayId = `cf_pay_${ord.orderId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 14)}`;
 
             const approvalId = `CR-REF-${ord.orderNumber || ord.orderId.slice(0, 8)}`;
             const reviewInfo = LIVE_REFUND_REVIEW_STATUS.get(approvalId);
@@ -454,7 +454,7 @@ export async function fetchLiveCancelledRefunds(
               paymentMethod,
               isOnlinePayment: true,
               gatewayTransactionId: gatewayId,
-              gatewayProvider: s.paymentMethod || 'RAZORPAY',
+              gatewayProvider: 'CASHFREE',
               cancellationReason,
               cancelledBy: cancelEvent?.actorType || 'CUSTOMER',
               cancelledAt: cancelEvent?.createdAt || ord.placedAt || s.settledAt || new Date().toISOString(),

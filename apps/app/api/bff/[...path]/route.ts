@@ -1701,7 +1701,7 @@ async function proxy(request: Request, pathSegments: string[]) {
       const [, approvalId, action] = approvalActionMatch;
 
       if (approvalId.startsWith('CR-REF-')) {
-        const refRef = action === 'approve' ? `rf_live_${crypto.randomUUID().slice(0, 10)}` : undefined;
+        const refRef = action === 'approve' ? `cf_refund_${crypto.randomUUID().slice(0, 10)}` : undefined;
         setRefundApprovalStatus(approvalId, action === 'approve' ? 'APPROVED' : 'REJECTED', refRef);
         return NextResponse.json({
           success: true,
@@ -1739,7 +1739,7 @@ async function proxy(request: Request, pathSegments: string[]) {
     const crActionMatch = targetPath.match(/^admin\/payments\/cancelled-refunds\/([^/]+)\/(approve|reject)$/);
     if (crActionMatch) {
       const [, crId, action] = crActionMatch;
-      const refRef = action === 'approve' ? `rf_live_${crypto.randomUUID().slice(0, 10)}` : undefined;
+      const refRef = action === 'approve' ? `cf_refund_${crypto.randomUUID().slice(0, 10)}` : undefined;
       setRefundApprovalStatus(crId, action === 'approve' ? 'APPROVED' : 'REJECTED', refRef);
       const statusObj = getRefundApprovalStatus(crId);
 

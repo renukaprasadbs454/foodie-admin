@@ -12,10 +12,10 @@ describe('Cancelled Order Online Refund Approvals', () => {
       customerEmail: 'customer5a4a@foodie.local',
       paymentUuid: '76a2c40d-ef9d-4128-bd55-d834530ec681',
       amount: 90.0,
-      paymentMethod: 'ONLINE (RAZORPAY UPI)',
+      paymentMethod: 'ONLINE (CASHFREE UPI)',
       isOnlinePayment: true,
-      gatewayTransactionId: 'pay_rzp_9011_live',
-      gatewayProvider: 'RAZORPAY',
+      gatewayTransactionId: 'cf_pay_9011_live',
+      gatewayProvider: 'CASHFREE',
       cancellationReason: 'Customer cancelled: Delivery time exceeded initial estimate.',
       cancelledBy: 'CUSTOMER',
       cancelledAt: new Date().toISOString(),
@@ -28,6 +28,7 @@ describe('Cancelled Order Online Refund Approvals', () => {
     expect(mockRequest.customerId).toBe('CUST-5A4A-9011');
     expect(mockRequest.status).toBe('PENDING_APPROVAL');
     expect(mockRequest.paymentMethod).toContain('ONLINE');
+    expect(mockRequest.gatewayProvider).toBe('CASHFREE');
   });
 
   it('correctly filters pending vs processed cancelled refunds', () => {
@@ -54,9 +55,9 @@ describe('Cancelled Order Online Refund Approvals', () => {
         customerName: 'Bob',
         paymentUuid: 'p-2',
         amount: 500,
-        paymentMethod: 'ONLINE (CREDIT CARD)',
+        paymentMethod: 'ONLINE (CASHFREE CARDS)',
         isOnlinePayment: true,
-        gatewayProvider: 'RAZORPAY',
+        gatewayProvider: 'CASHFREE',
         cancellationReason: 'Changed mind',
         cancelledBy: 'CUSTOMER',
         cancelledAt: '2026-09-30T09:00:00Z',

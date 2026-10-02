@@ -130,9 +130,8 @@ export function PayoutFilterBar({ filters, onChange, onReset }: PayoutFilterBarP
               cursor: 'pointer',
             }}
           >
-            <option value="ALL">All Providers</option>
-            <option value="RAZORPAY">Razorpay</option>
-            <option value="CASHFREE">Cashfree</option>
+            <option value="ALL">All Payouts</option>
+            <option value="CASHFREE">Cashfree Gateway</option>
           </select>
         </div>
 
