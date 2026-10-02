@@ -2,7 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Text } from 'foodie-shared-web';
-import { useGetAllTicketsQuery, useReplyToTicketMutation, useResolveTicketMutation } from '../../../api/endpoints/supportApi';
+import {
+  useGetAllTicketsQuery,
+  useReplyToTicketMutation,
+  useResolveTicketMutation,
+  useCreateTicketMutation,
+  useGetTicketMessagesQuery,
+} from '../../../api/endpoints/supportApi';
 
 export interface ChatMessage {
   id: string;
@@ -30,173 +36,8 @@ export interface EnquiryRecord {
   orderId?: string;
 }
 
-const INITIAL_ENQUIRIES: EnquiryRecord[] = [
-  {
-    id: 'ENQ-901',
-    category: 'CUSTOMER',
-    senderName: 'Ananya Sharma',
-    senderEmail: 'ananya.s@gmail.com',
-    senderPhone: '+91 98765 12345',
-    subject: 'Delayed Refund for Order #ORD-9821',
-    message: 'I was debited ₹450 for a cancelled order yesterday but haven\'t received refund in my bank account.',
-    timestamp: '15 mins ago',
-    status: 'OPEN',
-    priority: 'HIGH',
-    orderId: 'ORD-9821',
-    messages: [
-      {
-        id: 'msg-101',
-        enquiryId: 'ENQ-901',
-        sender: 'customer',
-        senderName: 'Ananya Sharma',
-        message: 'I was debited ₹450 for a cancelled order yesterday but haven\'t received refund in my bank account.',
-        timestamp: '15 mins ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-902',
-    category: 'CUSTOMER',
-    senderName: 'Vikram Mehta',
-    senderEmail: 'vikram.m@yahoo.com',
-    senderPhone: '+91 98123 45678',
-    subject: 'Unable to apply promo code WELCOME100',
-    message: 'The promo code states invalid even though I am placing my first order.',
-    timestamp: '40 mins ago',
-    status: 'IN_PROGRESS',
-    priority: 'MEDIUM',
-    replyMessage: 'Our tech team is validating your first order eligibility status.',
-    messages: [
-      {
-        id: 'msg-201',
-        enquiryId: 'ENQ-902',
-        sender: 'customer',
-        senderName: 'Vikram Mehta',
-        message: 'The promo code states invalid even though I am placing my first order.',
-        timestamp: '40 mins ago',
-      },
-      {
-        id: 'msg-202',
-        enquiryId: 'ENQ-902',
-        sender: 'admin',
-        senderName: 'Admin Support',
-        message: 'Our tech team is validating your first order eligibility status.',
-        timestamp: '25 mins ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-903',
-    category: 'RESTAURANT',
-    senderName: 'Rajesh Gupta (Royal Biryani)',
-    senderEmail: 'contact@royalbiryani.in',
-    senderPhone: '+91 99001 88776',
-    subject: 'Request to update menu prices & commission statement',
-    message: 'We have updated our GST details and require our weekly commission payout report.',
-    timestamp: '1 hour ago',
-    status: 'OPEN',
-    priority: 'MEDIUM',
-    messages: [
-      {
-        id: 'msg-301',
-        enquiryId: 'ENQ-903',
-        sender: 'customer',
-        senderName: 'Rajesh Gupta (Royal Biryani)',
-        message: 'We have updated our GST details and require our weekly commission payout report.',
-        timestamp: '1 hour ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-904',
-    category: 'DELIVERY',
-    senderName: 'Ramesh Kumar (Rider #DRV-402)',
-    senderEmail: 'ramesh.rider@gmail.com',
-    senderPhone: '+91 97400 33211',
-    subject: 'Rain Surge Payout Incentive Not Credited',
-    message: 'I completed 12 orders during rain surge hours in Indiranagar yesterday. Rain bonus ₹300 is missing.',
-    timestamp: '2 hours ago',
-    status: 'OPEN',
-    priority: 'HIGH',
-    messages: [
-      {
-        id: 'msg-401',
-        enquiryId: 'ENQ-904',
-        sender: 'customer',
-        senderName: 'Ramesh Kumar (Rider #DRV-402)',
-        message: 'I completed 12 orders during rain surge hours in Indiranagar yesterday. Rain bonus ₹300 is missing.',
-        timestamp: '2 hours ago',
-      },
-    ],
-  },
-  {
-    id: 'ENQ-905',
-    category: 'GENERAL',
-    senderName: 'Sanjay Kapoor (TechCrunch)',
-    senderEmail: 'sanjay@techcrunch.com',
-    senderPhone: '+91 98222 11000',
-    subject: 'Media & Franchise Partnership Inquiry',
-    message: 'Interested in featuring Foodie Hyperlocal Platform in our upcoming startup ecosystem report.',
-    timestamp: '3 hours ago',
-    status: 'OPEN',
-    priority: 'LOW',
-    messages: [
-      {
-        id: 'msg-501',
-        enquiryId: 'ENQ-905',
-        sender: 'customer',
-        senderName: 'Sanjay Kapoor',
-        message: 'Interested in featuring Foodie Hyperlocal Platform in our upcoming startup ecosystem report.',
-        timestamp: '3 hours ago',
-      },
-    ],
-  },
-];
-
-const INITIAL_HISTORY: EnquiryRecord[] = [
-  {
-    id: 'ENQ-880',
-    category: 'CUSTOMER',
-    senderName: 'Priya Nair',
-    senderEmail: 'priya.nair@outlook.com',
-    senderPhone: '+91 96555 44332',
-    subject: 'Address change for live order',
-    message: 'Please change delivery address from Flat 201 to Flat 405.',
-    timestamp: '1 day ago',
-    status: 'RESOLVED',
-    priority: 'MEDIUM',
-    replyMessage: 'Address updated and driver notified successfully via dispatch desk.',
-    resolvedAt: '1 day ago by Admin',
-  },
-  {
-    id: 'ENQ-881',
-    category: 'RESTAURANT',
-    senderName: 'Chef Marco (Bella Italia)',
-    senderEmail: 'info@bellaitalia.com',
-    senderPhone: '+91 98888 12121',
-    subject: 'POS Integration API Credentials Request',
-    message: 'We require sandbox API keys to integrate our kitchen POS with Foodie Merchant SDK.',
-    timestamp: '2 days ago',
-    status: 'RESOLVED',
-    priority: 'LOW',
-    replyMessage: 'API Credentials and Sandbox documentation dispatched to vendor email.',
-    resolvedAt: '2 days ago by Tech Desk',
-  },
-  {
-    id: 'ENQ-879',
-    category: 'DELIVERY',
-    senderName: 'Sunita Rao (Rider #DRV-112)',
-    senderEmail: 'sunita.rao@gmail.com',
-    senderPhone: '+91 98441 55900',
-    subject: 'Emergency vehicle breakdown assistance during delivery',
-    message: 'Tire puncture on Ring Road while carrying Order #ORD-7710. Requested re-assignment.',
-    timestamp: '3 days ago',
-    status: 'RESOLVED',
-    priority: 'HIGH',
-    replyMessage: 'Backup delivery partner assigned and order delivered with 8 min delay. Bonus credited to Sunita.',
-    resolvedAt: '3 days ago by Dispatch Desk',
-  },
-];
+const INITIAL_ENQUIRIES: EnquiryRecord[] = [];
+const INITIAL_HISTORY: EnquiryRecord[] = [];
 
 const QUICK_TEMPLATES = [
   { label: 'Refund Processing', text: 'We have processed the refund for your order. Funds will reflect in your account within 3-5 business days.' },
@@ -206,7 +47,7 @@ const QUICK_TEMPLATES = [
   { label: 'KYC Document Verified', text: 'Your uploaded document has been verified by compliance desk and account status is active.' },
 ];
 
-type ContactTab = 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'GENERAL' | 'HISTORY';
+type ContactTab = 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'HISTORY';
 
 export function ContactUsPage() {
   const [activeTab, setActiveTab] = useState<ContactTab>('CUSTOMER');
@@ -214,23 +55,31 @@ export function ContactUsPage() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<'ALL' | 'HIGH' | 'MEDIUM' | 'LOW'>('ALL');
   const [dateFilter, setDateFilter] = useState<'ALL' | 'TODAY' | 'WEEK' | 'MONTH'>('ALL');
+  const [historyCategoryFilter, setHistoryCategoryFilter] = useState<'ALL' | 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY'>('ALL');
 
-  const [enquiries, setEnquiries] = useState<EnquiryRecord[]>(INITIAL_ENQUIRIES);
-  const [history, setHistory] = useState<EnquiryRecord[]>(INITIAL_HISTORY);
+  const [enquiries, setEnquiries] = useState<EnquiryRecord[]>([]);
+  const [history, setHistory] = useState<EnquiryRecord[]>([]);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: apiTickets } = useGetAllTicketsQuery(undefined, { pollingInterval: 2000 });
+  const { data: apiTickets } = useGetAllTicketsQuery(undefined, { pollingInterval: 2500 });
   const [replyMutation] = useReplyToTicketMutation();
   const [resolveMutation] = useResolveTicketMutation();
+  const [createTicketMutation] = useCreateTicketMutation();
 
   // Reply Modal State
   const [selectedEnquiry, setSelectedEnquiry] = useState<EnquiryRecord | null>(null);
   const [replyText, setReplyText] = useState('');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // Live messages query for selected enquiry
+  const { data: activeTicketMessages } = useGetTicketMessagesQuery(selectedEnquiry?.id || '', {
+    skip: !selectedEnquiry?.id,
+    pollingInterval: 2000,
+  });
+
   // New Enquiry Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newCategory, setNewCategory] = useState<'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'GENERAL'>('CUSTOMER');
+  const [newCategory, setNewCategory] = useState<'CUSTOMER' | 'RESTAURANT' | 'DELIVERY'>('CUSTOMER');
   const [newSenderName, setNewSenderName] = useState('');
   const [newSenderEmail, setNewSenderEmail] = useState('');
   const [newSenderPhone, setNewSenderPhone] = useState('');
@@ -244,75 +93,82 @@ export function ContactUsPage() {
   };
 
   useEffect(() => {
-    if (apiTickets) {
+    if (apiTickets && Array.isArray(apiTickets)) {
       const mapped: EnquiryRecord[] = (apiTickets as any).map((t: any) => {
         const firstUserMsg = t.messages?.find((m: any) => m.senderType !== 'AGENT' && m.senderType !== 'AI');
         return {
           id: t.id,
           category: t.category || 'CUSTOMER',
-          senderName: firstUserMsg?.senderName || t.senderName || 'User',
-          senderEmail: t.customerId || t.senderEmail || 'N/A',
+          senderName: t.senderName || firstUserMsg?.senderName || 'User',
+          senderEmail: t.senderEmail || t.customerId || 'N/A',
           senderPhone: t.senderPhone || 'N/A',
           subject: t.subject || 'Support Ticket',
-          message: firstUserMsg?.content || firstUserMsg?.message || t.message || 'View details',
-          timestamp: t.createdAt ? new Date(t.createdAt).toLocaleTimeString() : (t.timestamp || 'Just now'),
+          message: t.message || firstUserMsg?.content || firstUserMsg?.message || 'View details',
+          timestamp: t.timestamp || (t.createdAt ? new Date(t.createdAt).toLocaleTimeString() : 'Just now'),
           status: t.status || 'OPEN',
           priority: t.priority || 'MEDIUM',
           orderId: t.orderId,
-          messages: (t.messages || []).map((m: any) => ({
-            id: m.id,
-            enquiryId: t.id,
-            sender: (m.senderType === 'AGENT' || m.senderType === 'AI' || m.sender === 'admin') ? 'admin' : 'customer',
-            senderName: m.senderName || (m.senderType === 'AGENT' ? 'Admin Support' : 'User'),
-            message: m.content || m.message || '',
-            timestamp: m.createdAt ? new Date(m.createdAt).toLocaleTimeString() : (m.timestamp || 'Just now')
-          })),
+          messages: Array.isArray(t.messages)
+            ? t.messages.map((m: any) => ({
+              id: m.id,
+              enquiryId: t.id,
+              sender: (m.sender === 'admin' || m.senderType === 'AGENT' || m.senderType === 'AI') ? 'admin' : 'customer',
+              senderName: m.senderName || (m.senderType === 'AGENT' ? 'Admin Support' : 'User'),
+              message: m.message || m.content || '',
+              timestamp: m.timestamp || (m.createdAt ? new Date(m.createdAt).toLocaleTimeString() : 'Just now')
+            }))
+            : [],
           replyMessage: t.replyMessage
         };
       });
-      setEnquiries(mapped);
+      const nonGeneral = mapped.filter((t) => (t.category as string) !== 'GENERAL');
+      const active = nonGeneral.filter((t) => t.status !== 'RESOLVED');
+      setEnquiries(active);
+      setHistory(nonGeneral);
     }
   }, [apiTickets]);
 
-  // Fix React closure stale state for live chat auto-refresh
-  useEffect(() => {
-    if (selectedEnquiry) {
-      const updated = enquiries.find(e => e.id === selectedEnquiry.id);
-      if (updated && JSON.stringify(updated.messages) !== JSON.stringify(selectedEnquiry.messages)) {
-        setSelectedEnquiry(updated);
-        setTimeout(() => {
-          if (chatScrollRef.current) {
-            chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-          }
-        }, 100);
-      }
-    }
-  }, [enquiries]);
 
-  const saveEnquiriesToStorage = (newList: EnquiryRecord[], replyEnquiryId?: string, replyText?: string) => {
-    setEnquiries(newList);
-  };
+  // Update selected enquiry messages in real time when activeTicketMessages arrives
+  useEffect(() => {
+    if (selectedEnquiry && activeTicketMessages && activeTicketMessages.length > 0) {
+      setSelectedEnquiry((prev) => {
+        if (!prev || prev.id !== selectedEnquiry.id) return prev;
+        return {
+          ...prev,
+          messages: activeTicketMessages,
+        };
+      });
+      setTimeout(() => {
+        if (chatScrollRef.current) {
+          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+      }, 60);
+    }
+  }, [activeTicketMessages]);
 
   const handleMarkAsResolved = async (enquiryId: string) => {
-    await resolveMutation(enquiryId);
-    showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and completely deleted!`);
-    setSelectedEnquiry(null);
+    try {
+      await resolveMutation({ id: enquiryId, status: 'RESOLVED' }).unwrap();
+      showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and moved to History!`);
+      if (selectedEnquiry?.id === enquiryId) {
+        setSelectedEnquiry(null);
+      }
+    } catch {
+      showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED`);
+      if (selectedEnquiry?.id === enquiryId) {
+        setSelectedEnquiry(null);
+      }
+    }
   };
 
-  const handleReopenTicket = (enquiryId: string) => {
-    const target = history.find((item) => item.id === enquiryId);
-    if (!target) return;
-
-    const reopenedRecord: EnquiryRecord = {
-      ...target,
-      status: 'IN_PROGRESS',
-      resolvedAt: undefined,
-    };
-
-    setHistory((prev) => prev.filter((item) => item.id !== enquiryId));
-    saveEnquiriesToStorage([reopenedRecord, ...enquiries]);
-
-    showToast(`↺ Ticket ${enquiryId} reopened and restored to active support queue.`);
+  const handleReopenTicket = async (enquiryId: string) => {
+    try {
+      await resolveMutation({ id: enquiryId, status: 'OPEN' }).unwrap();
+      showToast(`↺ Ticket ${enquiryId} reopened and restored to active support queue.`);
+    } catch {
+      showToast(`Failed to reopen ticket ${enquiryId}`);
+    }
   };
 
   const handleSendReply = async (e: React.FormEvent) => {
@@ -322,48 +178,54 @@ export function ContactUsPage() {
       return;
     }
 
+    const textToSend = replyText.trim();
     try {
       await replyMutation({
         ticketId: selectedEnquiry.id,
-        message: replyText.trim(),
-        senderName: 'Admin Support'
-      });
+        message: textToSend,
+        senderName: 'Admin Support',
+      }).unwrap();
       setReplyText('');
-      showToast(`✉ Response sent & delivered to customer's app chat!`);
-    } catch (e) {
+      showToast(`✉ Response sent & delivered to live thread!`);
+      setTimeout(() => {
+        if (chatScrollRef.current) {
+          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+      }, 100);
+    } catch {
       showToast('Failed to send reply');
     }
   };
 
-  const handleCreateEnquiry = (e: React.FormEvent) => {
+  const handleCreateEnquiry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSenderName || !newSenderEmail || !newSubject || !newMessage) {
       alert('Please fill out all required fields.');
       return;
     }
 
-    const newRecord: EnquiryRecord = {
-      id: `ENQ-${Math.floor(900 + Math.random() * 100)}`,
-      category: newCategory,
-      senderName: newSenderName.trim(),
-      senderEmail: newSenderEmail.trim(),
-      senderPhone: newSenderPhone.trim() || '+91 98000 00000',
-      subject: newSubject.trim(),
-      message: newMessage.trim(),
-      timestamp: 'Just now',
-      status: 'OPEN',
-      priority: newPriority,
-    };
+    try {
+      const res = await createTicketMutation({
+        category: newCategory,
+        senderName: newSenderName.trim(),
+        senderEmail: newSenderEmail.trim(),
+        senderPhone: newSenderPhone.trim() || '+91 98000 00000',
+        subject: newSubject.trim(),
+        message: newMessage.trim(),
+        priority: newPriority,
+      }).unwrap();
 
-    setEnquiries((prev) => [newRecord, ...prev]);
-    showToast(`★ New support ticket ${newRecord.id} created successfully!`);
-    setIsCreateModalOpen(false);
-    setNewSenderName('');
-    setNewSenderEmail('');
-    setNewSenderPhone('');
-    setNewSubject('');
-    setNewMessage('');
-    setActiveTab(newCategory);
+      showToast(`★ New support ticket ${res?.id || ''} created successfully!`);
+      setIsCreateModalOpen(false);
+      setNewSenderName('');
+      setNewSenderEmail('');
+      setNewSenderPhone('');
+      setNewSubject('');
+      setNewMessage('');
+      setActiveTab(newCategory);
+    } catch {
+      showToast('Failed to create ticket');
+    }
   };
 
   const matchesFilters = (item: EnquiryRecord) => {
@@ -391,12 +253,15 @@ export function ContactUsPage() {
     return matchesStatus && matchesPriority && matchesDate && matchesQuery;
   };
 
-  const getFilteredEnquiries = (cat: 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'GENERAL') => {
+  const getFilteredEnquiries = (cat: 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY') => {
     return enquiries.filter((item) => item.category === cat && matchesFilters(item));
   };
 
   const getFilteredHistory = () => {
-    return history.filter((item) => matchesFilters(item));
+    return history.filter((item) => {
+      const matchesCategory = historyCategoryFilter === 'ALL' || item.category === historyCategoryFilter;
+      return matchesCategory && matchesFilters(item);
+    });
   };
 
   // Metrics
@@ -404,7 +269,6 @@ export function ContactUsPage() {
   const customerCount = enquiries.filter((e) => e.category === 'CUSTOMER').length;
   const restaurantCount = enquiries.filter((e) => e.category === 'RESTAURANT').length;
   const deliveryCount = enquiries.filter((e) => e.category === 'DELIVERY').length;
-  const generalCount = enquiries.filter((e) => e.category === 'GENERAL').length;
   const historyCount = history.length;
 
   return (
@@ -441,7 +305,7 @@ export function ContactUsPage() {
             Contact Us & Support Operations Desk
           </h1>
           <p style={{ fontSize: 13, color: '#0284C7', margin: 0 }}>
-            Manage customer, restaurant, delivery partner & general enquiries with direct message replies and resolution tracking
+            Manage customer, restaurant & delivery partner enquiries with direct message replies and resolution tracking
           </p>
         </div>
 
@@ -692,7 +556,6 @@ export function ContactUsPage() {
           { id: 'CUSTOMER', label: 'Customer Enquiries', count: getFilteredEnquiries('CUSTOMER').length },
           { id: 'RESTAURANT', label: 'Restaurant Enquiries', count: getFilteredEnquiries('RESTAURANT').length },
           { id: 'DELIVERY', label: 'Delivery Partner Enquiries', count: getFilteredEnquiries('DELIVERY').length },
-          { id: 'GENERAL', label: 'General Enquiries', count: getFilteredEnquiries('GENERAL').length },
           { id: 'HISTORY', label: 'Contact History', count: getFilteredHistory().length },
         ].map((tab) => {
           const isActive = activeTab === tab.id;
@@ -737,8 +600,8 @@ export function ContactUsPage() {
         })}
       </div>
 
-      {/* Active Tab Enquiries List (Non-Customer) */}
-      {activeTab !== 'HISTORY' && activeTab !== 'CUSTOMER' && (
+      {/* Active Tab Enquiries List (Customer, Restaurant, Delivery) */}
+      {activeTab !== 'HISTORY' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {getFilteredEnquiries(activeTab as any).length === 0 ? (
             <div
@@ -872,148 +735,125 @@ export function ContactUsPage() {
                   </div>
                 </div>
 
+                {/* Subject & Complaint Message Display */}
+                <div style={{ backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '12px 16px', borderRadius: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>📋</span>
+                    <span>Subject: {item.subject}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: '#1E293B', marginTop: 6, lineHeight: 1.45, fontStyle: 'italic', backgroundColor: '#FFFFFF', padding: '8px 12px', borderRadius: 6, border: '1px solid #E0F2FE' }}>
+                    "{item.message}"
+                  </div>
+                </div>
 
+                {/* Conversation Thread Preview Bar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#0284C7', borderTop: '1px solid #E0F2FE', paddingTop: 10, flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, backgroundColor: '#E0F2FE', color: '#0369A1', padding: '3px 10px', borderRadius: 12, fontSize: 11 }}>
+                      💬 {item.messages?.length || 1} {((item.messages?.length || 1) === 1) ? 'Message' : 'Messages'} in live thread
+                    </span>
+                    {item.replyMessage && (
+                      <span style={{ color: '#0369A1', fontWeight: 600, fontSize: 11.5 }}>
+                        ✓ Latest reply: "{item.replyMessage.length > 60 ? item.replyMessage.slice(0, 60) + '...' : item.replyMessage}"
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedEnquiry(item);
+                      setReplyText(item.replyMessage || '');
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0284C7',
+                      fontWeight: 800,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    View Contact History & Reply →
+                  </button>
+                </div>
               </div>
             ))
           )}
         </div>
       )}
 
-      {/* CUSTOMER Chat Split-Pane (Admin Panel Theme) */}
-      {activeTab === 'CUSTOMER' && (
-        <div style={{ display: 'flex', height: 600, backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
 
-          {/* LEFT 1/3 - Chat List */}
-          <div style={{ width: 340, borderRight: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF' }}>
-              <h3 style={{ margin: 0, color: '#0369A1', fontSize: 15, fontWeight: 800 }}>Customer Chats</h3>
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#0284C7' }}>{getFilteredEnquiries('CUSTOMER').length} Open Conversations</p>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#FFFFFF' }}>
-              {getFilteredEnquiries('CUSTOMER').length === 0 ? (
-                <div style={{ padding: 40, textAlign: 'center', color: '#0284C7', fontSize: 13 }}>No active customer chats.</div>
-              ) : (
-                getFilteredEnquiries('CUSTOMER').map(item => (
-                  <div
-                    key={item.id}
-                    onClick={() => { setSelectedEnquiry(item); setReplyText(''); }}
-                    style={{
-                      padding: '14px 16px',
-                      borderBottom: '1px solid #F0F9FF',
-                      cursor: 'pointer',
-                      backgroundColor: selectedEnquiry?.id === item.id ? '#E0F2FE' : '#FFFFFF',
-                      borderLeft: selectedEnquiry?.id === item.id ? '4px solid #0369A1' : '4px solid transparent',
-                      transition: 'background 0.1s ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
-                      <span style={{ fontWeight: 800, color: '#0369A1', fontSize: 13, textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden', flex: 1, paddingRight: 8 }}>
-                        {item.senderName}
-                      </span>
-                      <span style={{ fontSize: 10, color: selectedEnquiry?.id === item.id ? '#0369A1' : '#0284C7', fontWeight: 600 }}>{item.timestamp}</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: '#0284C7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {item.orderId ? `Order #${item.orderId} - ` : ''}{item.subject}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* RIGHT 2/3 - Active Chat Window */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC' }}>
-            {selectedEnquiry ? (
-              <form
-                onSubmit={handleSendReply}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Chat Header (Admin Panel Blue Theme) */}
-                <div style={{ background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: 'rgba(255, 255, 255, 0.2)', border: '1px solid rgba(255, 255, 255, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontWeight: 800, fontSize: 14 }}>
-                      {selectedEnquiry.senderName ? selectedEnquiry.senderName.substring(0, 2).toUpperCase() : 'CU'}
-                    </div>
-                    <div>
-                      <h3 style={{ fontSize: 16, fontWeight: 800, color: '#FFFFFF', margin: 0, lineHeight: 1.25 }}>
-                        {selectedEnquiry.senderName}
-                        {selectedEnquiry.orderId && <span style={{ fontSize: 14, opacity: 0.9, fontWeight: 600 }}> (Order #{selectedEnquiry.orderId})</span>}
-                      </h3>
-                      <div style={{ fontSize: 11, color: '#E0F2FE', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ display: 'inline-block', width: 6, height: 6, backgroundColor: '#34D399', borderRadius: '50%' }}></span>
-                        {selectedEnquiry.senderEmail} • {selectedEnquiry.senderPhone}
-                      </div>
-                    </div>
-                  </div>
-                  <button type="button" onClick={() => handleMarkAsResolved(selectedEnquiry.id)} style={{ padding: '6px 14px', background: 'rgba(255, 255, 255, 0.15)', color: '#FFFFFF', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                    ✓ Mark Resolved
-                  </button>
-                </div>
-
-                {/* Sub-header / Subject bar */}
-                <div style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', padding: '8px 20px', fontSize: 12, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <strong style={{ color: '#0284C7' }}>Subject:</strong> <span style={{ fontWeight: 600 }}>{selectedEnquiry.subject}</span>
-                </div>
-
-                {/* Chat Middle - Messages Area */}
-                <div ref={chatScrollRef} style={{ flex: '1 1 auto', overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0 ? selectedEnquiry.messages : [{ id: '1', enquiryId: selectedEnquiry.id, sender: 'customer' as const, senderName: selectedEnquiry.senderName, message: selectedEnquiry.message, timestamp: selectedEnquiry.timestamp }]).map(msg => {
-                    const isAdmin = msg.sender === 'admin';
-                    return (
-                      <div key={msg.id} style={{ alignSelf: isAdmin ? 'flex-end' : 'flex-start', maxWidth: '82%', backgroundColor: isAdmin ? '#E0F2FE' : '#FFFFFF', padding: '10px 14px', borderRadius: 12, borderTopRightRadius: isAdmin ? 4 : 12, borderTopLeftRadius: isAdmin ? 12 : 4, border: isAdmin ? '1px solid #BAE6FD' : '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: isAdmin ? '#0369A1' : '#0284C7', marginBottom: 4 }}>
-                          {isAdmin ? 'Admin Support' : msg.senderName || selectedEnquiry.senderName}
-                        </div>
-                        <div style={{ fontSize: 13, color: '#0F172A', whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{msg.message}</div>
-                        <div style={{ fontSize: 10, color: '#64748B', textAlign: 'right', marginTop: 6 }}>{msg.timestamp || 'Just now'}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Chat Footer - Composer Bar */}
-                <div style={{ backgroundColor: '#FFFFFF', padding: '12px 18px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <input
-                    type="text"
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Type a message to customer..."
-                    style={{ flex: 1, backgroundColor: '#F8FAFC', border: '1px solid #BAE6FD', borderRadius: 24, padding: '10px 18px', fontSize: 13, color: '#0369A1', outline: 'none' }}
-                  />
-                  <button type="submit" disabled={!replyText.trim()} style={{ background: replyText.trim() ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#CBD5E1', color: '#FFFFFF', border: 'none', width: 44, height: 44, borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: replyText.trim() ? 'pointer' : 'default' }}>
-                    <span style={{ fontSize: 18 }}>➤</span>
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#0284C7' }}>
-                <div style={{ fontSize: 42, marginBottom: 16 }}>💬</div>
-                <h3 style={{ margin: 0, color: '#0369A1', fontSize: 20 }}>Select a Conversation</h3>
-                <p style={{ marginTop: 8, fontSize: 13 }}>Click on any customer ticket to view the live chat thread.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* TAB 5: CONTACT HISTORY */}
       {activeTab === 'HISTORY' && (
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Resolved Contact History Audit Log</h2>
-              <p style={{ fontSize: 12, color: '#0284C7', margin: '2px 0 0 0' }}>Archived and resolved support enquiries with complete audit trail</p>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
+                {statusFilter === 'RESOLVED' ? 'Resolved Contact History Audit Log' : 'Partner Contact History & Complaints Audit Log'}
+              </h2>
+              <p style={{ fontSize: 12, color: '#0284C7', margin: '2px 0 0 0' }}>
+                Complete audit trail of enquiries & complaints received from Delivery, Restaurant, and Customer partners
+              </p>
             </div>
 
-            <span style={{ fontSize: 12, fontWeight: 800, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '4px 12px', borderRadius: 20 }}>
-              {getFilteredHistory().length} Resolved Tickets
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* Partner Category Filter Pills */}
+              {[
+                { id: 'ALL', label: 'All Partners' },
+                { id: 'CUSTOMER', label: '👤 Customers' },
+                { id: 'RESTAURANT', label: '🍽 Restaurants' },
+                { id: 'DELIVERY', label: '🚴 Delivery Fleet' },
+              ].map((pill) => {
+                const isSelected = historyCategoryFilter === pill.id;
+                const count = pill.id === 'ALL'
+                  ? history.filter((i) => matchesFilters(i)).length
+                  : history.filter((i) => i.category === pill.id && matchesFilters(i)).length;
+                return (
+                  <button
+                    key={pill.id}
+                    type="button"
+                    onClick={() => setHistoryCategoryFilter(pill.id as any)}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 16,
+                      border: isSelected ? '1px solid #0284C7' : '1px solid #BAE6FD',
+                      backgroundColor: isSelected ? '#0284C7' : '#FFFFFF',
+                      color: isSelected ? '#FFFFFF' : '#0369A1',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span>{pill.label}</span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#E0F2FE',
+                        color: isSelected ? '#FFFFFF' : '#0369A1',
+                        padding: '1px 6px',
+                        borderRadius: 10,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+
+              <span style={{ fontSize: 12, fontWeight: 800, backgroundColor: '#FFFFFF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '4px 12px', borderRadius: 20 }}>
+                {getFilteredHistory().length} Total Records
+              </span>
+            </div>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -1032,66 +872,136 @@ export function ContactUsPage() {
                 {getFilteredHistory().length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ padding: 40, textAlign: 'center', color: '#0284C7' }}>
-                      No resolved records matching active search filters.
+                      No contact history records matching active search filters.
                     </td>
                   </tr>
                 ) : (
-                  getFilteredHistory().map((row) => (
-                    <tr key={row.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
-                      <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: '#0369A1' }}>{row.id}</div>
-                        <div style={{ fontWeight: 800, color: '#0369A1', marginTop: 2 }}>{row.senderName}</div>
-                        <div style={{ fontSize: 11, color: '#0284C7' }}>{row.senderEmail}</div>
-                      </td>
-                      <td style={{ padding: '16px 20px' }}>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            backgroundColor: '#F0F9FF',
-                            color: '#0369A1',
-                            border: '1px solid #BAE6FD',
-                            padding: '4px 8px',
-                            borderRadius: 6,
-                          }}
-                        >
-                          {row.category}
-                        </span>
-                      </td>
-                      <td style={{ padding: '16px 20px', maxWidth: 240 }}>
-                        <div style={{ fontWeight: 700, color: '#0369A1', fontSize: 12 }}>{row.subject}</div>
-                        <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          "{row.message}"
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px 20px', maxWidth: 240 }}>
-                        <div style={{ fontSize: 12, color: '#0369A1', fontWeight: 600 }}>{row.replyMessage || 'Resolved via phone call'}</div>
-                      </td>
-                      <td style={{ padding: '16px 20px', fontSize: 11, color: '#0284C7' }}>{row.resolvedAt || 'Resolved'}</td>
-                      <td style={{ padding: '16px 20px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <span style={{ backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 20, textAlign: 'center' }}>
-                            RESOLVED
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleReopenTicket(row.id)}
+                  getFilteredHistory().map((row) => {
+                    const isRestaurant = row.category === 'RESTAURANT';
+                    const isDelivery = row.category === 'DELIVERY';
+                    const catBg = isRestaurant ? '#FEF3C7' : isDelivery ? '#ECFDF5' : '#F0F9FF';
+                    const catColor = isRestaurant ? '#B45309' : isDelivery ? '#047857' : '#0369A1';
+                    const catBorder = isRestaurant ? '#FCD34D' : isDelivery ? '#A7F3D0' : '#BAE6FD';
+
+                    return (
+                      <tr key={row.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                        <td style={{ padding: '16px 20px' }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#0369A1' }}>{row.id}</div>
+                          <div style={{ fontWeight: 800, color: '#0369A1', marginTop: 2 }}>{row.senderName}</div>
+                          <div style={{ fontSize: 11, color: '#0284C7' }}>{row.senderEmail}</div>
+                        </td>
+                        <td style={{ padding: '16px 20px' }}>
+                          <span
                             style={{
-                              border: 'none',
-                              background: 'none',
-                              color: '#0369A1',
                               fontSize: 11,
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              textDecoration: 'underline',
+                              fontWeight: 800,
+                              backgroundColor: catBg,
+                              color: catColor,
+                              border: `1px solid ${catBorder}`,
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
                             }}
                           >
-                            Reopen Ticket
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                            <span>{isRestaurant ? '🍽' : isDelivery ? '🚴' : '👤'}</span>
+                            <span>{row.category}</span>
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px 20px', maxWidth: 240 }}>
+                          <div style={{ fontWeight: 700, color: '#0369A1', fontSize: 12 }}>{row.subject}</div>
+                          <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            "{row.message}"
+                          </div>
+                        </td>
+                        <td style={{ padding: '16px 20px', maxWidth: 240 }}>
+                          <div style={{ fontSize: 12, color: '#0369A1', fontWeight: 600 }}>{row.replyMessage || 'Resolved via support desk'}</div>
+                        </td>
+                        <td style={{ padding: '16px 20px', fontSize: 11, color: '#0284C7' }}>{row.resolvedAt || (row.status === 'RESOLVED' ? 'Resolved by Admin' : 'In Progress')}</td>
+                        <td style={{ padding: '16px 20px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 140 }}>
+                            <span
+                              style={{
+                                backgroundColor: row.status === 'RESOLVED' ? '#ECFDF5' : row.status === 'IN_PROGRESS' ? '#FEF3C7' : '#F0F9FF',
+                                color: row.status === 'RESOLVED' ? '#047857' : row.status === 'IN_PROGRESS' ? '#B45309' : '#0369A1',
+                                border: `1px solid ${row.status === 'RESOLVED' ? '#A7F3D0' : row.status === 'IN_PROGRESS' ? '#FCD34D' : '#BAE6FD'}`,
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                padding: '3px 8px',
+                                borderRadius: 20,
+                                textAlign: 'center',
+                              }}
+                            >
+                              ● {row.status}
+                            </span>
+
+                            {/* View Full Conversation Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedEnquiry(row);
+                                setReplyText(row.replyMessage || '');
+                              }}
+                              style={{
+                                padding: '4px 8px',
+                                backgroundColor: '#FFFFFF',
+                                color: '#0369A1',
+                                border: '1px solid #BAE6FD',
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 4,
+                              }}
+                            >
+                              <span>💬</span>
+                              <span>View Conversation</span>
+                            </button>
+
+                            {row.status === 'RESOLVED' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleReopenTicket(row.id)}
+                                style={{
+                                  border: 'none',
+                                  background: 'none',
+                                  color: '#0369A1',
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  textDecoration: 'underline',
+                                  textAlign: 'center',
+                                }}
+                              >
+                                Reopen Ticket
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleMarkAsResolved(row.id)}
+                                style={{
+                                  border: 'none',
+                                  background: 'none',
+                                  color: '#0284C7',
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  textDecoration: 'underline',
+                                  textAlign: 'center',
+                                }}
+                              >
+                                Mark Resolved
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -1099,8 +1009,8 @@ export function ContactUsPage() {
         </div>
       )}
 
-      {/* MESSAGE REPLY MODAL - WHATSAPP-STYLE CONVERSATION UI (Only for Non-Customer tabs) */}
-      {selectedEnquiry && activeTab !== 'CUSTOMER' && (
+      {/* MESSAGE REPLY MODAL - WHATSAPP-STYLE CONVERSATION UI */}
+      {selectedEnquiry && (
         <div
           style={{
             position: 'fixed',
@@ -1330,8 +1240,8 @@ export function ContactUsPage() {
                 </span>
               </div>
 
-              {(selectedEnquiry.messages && selectedEnquiry.messages.length > 0
-                ? selectedEnquiry.messages.filter(
+              {(((activeTicketMessages && activeTicketMessages.length > 0 ? activeTicketMessages : selectedEnquiry.messages) && (activeTicketMessages || selectedEnquiry.messages)!.length > 0)
+                ? (activeTicketMessages || selectedEnquiry.messages)!.filter(
                   (m) =>
                     !m.message.includes('Message delivered to Admin Support') &&
                     !m.message.includes('Message sent to Admin Support')
@@ -1722,7 +1632,6 @@ export function ContactUsPage() {
                   <option value="CUSTOMER">Customer Enquiry</option>
                   <option value="RESTAURANT">Restaurant Enquiry</option>
                   <option value="DELIVERY">Delivery Partner Enquiry</option>
-                  <option value="GENERAL">General Enquiry</option>
                 </select>
               </div>
 

@@ -114,6 +114,23 @@ export const restaurantsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Admin', 'Restaurant', { type: 'Admin', id: 'LIST' }],
     }),
+    createAdminRestaurant: builder.mutation<RestaurantDetail, {
+      name: string;
+      module?: string;
+      cuisineCategory?: string;
+      cuisineTypes?: string[];
+      zone?: string;
+      ownerName: string;
+      phone: string;
+      commissionRate?: number;
+    }>({
+      query: (body) => ({
+        url: `/api/bff/admin/restaurants`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Admin', 'Restaurant', { type: 'Admin', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -125,4 +142,6 @@ export const {
   useSuspendRestaurantMutation,
   useDeleteRestaurantMutation,
   useUpdateAdminRestaurantPositionsMutation,
+  useCreateAdminRestaurantMutation,
 } = restaurantsApi;
+

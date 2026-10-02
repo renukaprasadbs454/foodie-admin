@@ -6,7 +6,7 @@ import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_14_RESTAURANT_LIST } from '@/constants/gaps';
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
-import { useGetAdminRestaurantsQuery, useApproveRestaurantMutation, useSuspendRestaurantMutation, useUpdateAdminRestaurantPositionsMutation } from '@/api/endpoints/restaurantsApi';
+import { useGetAdminRestaurantsQuery, useApproveRestaurantMutation, useSuspendRestaurantMutation, useUpdateAdminRestaurantPositionsMutation, useCreateAdminRestaurantMutation } from '@/api/endpoints/restaurantsApi';
 import { RestaurantCommissionModal, CommissionSettingsData, SelectedRestaurantTarget } from '../components/RestaurantCommissionModal';
 import { TopRestaurantsManager } from '../components/TopRestaurantsManager';
 
@@ -126,12 +126,14 @@ export function RestaurantsPage() {
   const stores: StoreItem[] = adminData?.items?.map(r => ({
     id: r.restaurantId || '',
     name: r.name || 'Unnamed',
-    module: r.cuisineTypes?.join(', ') || 'N/A',
-    ownerName: r.ownerUserCredentialId?.slice(0, 8) || '—',
-    phone: (r.legalDetails as any)?.contactPhone || '—',
+    module: r.cuisineTypes && r.cuisineTypes.length > 0
+      ? r.cuisineTypes.map(c => c.replace(/_/g, ' ').toLowerCase().replace(/\b[a-z]/g, l => l.toUpperCase())).join(', ')
+      : 'General Food',
+    ownerName: (r.legalDetails as any)?.legalName || r.ownerUserCredentialId?.slice(0, 8) || '—',
+    phone: (r.legalDetails as any)?.contactPhone || (r as any).phone || '—',
     zone: r.address?.city || 'N/A',
     rating: typeof r.avgRating === 'number' ? r.avgRating : 0,
-    ordersCount: 0,
+    ordersCount: (r as any).ordersCount || 0,
     commissionRate: typeof r.commissionPct === 'number' ? r.commissionPct : 15,
     status: (r.status as any) || 'PENDING',
     joinedDate: '',
@@ -163,6 +165,7 @@ export function RestaurantsPage() {
   const [approve] = useApproveRestaurantMutation();
   const [suspend] = useSuspendRestaurantMutation();
   const [updatePositions] = useUpdateAdminRestaurantPositionsMutation();
+  const [createRestaurant, { isLoading: isCreating }] = useCreateAdminRestaurantMutation();
 
   const handleUpdateStatus = async (storeId: string, newStatus: 'APPROVED' | 'SUSPENDED') => {
     try {
@@ -180,15 +183,34 @@ export function RestaurantsPage() {
     }
   };
 
-  const handleAddVendor = (e: React.FormEvent) => {
+  const handleAddVendor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newVendorName.trim() || !newOwnerName.trim() || !newPhone.trim()) {
       alert('Please fill out Restaurant Name, Owner Name, and Contact Phone.');
       return;
     }
-    setToastMessage(`New restaurant "${newVendorName}" registered successfully!`);
-    setTimeout(() => setToastMessage(null), 3000);
-    setIsAddModalOpen(false);
+    try {
+      await createRestaurant({
+        name: newVendorName.trim(),
+        cuisineCategory: newModule,
+        module: newModule,
+        zone: newZone,
+        ownerName: newOwnerName.trim(),
+        phone: newPhone.trim(),
+        commissionRate: Number(newCommission) || 15,
+      }).unwrap();
+
+      setToastMessage(`New restaurant "${newVendorName.trim()}" registered and saved successfully!`);
+      setTimeout(() => setToastMessage(null), 3500);
+      setIsAddModalOpen(false);
+      setNewVendorName('');
+      setNewOwnerName('');
+      setNewPhone('');
+      refetch();
+    } catch (err: any) {
+      const errMsg = err?.data?.error?.message || err?.data?.message || err?.message || 'Failed to save restaurant to backend.';
+      alert(`Error saving restaurant: ${errMsg}`);
+    }
   };
 
   const handleSaveCommission = (settings: CommissionSettingsData, target: SelectedRestaurantTarget) => {
@@ -678,9 +700,25 @@ export function RestaurantsPage() {
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', fontWeight: 800, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}
+                  disabled={isCreating}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: isCreating
+                      ? '#94A3B8'
+                      : 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                    color: '#FFFFFF',
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: isCreating ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
                 >
-                  Save Restaurant
+                  {isCreating ? 'Saving...' : 'Save Restaurant'}
                 </button>
               </div>
             </form>

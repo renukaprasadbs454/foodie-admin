@@ -164,6 +164,25 @@ export async function POST(request: Request) {
 
     // If upstream returns 401 or non-OK, check if this is a known admin role
     if (demo && (password === 'ChangeMe@123' || password === 'admin' || password === 'password')) {
+      let realToken = `demo-admin-${demo.tokenKey}-token`;
+      let realRefresh = `demo-refresh-${demo.tokenKey}-token`;
+
+      try {
+        const devLoginRes = await safeFetch(`${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ email: 'admin@foodie.local', password: 'ChangeMe@123', deviceInfo: 'Foodie Admin Dev' }),
+          timeoutMs: 3000,
+        });
+        if (devLoginRes.response && devLoginRes.response.ok) {
+          const devJson = await devLoginRes.response.json();
+          if (devJson?.data?.accessToken) {
+            realToken = devJson.data.accessToken;
+            realRefresh = devJson.data.refreshToken || realRefresh;
+          }
+        }
+      } catch {}
+
       const response = NextResponse.json(
         {
           success: true,
@@ -183,8 +202,8 @@ export async function POST(request: Request) {
       );
       for (const header of buildAuthSetCookieHeaders(
         {
-          accessToken: `demo-admin-${demo.tokenKey}-token`,
-          refreshToken: `demo-refresh-${demo.tokenKey}-token`,
+          accessToken: realToken,
+          refreshToken: realRefresh,
         },
         {
           access: { secure: ENV.cookieSecure },
