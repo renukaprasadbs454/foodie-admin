@@ -115,7 +115,14 @@ export function PaymentsPage() {
   const [selectedRestPayouts, setSelectedRestPayouts] = useState<Set<string>>(new Set());
   const [selectedDelivPayouts, setSelectedDelivPayouts] = useState<Set<string>>(new Set());
 
-  const pendingCancelledRefunds = cancelledRefunds.filter((r) => r.status === 'PENDING_APPROVAL');
+  // Strictly include only genuine online payment cancellations (exclude Cash on Delivery / COD)
+  const onlineCancelledRefunds = cancelledRefunds.filter(
+    (r) =>
+      Boolean(r.isOnlinePayment) &&
+      !r.paymentMethod?.toUpperCase().includes('COD') &&
+      !r.paymentMethod?.toUpperCase().includes('CASH ON DELIVERY')
+  );
+  const pendingCancelledRefunds = onlineCancelledRefunds.filter((r) => r.status === 'PENDING_APPROVAL');
   const pendingOnlineRefundCount = pendingCancelledRefunds.length;
 
   const handleApproveRefundRequest = async (request: CancelledOrderRefundRequest) => {
@@ -1757,8 +1764,8 @@ export function PaymentsPage() {
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Status:</span>
                 {[
                   { key: 'PENDING', label: `Pending Approvals (${pendingCancelledRefunds.length})` },
-                  { key: 'ALL', label: `All Online Cancellations (${cancelledRefunds.length})` },
-                  { key: 'PROCESSED', label: `Processed / Refunded (${cancelledRefunds.filter((r) => r.status === 'APPROVED' || r.status === 'REFUNDED').length})` },
+                  { key: 'ALL', label: `All Online Cancellations (${onlineCancelledRefunds.length})` },
+                  { key: 'PROCESSED', label: `Processed / Refunded (${onlineCancelledRefunds.filter((r) => r.status === 'APPROVED' || r.status === 'REFUNDED').length})` },
                 ].map((f) => (
                   <button
                     key={f.key}
@@ -1817,7 +1824,7 @@ export function PaymentsPage() {
                 Fetching customer cancellation refund requests from payment backend...
               </div>
             ) : (() => {
-              const filteredList = cancelledRefunds.filter((r) => {
+              const filteredList = onlineCancelledRefunds.filter((r) => {
                 if (refundStatusFilter === 'PENDING' && r.status !== 'PENDING_APPROVAL') return false;
                 if (
                   refundStatusFilter === 'PROCESSED' &&

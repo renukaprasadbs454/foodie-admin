@@ -421,6 +421,34 @@ export async function fetchLiveCancelledRefunds(
           if (ord && ord.status === 'CANCELLED') {
             const events = Array.isArray(ord.orderStatusEvents) ? ord.orderStatusEvents : [];
             const cancelEvent = events.slice().reverse().find((e: any) => e.toStatus === 'CANCELLED');
+
+            // Exclude Cash on Delivery (COD) and unpaid orders:
+            // 1. Explicit settlement payment method check
+            const settlementMethod = (s.paymentMethod || '').trim().toUpperCase();
+            const isExplicitCod =
+              settlementMethod === 'COD' ||
+              settlementMethod === 'CASH_ON_DELIVERY' ||
+              settlementMethod === 'CASH' ||
+              (settlementMethod.includes('CASH') && !settlementMethod.includes('CASHFREE')) ||
+              settlementMethod.includes('DELIVERY');
+
+            // 2. Order event history check:
+            // - Online payments: Payment gateway webhook triggers system confirmation (actorType: 'SYSTEM').
+            // - Cash on Delivery (COD): Customer app confirms order without payment (actorType: 'CUSTOMER').
+            // - Unpaid: Cancelled before confirmation.
+            const confirmEvent = events.find((e: any) => e.toStatus === 'CONFIRMED');
+            const isSystemConfirmed = confirmEvent?.actorType === 'SYSTEM';
+            const isCustomerConfirmed = confirmEvent?.actorType === 'CUSTOMER';
+
+            const isCodOrder = isExplicitCod || isCustomerConfirmed || !isSystemConfirmed;
+            const isOnlinePayment = !isCodOrder && isSystemConfirmed;
+
+            // ONLY online payments require gateway refund approvals!
+            // Cash on Delivery (COD) orders never debited money from the customer account upfront.
+            if (!isOnlinePayment) {
+              return;
+            }
+
             const custInfo = customerMap.get(ord.customerId);
 
             const customerName =

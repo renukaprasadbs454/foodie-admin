@@ -73,4 +73,66 @@ describe('Cancelled Order Online Refund Approvals', () => {
     expect(processed).toHaveLength(1);
     expect(processed[0].customerName).toBe('Bob');
   });
+
+  it("strictly excludes Cash on Delivery (COD) orders and only includes online payment refunds", () => {
+    const list: CancelledOrderRefundRequest[] = [
+      {
+        id: "cr-1",
+        orderId: "FD-20261001-000011",
+        customerId: "C-1",
+        customerName: "Chandu",
+        paymentUuid: "p-1",
+        amount: 109,
+        paymentMethod: "ONLINE (CASHFREE UPI)",
+        isOnlinePayment: true,
+        gatewayProvider: "CASHFREE",
+        cancellationReason: "Mistake order",
+        cancelledBy: "CUSTOMER",
+        cancelledAt: "2026-10-01T13:21:41Z",
+        status: "PENDING_APPROVAL",
+      },
+      {
+        id: "cr-2",
+        orderId: "FD-20261002-000001",
+        customerId: "C-2",
+        customerName: "Pavan",
+        paymentUuid: "p-2",
+        amount: 378,
+        paymentMethod: "CASH_ON_DELIVERY (COD)",
+        isOnlinePayment: false,
+        gatewayProvider: "CASHFREE",
+        cancellationReason: "Found best food",
+        cancelledBy: "CUSTOMER",
+        cancelledAt: "2026-10-02T05:10:18Z",
+        status: "PENDING_APPROVAL",
+      },
+      {
+        id: "cr-3",
+        orderId: "FD-20261002-000002",
+        customerId: "C-3",
+        customerName: "Ramesh",
+        paymentUuid: "p-3",
+        amount: 250,
+        paymentMethod: "Cash on Delivery",
+        isOnlinePayment: false,
+        gatewayProvider: "CASHFREE",
+        cancellationReason: "Delay",
+        cancelledBy: "CUSTOMER",
+        cancelledAt: "2026-10-02T06:00:00Z",
+        status: "PENDING_APPROVAL",
+      },
+    ];
+
+    const onlineRefundsOnly = list.filter(
+      (r) =>
+        Boolean(r.isOnlinePayment) &&
+        !r.paymentMethod.toUpperCase().includes("COD") &&
+        !r.paymentMethod.toUpperCase().includes("CASH ON DELIVERY")
+    );
+
+    expect(onlineRefundsOnly).toHaveLength(1);
+    expect(onlineRefundsOnly[0].orderId).toBe("FD-20261001-000011");
+    expect(onlineRefundsOnly[0].paymentMethod).toBe("ONLINE (CASHFREE UPI)");
+    expect(onlineRefundsOnly[0].isOnlinePayment).toBe(true);
+  });
 });
