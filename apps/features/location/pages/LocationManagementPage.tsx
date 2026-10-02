@@ -2,6 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
+import {
+  useGetZonesQuery,
+  useCreateZoneMutation,
+  useUpdateZoneTogglesMutation,
+  useGetCitiesQuery,
+  useCreateCityMutation,
+} from '../../../api/endpoints/locationApi';
 
 export interface CityRecord {
   id: string;
@@ -52,81 +59,11 @@ export interface UnserviceableRequestRecord {
   createdAt: string;
 }
 
-const MOCK_CITIES: CityRecord[] = [
-  { id: 'cty-101', cityName: 'Bangalore', state: 'Karnataka', activeZonesCount: 14, activeMerchantsCount: 450, status: 'ACTIVE' },
-  { id: 'cty-102', cityName: 'Mumbai', state: 'Maharashtra', activeZonesCount: 18, activeMerchantsCount: 620, status: 'ACTIVE' },
-  { id: 'cty-103', cityName: 'Delhi-NCR', state: 'Delhi', activeZonesCount: 22, activeMerchantsCount: 780, status: 'ACTIVE' },
-  { id: 'cty-104', cityName: 'Hyderabad', state: 'Telangana', activeZonesCount: 10, activeMerchantsCount: 310, status: 'ACTIVE' },
-];
-
 const MOCK_SERVICE_AREAS: ServiceAreaRecord[] = [
   { id: 'sa-201', areaName: 'Indiranagar & Domlur', cityName: 'Bangalore', pincode: '560038', coverageStatus: 'FULL_COVERAGE', totalOutlets: 120 },
   { id: 'sa-202', areaName: 'Koramangala 4th Block', cityName: 'Bangalore', pincode: '560034', coverageStatus: 'FULL_COVERAGE', totalOutlets: 145 },
   { id: 'sa-203', areaName: 'Bandra West & Khar', cityName: 'Mumbai', pincode: '400050', coverageStatus: 'FULL_COVERAGE', totalOutlets: 190 },
   { id: 'sa-204', areaName: 'Connaught Place & Janpath', cityName: 'Delhi-NCR', pincode: '110001', coverageStatus: 'PARTIAL_COVERAGE', totalOutlets: 85 },
-];
-
-const MOCK_DELIVERY_ZONES: DeliveryZoneRecord[] = [
-  {
-    id: 'dz-301',
-    zoneName: 'Indiranagar Tech Hub Zone',
-    cityName: 'Bangalore',
-    latitude: 12.9716,
-    longitude: 77.6412,
-    radiusKm: 5.0,
-    polygonCoordinates: '12.9716,77.6412 | 12.9800,77.6500 | 12.9600,77.6600',
-    activeDrivers: 42,
-    surgeMultiplier: 1.0,
-    status: 'ACTIVE',
-    restaurantEnabled: true,
-    deliveryPartnerEnabled: true,
-    customerOrderingEnabled: true,
-  },
-  {
-    id: 'dz-302',
-    zoneName: 'Koramangala Food Strip Zone',
-    cityName: 'Bangalore',
-    latitude: 12.9352,
-    longitude: 77.6245,
-    radiusKm: 4.5,
-    polygonCoordinates: '12.9352,77.6245 | 12.9450,77.6300 | 12.9200,77.6150',
-    activeDrivers: 58,
-    surgeMultiplier: 1.25,
-    status: 'HIGH_DEMAND',
-    restaurantEnabled: true,
-    deliveryPartnerEnabled: true,
-    customerOrderingEnabled: true,
-  },
-  {
-    id: 'dz-303',
-    zoneName: 'Bandra Coastal Eats Zone',
-    cityName: 'Mumbai',
-    latitude: 19.0596,
-    longitude: 72.8295,
-    radiusKm: 6.0,
-    polygonCoordinates: '19.0596,72.8295 | 19.0700,72.8400 | 19.0450,72.8200',
-    activeDrivers: 65,
-    surgeMultiplier: 1.1,
-    status: 'ACTIVE',
-    restaurantEnabled: true,
-    deliveryPartnerEnabled: true,
-    customerOrderingEnabled: false, // Customer ordering paused
-  },
-  {
-    id: 'dz-304',
-    zoneName: 'HSR Sector 1 Express Zone',
-    cityName: 'Bangalore',
-    latitude: 12.9121,
-    longitude: 77.6446,
-    radiusKm: 4.0,
-    polygonCoordinates: '12.9121,77.6446 | 12.9200,77.6500 | 12.9000,77.6350',
-    activeDrivers: 28,
-    surgeMultiplier: 1.0,
-    status: 'ACTIVE',
-    restaurantEnabled: true,
-    deliveryPartnerEnabled: false, // Delivery partner dispatch paused
-    customerOrderingEnabled: true,
-  },
 ];
 
 const MOCK_UNSERVICEABLE_REQUESTS: UnserviceableRequestRecord[] = [
@@ -245,7 +182,7 @@ export function GoogleMapsPolygonPinPicker({
     onChangePolygon(stringifyPins(pins));
   };
 
-  const handleManualAdd = (e: React.FormEvent) => {
+  const handleManualAdd = (e: React.SyntheticEvent) => {
     e.preventDefault();
     const lat = parseFloat(manualLat);
     const lng = parseFloat(manualLng);
@@ -287,7 +224,7 @@ export function GoogleMapsPolygonPinPicker({
 
   const svgPolygonPoints = currentPins.map((p) => {
     const coords = getSvgCoords(p.lat, p.lng);
-    return `${coords.x}%,${coords.y}%`;
+    return `${coords.x},${coords.y}`;
   }).join(' ');
 
   return (
@@ -377,11 +314,11 @@ export function GoogleMapsPolygonPinPicker({
       >
         {/* Map Watermark & Scale */}
         <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 5, background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid #38BDF8', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.3)' }}>
-           Center: {centerLat.toFixed(4)}, {centerLng.toFixed(4)} (Scale: {radiusKm} KM Circle)
+          Center: {centerLat.toFixed(4)}, {centerLng.toFixed(4)} (Scale: {radiusKm} KM Circle)
         </div>
 
         <div style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 5, backgroundColor: 'rgba(255, 255, 255, 0.95)', color: '#0369A1', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 800, border: '1px solid #BAE6FD', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.15)' }}>
-           Click Map Canvas to Drop Google Pin
+          Click Map Canvas to Drop Google Pin
         </div>
 
         {/* Center Crosshair Marker */}
@@ -401,22 +338,25 @@ export function GoogleMapsPolygonPinPicker({
           }}
         />
 
-        {/* SVG Layer: Coverage Circle & Polygon Line Path */}
+        {/* SVG Layer: Coverage Circle */}
         <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }}>
           {/* Outer Coverage Circle */}
           <circle cx="50%" cy="50%" r="35%" fill="none" stroke="#38BDF8" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.8" />
+        </svg>
 
-          {/* Polygon Perimeter Line */}
-          {currentPins.length >= 2 && (
+        {/* Polygon Perimeter Line */}
+        {currentPins.length >= 2 && (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }}>
             <polygon
               points={svgPolygonPoints}
               fill="rgba(2, 132, 199, 0.18)"
               stroke="#0284C7"
               strokeWidth="2.5"
               strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
             />
-          )}
-        </svg>
+          </svg>
+        )}
 
         {/* Render Dropped Google Maps Pin Markers */}
         {currentPins.map((pin, idx) => {
@@ -592,7 +532,7 @@ export function GoogleMapsPolygonPinPicker({
         </div>
 
         {/* Manual Lat/Lng Add Form */}
-        <form onSubmit={handleManualAdd} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <input
             type="number"
             step="0.0001"
@@ -610,7 +550,8 @@ export function GoogleMapsPolygonPinPicker({
             style={{ width: 100, padding: '6px 8px', borderRadius: 6, border: '1px solid #BAE6FD', fontSize: 12, backgroundColor: '#FFFFFF', color: '#0369A1' }}
           />
           <button
-            type="submit"
+            type="button"
+            onClick={handleManualAdd}
             style={{
               padding: '6px 12px',
               background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
@@ -625,7 +566,7 @@ export function GoogleMapsPolygonPinPicker({
           >
             + Add Pin
           </button>
-        </form>
+        </div>
       </div>
 
       {/* Pins Cards List */}
@@ -694,8 +635,16 @@ export function LocationManagementPage() {
   const { tokens } = useTheme();
   const [activeTab, setActiveTab] = useState<LocationTab>('DELIVERY_ZONES');
 
-  // Cities State
-  const [cities, setCities] = useState<CityRecord[]>(MOCK_CITIES);
+  // RTK Query Real Data Source
+  const { data: dbCities = [] } = useGetCitiesQuery();
+  const [createCity] = useCreateCityMutation();
+  const { data: dbDeliveryZones = [] } = useGetZonesQuery();
+  const [createZone] = useCreateZoneMutation();
+  const [updateZoneToggles] = useUpdateZoneTogglesMutation();
+
+  const cities = dbCities as CityRecord[];
+  const deliveryZones = dbDeliveryZones as DeliveryZoneRecord[];
+
   const [newCityName, setNewCityName] = useState('');
   const [newState, setNewState] = useState('');
 
@@ -703,7 +652,6 @@ export function LocationManagementPage() {
   const [serviceAreas, setServiceAreas] = useState<ServiceAreaRecord[]>(MOCK_SERVICE_AREAS);
 
   // Multi-Zone State with 3-Way Toggles
-  const [deliveryZones, setDeliveryZones] = useState<DeliveryZoneRecord[]>(MOCK_DELIVERY_ZONES);
   const [isCreatingZone, setIsCreatingZone] = useState(false);
   const [newZoneName, setNewZoneName] = useState('');
   const [newZoneCity, setNewZoneCity] = useState('Bangalore');
@@ -753,21 +701,57 @@ export function LocationManagementPage() {
     setTimeout(() => setToastMsg(null), 3500);
   };
 
+  const handleCityMapUpdate = async (selectedCity: string) => {
+    const predefined: Record<string, { lat: string, lng: string }> = {
+      'Bangalore': { lat: '12.9716', lng: '77.5946' },
+      'Mumbai': { lat: '19.0760', lng: '72.8777' },
+      'Delhi-NCR': { lat: '28.6139', lng: '77.2090' },
+      'Hyderabad': { lat: '17.3850', lng: '78.4867' },
+    };
+
+    if (predefined[selectedCity]) {
+      const p = predefined[selectedCity];
+      setNewLat(p.lat);
+      setNewLng(p.lng);
+      setNewPolygon(''); // Clear pins for fresh start
+      return;
+    }
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(selectedCity)},India&format=json&limit=1`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat).toFixed(4);
+          const lon = parseFloat(data[0].lon).toFixed(4);
+          setNewLat(lat);
+          setNewLng(lon);
+          setNewPolygon('');
+          showToast(`Map dynamically centered to ${selectedCity}!`);
+        } else {
+          showToast(`Notice: Cannot find exact GPS coordinates for ${selectedCity}.`);
+        }
+      }
+    } catch (e) {
+      console.error('City Geocoding Error', e);
+    }
+  };
+
   // Toggle individual service powers (Restaurants / Drivers / Customers) per zone
   const handleToggleZonePower = (zoneId: string, powerType: 'RESTAURANT' | 'DRIVER' | 'CUSTOMER') => {
-    setDeliveryZones((prev) =>
-      prev.map((z) => {
-        if (z.id === zoneId) {
-          const updated = { ...z };
-          if (powerType === 'RESTAURANT') updated.restaurantEnabled = !z.restaurantEnabled;
-          if (powerType === 'DRIVER') updated.deliveryPartnerEnabled = !z.deliveryPartnerEnabled;
-          if (powerType === 'CUSTOMER') updated.customerOrderingEnabled = !z.customerOrderingEnabled;
-          return updated;
-        }
-        return z;
-      }),
-    );
-    showToast(`Zone service permissions updated!`);
+    const activeZone = deliveryZones.find(z => z.id === zoneId);
+    if (!activeZone) return;
+
+    if (powerType === 'RESTAURANT') {
+      void updateZoneToggles({ id: zoneId, restaurantEnabled: !activeZone.restaurantEnabled });
+    }
+    if (powerType === 'DRIVER') {
+      void updateZoneToggles({ id: zoneId, deliveryPartnerEnabled: !activeZone.deliveryPartnerEnabled });
+    }
+    if (powerType === 'CUSTOMER') {
+      void updateZoneToggles({ id: zoneId, customerOrderingEnabled: !activeZone.customerOrderingEnabled });
+    }
+    showToast(`Zone permission DB updating for ${powerType}...`);
   };
 
   // Step 1 & 2: Create Multi-Zone with Coordinates & 3-Way Toggles
@@ -777,8 +761,7 @@ export function LocationManagementPage() {
       alert('Please enter a Zone Name');
       return;
     }
-    const zone: DeliveryZoneRecord = {
-      id: `dz-${Date.now().toString().slice(-4)}`,
+    void createZone({
       zoneName: newZoneName.trim(),
       cityName: newZoneCity,
       latitude: parseFloat(newLat) || 12.9716,
@@ -791,12 +774,11 @@ export function LocationManagementPage() {
       restaurantEnabled: newRestEnabled,
       deliveryPartnerEnabled: newDriverEnabled,
       customerOrderingEnabled: newCustomerEnabled,
-    };
+    });
 
-    setDeliveryZones((prev) => [zone, ...prev]);
     setIsCreatingZone(false);
+    showToast(`Multi-Zone "${newZoneName.trim()}" dispatched successfully via DB creation!`);
     setNewZoneName('');
-    showToast(`Multi-Zone "${zone.zoneName}" created successfully with map coordinates & 3-way service controls!`);
   };
 
   // Submit unserviceable restaurant request
@@ -1010,7 +992,10 @@ export function LocationManagementPage() {
               </label>
               <select
                 value={newZoneCity}
-                onChange={(e) => setNewZoneCity(e.target.value)}
+                onChange={(e) => {
+                  setNewZoneCity(e.target.value);
+                  void handleCityMapUpdate(e.target.value);
+                }}
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
               >
                 {cities.map((c) => (
@@ -1174,7 +1159,7 @@ export function LocationManagementPage() {
                   <td style={{ padding: '16px 20px' }}>
                     <div style={{ fontWeight: 800, color: '#0369A1' }}>{dz.zoneName}</div>
                     <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>
-                       Lat: {dz.latitude}, Lng: {dz.longitude}
+                      Lat: {dz.latitude}, Lng: {dz.longitude}
                     </div>
                   </td>
 
@@ -1331,7 +1316,7 @@ export function LocationManagementPage() {
                 onClick={() => setEditingZoneMap(null)}
                 style={{ padding: '6px 14px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 6, fontWeight: 700, cursor: 'pointer', color: '#0369A1' }}
               >
-                Close Window 
+                Close Window
               </button>
             </div>
 
@@ -1341,9 +1326,6 @@ export function LocationManagementPage() {
               radiusKm={editingZoneMap.radiusKm}
               polygonString={editingZoneMap.polygonCoordinates}
               onChangePolygon={(str) => {
-                setDeliveryZones((prev) =>
-                  prev.map((z) => (z.id === editingZoneMap.id ? { ...z, polygonCoordinates: str } : z))
-                );
                 setEditingZoneMap((prev) => (prev ? { ...prev, polygonCoordinates: str } : null));
               }}
               title={`Google Maps Pin Picker — ${editingZoneMap.zoneName}`}
@@ -1396,7 +1378,7 @@ export function LocationManagementPage() {
                       <div style={{ fontSize: 11, color: '#0284C7' }}>{req.contactPhone}</div>
                     </td>
                     <td style={{ padding: '16px 20px', fontWeight: 700, color: '#0369A1' }}>
-                       Lat: {req.latitude}, Lng: {req.longitude}
+                      Lat: {req.latitude}, Lng: {req.longitude}
                     </td>
                     <td style={{ padding: '16px 20px', color: '#0284C7', fontSize: 12 }}>
                       {req.createdAt}
@@ -1593,13 +1575,19 @@ export function LocationManagementPage() {
             onSubmit={(e) => {
               e.preventDefault();
               if (!newCityName.trim() || !newState.trim()) return;
-              setCities((prev) => [
-                { id: `cty-${Date.now().toString().slice(-4)}`, cityName: newCityName.trim(), state: newState.trim(), activeZonesCount: 1, activeMerchantsCount: 0, status: 'ACTIVE' },
-                ...prev,
-              ]);
+              const addedCityName = newCityName.trim();
+              void createCity({
+                cityName: addedCityName,
+                state: newState.trim(),
+                activeZonesCount: 1,
+                activeMerchantsCount: 0,
+                status: 'ACTIVE'
+              });
+              setNewZoneCity(addedCityName);
+              void handleCityMapUpdate(addedCityName);
               setNewCityName('');
               setNewState('');
-              showToast('City added successfully!');
+              showToast(`City added successfully! Map prepared for ${addedCityName}.`);
             }}
             style={{
               backgroundColor: '#FFFFFF',
