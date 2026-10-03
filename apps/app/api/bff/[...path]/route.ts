@@ -1805,7 +1805,13 @@ async function proxy(request: Request, pathSegments: string[]) {
         responseHeaders['Content-Disposition'] = disposition;
       }
 
-      if (isGet && upstream.ok) {
+      if (targetPath.includes('admin/location')) {
+        responseHeaders['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+        responseHeaders['Pragma'] = 'no-cache';
+        responseHeaders['Expires'] = '0';
+      }
+
+      if (isGet && upstream.ok && !targetPath.includes('admin/location')) {
         // Cache successful GET responses from database for 20 seconds
         BFF_CACHE.set(cacheKey, {
           body,

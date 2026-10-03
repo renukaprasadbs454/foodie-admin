@@ -28,8 +28,7 @@ export interface CityDto {
 export const locationApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
         getZones: builder.query<LocationZoneDto[], void>({
-            query: () => `/api/bff/admin/location/zones?_t=${Date.now()}`,
-            transformResponse: (response: any) => response?.data || [],
+            query: () => `/api/bff/admin/location/zones`,
             providesTags: ['LocationZone'],
         }),
         createZone: builder.mutation<LocationZoneDto, Partial<LocationZoneDto>>({
@@ -55,8 +54,7 @@ export const locationApi = baseApi.injectEndpoints({
             invalidatesTags: ['LocationZone'],
         }),
         getCities: builder.query<CityDto[], void>({
-            query: () => `/api/bff/admin/location/cities?_t=${Date.now()}`,
-            transformResponse: (response: any) => response?.data || [],
+            query: () => `/api/bff/admin/location/cities`,
             providesTags: ['City'],
         }),
         createCity: builder.mutation<CityDto, Partial<CityDto>>({
