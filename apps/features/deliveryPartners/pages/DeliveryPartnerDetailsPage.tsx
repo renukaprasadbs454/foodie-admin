@@ -252,7 +252,7 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
                 boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
               }}
             >
-              {isApproving ? 'Approving...' : '✓ Approve KYC'}
+              {isApproving ? 'Approving...' : 'Approve KYC'}
             </button>
             <button
               onClick={() => setShowRejectModal(true)}
@@ -267,7 +267,7 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
                 cursor: isRejecting ? 'wait' : 'pointer',
               }}
             >
-              ✗ Reject KYC
+              Reject KYC
             </button>
           </div>
         )}

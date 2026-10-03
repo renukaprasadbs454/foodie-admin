@@ -69,7 +69,7 @@ export function AdminHeaderBar({
     switch (activeModalTab) {
       case 'ABOUT':
         return {
-          title: 'ℹ About us',
+          title: 'About us',
           subtitle:
             'Enterprise Hyperlocal Multi-Vendor Platform',
           body: (
@@ -380,14 +380,14 @@ export function AdminHeaderBar({
         className="admin-header-responsive"
         style={{
           backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #BAE6FD',
+          borderBottom: '1px solid #E5E7EB',
           padding: '12px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 12,
-          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.08)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
           position: 'sticky',
           top: 0,
           zIndex: 50,
@@ -416,9 +416,9 @@ export function AdminHeaderBar({
                 width: 38,
                 height: 38,
                 borderRadius: 10,
-                border: isCompact ? '1px solid #0284C7' : '1px solid #BAE6FD',
-                backgroundColor: isCompact ? '#0284C7' : '#F0F9FF',
-                color: isCompact ? '#FFFFFF' : '#0284C7',
+                border: isCompact ? '1px solid #2196F3' : '1px solid #E5E7EB',
+                backgroundColor: isCompact ? '#E3F2FD' : '#F5F7FA',
+                color: isCompact ? '#2196F3' : '#6B7280',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -431,7 +431,7 @@ export function AdminHeaderBar({
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.5"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
@@ -451,16 +451,16 @@ export function AdminHeaderBar({
               alignItems: 'center',
               gap: 10,
               padding: '8px 14px',
-              backgroundColor: '#F0F9FF',
-              border: '1px solid #BAE6FD',
+              backgroundColor: '#F5F7FA',
+              border: '1px solid #E5E7EB',
               borderRadius: 10,
-              color: '#0284C7',
+              color: '#6B7280',
               fontSize: 13,
               fontWeight: 500,
               cursor: 'pointer',
               minWidth: role === 'AUDITOR' ? 320 : 'auto',
               maxWidth: '100%',
-              transition: 'border-color 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
           >
             <svg
@@ -468,7 +468,7 @@ export function AdminHeaderBar({
               height="16"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#0284C7"
+              stroke="#6B7280"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -481,8 +481,8 @@ export function AdminHeaderBar({
               style={{
                 textAlign: 'left',
                 whiteSpace: 'nowrap',
-                color: '#0369A1',
-                fontWeight: 600,
+                color: '#6B7280',
+                fontWeight: 500,
               }}
             >
               {role === 'AUDITOR' ? 'Search by store name, zone, UID...' : 'Search console...'}
@@ -493,9 +493,9 @@ export function AdminHeaderBar({
                 className="hide-mobile-kbd"
                 style={{
                   fontSize: 10,
-                  fontWeight: 700,
-                  backgroundColor: '#BAE6FD',
-                  color: '#0369A1',
+                  fontWeight: 600,
+                  backgroundColor: '#E5E7EB',
+                  color: '#4B5563',
                   padding: '2px 6px',
                   borderRadius: 4,
                   marginLeft: 'auto',
@@ -535,9 +535,9 @@ export function AdminHeaderBar({
               width: 38,
               height: 38,
               borderRadius: '50%',
-              backgroundColor: '#F0F9FF',
-              border: '1px solid #BAE6FD',
-              color: '#0284C7',
+              backgroundColor: '#F5F7FA',
+              border: '1px solid #E5E7EB',
+              color: '#6B7280',
               position: 'relative',
               textDecoration: 'none',
               transition: 'all 0.15s ease',
@@ -545,8 +545,8 @@ export function AdminHeaderBar({
             title="Notifications"
           >
             <svg
-              width="20"
-              height="20"
+              width="19"
+              height="19"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -560,14 +560,13 @@ export function AdminHeaderBar({
             <span
               style={{
                 position: 'absolute',
-                top: 6,
-                right: 6,
-                width: 8,
-                height: 8,
+                top: 7,
+                right: 7,
+                width: 7,
+                height: 7,
                 borderRadius: '50%',
-                backgroundColor: '#38BDF8',
+                backgroundColor: '#EF4444',
                 border: '1.5px solid #FFFFFF',
-                boxShadow: '0 0 6px #0EA5E9',
               }}
             />
           </Link>
@@ -596,12 +595,12 @@ export function AdminHeaderBar({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
-                    backgroundColor: '#F0F9FF',
-                    border: '1px solid #BAE6FD',
+                    backgroundColor: '#F5F7FA',
+                    border: '1px solid #E5E7EB',
                     cursor: 'pointer',
-                    padding: '6px 12px',
+                    padding: '5px 12px',
                     borderRadius: 10,
-                    transition: 'background-color 0.15s ease',
+                    transition: 'all 0.15s ease',
                   }}
                   aria-expanded={isProfileOpen}
                   aria-haspopup="true"
@@ -609,16 +608,16 @@ export function AdminHeaderBar({
                 >
                   <div
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: 30,
+                      height: 30,
                       borderRadius: '50%',
-                      backgroundColor: '#0284C7',
-                      color: '#FFFFFF',
+                      backgroundColor: '#E3F2FD',
+                      color: '#2196F3',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: 12,
-                      fontWeight: 800,
+                      fontWeight: 700,
                       flexShrink: 0,
                     }}
                   >
@@ -627,8 +626,8 @@ export function AdminHeaderBar({
                   <span
                     style={{
                       fontSize: 13,
-                      fontWeight: 700,
-                      color: '#0369A1',
+                      fontWeight: 600,
+                      color: '#111827',
                     }}
                   >
                     Compliance Auditor
@@ -638,8 +637,8 @@ export function AdminHeaderBar({
                     height="14"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#0284C7"
-                    strokeWidth="2.5"
+                    stroke="#6B7280"
+                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
@@ -655,21 +654,21 @@ export function AdminHeaderBar({
                     )
                   }
                   style={{
-                    width: 40,
-                    height: 40,
+                    width: 38,
+                    height: 38,
                     borderRadius: '50%',
-                    backgroundColor: '#F0F9FF',
-                    color: '#0284C7',
+                    backgroundColor: '#E3F2FD',
+                    color: '#2196F3',
                     border: isProfileOpen
-                      ? '2px solid #0284C7'
-                      : '1.5px solid #BAE6FD',
+                      ? '2px solid #2196F3'
+                      : '1px solid #BFDBFE',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     boxShadow: isProfileOpen
-                      ? '0 0 0 3px rgba(14, 165, 233, 0.25)'
+                      ? '0 0 0 3px rgba(33, 150, 243, 0.2)'
                       : 'none',
                     flexShrink: 0,
                   }}
@@ -678,8 +677,8 @@ export function AdminHeaderBar({
                   aria-label="User Profile Menu"
                 >
                   <svg
-                    width="20"
-                    height="20"
+                    width="19"
+                    height="19"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -739,15 +738,15 @@ export function AdminHeaderBar({
           <div
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: 16,
+              borderRadius: 20,
               maxWidth: 520,
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
               padding: 24,
-              boxShadow:
-                '0 20px 40px rgba(0,0,0,0.2)',
-              color: '#1E293B',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+              color: '#111827',
+              border: '1px solid #E5E7EB',
             }}
             onClick={(event) =>
               event.stopPropagation()
@@ -757,8 +756,7 @@ export function AdminHeaderBar({
             <div
               style={{
                 display: 'flex',
-                justifyContent:
-                  'space-between',
+                justifyContent: 'space-between',
                 alignItems: 'flex-start',
                 marginBottom: 16,
               }}
@@ -767,8 +765,8 @@ export function AdminHeaderBar({
                 <h3
                   style={{
                     fontSize: 18,
-                    fontWeight: 800,
-                    color: '#0369A1',
+                    fontWeight: 700,
+                    color: '#111827',
                     margin: 0,
                   }}
                 >
@@ -777,10 +775,9 @@ export function AdminHeaderBar({
 
                 <p
                   style={{
-                    fontSize: 12,
-                    color: '#0284C7',
-                    margin:
-                      '4px 0 0 0',
+                    fontSize: 13,
+                    color: '#6B7280',
+                    margin: '4px 0 0 0',
                   }}
                 >
                   {modalDetails.subtitle}
@@ -795,12 +792,12 @@ export function AdminHeaderBar({
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: 20,
+                  fontSize: 18,
                   cursor: 'pointer',
-                  color: '#0284C7',
+                  color: '#9CA3AF',
                 }}
               >
-                ✕
+                ×
               </button>
             </div>
 
@@ -808,7 +805,9 @@ export function AdminHeaderBar({
             <div
               style={{
                 marginBottom: 20,
-                color: '#0369A1',
+                color: '#374151',
+                fontSize: 14,
+                lineHeight: 1.6,
               }}
             >
               {modalDetails.body}
@@ -818,8 +817,7 @@ export function AdminHeaderBar({
             <div
               style={{
                 display: 'flex',
-                justifyContent:
-                  'flex-end',
+                justifyContent: 'flex-end',
               }}
             >
               <button
@@ -828,17 +826,15 @@ export function AdminHeaderBar({
                   setActiveModalTab(null)
                 }
                 style={{
-                  padding: '8px 20px',
-                  backgroundColor:
-                    '#0284C7',
-                  backgroundImage:
-                    'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+                  padding: '9px 22px',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
                   border: 'none',
-                  borderRadius: 8,
-                  fontWeight: 700,
+                  borderRadius: 10,
+                  fontWeight: 600,
                   fontSize: 13,
                   cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 Close
@@ -854,48 +850,34 @@ export function AdminHeaderBar({
       <style jsx global>{`
         /*
          * ========================================================
-         * PROFILE PANEL - SKY BLUE THEME
+         * PROFILE PANEL - SAAS BLUE THEME
          * ========================================================
          */
 
         .profile-menu-panel {
           position: fixed;
-
-          top: 70px;
-          right: 0;
-
-          width: 310px;
-
+          top: 68px;
+          right: 16px;
+          width: 300px;
           background: #ffffff;
-
-          border: 1px solid #bae6fd;
-          border-right: none;
-
-          border-radius: 0 0 0 16px;
-
-          box-shadow:
-            -10px 12px 35px rgba(2, 132, 199, 0.15),
-            -3px 5px 15px rgba(2, 132, 199, 0.08);
-
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
           z-index: 999999;
-
-          padding: 10px 0;
-
+          padding: 8px 0;
           display: flex;
           flex-direction: column;
-
           animation: profilePanelOpen 0.18s ease-out;
         }
 
         @keyframes profilePanelOpen {
           from {
             opacity: 0;
-            transform: translateX(12px);
+            transform: translateY(-8px);
           }
-
           to {
             opacity: 1;
-            transform: translateX(0);
+            transform: translateY(0);
           }
         }
 
@@ -906,12 +888,9 @@ export function AdminHeaderBar({
         .profile-menu-header {
           display: flex;
           align-items: center;
-
           gap: 12px;
-
           padding: 14px 18px;
-
-          border-bottom: 1px solid #e0f2fe;
+          border-bottom: 1px solid #f3f4f6;
         }
 
         /*
@@ -919,20 +898,15 @@ export function AdminHeaderBar({
          */
 
         .profile-avatar-large {
-          width: 48px;
-          height: 48px;
-
-          min-width: 48px;
-
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
           border-radius: 50%;
-
-          background: #e0f2fe;
-
-          color: #0284c7;
-
+          background: #e3f2fd;
+          color: #2196f3;
           display: flex;
           align-items: center;
-          justify-content: center;
+          justifyContent: center;
         }
 
         /*
@@ -944,23 +918,17 @@ export function AdminHeaderBar({
         }
 
         .profile-user-name {
-          font-size: 16px;
-
-          font-weight: 800;
-
-          color: #0369a1;
-
+          font-size: 15px;
+          font-weight: 700;
+          color: #111827;
           line-height: 1.3;
         }
 
         .profile-user-role {
           font-size: 12px;
-
-          color: #0284c7;
-
+          color: #2196f3;
           font-weight: 600;
-
-          margin-top: 4px;
+          margin-top: 3px;
         }
 
         /*
@@ -970,23 +938,14 @@ export function AdminHeaderBar({
         .profile-user-id {
           display: flex;
           align-items: center;
-
           gap: 6px;
-
-          margin: 10px 16px;
-
-          padding: 9px 10px;
-
-          border-radius: 7px;
-
-          background: #f0f9ff;
-
-          border: 1px solid #bae6fd;
-
+          margin: 8px 14px;
+          padding: 8px 10px;
+          border-radius: 8px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
           font-size: 11px;
-
-          color: #0369a1;
-
+          color: #6b7280;
           word-break: break-all;
         }
 
@@ -1000,39 +959,24 @@ export function AdminHeaderBar({
 
         .profile-menu-item {
           width: 100%;
-
-          min-height: 48px;
-
-          padding: 0 18px;
-
+          min-height: 44px;
+          padding: 0 16px;
           display: flex;
           align-items: center;
-
-          gap: 14px;
-
+          gap: 12px;
           background: transparent;
-
           border: none;
-
-          color: #0369a1;
-
-          font-size: 14px;
-
-          font-weight: 600;
-
+          color: #374151;
+          font-size: 13px;
+          font-weight: 500;
           text-align: left;
-
           cursor: pointer;
-
-          transition:
-            background-color 0.15s ease,
-            color 0.15s ease;
+          transition: background-color 0.15s ease, color 0.15s ease;
         }
 
         .profile-menu-item:hover {
-          background-color: #f0f9ff;
-
-          color: #0284c7;
+          background-color: #f5f7fa;
+          color: #2196f3;
         }
 
         /*
@@ -1040,24 +984,17 @@ export function AdminHeaderBar({
          */
 
         .profile-menu-icon {
-          width: 24px;
-
-          min-width: 24px;
-
-          height: 24px;
-
+          width: 20px;
+          min-width: 20px;
+          height: 20px;
           display: flex;
-
           align-items: center;
-
-          justify-content: center;
-
-          color: #0284c7;
+          justifyContent: center;
+          color: #6b7280;
         }
 
-        .profile-menu-item:hover
-          .profile-menu-icon {
-          color: #0284c7;
+        .profile-menu-item:hover .profile-menu-icon {
+          color: #2196f3;
         }
 
         /*
@@ -1066,10 +1003,8 @@ export function AdminHeaderBar({
 
         .profile-menu-divider {
           height: 1px;
-
-          background-color: #e0f2fe;
-
-          margin: 8px 16px;
+          background-color: #e5e7eb;
+          margin: 6px 14px;
         }
 
         /*
@@ -1077,35 +1012,30 @@ export function AdminHeaderBar({
          */
 
         .logout-item {
-          color: #0284c7;
+          color: #ef4444;
         }
 
-        .logout-item
-          .profile-menu-icon {
-          color: #0284c7;
+        .logout-item .profile-menu-icon {
+          color: #ef4444;
         }
 
         .logout-item:hover {
-          background-color: #f0f9ff;
-
-          color: #0369a1;
+          background-color: #fee2e2;
+          color: #b91c1c;
         }
 
-        .logout-item:hover
-          .profile-menu-icon {
-          color: #0369a1;
+        .logout-item:hover .profile-menu-icon {
+          color: #b91c1c;
         }
 
         /*
          * Disabled Logout
          */
 
-        .profile-menu-panel
-          button:disabled {
+        .profile-menu-panel button:disabled {
           opacity: 0.6;
-
           cursor: not-allowed;
-        }
+        } }
 
         /*
          * ========================================================

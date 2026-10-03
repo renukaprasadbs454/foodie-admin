@@ -214,14 +214,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         height: '100vh',
         width: '100vw',
         overflow: 'hidden',
-        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        backgroundColor: '#F0F9FF',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        backgroundColor: '#F5F7FA',
       }}
     >
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: isCompact ? '0px 1fr' : '270px 1fr',
+          gridTemplateColumns: isCompact ? '0px 1fr' : '260px 1fr',
           transition: 'grid-template-columns 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           width: '100%',
           height: '100vh',
@@ -229,7 +229,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           position: 'relative',
         }}
       >
-        {/* Sidebar Navigation — Fixed in place */}
+        {/* Sidebar Navigation — Sticky in place */}
         <aside
           style={{
             position: 'sticky',
@@ -238,55 +238,97 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             height: '100vh',
             maxHeight: '100vh',
             zIndex: 40,
-            width: isCompact ? 0 : 270,
+            width: isCompact ? 0 : 260,
             opacity: isCompact ? 0 : 1,
             visibility: isCompact ? 'hidden' : 'visible',
-            backgroundColor: '#075985',
-            backgroundImage: 'linear-gradient(180deg, #075985 0%, #0C4A6E 50%, #082F49 100%)',
-            color: '#FFFFFF',
-            padding: isCompact ? 0 : '24px 16px',
+            backgroundColor: '#FFFFFF',
+            borderRight: isCompact ? 'none' : '1px solid #E5E7EB',
+            color: '#111827',
+            padding: isCompact ? 0 : '20px 16px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            boxShadow: isCompact ? 'none' : '4px 0 20px rgba(7, 89, 133, 0.25)',
-            borderRight: isCompact ? 'none' : '1px solid #0369A1',
+            boxShadow: isCompact ? 'none' : '0 1px 3px 0 rgba(0, 0, 0, 0.02)',
             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             overflowX: 'hidden',
             overflowY: 'auto',
             pointerEvents: isCompact ? 'none' : 'auto',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {/* Brand Header */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 6px 6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                 {activeRole === 'AUDITOR' ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ color: '#38BDF8', display: 'flex', alignItems: 'center' }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#FFFFFF',
+                        boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                         <polyline points="9 12 11 14 15 10" />
                       </svg>
                     </div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap', letterSpacing: '-0.3px' }}>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', letterSpacing: '-0.3px' }}>
                       Compliance Auditor
                     </div>
                   </div>
                 ) : activeRole === 'FINANCE_ADMIN' || isFinanceContext ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ color: '#38BDF8', display: 'flex', alignItems: 'center' }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#FFFFFF',
+                        boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="2" y="4" width="20" height="16" rx="2" />
                         <line x1="2" y1="10" x2="22" y2="10" />
                       </svg>
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-                      Foodie <span style={{ color: '#38BDF8' }}>Finance</span>
+                    <div style={{ fontSize: 19, fontWeight: 800, color: '#111827', letterSpacing: '-0.4px', whiteSpace: 'nowrap' }}>
+                      Foodie <span style={{ color: '#2196F3' }}>Finance</span>
                     </div>
                   </div>
                 ) : (
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px', whiteSpace: 'nowrap' }}>
-                    Foodie <span style={{ color: '#38BDF8' }}>Admin</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#FFFFFF',
+                        boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                      </svg>
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', letterSpacing: '-0.4px', whiteSpace: 'nowrap' }}>
+                      Foodie <span style={{ color: '#2196F3' }}>Admin</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -296,22 +338,21 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             {activeRole ? (
               <div
                 style={{
-                  backgroundColor: 'rgba(12, 74, 110, 0.75)',
-                  border: '1px solid #0284C7',
-                  borderRadius: 10,
-                  padding: '10px 14px',
+                  backgroundColor: '#F5F7FA',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 12,
+                  padding: '8px 12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                 }}
                 title={`Active Role: ${activeRole}`}
               >
                 <div>
-                  <div style={{ fontSize: 10, color: '#7DD3FC', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
+                  <div style={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
                     Active Role
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap' }}>
                     {activeRole === 'AUDITOR' ? 'ADMIN' : (activeRole === 'FINANCE_ADMIN' ? 'FINANCE ADMIN' : activeRole)}
                   </div>
                 </div>
@@ -320,8 +361,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                     height: 8,
                     width: 8,
                     borderRadius: '50%',
-                    backgroundColor: '#38BDF8',
-                    boxShadow: '0 0 10px #38BDF8',
+                    backgroundColor: '#22C55E',
+                    boxShadow: '0 0 6px rgba(34, 197, 94, 0.4)',
                   }}
                   className="pulse-live"
                 />
@@ -337,7 +378,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   margin: 0,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 4,
+                  gap: 3,
                 }}
               >
                 {nav.map((item) => {
@@ -352,7 +393,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                         (item.href === '/support' && pathname.startsWith('/contact-us'));
 
                   const isHighlighted = item.highlighted ?? false;
-                  const isAuditor = activeRole === 'AUDITOR';
 
                   return (
                     <React.Fragment key={item.href}>
@@ -363,36 +403,29 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: isAuditor ? '10px 14px' : '9px 12px',
-                            borderRadius: isAuditor ? 10 : 8,
+                            padding: '9px 12px',
+                            borderRadius: 10,
                             fontSize: 13,
-                            fontWeight: isActive || isHighlighted ? 700 : 500,
-                            color: isActive
-                              ? '#FFFFFF'
-                              : isHighlighted
-                                ? '#FFFFFF'
-                                : '#BAE6FD',
-                            backgroundColor: isActive
-                              ? '#0284C7'
-                              : isHighlighted
-                                ? '#0369A1'
-                                : 'transparent',
-                            backgroundImage: isActive
-                              ? 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)'
-                              : 'none',
-                            borderLeft: isAuditor
-                              ? 'none'
-                              : isActive
-                                ? '4px solid #38BDF8'
-                                : isHighlighted
-                                  ? '4px solid #38BDF8'
-                                  : '4px solid transparent',
-                            boxShadow: isActive ? '0 4px 12px rgba(14, 165, 233, 0.4)' : 'none',
+                            fontWeight: isActive ? 600 : 500,
+                            color: isActive ? '#2196F3' : (isHighlighted ? '#111827' : '#6B7280'),
+                            backgroundColor: isActive ? '#E3F2FD' : 'transparent',
                             textDecoration: 'none',
                             transition: 'all 0.15s ease-in-out',
                           }}
+                          onMouseEnter={(e) => {
+                            if (!isActive) {
+                              e.currentTarget.style.backgroundColor = '#F5F7FA';
+                              e.currentTarget.style.color = '#111827';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isActive) {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = isHighlighted ? '#111827' : '#6B7280';
+                            }
+                          }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                             {item.icon === 'bar-chart' && (
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="20" x2="12" y2="10" />
@@ -473,12 +506,12 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                           {item.badge ? (
                             <span
                               style={{
-                                fontSize: 10,
-                                fontWeight: 800,
-                                color: '#0369A1',
-                                backgroundColor: '#BAE6FD',
-                                padding: '2px 6px',
-                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: isActive ? '#1D4ED8' : '#6B7280',
+                                backgroundColor: isActive ? '#BFDBFE' : '#F3F4F6',
+                                padding: '2px 8px',
+                                borderRadius: 10,
                               }}
                             >
                               {item.badge}
@@ -493,14 +526,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             </nav>
           </div>
 
-          {/* Sidebar Bottom Profile & Logout Footer */}
+          {/* User Profile Footer */}
           <div
             style={{
-              borderTop: '1px solid #0369A1',
+              borderTop: '1px solid #E5E7EB',
               paddingTop: 16,
               display: 'flex',
               flexDirection: 'column',
-              gap: 12,
+              gap: 10,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 4px' }}>
@@ -509,25 +542,24 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   width: 36,
                   height: 36,
                   borderRadius: '50%',
-                  backgroundColor: '#0284C7',
-                  color: '#FFFFFF',
+                  backgroundColor: '#E3F2FD',
+                  color: '#2196F3',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: 13,
-                  fontWeight: 800,
+                  fontWeight: 700,
                   flexShrink: 0,
-                  boxShadow: '0 0 10px rgba(14, 165, 233, 0.4)',
                 }}
               >
                 {activeRole === 'AUDITOR' ? 'CA' : (activeRole === 'FINANCE_ADMIN' || isFinanceContext ? 'FA' : 'AD')}
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                   {activeRole === 'AUDITOR' ? 'Compliance Auditor' : (activeRole === 'FINANCE_ADMIN' || isFinanceContext ? 'Finance Admin' : 'Admin')}
                 </div>
-                <div style={{ fontSize: 11, color: '#7DD3FC', marginTop: 1 }}>
-                  {activeRole === 'FINANCE_ADMIN' || isFinanceContext ? 'finance.admin' : 'admin'}
+                <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>
+                  {activeRole === 'FINANCE_ADMIN' || isFinanceContext ? 'finance.admin' : 'admin@foodie.com'}
                 </div>
               </div>
             </div>
@@ -543,7 +575,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 borderRadius: 8,
                 border: 'none',
                 backgroundColor: 'transparent',
-                color: '#BAE6FD',
+                color: '#6B7280',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -552,12 +584,12 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 textAlign: 'left',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#0369A1';
-                e.currentTarget.style.color = '#FFFFFF';
+                e.currentTarget.style.backgroundColor = '#FEE2E2';
+                e.currentTarget.style.color = '#EF4444';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#BAE6FD';
+                e.currentTarget.style.color = '#6B7280';
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -579,6 +611,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             height: '100vh',
             overflowY: 'auto',
             overflowX: 'hidden',
+            backgroundColor: '#F5F7FA',
           }}
         >
           {/* Top Header Bar */}
@@ -592,7 +625,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           />
 
           {/* Main Page Layout Content — Dynamic Route Handler */}
-          <main style={{ flex: 1, padding: '24px 32px 48px', maxWidth: 1600 }}>
+          <main style={{ flex: 1, padding: '24px 32px 48px', maxWidth: 1600, width: '100%', margin: '0 auto' }}>
             {!isAllowedRoute ? (
               <div
                 style={{
@@ -602,17 +635,17 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   justifyContent: 'center',
                   padding: '80px 24px',
                   backgroundColor: '#FFFFFF',
-                  borderRadius: 16,
-                  border: '1px solid #BAE6FD',
+                  borderRadius: 20,
+                  border: '1px solid #E5E7EB',
+                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
                   textAlign: 'center',
                   marginTop: 24,
                 }}
               >
-                <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-                <Text as="h2" variant="heading1" style={{ fontSize: 22, fontWeight: 800, color: '#0369A1', marginBottom: 8 }}>
+                <Text as="h2" variant="heading1" style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginBottom: 8 }}>
                   403 — Access Restricted
                 </Text>
-                <Text variant="body" style={{ color: '#0284C7', maxWidth: 460, marginBottom: 24, fontSize: 14 }}>
+                <Text variant="body" style={{ color: '#6B7280', maxWidth: 460, marginBottom: 24, fontSize: 14 }}>
                   Your administrative account ({activeRole || 'UNASSIGNED'}) is not authorized to access <strong>{pathname}</strong>.
                 </Text>
                 <Button
@@ -620,12 +653,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   aria-label={`Navigate to ${activeRole ? activeRole : 'Home'} dashboard`}
                   onClick={() => router.push(getHomeRouteForRole(activeRole))}
                   style={{
-                    backgroundColor: '#0284C7',
-                    backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+                    backgroundColor: '#2196F3',
+                    backgroundImage: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                     color: '#FFFFFF',
-                    padding: '10px 20px',
+                    padding: '10px 24px',
                     fontWeight: 700,
-                    borderRadius: 8,
+                    borderRadius: 12,
+                    boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
                   }}
                 />
               </div>

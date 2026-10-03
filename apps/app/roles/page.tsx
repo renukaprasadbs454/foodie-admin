@@ -51,15 +51,15 @@ type RbacTab = 'ROLES' | 'MATRIX' | 'EFFECTIVE' | 'TEMPORARY' | 'HISTORY';
 
 // 9 Resource Modules
 const RESOURCE_MODULES = [
-  { id: 'USERS', label: ' Users', desc: 'Admin staff accounts, roles & permissions' },
-  { id: 'RESTAURANTS', label: ' Restaurants', desc: 'Vendor onboarding, menus, commission & outlets' },
-  { id: 'ORDERS', label: ' Orders', desc: 'Order lifecycle, cancellations, status & reports' },
-  { id: 'FINANCE', label: ' Finance', desc: 'Payments, settlements, payouts, invoices & refunds' },
-  { id: 'OPERATIONS', label: ' Operations', desc: 'Delivery partners, dispatch fleet & regional rules' },
-  { id: 'DARKSTORE', label: ' Darkstore', desc: 'Quick-commerce inventory, picking, packing & dispatch' },
-  { id: 'SUPPORT', label: ' Support Desk', desc: 'Customer tickets, complaints & live tracking' },
-  { id: 'COMPLIANCE', label: ' Compliance', desc: 'Audit logs, business records & compliance reports' },
-  { id: 'SYSTEM', label: ' System', desc: 'Roles, global settings & system audit trail' },
+  { id: 'USERS', label: 'Users', desc: 'Admin staff accounts, roles & permissions' },
+  { id: 'RESTAURANTS', label: 'Restaurants', desc: 'Vendor onboarding, menus, commission & outlets' },
+  { id: 'ORDERS', label: 'Orders', desc: 'Order lifecycle, cancellations, status & reports' },
+  { id: 'FINANCE', label: 'Finance', desc: 'Payments, settlements, payouts, invoices & refunds' },
+  { id: 'OPERATIONS', label: 'Operations', desc: 'Delivery partners, dispatch fleet & regional rules' },
+  { id: 'DARKSTORE', label: 'Darkstore', desc: 'Quick-commerce inventory, picking, packing & dispatch' },
+  { id: 'SUPPORT', label: 'Support Desk', desc: 'Customer tickets, complaints & live tracking' },
+  { id: 'COMPLIANCE', label: 'Compliance', desc: 'Audit logs, business records & compliance reports' },
+  { id: 'SYSTEM', label: 'System', desc: 'Roles, global settings & system audit trail' },
 ];
 
 // Standard CRUD & Business Actions
@@ -372,7 +372,7 @@ export default function RolesPage() {
     <HasPermission
       permission="role.manage"
       fallback={
-        <div style={{ padding: 24, color: '#DC2626', fontWeight: 800 }}>
+        <div style={{ padding: 24, color: '#EF4444', fontWeight: 600 }}>
           403 Forbidden — Only SUPER_ADMIN may access Role & Permission Management.
         </div>
       }
@@ -383,32 +383,33 @@ export default function RolesPage() {
           <div
             style={{
               position: 'fixed',
-              top: 20,
-              right: 20,
-              backgroundColor: '#0369A1',
-              color: '#F59E0B',
-              padding: '14px 24px',
+              top: 24,
+              right: 24,
+              backgroundColor: '#111827',
+              color: '#FFFFFF',
+              padding: '12px 20px',
               borderRadius: 12,
-              fontWeight: 800,
-              fontSize: 14,
-              boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+              fontWeight: 600,
+              fontSize: 13,
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)',
               zIndex: 9999,
               display: 'flex',
               alignItems: 'center',
               gap: 10,
+              border: '1px solid #374151',
             }}
           >
-            <span></span> {toastMsg}
+            {toastMsg}
           </div>
         )}
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-              Role & Permission Management (RBAC) Studio
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>
+              Role & Permission Management
             </h1>
-            <p style={{ fontSize: 13, color: '#0284C7', marginTop: 4 }}>
+            <p style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
               Enterprise multi-role authorization console: Manage roles, edit permission matrices, view effective permissions & audit security logs
             </p>
           </div>
@@ -420,12 +421,13 @@ export default function RolesPage() {
               style={{
                 padding: '10px 16px',
                 backgroundColor: '#FFFFFF',
-                color: '#0369A1',
-                border: '1.5px solid #0369A1',
-                borderRadius: 8,
+                color: '#374151',
+                border: '1px solid #E5E7EB',
+                borderRadius: 10,
                 fontSize: 13,
-                fontWeight: 800,
+                fontWeight: 600,
                 cursor: 'pointer',
+                transition: 'all 0.15s ease',
               }}
             >
               Grant Temp Permission
@@ -435,14 +437,15 @@ export default function RolesPage() {
               onClick={() => setIsCreateRoleModal(true)}
               style={{
                 padding: '10px 18px',
-                backgroundColor: '#0369A1',
-                color: '#F59E0B',
+                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                color: '#FFFFFF',
                 border: 'none',
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 13,
-                fontWeight: 900,
+                fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(15, 61, 33, 0.25)',
+                boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
+                transition: 'all 0.15s ease',
               }}
             >
               + Create Custom Role
@@ -454,11 +457,11 @@ export default function RolesPage() {
         <div
           style={{
             display: 'flex',
-            gap: 8,
+            gap: 6,
             backgroundColor: '#FFFFFF',
-            padding: 8,
-            borderRadius: 12,
-            border: '1px solid #BAE6FD',
+            padding: 6,
+            borderRadius: 14,
+            border: '1px solid #E5E7EB',
             overflowX: 'auto',
           }}
         >
@@ -468,26 +471,30 @@ export default function RolesPage() {
             { id: 'EFFECTIVE', label: 'Effective Permissions Viewer' },
             { id: 'TEMPORARY', label: `Temporary Grants (${tempPermissions.length})` },
             { id: 'HISTORY', label: `Security Audit History (${auditLogs.length})` },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id as RbacTab)}
-              style={{
-                padding: '10px 18px',
-                borderRadius: 8,
-                border: 'none',
-                backgroundColor: activeTab === tab.id ? '#0369A1' : 'transparent',
-                color: activeTab === tab.id ? '#F59E0B' : '#475569',
-                fontSize: 13,
-                fontWeight: 800,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as RbacTab)}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: 10,
+                  border: 'none',
+                  backgroundColor: isActive ? '#E3F2FD' : 'transparent',
+                  color: isActive ? '#2196F3' : '#6B7280',
+                  fontSize: 13,
+                  fontWeight: isActive ? 600 : 500,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* TAB 1: ROLES DIRECTORY */}
@@ -499,10 +506,10 @@ export default function RolesPage() {
                   key={role.id}
                   style={{
                     backgroundColor: '#FFFFFF',
-                    borderRadius: 14,
-                    padding: 20,
-                    border: '1px solid #BAE6FD',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    borderRadius: 20,
+                    padding: 24,
+                    border: '1px solid #E5E7EB',
+                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
@@ -511,15 +518,15 @@ export default function RolesPage() {
                 >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <span style={{ fontSize: 16, fontWeight: 900, color: '#0369A1' }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>
                         {role.label}
                       </span>
                       <span
                         style={{
                           fontSize: 11,
-                          fontWeight: 800,
-                          backgroundColor: role.status === 'ACTIVE' ? '#D1FAE5' : '#FEE2E2',
-                          color: role.status === 'ACTIVE' ? '#047857' : '#991B1B',
+                          fontWeight: 600,
+                          backgroundColor: role.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
+                          color: role.status === 'ACTIVE' ? '#15803D' : '#DC2626',
                           padding: '3px 8px',
                           borderRadius: 6,
                         }}
@@ -528,31 +535,31 @@ export default function RolesPage() {
                       </span>
                     </div>
 
-                    <div style={{ fontSize: 12, color: '#0284C7', lineHeight: 1.5, marginBottom: 12 }}>
+                    <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5, marginBottom: 16 }}>
                       {role.description}
                     </div>
 
-                    <div style={{ display: 'flex', gap: 12, fontSize: 12, fontWeight: 700, color: '#075985' }}>
-                      <span> {role.userCount} Assigned Users</span>
-                      <span> {role.permissionCount} Permissions</span>
+                    <div style={{ display: 'flex', gap: 16, fontSize: 12, fontWeight: 600, color: '#4B5563' }}>
+                      <span>{role.userCount} Assigned Users</span>
+                      <span>{role.permissionCount} Permissions</span>
                     </div>
                   </div>
 
-                  <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 11, color: '#94A3B8' }}>Created: {role.createdAt}</span>
+                  <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>Created: {role.createdAt}</span>
 
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button
                         type="button"
                         onClick={() => handleToggleRoleStatus(role.id)}
                         style={{
-                          padding: '5px 10px',
+                          padding: '5px 12px',
                           borderRadius: 6,
-                          border: '1px solid #BAE6FD',
-                          backgroundColor: role.status === 'ACTIVE' ? '#FFF1F2' : '#F0FDF4',
-                          color: role.status === 'ACTIVE' ? '#991B1B' : '#166534',
+                          border: role.status === 'ACTIVE' ? '1px solid #FECACA' : '1px solid #BBF7D0',
+                          backgroundColor: role.status === 'ACTIVE' ? '#FEF2F2' : '#F0FDF4',
+                          color: role.status === 'ACTIVE' ? '#DC2626' : '#16A34A',
                           fontSize: 11,
-                          fontWeight: 800,
+                          fontWeight: 600,
                           cursor: 'pointer',
                         }}
                       >
@@ -568,13 +575,13 @@ export default function RolesPage() {
 
         {/* TAB 2: INTERACTIVE PERMISSION MATRIX */}
         {activeTab === 'MATRIX' && (
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', padding: 24, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0369A1', margin: 0 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
                   Interactive Role-Permission Matrix
                 </h3>
-                <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
+                <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
                   Check/uncheck boxes below to grant or revoke specific resource actions across system roles in real time.
                 </div>
               </div>
@@ -583,7 +590,7 @@ export default function RolesPage() {
                 <select
                   value={selectedModuleFilter}
                   onChange={(e) => setSelectedModuleFilter(e.target.value)}
-                  style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 12, fontWeight: 700 }}
+                  style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, fontWeight: 500, color: '#374151', backgroundColor: '#FFFFFF' }}
                 >
                   <option value="ALL">Module Filter: All Modules</option>
                   {RESOURCE_MODULES.map((m) => (
@@ -598,21 +605,21 @@ export default function RolesPage() {
                   placeholder="Filter permissions..."
                   value={matrixSearch}
                   onChange={(e) => setMatrixSearch(e.target.value)}
-                  style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 12 }}
+                  style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, color: '#111827', backgroundColor: '#FFFFFF' }}
                 />
               </div>
             </div>
 
             {/* Matrix Table */}
-            <div style={{ overflowX: 'auto', border: '1px solid #BAE6FD', borderRadius: 10 }}>
+            <div style={{ overflowX: 'auto', border: '1px solid #E5E7EB', borderRadius: 12 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#0369A1', color: '#FFFFFF' }}>
-                    <th style={{ padding: '12px 16px', minWidth: 200 }}>Resource Module & Action</th>
+                  <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                    <th style={{ padding: '12px 16px', minWidth: 200, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resource Module & Action</th>
                     {roles.map((r) => (
                       <th key={r.id} style={{ padding: '12px 12px', textAlign: 'center', minWidth: 110 }}>
-                        <div style={{ fontWeight: 800 }}>{r.label}</div>
-                        <div style={{ fontSize: 10, color: '#A7F3D0', fontWeight: 500 }}>{r.name}</div>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>{r.label}</div>
+                        <div style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 500 }}>{r.name}</div>
                       </th>
                     ))}
                   </tr>
@@ -621,9 +628,9 @@ export default function RolesPage() {
                   {RESOURCE_MODULES.filter((m) => selectedModuleFilter === 'ALL' || m.id === selectedModuleFilter).map((mod) => (
                     <React.Fragment key={mod.id}>
                       {/* Module Section Header */}
-                      <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1px solid #CBD5E1' }}>
-                        <td colSpan={roles.length + 1} style={{ padding: '10px 16px', fontWeight: 900, color: '#0369A1', fontSize: 13 }}>
-                          {mod.label} — <span style={{ fontWeight: 500, color: '#0284C7', fontSize: 12 }}>{mod.desc}</span>
+                      <tr style={{ backgroundColor: '#F3F4F6', borderBottom: '1px solid #E5E7EB' }}>
+                        <td colSpan={roles.length + 1} style={{ padding: '10px 16px', fontWeight: 700, color: '#111827', fontSize: 12 }}>
+                          {mod.label} — <span style={{ fontWeight: 400, color: '#6B7280' }}>{mod.desc}</span>
                         </td>
                       </tr>
 
@@ -636,9 +643,9 @@ export default function RolesPage() {
                         const cellState = matrixState[cellKey] || {};
 
                         return (
-                          <tr key={cellKey} style={{ borderBottom: '1px solid #E0F2FE' }}>
-                            <td style={{ padding: '10px 16px', fontWeight: 700, color: '#0369A1' }}>
-                              <span style={{ color: '#0284C7', fontFamily: 'monospace' }}>{mod.id}</span> • {action}
+                          <tr key={cellKey} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                            <td style={{ padding: '10px 16px', fontWeight: 500, color: '#111827' }}>
+                              <span style={{ color: '#6B7280', fontFamily: 'monospace' }}>{mod.id}</span> • {action}
                             </td>
 
                             {roles.map((r) => {
@@ -651,7 +658,7 @@ export default function RolesPage() {
                                     checked={isChecked}
                                     disabled={r.name === 'SUPER_ADMIN'}
                                     onChange={() => handleToggleMatrixCell(mod.id, action, r.name)}
-                                    style={{ width: 18, height: 18, cursor: r.name === 'SUPER_ADMIN' ? 'not-allowed' : 'pointer', accentColor: '#0369A1' }}
+                                    style={{ width: 16, height: 16, cursor: r.name === 'SUPER_ADMIN' ? 'not-allowed' : 'pointer', accentColor: '#2196F3' }}
                                   />
                                 </td>
                               );
@@ -669,25 +676,25 @@ export default function RolesPage() {
 
         {/* TAB 3: EFFECTIVE PERMISSIONS VIEWER */}
         {activeTab === 'EFFECTIVE' && (
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', padding: 24, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0369A1', margin: 0 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
                   Effective Permissions Breakdown
                 </h3>
-                <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
+                <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
                   Inspect calculated effective access privileges (Role-based, Direct, Temporary & Resource Scope) for any admin account.
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 800, color: '#0369A1', marginRight: 8 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginRight: 8 }}>
                   Select Admin Account:
                 </label>
                 <select
                   value={selectedUserEmail}
                   onChange={(e) => setSelectedUserEmail(e.target.value)}
-                  style={{ padding: '8px 14px', borderRadius: 8, border: '1.5px solid #0369A1', fontSize: 13, fontWeight: 800, color: '#0369A1' }}
+                  style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, fontWeight: 600, color: '#111827', backgroundColor: '#FFFFFF' }}
                 >
                   {SAMPLE_USERS.map((u) => (
                     <option key={u.email} value={u.email}>
@@ -699,17 +706,17 @@ export default function RolesPage() {
             </div>
 
             {/* Selected User Overview Card */}
-            <div style={{ backgroundColor: '#F0F9FF', borderRadius: 12, padding: 16, border: '1px solid #BAE6FD', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ backgroundColor: '#F9FAFB', borderRadius: 14, padding: 16, border: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#0369A1' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>
                   {selectedUserObj.name} ({selectedUserObj.email})
                 </div>
-                <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
-                  Role: <strong>{selectedUserObj.role}</strong> | Assigned Scope: <strong>{selectedUserObj.scope}</strong>
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+                  Role: <strong style={{ color: '#111827' }}>{selectedUserObj.role}</strong> | Assigned Scope: <strong style={{ color: '#111827' }}>{selectedUserObj.scope}</strong>
                 </div>
               </div>
 
-              <span style={{ padding: '6px 14px', borderRadius: 20, backgroundColor: '#D1FAE5', color: '#047857', fontSize: 12, fontWeight: 900 }}>
+              <span style={{ padding: '4px 12px', borderRadius: 20, backgroundColor: '#DCFCE7', color: '#15803D', fontSize: 11, fontWeight: 600 }}>
                 Effective Access Calculated
               </span>
             </div>
@@ -717,8 +724,8 @@ export default function RolesPage() {
             {/* Effective Permissions Modules Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
               {RESOURCE_MODULES.map((mod) => (
-                <div key={mod.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, border: '1px solid #BAE6FD' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0369A1', marginBottom: 10 }}>
+                <div key={mod.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, border: '1px solid #E5E7EB' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 12 }}>
                     {mod.label}
                   </div>
 
@@ -735,15 +742,15 @@ export default function RolesPage() {
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             fontSize: 12,
-                            padding: '4px 8px',
+                            padding: '6px 10px',
                             borderRadius: 6,
-                            backgroundColor: roleAllowed ? '#F0FDF4' : '#FFF1F2',
-                            color: roleAllowed ? '#166534' : '#991B1B',
-                            fontWeight: 700,
+                            backgroundColor: roleAllowed ? '#F0FDF4' : '#FEF2F2',
+                            color: roleAllowed ? '#15803D' : '#DC2626',
+                            fontWeight: 500,
                           }}
                         >
                           <span>{action}</span>
-                          <span>{roleAllowed ? ' Allowed' : ' Denied'}</span>
+                          <span style={{ fontWeight: 600 }}>{roleAllowed ? 'Allowed' : 'Denied'}</span>
                         </div>
                       );
                     })}
@@ -756,13 +763,13 @@ export default function RolesPage() {
 
         {/* TAB 4: TEMPORARY PERMISSIONS */}
         {activeTab === 'TEMPORARY' && (
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', padding: 24, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0369A1', margin: 0 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
                   Temporary Permission Grants with Auto-Expiry
                 </h3>
-                <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
+                <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
                   Issue time-bounded administrative authorizations for specific reporting, audit, or emergency override needs.
                 </div>
               </div>
@@ -770,40 +777,40 @@ export default function RolesPage() {
               <button
                 type="button"
                 onClick={() => setIsGrantTempModal(true)}
-                style={{ padding: '8px 16px', backgroundColor: '#0369A1', color: '#F59E0B', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}
               >
                 + Grant Temporary Access
               </button>
             </div>
 
-            <div style={{ overflowX: 'auto', border: '1px solid #BAE6FD', borderRadius: 10 }}>
+            <div style={{ overflowX: 'auto', border: '1px solid #E5E7EB', borderRadius: 12 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0284C7' }}>
-                    <th style={{ padding: '12px 16px' }}>Recipient Account</th>
-                    <th style={{ padding: '12px 16px' }}>Module & Action</th>
-                    <th style={{ padding: '12px 16px' }}>Granted By</th>
-                    <th style={{ padding: '12px 16px' }}>Valid Date Range</th>
-                    <th style={{ padding: '12px 16px' }}>Reason</th>
-                    <th style={{ padding: '12px 16px' }}>Status</th>
+                  <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recipient Account</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Module & Action</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Granted By</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Valid Date Range</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reason</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {tempPermissions.map((tp) => (
-                    <tr key={tp.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0369A1' }}>
+                    <tr key={tp.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#111827' }}>
                         {tp.userEmail} ({tp.roleName})
                       </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0284C7' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#2196F3' }}>
                         {tp.resource}:{tp.action}
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#075985' }}>{tp.grantedBy}</td>
-                      <td style={{ padding: '12px 16px', color: '#075985' }}>
+                      <td style={{ padding: '12px 16px', color: '#6B7280' }}>{tp.grantedBy}</td>
+                      <td style={{ padding: '12px 16px', color: '#374151' }}>
                         {tp.startDate} → <strong>{tp.expiryDate}</strong>
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#0284C7' }}>{tp.reason}</td>
+                      <td style={{ padding: '12px 16px', color: '#6B7280' }}>{tp.reason}</td>
                       <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#D1FAE5', color: '#047857', padding: '3px 8px', borderRadius: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: 4 }}>
                           {tp.status}
                         </span>
                       </td>
@@ -817,47 +824,47 @@ export default function RolesPage() {
 
         {/* TAB 5: AUDIT HISTORY */}
         {activeTab === 'HISTORY' && (
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', padding: 24, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0369A1', margin: 0 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
                 Security Audit Trail & Permission Change History
               </h3>
-              <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
+              <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
                 Complete immutable log of all privilege modifications, role creations, and security status updates.
               </div>
             </div>
 
-            <div style={{ overflowX: 'auto', border: '1px solid #BAE6FD', borderRadius: 10 }}>
+            <div style={{ overflowX: 'auto', border: '1px solid #E5E7EB', borderRadius: 12 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0284C7' }}>
-                    <th style={{ padding: '12px 16px' }}>Timestamp</th>
-                    <th style={{ padding: '12px 16px' }}>Actor</th>
-                    <th style={{ padding: '12px 16px' }}>Target Role</th>
-                    <th style={{ padding: '12px 16px' }}>Action Type</th>
-                    <th style={{ padding: '12px 16px' }}>Permission</th>
-                    <th style={{ padding: '12px 16px' }}>Previous → New</th>
-                    <th style={{ padding: '12px 16px' }}>Reason</th>
+                  <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Timestamp</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actor</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target Role</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action Type</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Permission</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Previous → New</th>
+                    <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reason</th>
                   </tr>
                 </thead>
                 <tbody>
                   {auditLogs.map((log) => (
-                    <tr key={log.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
-                      <td style={{ padding: '12px 16px', color: '#0284C7', fontFamily: 'monospace' }}>{log.timestamp}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0369A1' }}>{log.actor}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 800, color: '#0F172A' }}>{log.roleName}</td>
+                    <tr key={log.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '12px 16px', color: '#6B7280', fontFamily: 'monospace' }}>{log.timestamp}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#111827' }}>{log.actor}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#111827' }}>{log.roleName}</td>
                       <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, backgroundColor: log.actionType.includes('GRANTED') ? '#D1FAE5' : '#FEE2E2', color: log.actionType.includes('GRANTED') ? '#047857' : '#991B1B', padding: '2px 6px', borderRadius: 4 }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, backgroundColor: log.actionType.includes('GRANTED') ? '#DCFCE7' : '#FEE2E2', color: log.actionType.includes('GRANTED') ? '#15803D' : '#DC2626', padding: '2px 6px', borderRadius: 4 }}>
                           {log.actionType}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0284C7' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 500, color: '#2196F3' }}>
                         {log.resource}:{log.action}
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#075985' }}>
+                      <td style={{ padding: '12px 16px', color: '#4B5563' }}>
                         {log.previousValue} → <strong>{log.newValue}</strong>
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#0284C7' }}>{log.reason}</td>
+                      <td style={{ padding: '12px 16px', color: '#6B7280' }}>{log.reason}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -868,41 +875,41 @@ export default function RolesPage() {
 
         {/* MODAL: CREATE CUSTOM ROLE */}
         {isCreateRoleModal && (
-          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
-            <form onSubmit={handleCreateRole} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, maxWidth: 440, width: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(17, 24, 39, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
+            <form onSubmit={handleCreateRole} style={{ backgroundColor: '#FFFFFF', borderRadius: 20, maxWidth: 440, width: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', margin: 0 }}>
-                  + Create Custom Role
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+                  Create Custom Role
                 </h3>
-                <button type="button" onClick={() => setIsCreateRoleModal(false)} style={{ border: 'none', background: 'none', fontSize: 18, cursor: 'pointer' }}></button>
+                <button type="button" onClick={() => setIsCreateRoleModal(false)} style={{ border: 'none', background: 'none', fontSize: 18, color: '#6B7280', cursor: 'pointer' }}>×</button>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Role Name *</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Role Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. REGIONAL_INVENTORY_AUDITOR"
                   value={newRoleName}
                   onChange={(e) => setNewRoleName(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Description</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Description</label>
                 <textarea
                   rows={3}
                   placeholder="Describe role responsibilities..."
                   value={newRoleDesc}
                   onChange={(e) => setNewRoleDesc(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827' }}
                 />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-                <button type="button" onClick={() => setIsCreateRoleModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0369A1', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Create Role</button>
+                <button type="button" onClick={() => setIsCreateRoleModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E5E7EB', backgroundColor: '#F3F4F6', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Create Role</button>
               </div>
             </form>
           </div>
@@ -910,21 +917,21 @@ export default function RolesPage() {
 
         {/* MODAL: GRANT TEMPORARY PERMISSION */}
         {isGrantTempModal && (
-          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
-            <form onSubmit={handleGrantTempPermission} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, maxWidth: 480, width: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(17, 24, 39, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
+            <form onSubmit={handleGrantTempPermission} style={{ backgroundColor: '#FFFFFF', borderRadius: 20, maxWidth: 480, width: '100%', padding: 24, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', margin: 0 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
                   Grant Temporary Permission
                 </h3>
-                <button type="button" onClick={() => setIsGrantTempModal(false)} style={{ border: 'none', background: 'none', fontSize: 18, cursor: 'pointer' }}></button>
+                <button type="button" onClick={() => setIsGrantTempModal(false)} style={{ border: 'none', background: 'none', fontSize: 18, color: '#6B7280', cursor: 'pointer' }}>×</button>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Select Admin Account *</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Select Admin Account *</label>
                 <select
                   value={grantUserEmail}
                   onChange={(e) => setGrantUserEmail(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 700 }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontWeight: 500, color: '#111827', backgroundColor: '#FFFFFF' }}
                 >
                   {SAMPLE_USERS.map((u) => (
                     <option key={u.email} value={u.email}>
@@ -936,11 +943,11 @@ export default function RolesPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Resource Module *</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Resource Module *</label>
                   <select
                     value={grantModule}
                     onChange={(e) => setGrantModule(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF' }}
                   >
                     {RESOURCE_MODULES.map((m) => (
                       <option key={m.id} value={m.id}>{m.id}</option>
@@ -949,11 +956,11 @@ export default function RolesPage() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Action *</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Action *</label>
                   <select
                     value={grantAction}
                     onChange={(e) => setGrantAction(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF' }}
                   >
                     {STANDARD_ACTIONS.map((a) => (
                       <option key={a} value={a}>{a}</option>
@@ -963,30 +970,30 @@ export default function RolesPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Expiry Date *</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Expiry Date *</label>
                 <input
                   type="date"
                   required
                   value={grantExpiry}
                   onChange={(e) => setGrantExpiry(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 4 }}>Business Reason / Justification</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Business Reason / Justification</label>
                 <input
                   type="text"
                   placeholder="e.g. Q3 Regional Audit Override"
                   value={grantReason}
                   onChange={(e) => setGrantReason(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13 }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827' }}
                 />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-                <button type="button" onClick={() => setIsGrantTempModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0369A1', color: '#F59E0B', fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>Issue Temporary Access</button>
+                <button type="button" onClick={() => setIsGrantTempModal(false)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E5E7EB', backgroundColor: '#F3F4F6', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Issue Temporary Access</button>
               </div>
             </form>
           </div>

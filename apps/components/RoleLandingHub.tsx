@@ -22,10 +22,10 @@ export function RoleLandingHub() {
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 24,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.08)',
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
             display: 'flex',
             flexDirection: 'column',
             gap: 16,
@@ -33,10 +33,10 @@ export function RoleLandingHub() {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
                 Super Admin Control & Role Management Center
               </h2>
-              <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0 0' }}>
+              <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0 0' }}>
                 Full system administration, user role assignment, permission configuration, and high-risk action overrides.
               </p>
             </div>
@@ -45,14 +45,13 @@ export function RoleLandingHub() {
                 href="/roles"
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#0284C7',
-                  backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 Manage Roles & Permissions →
@@ -61,11 +60,11 @@ export function RoleLandingHub() {
                 href="/users"
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#F0F9FF',
-                  border: '1px solid #BAE6FD',
-                  color: '#0369A1',
-                  fontWeight: 700,
+                  borderRadius: 10,
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
+                  color: '#111827',
+                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: 'none',
                 }}
@@ -76,25 +75,25 @@ export function RoleLandingHub() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14, paddingTop: 8 }}>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>SYSTEM ROLES</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#0369A1' }}>6 Configured</div>
-              <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>Super, Finance, Ops, Manager, Support, Auditor</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>SYSTEM ROLES</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 4 }}>6 Configured</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Super, Finance, Ops, Manager, Support, Auditor</div>
             </div>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>GRANULAR PERMISSIONS</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#0369A1' }}>28+ Enforced</div>
-              <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>Strict backend security & SpEL guards</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>GRANULAR PERMISSIONS</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 4 }}>28+ Enforced</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Strict backend security & SpEL guards</div>
             </div>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>HIGH-RISK APPROVALS</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#0369A1' }}>2-Step Workflow</div>
-              <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>Settlement release & ledger adjustments</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>HIGH-RISK APPROVALS</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 4 }}>2-Step Workflow</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Settlement release & ledger adjustments</div>
             </div>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>AUDIT TELEMETRY</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#0369A1' }}>Append-Only</div>
-              <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>Immutable compliance logging</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>AUDIT TELEMETRY</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 4 }}>Append-Only</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Immutable compliance logging</div>
             </div>
           </div>
         </div>
@@ -105,10 +104,10 @@ export function RoleLandingHub() {
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 24,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.08)',
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
             display: 'flex',
             flexDirection: 'column',
             gap: 16,
@@ -116,10 +115,10 @@ export function RoleLandingHub() {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
                 Finance & Payments Administration Hub
               </h2>
-              <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0 0' }}>
+              <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0 0' }}>
                 Manage payment settlements, merchant payouts, refund processing, and commission rates.
               </p>
             </div>
@@ -128,14 +127,13 @@ export function RoleLandingHub() {
                 href="/payments"
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#0284C7',
-                  backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 Settlements & Payouts →
@@ -144,11 +142,11 @@ export function RoleLandingHub() {
                 href="/approvals"
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#F0F9FF',
-                  border: '1px solid #BAE6FD',
-                  color: '#0369A1',
-                  fontWeight: 700,
+                  borderRadius: 10,
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
+                  color: '#111827',
+                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: 'none',
                 }}
@@ -159,20 +157,20 @@ export function RoleLandingHub() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>ESCROW SETTLEMENTS</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1' }}>₹ 14,850.00</div>
-              <div style={{ fontSize: 11, color: '#0284C7' }}>Pending Release</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ESCROW SETTLEMENTS</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginTop: 4 }}>₹ 14,850.00</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Pending Release</div>
             </div>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>COMMISSION REVENUE</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1' }}>15% Standard</div>
-              <div style={{ fontSize: 11, color: '#0284C7' }}>Configurable Rules</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>COMMISSION REVENUE</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginTop: 4 }}>15% Standard</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Configurable Rules</div>
             </div>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>REFUND DISPATCH</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1' }}>Cashfree Sync</div>
-              <div style={{ fontSize: 11, color: '#0284C7' }}>Approved Requests Only</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>REFUND DISPATCH</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginTop: 4 }}>Cashfree Sync</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Approved Requests Only</div>
             </div>
           </div>
         </div>
@@ -183,10 +181,10 @@ export function RoleLandingHub() {
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 24,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.08)',
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
             display: 'flex',
             flexDirection: 'column',
             gap: 16,
@@ -194,10 +192,10 @@ export function RoleLandingHub() {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
                 Operations, Location & Logistics Console
               </h2>
-              <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0 0' }}>
+              <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0 0' }}>
                 Operate city polygon zones, driver assignments, live order pipeline override, and merchant onboarding.
               </p>
             </div>
@@ -206,14 +204,13 @@ export function RoleLandingHub() {
                 href="/location"
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#0284C7',
-                  backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 Location Management 
@@ -222,11 +219,11 @@ export function RoleLandingHub() {
                 href="/delivery-partners"
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#F0F9FF',
-                  border: '1px solid #BAE6FD',
-                  color: '#0369A1',
-                  fontWeight: 700,
+                  borderRadius: 10,
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
+                  color: '#111827',
+                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: 'none',
                 }}
@@ -237,20 +234,20 @@ export function RoleLandingHub() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>ACTIVE DRIVERS</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1' }}>28 Online</div>
-              <div style={{ fontSize: 11, color: '#0284C7' }}>GPS Tracked</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ACTIVE DRIVERS</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginTop: 4 }}>28 Online</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>GPS Tracked</div>
             </div>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>OPERATING ZONES</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1' }}>2 Active</div>
-              <div style={{ fontSize: 11, color: '#0284C7' }}>Indiranagar & Koramangala</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>OPERATING ZONES</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginTop: 4 }}>2 Active</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Indiranagar & Koramangala</div>
             </div>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>RESTAURANTS</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1' }}>42 Active</div>
-              <div style={{ fontSize: 11, color: '#0284C7' }}>Approve & Suspend Enabled</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>RESTAURANTS</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginTop: 4 }}>42 Active</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Approve & Suspend Enabled</div>
             </div>
           </div>
         </div>
@@ -261,10 +258,10 @@ export function RoleLandingHub() {
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 24,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.08)',
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
             display: 'flex',
             flexDirection: 'column',
             gap: 16,
@@ -272,10 +269,10 @@ export function RoleLandingHub() {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
                 Restaurant Manager Portal (Scoped to Your Outlet)
               </h2>
-              <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0 0' }}>
+              <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0 0' }}>
                 Manage live orders, menu item availability, settlement statements, and customer reviews.
               </p>
             </div>
@@ -284,14 +281,13 @@ export function RoleLandingHub() {
                 href="/orders"
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#0284C7',
-                  backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 View Kitchen Orders 
@@ -300,15 +296,15 @@ export function RoleLandingHub() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>KITCHEN ORDERS</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1' }}>8 Active</div>
-              <div style={{ fontSize: 11, color: '#0284C7' }}>Preparing & Ready</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>KITCHEN ORDERS</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginTop: 4 }}>8 Active</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Preparing & Ready</div>
             </div>
-            <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>TODAY&apos;S NET EARNINGS</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1' }}>₹ 4,820.00</div>
-              <div style={{ fontSize: 11, color: '#0284C7' }}>After Platform Commission</div>
+            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>TODAY&apos;S NET EARNINGS</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginTop: 4 }}>₹ 4,820.00</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>After Platform Commission</div>
             </div>
           </div>
         </div>
@@ -319,10 +315,10 @@ export function RoleLandingHub() {
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 24,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.08)',
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
             display: 'flex',
             flexDirection: 'column',
             gap: 16,
@@ -330,10 +326,10 @@ export function RoleLandingHub() {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
                 Customer Support & Order Resolution Console
               </h2>
-              <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0 0' }}>
+              <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0 0' }}>
                 Lookup customer orders, view payment status, and initiate refund requests for manager approval.
               </p>
             </div>
@@ -342,14 +338,13 @@ export function RoleLandingHub() {
                 href="/orders"
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#0284C7',
-                  backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 Customer Orders 
@@ -357,7 +352,7 @@ export function RoleLandingHub() {
             </div>
           </div>
 
-          <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1' }}>
+          <div style={{ padding: 14, borderRadius: 12, backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', fontSize: 13, color: '#1E40AF' }}>
             <strong>Support Agent Safety Scope:</strong> Direct settlement release, ledger adjustments, and commission rule updates are disabled. Refund requests require 2-step Finance approval.
           </div>
         </div>
@@ -368,10 +363,10 @@ export function RoleLandingHub() {
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 24,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.08)',
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
             display: 'flex',
             flexDirection: 'column',
             gap: 16,
@@ -379,10 +374,10 @@ export function RoleLandingHub() {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
                 Auditor Read-Only Compliance Console
               </h2>
-              <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0 0' }}>
+              <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0 0' }}>
                 Read-only access to audit logs, financial telemetry, settlement ledgers, and system mutation records.
               </p>
             </div>
@@ -391,14 +386,13 @@ export function RoleLandingHub() {
                 href="/audit-log"
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#0284C7',
-                  backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontSize: 13,
                   textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 View Audit Log 
@@ -406,7 +400,7 @@ export function RoleLandingHub() {
             </div>
           </div>
 
-          <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1' }}>
+          <div style={{ padding: 14, borderRadius: 12, backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', fontSize: 13, color: '#1E40AF' }}>
             <strong>Read-Only Compliance Mode:</strong> Mutation buttons, release controls, and rule editing actions are strictly hidden and disabled on the backend.
           </div>
         </div>

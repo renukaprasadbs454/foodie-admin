@@ -155,17 +155,17 @@ export function DashboardPage() {
       {/* Top Banner Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', letterSpacing: '-0.5px' }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' }}>
             Executive Operations Console
           </div>
-          <Text as="p" variant="caption" style={{ color: '#0284C7' }}>
+          <p style={{ color: '#6B7280', fontSize: 13, margin: '4px 0 0' }}>
             Real-time multi-vendor performance, order status pipeline, and sales telemetry
-          </Text>
+          </p>
         </div>
       </div>
 
       {!isConnected ? (
-        <Text as="p" variant="caption" style={{ color: '#0284C7' }}>
+        <Text as="p" variant="caption" style={{ color: '#6B7280' }}>
           Offline — showing cached summary when available.
         </Text>
       ) : null}
@@ -174,27 +174,27 @@ export function DashboardPage() {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          padding: '16px 20px',
-          borderRadius: 14,
-          border: '1px solid #BAE6FD',
+          padding: '20px 24px',
+          borderRadius: 20,
+          border: '1px solid #E5E7EB',
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
-          boxShadow: '0 2px 6px rgba(2, 132, 199, 0.05)',
+          gap: 16,
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>📅 Analytics Timeframe Filter</span>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>Analytics Timeframe Filter</span>
             <span
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: '#0369A1',
-                backgroundColor: '#F0F9FF',
-                padding: '2px 8px',
+                color: '#2196F3',
+                backgroundColor: '#E3F2FD',
+                padding: '3px 10px',
                 borderRadius: 12,
-                border: '1px solid #BAE6FD',
+                border: '1px solid #BFDBFE',
               }}
             >
               {applied.dateFrom} to {applied.dateTo}
@@ -241,15 +241,25 @@ export function DashboardPage() {
                   style={{
                     padding: '6px 14px',
                     borderRadius: 8,
-                    border: isPresetActive ? '1px solid #0284C7' : '1px solid #BAE6FD',
-                    backgroundColor: isPresetActive ? '#0284C7' : '#F0F9FF',
-                    backgroundImage: isPresetActive ? 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)' : 'none',
-                    color: isPresetActive ? '#FFFFFF' : '#0369A1',
+                    border: isPresetActive ? '1px solid #BFDBFE' : '1px solid #E5E7EB',
+                    backgroundColor: isPresetActive ? '#E3F2FD' : '#FFFFFF',
+                    color: isPresetActive ? '#2196F3' : '#6B7280',
                     fontSize: 12,
-                    fontWeight: isPresetActive ? 800 : 600,
+                    fontWeight: isPresetActive ? 700 : 500,
                     cursor: 'pointer',
-                    boxShadow: isPresetActive ? '0 2px 8px rgba(14, 165, 233, 0.3)' : 'none',
                     transition: 'all 0.15s ease-in-out',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isPresetActive) {
+                      e.currentTarget.style.backgroundColor = '#F5F7FA';
+                      e.currentTarget.style.color = '#111827';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isPresetActive) {
+                      e.currentTarget.style.backgroundColor = '#FFFFFF';
+                      e.currentTarget.style.color = '#6B7280';
+                    }
                   }}
                 >
                   {preset.label}
@@ -266,16 +276,16 @@ export function DashboardPage() {
             aria-label="Apply date range"
             onClick={applyRange}
             style={{
-              padding: '8px 18px',
-              backgroundColor: '#0284C7',
-              backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+              padding: '8px 20px',
+              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
               color: '#FFFFFF',
               border: 'none',
-              borderRadius: 8,
+              borderRadius: 10,
               fontSize: 13,
-              fontWeight: 800,
+              fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+              boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
+              transition: 'opacity 0.15s ease',
             }}
           >
             Apply Custom Range

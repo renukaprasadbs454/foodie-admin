@@ -140,7 +140,6 @@ export function AiAssistantWidget() {
           transition: 'all 0.2s ease-in-out',
         }}
       >
-        <span style={{ fontSize: 18 }}>🤖</span>
         <span>FoodieBot</span>
       </button>
 
@@ -178,7 +177,6 @@ export function AiAssistantWidget() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 22 }}>🤖</span>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF' }}>
                   FoodieBot
@@ -209,7 +207,7 @@ export function AiAssistantWidget() {
                 cursor: 'pointer',
               }}
             >
-              ✕
+              ×
             </button>
           </div>
 
@@ -336,7 +334,7 @@ export function AiAssistantWidget() {
                   gap: 6,
                 }}
               >
-                <span>🤖 FoodieBot is thinking</span>
+                <span>FoodieBot is thinking</span>
                 <span className="pulse-live" style={{ width: 6, height: 6, backgroundColor: '#0EA5E9', borderRadius: '50%' }} />
               </div>
             )}

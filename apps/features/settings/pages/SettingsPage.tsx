@@ -247,8 +247,31 @@ export function SettingsPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+    const handleAddAdminUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminName.trim() || !newAdminEmail.trim()) {
+      alert('Please fill out Name and Email for the new admin.');
+      return;
+    }
+    const newUser: AdminUserRecord = {
+      id: `u-${Date.now()}`,
+      name: newAdminName.trim(),
+      email: newAdminEmail.trim(),
+      role: newAdminRole,
+      department: newAdminDept.trim() || 'Operations',
+      status: 'ACTIVE',
+      lastLogin: 'Never',
+    };
+    setAdminUsers((prev) => [...prev, newUser]);
+    setNewAdminName('');
+    setNewAdminEmail('');
+    setIsAddUserModalOpen(false);
+    setToastMessage('New Admin user successfully created!');
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   return (
-    <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Toast Notification */}
       {toastMessage && (
         <div
@@ -256,15 +279,14 @@ export function SettingsPage() {
             position: 'fixed',
             top: 20,
             right: 20,
-            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+            background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
             color: '#FFFFFF',
             padding: '12px 24px',
-            borderRadius: 10,
-            boxShadow: '0 10px 25px rgba(2, 132, 199, 0.3)',
+            borderRadius: 12,
+            boxShadow: '0 10px 25px rgba(33, 150, 243, 0.3)',
             fontSize: 14,
-            fontWeight: 700,
+            fontWeight: 600,
             zIndex: 9999,
-            border: '1px solid #BAE6FD',
           }}
         >
           {toastMessage}
@@ -274,10 +296,10 @@ export function SettingsPage() {
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', margin: 0 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>
             Control Center Settings
           </h1>
-          <p style={{ fontSize: 14, color: '#0284C7', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: 14, color: '#6B7280', margin: '4px 0 0 0' }}>
             Configure admin profiles, policy page setups, GST taxes, delivery pricing & security
           </p>
         </div>
@@ -288,15 +310,15 @@ export function SettingsPage() {
           disabled={saving}
           style={{
             padding: '10px 22px',
-            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+            background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
             color: '#FFFFFF',
             border: 'none',
-            borderRadius: 10,
+            borderRadius: 12,
             fontSize: 14,
-            fontWeight: 800,
+            fontWeight: 600,
             cursor: saving ? 'not-allowed' : 'pointer',
             opacity: saving ? 0.7 : 1,
-            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.25)',
+            boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
             transition: 'all 0.15s ease',
           }}
         >
@@ -310,13 +332,13 @@ export function SettingsPage() {
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 14,
-            border: '1px solid #BAE6FD',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
             padding: '12px',
             display: 'flex',
             flexDirection: 'column',
             gap: 4,
-            boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
             height: 'fit-content',
           }}
         >
@@ -341,16 +363,15 @@ export function SettingsPage() {
                   width: '100%',
                   textAlign: 'left',
                   padding: '12px 16px',
-                  borderRadius: 10,
+                  borderRadius: 12,
                   border: 'none',
-                  background: isActive ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-                  color: isActive ? '#FFFFFF' : '#0284C7',
-                  fontWeight: isActive ? 800 : 600,
+                  backgroundColor: isActive ? '#E3F2FD' : 'transparent',
+                  color: isActive ? '#2196F3' : '#6B7280',
+                  fontWeight: isActive ? 600 : 500,
                   fontSize: 13,
                   cursor: 'pointer',
-                  borderLeft: isActive ? '4px solid #38BDF8' : '4px solid transparent',
+                  borderLeft: isActive ? '4px solid #2196F3' : '4px solid transparent',
                   transition: 'all 0.15s ease',
-                  boxShadow: isActive ? '0 2px 8px rgba(2, 132, 199, 0.25)' : 'none',
                 }}
               >
                 {tab.label}
@@ -363,43 +384,43 @@ export function SettingsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* 1. Admin Profile */}
           {activeTab === 'admin-profile' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 28, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
                 Personal Admin Profile
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Full Name</label>
-                  <input type="text" value={profileName} onChange={(e) => setProfileName(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Full Name</label>
+                  <input type="text" value={profileName} onChange={(e) => setProfileName(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Email Address</label>
-                  <input type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Email Address</label>
+                  <input type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Contact Phone</label>
-                  <input type="text" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Contact Phone</label>
+                  <input type="text" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Assigned System Role</label>
-                  <input type="text" value="SUPER_ADMIN (Full Control)" readOnly style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', fontWeight: 700, fontSize: 13, outline: 'none' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Assigned System Role</label>
+                  <input type="text" value="SUPER_ADMIN (Full Control)" readOnly style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', backgroundColor: '#F9FAFB', color: '#6B7280', fontWeight: 600, fontSize: 13, outline: 'none' }} />
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid #BAE6FD', paddingTop: 20, marginTop: 10 }}>
-                <h4 style={{ fontSize: 15, fontWeight: 700, color: '#0369A1', margin: '0 0 14px 0' }}>Password & Security Credentials</h4>
+              <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: 20, marginTop: 10 }}>
+                <h4 style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: '0 0 14px 0' }}>Password & Security Credentials</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0284C7', marginBottom: 6 }}>Current Password</label>
-                    <input type="password" placeholder="••••••••" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 6 }}>Current Password</label>
+                    <input type="password" placeholder="••••••••" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0284C7', marginBottom: 6 }}>New Password</label>
-                    <input type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 6 }}>New Password</label>
+                    <input type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0284C7', marginBottom: 6 }}>Confirm New Password</label>
-                    <input type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 6 }}>Confirm New Password</label>
+                    <input type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                   </div>
                 </div>
               </div>
@@ -408,13 +429,13 @@ export function SettingsPage() {
 
           {/* PAGE SETUP (TERMS, PRIVACY, CANCELLATION, REFUND & CUSTOM POLICIES) */}
           {activeTab === 'page-setup' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 28, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
                     Platform Policy Page Setup
                   </h3>
-                  <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
                     Configure, edit, or add policy documents (Terms & Conditions, Privacy Policy, Cancellation & Refund Policy, Delivery Policy).
                   </div>
                 </div>
@@ -424,17 +445,17 @@ export function SettingsPage() {
                   onClick={() => setIsAddPageModalOpen(true)}
                   style={{
                     padding: '8px 16px',
-                    background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                    background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                     color: '#FFFFFF',
                     border: 'none',
-                    borderRadius: 8,
-                    fontWeight: 700,
+                    borderRadius: 10,
+                    fontWeight: 600,
                     fontSize: 13,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
-                    boxShadow: '0 2px 8px rgba(2, 132, 199, 0.2)',
+                    boxShadow: '0 2px 8px rgba(33, 150, 243, 0.2)',
                   }}
                 >
                   Add Custom Policy Page
@@ -442,7 +463,7 @@ export function SettingsPage() {
               </div>
 
               {/* Policy Page Selector Tabs */}
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', backgroundColor: '#F0F9FF', padding: 6, borderRadius: 10, border: '1px solid #BAE6FD' }}>
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', backgroundColor: '#F9FAFB', padding: 6, borderRadius: 12, border: '1px solid #E5E7EB' }}>
                 {policyPages.map((page) => {
                   const isSelected = selectedPolicyId === page.id;
                   return (
@@ -453,14 +474,14 @@ export function SettingsPage() {
                       style={{
                         padding: '8px 14px',
                         borderRadius: 8,
-                        border: 'none',
-                        background: isSelected ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-                        color: isSelected ? '#FFFFFF' : '#0284C7',
+                        border: isSelected ? '1px solid #2196F3' : '1px solid transparent',
+                        backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
+                        color: isSelected ? '#2196F3' : '#6B7280',
                         fontSize: 12,
-                        fontWeight: 700,
+                        fontWeight: 600,
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
-                        boxShadow: isSelected ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+                        boxShadow: isSelected ? '0 1px 3px rgba(0, 0, 0, 0.05)' : 'none',
                       }}
                     >
                       {page.title}
@@ -471,30 +492,30 @@ export function SettingsPage() {
 
               {/* Policy Content Editor */}
               {selectedPolicy && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, borderTop: '1px solid #BAE6FD', paddingTop: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, borderTop: '1px solid #E5E7EB', paddingTop: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '3px 8px', borderRadius: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: 9999 }}>
                       STATUS: {selectedPolicy.status} • LAST REVISION: {selectedPolicy.lastUpdated}
                     </span>
-                    <span style={{ fontSize: 11, color: '#0284C7', fontFamily: 'monospace' }}>
+                    <span style={{ fontSize: 11, color: '#6B7280', fontFamily: 'monospace' }}>
                       URL Slug: /{selectedPolicy.slug}
                     </span>
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                       Document Title
                     </label>
                     <input
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 14, fontWeight: 700, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 14, fontWeight: 600, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                       Policy Document Content (Markdown / HTML Supported)
                     </label>
                     <textarea
@@ -504,12 +525,12 @@ export function SettingsPage() {
                       style={{
                         width: '100%',
                         padding: '12px 14px',
-                        borderRadius: 8,
-                        border: '1px solid #BAE6FD',
+                        borderRadius: 10,
+                        border: '1px solid #E5E7EB',
                         fontSize: 13,
                         lineHeight: 1.6,
                         fontFamily: 'inherit',
-                        color: '#0369A1',
+                        color: '#111827',
                         backgroundColor: '#FFFFFF',
                         outline: 'none',
                       }}
@@ -518,17 +539,18 @@ export function SettingsPage() {
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                     <button
-                      type="submit"
+                      type="button"
+                      onClick={handleSave}
                       style={{
                         padding: '10px 20px',
-                        background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                        background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                         color: '#FFFFFF',
                         border: 'none',
-                        borderRadius: 8,
+                        borderRadius: 10,
                         fontSize: 13,
-                        fontWeight: 800,
+                        fontWeight: 600,
                         cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(2, 132, 199, 0.2)',
+                        boxShadow: '0 2px 8px rgba(33, 150, 243, 0.2)',
                       }}
                     >
                       Save Policy Document
@@ -541,132 +563,136 @@ export function SettingsPage() {
 
           {/* Social Media */}
           {activeTab === 'social-media' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 28, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
               <SocialMediaStudio />
             </div>
           )}
 
           {/* 2. Admin Users */}
           {activeTab === 'admin-users' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 28, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Admin Console Team</h3>
-                  <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>Manage admin accounts, executive access levels & operational personnel</div>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Admin Console Team</h3>
+                  <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>Manage admin accounts, executive access levels & operational personnel</div>
                 </div>
-                <button type="button" onClick={() => setIsAddUserModalOpen(true)} style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.2)' }}>
+                <button type="button" onClick={() => setIsAddUserModalOpen(true)} style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.2)' }}>
                   Add Admin User
                 </button>
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
-                    <th style={{ padding: '12px 16px' }}>User Name & Email</th>
-                    <th style={{ padding: '12px 16px' }}>Role</th>
-                    <th style={{ padding: '12px 16px' }}>Department</th>
-                    <th style={{ padding: '12px 16px' }}>Status</th>
-                    <th style={{ padding: '12px 16px' }}>Last Active</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {adminUsers.map((u) => (
-                    <tr key={u.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontWeight: 700, color: '#0369A1' }}>{u.name}</div>
-                        <div style={{ fontSize: 12, color: '#0284C7' }}>{u.email}</div>
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#F0F9FF', color: '#0369A1', padding: '3px 8px', borderRadius: 4, border: '1px solid #BAE6FD' }}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 16px', color: '#0284C7' }}>{u.department}</td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span style={{ backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 12 }}>
-                          {u.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 16px', color: '#0284C7', fontSize: 12 }}>{u.lastLogin}</td>
+              <div style={{ borderRadius: 16, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <th style={{ padding: '12px 16px' }}>User Name & Email</th>
+                      <th style={{ padding: '12px 16px' }}>Role</th>
+                      <th style={{ padding: '12px 16px' }}>Department</th>
+                      <th style={{ padding: '12px 16px' }}>Status</th>
+                      <th style={{ padding: '12px 16px' }}>Last Active</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {adminUsers.map((u) => (
+                      <tr key={u.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ fontWeight: 600, color: '#111827' }}>{u.name}</div>
+                          <div style={{ fontSize: 12, color: '#6B7280' }}>{u.email}</div>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '3px 8px', borderRadius: 6 }}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px', color: '#374151' }}>{u.department}</td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ backgroundColor: '#DCFCE7', color: '#15803D', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 9999 }}>
+                            {u.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px', color: '#6B7280', fontSize: 12 }}>{u.lastLogin}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {/* 3. Roles & Permissions */}
           {activeTab === 'roles-permissions' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 28, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
               <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Role-Based Access Control (RBAC)</h3>
-                <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>Configure permissions matrix for SUPER_ADMIN, OPS, FINANCE, and SUPPORT roles</div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Role-Based Access Control (RBAC)</h3>
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>Configure permissions matrix for SUPER_ADMIN, OPS, FINANCE, and SUPPORT roles</div>
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
-                    <th style={{ padding: '12px 16px' }}>System Permission Scope</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>SUPER_ADMIN</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>OPS</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>FINANCE</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>SUPPORT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { label: 'Access Executive Dashboard & Analytics', key: 'dashboard' },
-                    { label: 'Approve / Suspend Restaurants', key: 'restaurants' },
-                    { label: 'Verify Deliveryman KYC & Documents', key: 'deliveryKyc' },
-                    { label: 'Issue Payment Refunds & Payouts', key: 'refunds' },
-                    { label: 'Manage Commission Rates & Rules', key: 'commissions' },
-                    { label: 'View System Audit Logs', key: 'auditLogs' },
-                  ].map((perm) => (
-                    <tr key={perm.key} style={{ borderBottom: '1px solid #E0F2FE' }}>
-                      <td style={{ padding: '14px 16px', fontWeight: 600, color: '#0369A1' }}>{perm.label}</td>
-                      {(['SUPER_ADMIN', 'OPS', 'FINANCE', 'SUPPORT'] as const).map((r) => (
-                        <td key={r} style={{ padding: '14px 16px', textAlign: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={permissions[r][perm.key as keyof typeof permissions['SUPER_ADMIN']]}
-                            onChange={(e) => {
-                              const val = e.target.checked;
-                              setPermissions((prev) => ({
-                                ...prev,
-                                [r]: { ...prev[r], [perm.key]: val },
-                              }));
-                            }}
-                            style={{ width: 16, height: 16, accentColor: '#0284C7' }}
-                          />
-                        </td>
-                      ))}
+              <div style={{ borderRadius: 16, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <th style={{ padding: '12px 16px' }}>System Permission Scope</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center' }}>SUPER_ADMIN</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center' }}>OPS</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center' }}>FINANCE</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center' }}>SUPPORT</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {[
+                      { label: 'Access Executive Dashboard & Analytics', key: 'dashboard' },
+                      { label: 'Approve / Suspend Restaurants', key: 'restaurants' },
+                      { label: 'Verify Deliveryman KYC & Documents', key: 'deliveryKyc' },
+                      { label: 'Issue Payment Refunds & Payouts', key: 'refunds' },
+                      { label: 'Manage Commission Rates & Rules', key: 'commissions' },
+                      { label: 'View System Audit Logs', key: 'auditLogs' },
+                    ].map((perm) => (
+                      <tr key={perm.key} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                        <td style={{ padding: '14px 16px', fontWeight: 500, color: '#111827' }}>{perm.label}</td>
+                        {(['SUPER_ADMIN', 'OPS', 'FINANCE', 'SUPPORT'] as const).map((r) => (
+                          <td key={r} style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            <input
+                              type="checkbox"
+                              checked={permissions[r][perm.key as keyof typeof permissions['SUPER_ADMIN']]}
+                              onChange={(e) => {
+                                const val = e.target.checked;
+                                setPermissions((prev) => ({
+                                  ...prev,
+                                  [r]: { ...prev[r], [perm.key]: val },
+                                }));
+                              }}
+                              style={{ width: 16, height: 16, accentColor: '#2196F3' }}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {/* 5. Tax / GST */}
           {activeTab === 'tax-gst' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Tax & GST Compliance Rules</h3>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 28, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Tax & GST Compliance Rules</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>GSTIN Number</label>
-                  <input type="text" value={gstinNumber} onChange={(e) => setGstinNumber(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>GSTIN Number</label>
+                  <input type="text" value={gstinNumber} onChange={(e) => setGstinNumber(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Food Order GST Rate (%)</label>
-                  <input type="number" value={foodGstRate} onChange={(e) => setFoodGstRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Food Order GST Rate (%)</label>
+                  <input type="number" value={foodGstRate} onChange={(e) => setFoodGstRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Delivery Service GST (%)</label>
-                  <input type="number" value={deliveryGstRate} onChange={(e) => setDeliveryGstRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Delivery Service GST (%)</label>
+                  <input type="number" value={deliveryGstRate} onChange={(e) => setDeliveryGstRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>TCS Tax Rate (%)</label>
-                  <input type="number" value={tcsTaxRate} onChange={(e) => setTcsTaxRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>TCS Tax Rate (%)</label>
+                  <input type="number" value={tcsTaxRate} onChange={(e) => setTcsTaxRate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
               </div>
             </div>
@@ -674,56 +700,56 @@ export function SettingsPage() {
 
           {/* 6. Payment Settings */}
           {activeTab === 'payment-settings' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Payment Gateways & COD Rules</h3>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 28, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Payment Gateways & COD Rules</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={cashfreeEnabled} onChange={(e) => setCashfreeEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Enable Cashfree Gateway (UPI, Netbanking, Cards)</span>
+                  <input type="checkbox" checked={cashfreeEnabled} onChange={(e) => setCashfreeEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#2196F3' }} />
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>Enable Cashfree Gateway (UPI, Netbanking, Cards)</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={stripeEnabled} onChange={(e) => setStripeEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Enable Stripe Gateway (International Cards)</span>
+                  <input type="checkbox" checked={stripeEnabled} onChange={(e) => setStripeEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#2196F3' }} />
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>Enable Stripe Gateway (International Cards)</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={codEnabled} onChange={(e) => setCodEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Enable Cash on Delivery (COD)</span>
+                  <input type="checkbox" checked={codEnabled} onChange={(e) => setCodEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#2196F3' }} />
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>Enable Cash on Delivery (COD)</span>
                 </label>
               </div>
 
-              <div style={{ borderTop: '1px solid #BAE6FD', paddingTop: 16, marginTop: 8 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Max Order Limit for Cash on Delivery (₹)</label>
-                <input type="number" value={codMaxLimit} onChange={(e) => setCodMaxLimit(e.target.value)} style={{ width: '100%', maxWidth: 300, padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+              <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: 16, marginTop: 8 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Max Order Limit for Cash on Delivery (₹)</label>
+                <input type="number" value={codMaxLimit} onChange={(e) => setCodMaxLimit(e.target.value)} style={{ width: '100%', maxWidth: 300, padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
               </div>
             </div>
           )}
 
           {/* 7. App Settings */}
           {activeTab === 'app-settings' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Customer App & Operational Parameters</h3>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 28, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Customer App & Operational Parameters</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Minimum Required App Version</label>
-                  <input type="text" value={minAppVersion} onChange={(e) => setMinAppVersion(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Minimum Required App Version</label>
+                  <input type="text" value={minAppVersion} onChange={(e) => setMinAppVersion(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Max Operating Delivery Radius (KM)</label>
-                  <input type="number" value={maxDeliveryRadius} onChange={(e) => setMaxDeliveryRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Max Operating Delivery Radius (KM)</label>
+                  <input type="number" value={maxDeliveryRadius} onChange={(e) => setMaxDeliveryRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid #BAE6FD', paddingTop: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid #E5E7EB', paddingTop: 16 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={forceUpdateEnabled} onChange={(e) => setForceUpdateEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#0369A1' }}>Enforce Mandatory App Update Alert</span>
+                  <input type="checkbox" checked={forceUpdateEnabled} onChange={(e) => setForceUpdateEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#2196F3' }} />
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>Enforce Mandatory App Update Alert</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={maintenanceMode} onChange={(e) => setMaintenanceMode(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#0369A1' }}>Enable Emergency Maintenance Mode</span>
+                  <input type="checkbox" checked={maintenanceMode} onChange={(e) => setMaintenanceMode(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#2196F3' }} />
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>Enable Emergency Maintenance Mode</span>
                 </label>
               </div>
             </div>
@@ -731,28 +757,28 @@ export function SettingsPage() {
 
           {/* 8. Security */}
           {activeTab === 'security' && (
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.04)' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Security, Sessions & IP Rules</h3>
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 28, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Security, Sessions & IP Rules</h3>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Admin Inactivity Timeout (Minutes)</label>
-                <input type="number" value={sessionTimeout} onChange={(e) => setSessionTimeout(e.target.value)} style={{ width: '100%', maxWidth: 300, padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }} />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Admin Inactivity Timeout (Minutes)</label>
+                <input type="number" value={sessionTimeout} onChange={(e) => setSessionTimeout(e.target.value)} style={{ width: '100%', maxWidth: 300, padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }} />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 12, borderTop: '1px solid #BAE6FD' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 12, borderTop: '1px solid #E5E7EB' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={require2FA} onChange={(e) => setRequire2FA(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
+                  <input type="checkbox" checked={require2FA} onChange={(e) => setRequire2FA(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#2196F3' }} />
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Enforce Two-Factor Authentication (2FA)</div>
-                    <div style={{ fontSize: 12, color: '#0284C7' }}>Require 2FA verification for all SUPER_ADMIN and FINANCE logins.</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>Enforce Two-Factor Authentication (2FA)</div>
+                    <div style={{ fontSize: 12, color: '#6B7280' }}>Require 2FA verification for all SUPER_ADMIN and FINANCE logins.</div>
                   </div>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={ipWhitelisting} onChange={(e) => setIpWhitelisting(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0284C7' }} />
+                  <input type="checkbox" checked={ipWhitelisting} onChange={(e) => setIpWhitelisting(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#2196F3' }} />
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>Restrict Console Access to Whitelisted IP Ranges</div>
-                    <div style={{ fontSize: 12, color: '#0284C7' }}>Block access from unapproved external networks.</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>Restrict Console Access to Whitelisted IP Ranges</div>
+                    <div style={{ fontSize: 12, color: '#6B7280' }}>Block access from unapproved external networks.</div>
                   </div>
                 </label>
               </div>
@@ -761,13 +787,144 @@ export function SettingsPage() {
         </div>
       </div>
 
+      {/* ADD ADMIN USER MODAL */}
+      {isAddUserModalOpen ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(17, 24, 39, 0.5)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <form
+            onSubmit={handleAddAdminUser}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              padding: 28,
+              maxWidth: 480,
+              width: '100%',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              border: '1px solid #E5E7EB',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+                Add New Admin User
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAddUserModalOpen(false)}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280', fontWeight: 600 }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
+                Full Name *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. John Doe"
+                value={newAdminName}
+                onChange={(e) => setNewAdminName(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', outline: 'none' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
+                Email Address *
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="e.g. john@foodie.com"
+                value={newAdminEmail}
+                onChange={(e) => setNewAdminEmail(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
+                  System Role
+                </label>
+                <select
+                  value={newAdminRole}
+                  onChange={(e) => setNewAdminRole(e.target.value as any)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', outline: 'none' }}
+                >
+                  <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                  <option value="OPS">OPS</option>
+                  <option value="FINANCE">FINANCE</option>
+                  <option value="SUPPORT">SUPPORT</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
+                  Department
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Operations"
+                  value={newAdminDept}
+                  onChange={(e) => setNewAdminDept(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', outline: 'none' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => setIsAddUserModalOpen(false)}
+                style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #E5E7EB', backgroundColor: '#F9FAFB', color: '#374151', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                  color: '#FFFFFF',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
+                }}
+              >
+                Create Admin User
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
       {/* ADD CUSTOM POLICY PAGE MODAL */}
       {isAddPageModalOpen ? (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(8, 47, 73, 0.5)',
+            backgroundColor: 'rgba(17, 24, 39, 0.5)',
             backdropFilter: 'blur(4px)',
             zIndex: 100,
             display: 'flex',
@@ -781,31 +938,31 @@ export function SettingsPage() {
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: 20,
-              padding: 24,
+              padding: 28,
               maxWidth: 480,
               width: '100%',
-              boxShadow: '0 20px 40px rgba(2, 132, 199, 0.2)',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
-              border: '1px solid #BAE6FD',
+              border: '1px solid #E5E7EB',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
                 Create Custom Policy Page
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAddPageModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#0284C7', fontWeight: 700 }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280', fontWeight: 600 }}
               >
-                ✕
+                ×
               </button>
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                 Page Title *
               </label>
               <input
@@ -814,12 +971,12 @@ export function SettingsPage() {
                 placeholder="e.g. Merchant Code of Conduct"
                 value={newPageTitle}
                 onChange={(e) => setNewPageTitle(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', outline: 'none' }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                 Policy Content *
               </label>
               <textarea
@@ -828,7 +985,7 @@ export function SettingsPage() {
                 placeholder="State policy guidelines and operational terms..."
                 value={newPageContent}
                 onChange={(e) => setNewPageContent(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontFamily: 'inherit', color: '#0369A1', backgroundColor: '#FFFFFF', outline: 'none' }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontFamily: 'inherit', color: '#111827', outline: 'none' }}
               />
             </div>
 
@@ -836,7 +993,7 @@ export function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setIsAddPageModalOpen(false)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', fontSize: 13, cursor: 'pointer', fontWeight: 700 }}
+                style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #E5E7EB', backgroundColor: '#F9FAFB', color: '#374151', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}
               >
                 Cancel
               </button>
@@ -844,14 +1001,14 @@ export function SettingsPage() {
                 type="submit"
                 style={{
                   padding: '8px 18px',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   border: 'none',
-                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
                   fontSize: 13,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                  boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 Publish Policy Page

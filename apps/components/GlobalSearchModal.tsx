@@ -236,7 +236,6 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
       >
         {/* Search Header Input */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #BAE6FD', gap: 12, backgroundColor: '#F0F9FF' }}>
-          <span style={{ fontSize: 18, color: '#0284C7' }}>🔍</span>
           <input
             type="text"
             autoFocus
@@ -267,7 +266,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               }}
               title="Clear search"
             >
-              ✕
+              ×
             </button>
           ) : null}
           {isFetching ? (

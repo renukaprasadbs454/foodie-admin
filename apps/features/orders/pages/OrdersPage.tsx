@@ -87,17 +87,17 @@ const MOCK_ORDERS: OrderItemRecord[] = [
 function getOrderStatusStyle(status: OrderItemRecord['status']) {
   switch (status) {
     case 'PENDING':
-      return { bg: '#F0F9FF', color: '#0369A1', border: '#BAE6FD', shadow: 'none' };
+      return { bg: '#FEF3C7', color: '#B45309', border: '#FDE68A', shadow: 'none' };
     case 'PREPARING':
-      return { bg: '#E0F2FE', color: '#0284C7', border: '#7DD3FC', shadow: 'none' };
+      return { bg: '#E3F2FD', color: '#1E40AF', border: '#BFDBFE', shadow: 'none' };
     case 'READY_FOR_PICKUP':
-      return { bg: '#BAE6FD', color: '#0369A1', border: '#38BDF8', shadow: 'none' };
+      return { bg: '#E0E7FF', color: '#4338CA', border: '#C7D2FE', shadow: 'none' };
     case 'OUT_FOR_DELIVERY':
-      return { bg: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: '#0284C7', shadow: '0 2px 6px rgba(2, 132, 199, 0.25)' };
+      return { bg: '#E3F2FD', color: '#1D4ED8', border: '#BFDBFE', shadow: 'none' };
     case 'DELIVERED':
-      return { bg: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)', color: '#FFFFFF', border: '#0284C7', shadow: '0 2px 6px rgba(14, 165, 233, 0.25)' };
+      return { bg: '#DCFCE7', color: '#15803D', border: '#BBF7D0', shadow: 'none' };
     case 'CANCELED':
-      return { bg: '#F0F9FF', color: '#0284C7', border: '#BAE6FD', shadow: 'none' };
+      return { bg: '#FEE2E2', color: '#B91C1C', border: '#FECACA', shadow: 'none' };
   }
 }
 
@@ -146,16 +146,15 @@ export function OrdersPage() {
       {/* Page Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#0369A1">
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em' }}>
             Order Dispatch Control Center
-          </Text>
-          <Text as="p" variant="caption" color="#0284C7">
+          </h1>
+          <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
             Real-time multi-vendor order tracking, dispatch management & status overrides
-          </Text>
+          </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '6px 14px', borderRadius: 20, boxShadow: '0 2px 6px rgba(2, 132, 199, 0.08)' }}>
-          <span style={{ fontSize: 14 }}>⚡</span>
-          <span style={{ fontSize: 12, fontWeight: 800, color: '#0369A1' }}>Live WebSocket Dispatch Feed</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '6px 14px', borderRadius: 20 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3' }}>Live WebSocket Dispatch Feed</span>
         </div>
       </div>
 
@@ -167,14 +166,14 @@ export function OrdersPage() {
         style={{
           backgroundColor: '#FFFFFF',
           padding: '16px 20px',
-          borderRadius: 14,
-          border: '1px solid #BAE6FD',
+          borderRadius: 20,
+          border: '1px solid #E5E7EB',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 16,
-          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
         }}
       >
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -184,14 +183,13 @@ export function OrdersPage() {
               type="button"
               onClick={() => setStatusFilter(st)}
               style={{
-                padding: '8px 14px',
+                padding: '6px 14px',
                 borderRadius: 8,
-                border: statusFilter === st ? 'none' : '1px solid #BAE6FD',
-                background: statusFilter === st ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#F0F9FF',
-                color: statusFilter === st ? '#FFFFFF' : '#0369A1',
-                boxShadow: statusFilter === st ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+                border: statusFilter === st ? '1px solid #BFDBFE' : '1px solid #E5E7EB',
+                backgroundColor: statusFilter === st ? '#E3F2FD' : '#FFFFFF',
+                color: statusFilter === st ? '#2196F3' : '#6B7280',
                 fontSize: 12,
-                fontWeight: 800,
+                fontWeight: statusFilter === st ? 700 : 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -207,15 +205,14 @@ export function OrdersPage() {
           value={searchUuid}
           onChange={(e) => setSearchUuid(e.target.value)}
           style={{
-            padding: '10px 16px',
+            padding: '8px 14px',
             borderRadius: 8,
-            border: '1px solid #BAE6FD',
+            border: '1px solid #E5E7EB',
             width: 320,
             fontSize: 13,
             outline: 'none',
-            color: '#0369A1',
+            color: '#111827',
             backgroundColor: '#FFFFFF',
-            boxShadow: 'inset 0 1px 3px rgba(2, 132, 199, 0.06)',
           }}
         />
       </div>
@@ -224,15 +221,15 @@ export function OrdersPage() {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          borderRadius: 14,
-          border: '1px solid #BAE6FD',
+          borderRadius: 20,
+          border: '1px solid #E5E7EB',
           overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
         }}
       >
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontWeight: 800 }}>
+            <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <th style={{ padding: '14px 20px' }}>Order ID</th>
               <th style={{ padding: '14px 20px' }}>Customer</th>
               <th style={{ padding: '14px 20px' }}>Store & Module</th>
@@ -245,7 +242,7 @@ export function OrdersPage() {
           <tbody>
             {filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: 28, textAlign: 'center', color: '#0284C7', fontWeight: 600 }}>
+                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#6B7280' }}>
                   No orders found matching the selected filter.
                 </td>
               </tr>
@@ -253,33 +250,33 @@ export function OrdersPage() {
               filteredOrders.map((order) => {
                 const statusStyle = getOrderStatusStyle(order.status);
                 return (
-                  <tr key={order.id} style={{ borderBottom: '1px solid #E0F2FE', transition: 'background-color 0.15s ease' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 800, color: '#0369A1', fontFamily: 'monospace', fontSize: 12 }}>
+                  <tr key={order.id} style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s ease' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9FAFB')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                    <td style={{ padding: '14px 20px' }}>
+                      <div style={{ fontWeight: 600, color: '#2196F3', fontFamily: 'monospace', fontSize: 12 }}>
                         #{order.id.slice(0, 8)}...
                       </div>
-                      <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>{order.createdAt}</div>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{order.createdAt}</div>
                     </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 700, color: '#0369A1' }}>{order.customerName}</div>
-                      <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>{order.customerPhone}</div>
+                    <td style={{ padding: '14px 20px' }}>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>{order.customerName}</div>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{order.customerPhone}</div>
                     </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 700, color: '#0369A1' }}>{order.storeName}</div>
-                      <span style={{ fontSize: 11, color: '#0284C7', fontWeight: 600 }}>{order.module}</span>
+                    <td style={{ padding: '14px 20px' }}>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>{order.storeName}</div>
+                      <span style={{ fontSize: 11, color: '#6B7280' }}>{order.module}</span>
                     </td>
-                    <td style={{ padding: '16px 20px', color: '#0369A1', fontSize: 12 }}>{order.itemsSummary}</td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 800, color: '#0369A1' }}>₹{order.totalAmount}</div>
+                    <td style={{ padding: '14px 20px', color: '#4B5563', fontSize: 12 }}>{order.itemsSummary}</td>
+                    <td style={{ padding: '14px 20px' }}>
+                      <div style={{ fontWeight: 700, color: '#111827' }}>₹{order.totalAmount}</div>
                       <span
                         style={{
                           fontSize: 10,
-                          fontWeight: 700,
+                          fontWeight: 600,
                           padding: '2px 6px',
                           borderRadius: 4,
-                          backgroundColor: '#F0F9FF',
-                          border: '1px solid #BAE6FD',
-                          color: '#0369A1',
+                          backgroundColor: '#F3F4F6',
+                          border: '1px solid #E5E7EB',
+                          color: '#4B5563',
                           display: 'inline-block',
                           marginTop: 3,
                         }}
@@ -287,16 +284,15 @@ export function OrdersPage() {
                         {order.paymentMethod}
                       </span>
                     </td>
-                    <td style={{ padding: '16px 20px' }}>
+                    <td style={{ padding: '14px 20px' }}>
                       <span
                         style={{
                           background: statusStyle.bg,
                           color: statusStyle.color,
                           border: `1px solid ${statusStyle.border}`,
-                          boxShadow: statusStyle.shadow,
                           fontSize: 11,
-                          fontWeight: 800,
-                          padding: '4px 10px',
+                          fontWeight: 600,
+                          padding: '3px 10px',
                           borderRadius: 20,
                           display: 'inline-block',
                         }}
@@ -304,7 +300,7 @@ export function OrdersPage() {
                         {order.status === 'READY_FOR_PICKUP' ? 'READY FOR PICKUP' : order.status.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                    <td style={{ padding: '14px 20px', textAlign: 'right' }}>
                       {order.status === 'PREPARING' && (
                         <button
                           type="button"
@@ -315,12 +311,12 @@ export function OrdersPage() {
                           }}
                           style={{
                             padding: '6px 12px',
-                            backgroundColor: '#F0F9FF',
-                            color: '#0369A1',
-                            border: '1px solid #BAE6FD',
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 800,
+                            backgroundColor: '#F5F7FA',
+                            color: '#2196F3',
+                            border: '1px solid #E5E7EB',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 600,
                             cursor: 'pointer',
                             marginRight: 8,
                           }}
@@ -333,14 +329,14 @@ export function OrdersPage() {
                         onClick={() => router.push(`/orders/${order.id}`)}
                         style={{
                           padding: '6px 14px',
-                          background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                          background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                           color: '#FFFFFF',
                           border: 'none',
-                          borderRadius: 6,
-                          fontSize: 11,
-                          fontWeight: 800,
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 600,
                           cursor: 'pointer',
-                          boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                          boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
                         }}
                       >
                         Manage Order

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Text } from 'foodie-shared-web';
 import {
   useGetAllTicketsQuery,
   useReplyToTicketMutation,
@@ -36,13 +35,10 @@ export interface EnquiryRecord {
   orderId?: string;
 }
 
-const INITIAL_ENQUIRIES: EnquiryRecord[] = [];
-const INITIAL_HISTORY: EnquiryRecord[] = [];
-
 const QUICK_TEMPLATES = [
   { label: 'Refund Processing', text: 'We have processed the refund for your order. Funds will reflect in your account within 3-5 business days.' },
   { label: 'Promo Code Fixed', text: 'Our tech team validated your account status and resolved the promo code issue. You can apply it now.' },
-  { label: 'Merchant Payout Dispatched', text: 'Your weekly payout & GST statement has been compiled. Funds will transfer in tonight\'s settlement cycle.' },
+  { label: 'Merchant Payout Dispatched', text: 'Your weekly payout statement has been compiled. Funds will transfer in tonight\'s settlement cycle.' },
   { label: 'Surge Bonus Credited', text: 'Surge incentive bonus has been manually credited to your rider wallet.' },
   { label: 'KYC Document Verified', text: 'Your uploaded document has been verified by compliance desk and account status is active.' },
 ];
@@ -128,8 +124,6 @@ export function ContactUsPage() {
     }
   }, [apiTickets]);
 
-
-  // Update selected enquiry messages in real time when activeTicketMessages arrives
   useEffect(() => {
     if (selectedEnquiry && activeTicketMessages && activeTicketMessages.length > 0) {
       setSelectedEnquiry((prev) => {
@@ -150,12 +144,12 @@ export function ContactUsPage() {
   const handleMarkAsResolved = async (enquiryId: string) => {
     try {
       await resolveMutation({ id: enquiryId, status: 'RESOLVED' }).unwrap();
-      showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED and moved to History!`);
+      showToast(`Enquiry ${enquiryId} marked as RESOLVED and moved to History!`);
       if (selectedEnquiry?.id === enquiryId) {
         setSelectedEnquiry(null);
       }
     } catch {
-      showToast(`✓ Enquiry ${enquiryId} marked as RESOLVED`);
+      showToast(`Enquiry ${enquiryId} marked as RESOLVED`);
       if (selectedEnquiry?.id === enquiryId) {
         setSelectedEnquiry(null);
       }
@@ -165,7 +159,7 @@ export function ContactUsPage() {
   const handleReopenTicket = async (enquiryId: string) => {
     try {
       await resolveMutation({ id: enquiryId, status: 'OPEN' }).unwrap();
-      showToast(`↺ Ticket ${enquiryId} reopened and restored to active support queue.`);
+      showToast(`Ticket ${enquiryId} reopened and restored to active support queue.`);
     } catch {
       showToast(`Failed to reopen ticket ${enquiryId}`);
     }
@@ -186,7 +180,7 @@ export function ContactUsPage() {
         senderName: 'Admin Support',
       }).unwrap();
       setReplyText('');
-      showToast(`✉ Response sent & delivered to live thread!`);
+      showToast(`Response sent & delivered to live thread!`);
       setTimeout(() => {
         if (chatScrollRef.current) {
           chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
@@ -215,7 +209,7 @@ export function ContactUsPage() {
         priority: newPriority,
       }).unwrap();
 
-      showToast(`★ New support ticket ${res?.id || ''} created successfully!`);
+      showToast(`New support ticket ${res?.id || ''} created successfully!`);
       setIsCreateModalOpen(false);
       setNewSenderName('');
       setNewSenderEmail('');
@@ -280,14 +274,13 @@ export function ContactUsPage() {
             position: 'fixed',
             top: 24,
             right: 24,
-            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+            background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
             color: '#FFFFFF',
-            border: '1px solid #38BDF8',
             padding: '14px 24px',
-            borderRadius: 12,
-            fontWeight: 800,
+            borderRadius: 14,
+            fontWeight: 600,
             fontSize: 14,
-            boxShadow: '0 12px 30px rgba(2, 132, 199, 0.3)',
+            boxShadow: '0 4px 14px rgba(33, 150, 243, 0.3)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
@@ -301,10 +294,10 @@ export function ContactUsPage() {
       {/* Header & Quick Action */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0369A1', margin: '0 0 6px 0' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: '0 0 4px 0' }}>
             Contact Us & Support Operations Desk
           </h1>
-          <p style={{ fontSize: 13, color: '#0284C7', margin: 0 }}>
+          <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>
             Manage customer, restaurant & delivery partner enquiries with direct message replies and resolution tracking
           </p>
         </div>
@@ -314,17 +307,17 @@ export function ContactUsPage() {
           onClick={() => setIsCreateModalOpen(true)}
           style={{
             padding: '10px 20px',
-            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+            background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
             color: '#FFFFFF',
             border: 'none',
-            borderRadius: 10,
-            fontWeight: 800,
+            borderRadius: 12,
+            fontWeight: 600,
             fontSize: 13,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
+            boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
             transition: 'transform 0.15s ease',
           }}
         >
@@ -344,71 +337,71 @@ export function ContactUsPage() {
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            padding: '16px 20px',
-            borderRadius: 12,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            padding: '20px',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Active Enquiries</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>{enquiries.length}</div>
-          <div style={{ fontSize: 11, color: '#0284C7', fontWeight: 600, marginTop: 2 }}>{totalOpenCount} Open tickets</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Enquiries</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginTop: 4 }}>{enquiries.length}</div>
+          <div style={{ fontSize: 12, color: '#2196F3', fontWeight: 500, marginTop: 4 }}>{totalOpenCount} Open tickets</div>
         </div>
 
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            padding: '16px 20px',
-            borderRadius: 12,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            padding: '20px',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Customer Enquiries</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>{customerCount}</div>
-          <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>User tickets & refunds</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Customer Enquiries</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginTop: 4 }}>{customerCount}</div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>User tickets & refunds</div>
         </div>
 
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            padding: '16px 20px',
-            borderRadius: 12,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            padding: '20px',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Restaurant Enquiries</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>{restaurantCount}</div>
-          <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>Menu, POS & payouts</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Restaurant Enquiries</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginTop: 4 }}>{restaurantCount}</div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Menu, POS & payouts</div>
         </div>
 
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            padding: '16px 20px',
-            borderRadius: 12,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            padding: '20px',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Delivery Partners</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>{deliveryCount}</div>
-          <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>Incentives & KYC review</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Partners</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginTop: 4 }}>{deliveryCount}</div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Incentives & KYC review</div>
         </div>
 
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            padding: '16px 20px',
-            borderRadius: 12,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            padding: '20px',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Resolved Audit Log</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#0369A1', marginTop: 4 }}>{historyCount}</div>
-          <div style={{ fontSize: 11, color: '#0284C7', fontWeight: 600, marginTop: 2 }}>100% Audit Logged</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resolved Audit Log</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginTop: 4 }}>{historyCount}</div>
+          <div style={{ fontSize: 12, color: '#22C55E', fontWeight: 500, marginTop: 4 }}>100% Audit Logged</div>
         </div>
       </div>
 
@@ -418,13 +411,13 @@ export function ContactUsPage() {
           display: 'flex',
           gap: 12,
           backgroundColor: '#FFFFFF',
-          padding: '14px 18px',
-          borderRadius: 12,
-          border: '1px solid #BAE6FD',
+          padding: '16px 20px',
+          borderRadius: 20,
+          border: '1px solid #E5E7EB',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
         }}
       >
         <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 280, flexWrap: 'wrap' }}>
@@ -437,13 +430,14 @@ export function ContactUsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: '100%',
-                padding: '9px 14px',
-                borderRadius: 8,
-                border: '1px solid #BAE6FD',
+                padding: '10px 14px',
+                borderRadius: 10,
+                border: '1px solid #E5E7EB',
                 fontSize: 13,
                 outline: 'none',
                 backgroundColor: '#FFFFFF',
-                color: '#0369A1',
+                color: '#111827',
+                boxSizing: 'border-box',
               }}
             />
           </div>
@@ -453,21 +447,21 @@ export function ContactUsPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
             style={{
-              padding: '9px 14px',
-              borderRadius: 8,
-              border: '1px solid #BAE6FD',
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid #E5E7EB',
               fontSize: 13,
               fontWeight: 600,
               backgroundColor: '#FFFFFF',
-              color: '#0369A1',
+              color: '#111827',
               outline: 'none',
               cursor: 'pointer',
             }}
           >
-            <option value="ALL">Filter: All Statuses</option>
-            <option value="OPEN">● Open</option>
-            <option value="IN_PROGRESS">● In Progress</option>
-            <option value="RESOLVED">● Resolved</option>
+            <option value="ALL">Status: All Statuses</option>
+            <option value="OPEN">Open</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="RESOLVED">Resolved</option>
           </select>
 
           {/* Priority Filter */}
@@ -475,21 +469,21 @@ export function ContactUsPage() {
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value as any)}
             style={{
-              padding: '9px 14px',
-              borderRadius: 8,
-              border: '1px solid #BAE6FD',
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid #E5E7EB',
               fontSize: 13,
               fontWeight: 600,
               backgroundColor: '#FFFFFF',
-              color: '#0369A1',
+              color: '#111827',
               outline: 'none',
               cursor: 'pointer',
             }}
           >
             <option value="ALL">Priority: All</option>
-            <option value="HIGH">🔥 High Urgency</option>
-            <option value="MEDIUM">⚡ Medium Urgency</option>
-            <option value="LOW">💧 Low Urgency</option>
+            <option value="HIGH">High Urgency</option>
+            <option value="MEDIUM">Medium Urgency</option>
+            <option value="LOW">Low Urgency</option>
           </select>
 
           {/* Date Filter */}
@@ -497,13 +491,13 @@ export function ContactUsPage() {
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value as any)}
             style={{
-              padding: '9px 14px',
-              borderRadius: 8,
-              border: '1px solid #BAE6FD',
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid #E5E7EB',
               fontSize: 13,
               fontWeight: 600,
               backgroundColor: '#FFFFFF',
-              color: '#0369A1',
+              color: '#111827',
               outline: 'none',
               cursor: 'pointer',
             }}
@@ -524,13 +518,13 @@ export function ContactUsPage() {
               setDateFilter('ALL');
             }}
             style={{
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: '1px solid #BAE6FD',
-              backgroundColor: '#F0F9FF',
-              color: '#0369A1',
+              padding: '9px 16px',
+              borderRadius: 10,
+              border: '1px solid #E5E7EB',
+              backgroundColor: '#FFFFFF',
+              color: '#374151',
               fontSize: 12,
-              fontWeight: 800,
+              fontWeight: 600,
               cursor: 'pointer',
             }}
           >
@@ -546,10 +540,10 @@ export function ContactUsPage() {
           gap: 8,
           backgroundColor: '#FFFFFF',
           padding: '8px',
-          borderRadius: 12,
-          border: '1px solid #BAE6FD',
+          borderRadius: 16,
+          border: '1px solid #E5E7EB',
           overflowX: 'auto',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
         }}
       >
         {[
@@ -565,19 +559,19 @@ export function ContactUsPage() {
               type="button"
               onClick={() => setActiveTab(tab.id as ContactTab)}
               style={{
-                padding: '12px 20px',
-                borderRadius: 8,
+                padding: '10px 18px',
+                borderRadius: 10,
                 border: 'none',
-                background: isActive ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-                color: isActive ? '#FFFFFF' : '#0369A1',
+                background: isActive ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
+                color: isActive ? '#FFFFFF' : '#6B7280',
                 fontSize: 13,
-                fontWeight: 800,
+                fontWeight: 600,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                boxShadow: isActive ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
+                boxShadow: isActive ? '0 4px 14px rgba(33, 150, 243, 0.25)' : 'none',
                 transition: 'all 0.15s ease',
               }}
             >
@@ -585,12 +579,11 @@ export function ContactUsPage() {
               <span
                 style={{
                   fontSize: 11,
-                  fontWeight: 800,
-                  backgroundColor: isActive ? '#FFFFFF' : '#E0F2FE',
-                  color: isActive ? '#0369A1' : '#0284C7',
-                  border: isActive ? 'none' : '1px solid #BAE6FD',
+                  fontWeight: 600,
+                  backgroundColor: isActive ? 'rgba(255, 255, 255, 0.25)' : '#F3F4F6',
+                  color: isActive ? '#FFFFFF' : '#374151',
                   padding: '2px 8px',
-                  borderRadius: 10,
+                  borderRadius: 9999,
                 }}
               >
                 {tab.count}
@@ -608,15 +601,14 @@ export function ContactUsPage() {
               style={{
                 backgroundColor: '#FFFFFF',
                 padding: 48,
-                borderRadius: 14,
+                borderRadius: 20,
                 textAlign: 'center',
-                border: '1px solid #BAE6FD',
-                color: '#0284C7',
+                border: '1px solid #E5E7EB',
+                color: '#6B7280',
               }}
             >
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🎉</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>No active enquiries matching your filters</div>
-              <div style={{ fontSize: 13, color: '#0284C7', marginTop: 4 }}>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>No active enquiries matching your filters</div>
+              <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
                 All support tickets in this view have been resolved or reset search filters.
               </div>
             </div>
@@ -626,61 +618,59 @@ export function ContactUsPage() {
                 key={item.id}
                 style={{
                   backgroundColor: '#FFFFFF',
-                  borderRadius: 14,
-                  border: '1px solid #BAE6FD',
-                  borderLeft: '5px solid #0284C7',
+                  borderRadius: 20,
+                  border: '1px solid #E5E7EB',
+                  borderLeft: '4px solid #2196F3',
                   padding: '24px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 14,
-                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)',
+                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
                 }}
               >
                 {/* Header Row */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#0284C7', color: '#FFFFFF', padding: '2px 6px', borderRadius: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '3px 8px', borderRadius: 6 }}>
                         {item.id}
                       </span>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: '#0369A1' }}>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>
                         {item.senderName} - {item.orderId ? `Order #${item.orderId}` : 'No Order ID'}
                       </span>
 
                       <span
                         style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          backgroundColor: '#F0F9FF',
-                          color: '#0369A1',
-                          border: '1px solid #BAE6FD',
-                          padding: '3px 8px',
-                          borderRadius: 4,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          backgroundColor: item.status === 'RESOLVED' ? '#DCFCE7' : item.status === 'IN_PROGRESS' ? '#FEF3C7' : '#E3F2FD',
+                          color: item.status === 'RESOLVED' ? '#15803D' : item.status === 'IN_PROGRESS' ? '#B45309' : '#2196F3',
+                          padding: '3px 10px',
+                          borderRadius: 9999,
                         }}
                       >
-                        ● {item.status}
+                        {item.status}
                       </span>
 
                       {item.priority && (
                         <span
                           style={{
-                            fontSize: 10,
-                            fontWeight: 800,
-                            backgroundColor: '#F0F9FF',
-                            color: '#0369A1',
-                            border: '1px solid #BAE6FD',
-                            padding: '3px 8px',
-                            borderRadius: 4,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            backgroundColor: item.priority === 'HIGH' ? '#FEE2E2' : '#F3F4F6',
+                            color: item.priority === 'HIGH' ? '#EF4444' : '#6B7280',
+                            padding: '3px 10px',
+                            borderRadius: 9999,
                           }}
                         >
-                          {item.priority === 'HIGH' ? '🔥 HIGH URGENCY' : item.priority === 'MEDIUM' ? '⚡ MEDIUM' : 'LOW'}
+                          {item.priority === 'HIGH' ? 'High Urgency' : item.priority === 'MEDIUM' ? 'Medium' : 'Low'}
                         </span>
                       )}
                     </div>
 
-                    <div style={{ fontSize: 12, color: '#0284C7', marginTop: 6 }}>
-                      From: <strong style={{ color: '#0369A1' }}>{item.senderName}</strong> ({item.senderEmail} • {item.senderPhone}) | Recd: {item.timestamp}
-                      {item.orderId ? <span style={{ marginLeft: 8, color: '#0369A1', fontWeight: 700 }}>• Order Ref: #{item.orderId}</span> : null}
+                    <div style={{ fontSize: 12, color: '#6B7280', marginTop: 6 }}>
+                      From: <strong style={{ color: '#111827' }}>{item.senderName}</strong> ({item.senderEmail} • {item.senderPhone}) | Recd: {item.timestamp}
+                      {item.orderId ? <span style={{ marginLeft: 8, color: '#2196F3', fontWeight: 600 }}>• Order Ref: #{item.orderId}</span> : null}
                     </div>
                   </div>
 
@@ -695,19 +685,17 @@ export function ContactUsPage() {
                       style={{
                         padding: '8px 16px',
                         backgroundColor: '#FFFFFF',
-                        color: '#0369A1',
-                        border: '1px solid #BAE6FD',
-                        borderRadius: 8,
+                        color: '#2196F3',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: 10,
                         fontSize: 12,
-                        fontWeight: 800,
+                        fontWeight: 600,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
-                        boxShadow: '0 1px 3px rgba(14, 165, 233, 0.1)',
                       }}
                     >
-                      <span>✉</span>
                       <span>Message Reply</span>
                     </button>
 
@@ -716,45 +704,43 @@ export function ContactUsPage() {
                       onClick={() => handleMarkAsResolved(item.id)}
                       style={{
                         padding: '8px 16px',
-                        background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                        background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                         color: '#FFFFFF',
                         border: 'none',
-                        borderRadius: 8,
+                        borderRadius: 10,
                         fontSize: 12,
-                        fontWeight: 800,
+                        fontWeight: 600,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
-                        boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                        boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
                       }}
                     >
-                      <span>✓</span>
                       <span>Mark as Resolved</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Subject & Complaint Message Display */}
-                <div style={{ backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '12px 16px', borderRadius: 10 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>📋</span>
+                <div style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', padding: '14px 18px', borderRadius: 14 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span>Subject: {item.subject}</span>
                   </div>
-                  <div style={{ fontSize: 13, color: '#1E293B', marginTop: 6, lineHeight: 1.45, fontStyle: 'italic', backgroundColor: '#FFFFFF', padding: '8px 12px', borderRadius: 6, border: '1px solid #E0F2FE' }}>
+                  <div style={{ fontSize: 13, color: '#374151', marginTop: 6, lineHeight: 1.5, backgroundColor: '#FFFFFF', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB' }}>
                     "{item.message}"
                   </div>
                 </div>
 
                 {/* Conversation Thread Preview Bar */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#0284C7', borderTop: '1px solid #E0F2FE', paddingTop: 10, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: '#6B7280', borderTop: '1px solid #F3F4F6', paddingTop: 12, flexWrap: 'wrap', gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 800, backgroundColor: '#E0F2FE', color: '#0369A1', padding: '3px 10px', borderRadius: 12, fontSize: 11 }}>
-                      💬 {item.messages?.length || 1} {((item.messages?.length || 1) === 1) ? 'Message' : 'Messages'} in live thread
+                    <span style={{ fontWeight: 600, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '3px 10px', borderRadius: 9999, fontSize: 11 }}>
+                      {item.messages?.length || 1} {((item.messages?.length || 1) === 1) ? 'Message' : 'Messages'} in live thread
                     </span>
                     {item.replyMessage && (
-                      <span style={{ color: '#0369A1', fontWeight: 600, fontSize: 11.5 }}>
-                        ✓ Latest reply: "{item.replyMessage.length > 60 ? item.replyMessage.slice(0, 60) + '...' : item.replyMessage}"
+                      <span style={{ color: '#374151', fontWeight: 500, fontSize: 12 }}>
+                        Latest reply: "{item.replyMessage.length > 60 ? item.replyMessage.slice(0, 60) + '...' : item.replyMessage}"
                       </span>
                     )}
                   </div>
@@ -767,17 +753,16 @@ export function ContactUsPage() {
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: '#0284C7',
-                      fontWeight: 800,
+                      color: '#2196F3',
+                      fontWeight: 600,
                       fontSize: 12,
                       cursor: 'pointer',
-                      textDecoration: 'underline',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 4,
                     }}
                   >
-                    View Contact History & Reply →
+                    View Contact History & Reply &rarr;
                   </button>
                 </div>
               </div>
@@ -786,17 +771,15 @@ export function ContactUsPage() {
         </div>
       )}
 
-
-
       {/* TAB 5: CONTACT HISTORY */}
       {activeTab === 'HISTORY' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
+          <div style={{ padding: '18px 24px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#F9FAFB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
                 {statusFilter === 'RESOLVED' ? 'Resolved Contact History Audit Log' : 'Partner Contact History & Complaints Audit Log'}
               </h2>
-              <p style={{ fontSize: 12, color: '#0284C7', margin: '2px 0 0 0' }}>
+              <p style={{ fontSize: 12, color: '#6B7280', margin: '2px 0 0 0' }}>
                 Complete audit trail of enquiries & complaints received from Delivery, Restaurant, and Customer partners
               </p>
             </div>
@@ -805,9 +788,9 @@ export function ContactUsPage() {
               {/* Partner Category Filter Pills */}
               {[
                 { id: 'ALL', label: 'All Partners' },
-                { id: 'CUSTOMER', label: '👤 Customers' },
-                { id: 'RESTAURANT', label: '🍽 Restaurants' },
-                { id: 'DELIVERY', label: '🚴 Delivery Fleet' },
+                { id: 'CUSTOMER', label: 'Customers' },
+                { id: 'RESTAURANT', label: 'Restaurants' },
+                { id: 'DELIVERY', label: 'Delivery Fleet' },
               ].map((pill) => {
                 const isSelected = historyCategoryFilter === pill.id;
                 const count = pill.id === 'ALL'
@@ -820,12 +803,12 @@ export function ContactUsPage() {
                     onClick={() => setHistoryCategoryFilter(pill.id as any)}
                     style={{
                       padding: '5px 12px',
-                      borderRadius: 16,
-                      border: isSelected ? '1px solid #0284C7' : '1px solid #BAE6FD',
-                      backgroundColor: isSelected ? '#0284C7' : '#FFFFFF',
-                      color: isSelected ? '#FFFFFF' : '#0369A1',
-                      fontSize: 11.5,
-                      fontWeight: 700,
+                      borderRadius: 9999,
+                      border: isSelected ? '1px solid #2196F3' : '1px solid #E5E7EB',
+                      backgroundColor: isSelected ? '#E3F2FD' : '#FFFFFF',
+                      color: isSelected ? '#2196F3' : '#6B7280',
+                      fontSize: 12,
+                      fontWeight: 600,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -837,11 +820,11 @@ export function ContactUsPage() {
                     <span
                       style={{
                         fontSize: 10,
-                        backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#E0F2FE',
-                        color: isSelected ? '#FFFFFF' : '#0369A1',
+                        backgroundColor: isSelected ? '#2196F3' : '#F3F4F6',
+                        color: isSelected ? '#FFFFFF' : '#6B7280',
                         padding: '1px 6px',
-                        borderRadius: 10,
-                        fontWeight: 800,
+                        borderRadius: 9999,
+                        fontWeight: 600,
                       }}
                     >
                       {count}
@@ -850,7 +833,7 @@ export function ContactUsPage() {
                 );
               })}
 
-              <span style={{ fontSize: 12, fontWeight: 800, backgroundColor: '#FFFFFF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '4px 12px', borderRadius: 20 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, backgroundColor: '#FFFFFF', color: '#111827', border: '1px solid #E5E7EB', padding: '4px 12px', borderRadius: 9999 }}>
                 {getFilteredHistory().length} Total Records
               </span>
             </div>
@@ -859,19 +842,19 @@ export function ContactUsPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #BAE6FD', color: '#0369A1', backgroundColor: '#F0F9FF' }}>
-                  <th style={{ padding: '14px 20px' }}>Enquiry & Sender</th>
-                  <th style={{ padding: '14px 20px' }}>Category</th>
-                  <th style={{ padding: '14px 20px' }}>Original Request</th>
-                  <th style={{ padding: '14px 20px' }}>Admin Response Sent</th>
-                  <th style={{ padding: '14px 20px' }}>Resolution Audit</th>
-                  <th style={{ padding: '14px 20px' }}>Status & Action</th>
+                <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB' }}>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enquiry & Sender</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Original Request</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Admin Response Sent</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resolution Audit</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status & Action</th>
                 </tr>
               </thead>
               <tbody>
                 {getFilteredHistory().length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: 40, textAlign: 'center', color: '#0284C7' }}>
+                    <td colSpan={6} style={{ padding: 40, textAlign: 'center', color: '#6B7280' }}>
                       No contact history records matching active search filters.
                     </td>
                   </tr>
@@ -879,61 +862,57 @@ export function ContactUsPage() {
                   getFilteredHistory().map((row) => {
                     const isRestaurant = row.category === 'RESTAURANT';
                     const isDelivery = row.category === 'DELIVERY';
-                    const catBg = isRestaurant ? '#FEF3C7' : isDelivery ? '#ECFDF5' : '#F0F9FF';
-                    const catColor = isRestaurant ? '#B45309' : isDelivery ? '#047857' : '#0369A1';
-                    const catBorder = isRestaurant ? '#FCD34D' : isDelivery ? '#A7F3D0' : '#BAE6FD';
+                    const catBg = isRestaurant ? '#FEF3C7' : isDelivery ? '#DCFCE7' : '#E3F2FD';
+                    const catColor = isRestaurant ? '#B45309' : isDelivery ? '#15803D' : '#2196F3';
 
                     return (
-                      <tr key={row.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                      <tr key={row.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                         <td style={{ padding: '16px 20px' }}>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: '#0369A1' }}>{row.id}</div>
-                          <div style={{ fontWeight: 800, color: '#0369A1', marginTop: 2 }}>{row.senderName}</div>
-                          <div style={{ fontSize: 11, color: '#0284C7' }}>{row.senderEmail}</div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#2196F3' }}>{row.id}</div>
+                          <div style={{ fontWeight: 600, color: '#111827', marginTop: 2 }}>{row.senderName}</div>
+                          <div style={{ fontSize: 12, color: '#6B7280' }}>{row.senderEmail}</div>
                         </td>
                         <td style={{ padding: '16px 20px' }}>
                           <span
                             style={{
                               fontSize: 11,
-                              fontWeight: 800,
+                              fontWeight: 600,
                               backgroundColor: catBg,
                               color: catColor,
-                              border: `1px solid ${catBorder}`,
-                              padding: '4px 8px',
-                              borderRadius: 6,
+                              padding: '4px 10px',
+                              borderRadius: 9999,
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 4,
                             }}
                           >
-                            <span>{isRestaurant ? '🍽' : isDelivery ? '🚴' : '👤'}</span>
                             <span>{row.category}</span>
                           </span>
                         </td>
                         <td style={{ padding: '16px 20px', maxWidth: 240 }}>
-                          <div style={{ fontWeight: 700, color: '#0369A1', fontSize: 12 }}>{row.subject}</div>
-                          <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontWeight: 600, color: '#111827', fontSize: 12 }}>{row.subject}</div>
+                          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             "{row.message}"
                           </div>
                         </td>
                         <td style={{ padding: '16px 20px', maxWidth: 240 }}>
-                          <div style={{ fontSize: 12, color: '#0369A1', fontWeight: 600 }}>{row.replyMessage || 'Resolved via support desk'}</div>
+                          <div style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{row.replyMessage || 'Resolved via support desk'}</div>
                         </td>
-                        <td style={{ padding: '16px 20px', fontSize: 11, color: '#0284C7' }}>{row.resolvedAt || (row.status === 'RESOLVED' ? 'Resolved by Admin' : 'In Progress')}</td>
+                        <td style={{ padding: '16px 20px', fontSize: 12, color: '#6B7280' }}>{row.resolvedAt || (row.status === 'RESOLVED' ? 'Resolved by Admin' : 'In Progress')}</td>
                         <td style={{ padding: '16px 20px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 140 }}>
                             <span
                               style={{
-                                backgroundColor: row.status === 'RESOLVED' ? '#ECFDF5' : row.status === 'IN_PROGRESS' ? '#FEF3C7' : '#F0F9FF',
-                                color: row.status === 'RESOLVED' ? '#047857' : row.status === 'IN_PROGRESS' ? '#B45309' : '#0369A1',
-                                border: `1px solid ${row.status === 'RESOLVED' ? '#A7F3D0' : row.status === 'IN_PROGRESS' ? '#FCD34D' : '#BAE6FD'}`,
-                                fontSize: 10.5,
-                                fontWeight: 800,
+                                backgroundColor: row.status === 'RESOLVED' ? '#DCFCE7' : row.status === 'IN_PROGRESS' ? '#FEF3C7' : '#E3F2FD',
+                                color: row.status === 'RESOLVED' ? '#15803D' : row.status === 'IN_PROGRESS' ? '#B45309' : '#2196F3',
+                                fontSize: 11,
+                                fontWeight: 600,
                                 padding: '3px 8px',
-                                borderRadius: 20,
+                                borderRadius: 9999,
                                 textAlign: 'center',
                               }}
                             >
-                              ● {row.status}
+                              {row.status}
                             </span>
 
                             {/* View Full Conversation Button */}
@@ -944,21 +923,19 @@ export function ContactUsPage() {
                                 setReplyText(row.replyMessage || '');
                               }}
                               style={{
-                                padding: '4px 8px',
+                                padding: '5px 10px',
                                 backgroundColor: '#FFFFFF',
-                                color: '#0369A1',
-                                border: '1px solid #BAE6FD',
-                                borderRadius: 6,
+                                color: '#2196F3',
+                                border: '1px solid #E5E7EB',
+                                borderRadius: 8,
                                 fontSize: 11,
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: 4,
                               }}
                             >
-                              <span>💬</span>
                               <span>View Conversation</span>
                             </button>
 
@@ -969,11 +946,10 @@ export function ContactUsPage() {
                                 style={{
                                   border: 'none',
                                   background: 'none',
-                                  color: '#0369A1',
+                                  color: '#2196F3',
                                   fontSize: 11,
-                                  fontWeight: 700,
+                                  fontWeight: 600,
                                   cursor: 'pointer',
-                                  textDecoration: 'underline',
                                   textAlign: 'center',
                                 }}
                               >
@@ -986,11 +962,10 @@ export function ContactUsPage() {
                                 style={{
                                   border: 'none',
                                   background: 'none',
-                                  color: '#0284C7',
+                                  color: '#15803D',
                                   fontSize: 11,
-                                  fontWeight: 700,
+                                  fontWeight: 600,
                                   cursor: 'pointer',
-                                  textDecoration: 'underline',
                                   textAlign: 'center',
                                 }}
                               >
@@ -1009,14 +984,14 @@ export function ContactUsPage() {
         </div>
       )}
 
-      {/* MESSAGE REPLY MODAL - WHATSAPP-STYLE CONVERSATION UI */}
+      {/* MESSAGE REPLY MODAL */}
       {selectedEnquiry && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(5px)',
+            backgroundColor: 'rgba(17, 24, 39, 0.4)',
+            backdropFilter: 'blur(4px)',
             zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
@@ -1029,22 +1004,23 @@ export function ContactUsPage() {
             onSubmit={handleSendReply}
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: 16,
+              borderRadius: 20,
               maxWidth: 620,
               width: '100%',
-              maxHeight: '94vh',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+              maxHeight: '92vh',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
+              border: '1px solid #E5E7EB',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 1. WHATSAPP-STYLE HEADER (PROFESSIONAL BLUE THEME) */}
+            {/* Header */}
             <div
               style={{
-                background: 'linear-gradient(135deg, #12658F 0%, #168BC4 100%)',
-                padding: '12px 18px',
+                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                padding: '16px 20px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -1052,53 +1028,32 @@ export function ContactUsPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {/* Circular Customer Avatar with Online Indicator */}
-                <div style={{ position: 'relative' }}>
-                  <div
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(255, 255, 255, 0.22)',
-                      border: '1.5px solid rgba(255, 255, 255, 0.45)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#FFFFFF',
-                      fontWeight: 800,
-                      fontSize: 14,
-                      boxShadow: '0 2px 5px rgba(0, 0, 0, 0.15)',
-                    }}
-                  >
-                    {selectedEnquiry.senderName
-                      ? selectedEnquiry.senderName.trim().split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase()
-                      : 'CU'}
-                  </div>
-                  <span
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      right: 0,
-                      width: 11,
-                      height: 11,
-                      backgroundColor: '#25D366',
-                      border: '2px solid #12658F',
-                      borderRadius: '50%',
-                    }}
-                    title="Online"
-                  />
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFFFFF',
+                    fontWeight: 700,
+                    fontSize: 14,
+                  }}
+                >
+                  {selectedEnquiry.senderName
+                    ? selectedEnquiry.senderName.trim().split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+                    : 'CU'}
                 </div>
 
-                {/* Title & Customer Status */}
                 <div>
                   <h3
                     style={{
                       fontSize: 16,
-                      fontWeight: 800,
+                      fontWeight: 700,
                       color: '#FFFFFF',
                       margin: 0,
-                      lineHeight: 1.25,
-                      letterSpacing: '0.01em',
                     }}
                   >
                     Reply to {selectedEnquiry.senderName} ({selectedEnquiry.orderId ? `#${selectedEnquiry.orderId}` : selectedEnquiry.id})
@@ -1108,63 +1063,44 @@ export function ContactUsPage() {
                       fontSize: 12,
                       color: 'rgba(255, 255, 255, 0.9)',
                       marginTop: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
                     }}
                   >
-                    <span style={{ fontWeight: 600 }}>{selectedEnquiry.senderName}</span>
-                    <span>•</span>
-                    <span style={{ color: '#BAE6FD', fontWeight: 600 }}>online • active enquiry</span>
+                    Active Support Enquiry
                   </div>
                 </div>
               </div>
 
-              {/* Close (X) Button */}
+              {/* Close Button */}
               <button
                 type="button"
                 onClick={() => setSelectedEnquiry(null)}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.18)',
+                  background: 'none',
                   border: 'none',
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
                   color: '#FFFFFF',
-                  fontSize: 16,
+                  fontSize: 22,
                   cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.15s ease',
+                  lineHeight: 1,
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.32)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.18)';
-                }}
-                title="Close"
               >
-                ✕
+                &times;
               </button>
             </div>
 
-            {/* 2. CUSTOMER / ORDER INFORMATION */}
+            {/* Customer / Order Information */}
             <div
               style={{
-                backgroundColor: '#F5FBFE',
-                borderBottom: '1px solid #E2E8F0',
-                padding: '9px 18px',
+                backgroundColor: '#F9FAFB',
+                borderBottom: '1px solid #E5E7EB',
+                padding: '10px 20px',
                 fontSize: 12,
-                lineHeight: 1.45,
-                color: '#334155',
+                color: '#6B7280',
                 flexShrink: 0,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-                <strong style={{ color: '#12658F' }}>Subject:</strong>
-                <span style={{ color: '#0F172A', fontWeight: 600 }}>{selectedEnquiry.subject}</span>
+                <strong style={{ color: '#111827' }}>Subject:</strong>
+                <span style={{ color: '#374151' }}>{selectedEnquiry.subject}</span>
               </div>
               <div
                 style={{
@@ -1173,25 +1109,21 @@ export function ContactUsPage() {
                   alignItems: 'center',
                   columnGap: 16,
                   rowGap: 4,
-                  marginTop: 3,
+                  marginTop: 4,
                 }}
               >
                 <div>
-                  <strong style={{ color: '#12658F' }}>Recipient Email:</strong>{' '}
-                  <span style={{ color: '#0F172A', fontWeight: 600 }}>
+                  <strong style={{ color: '#111827' }}>Email:</strong>{' '}
+                  <span style={{ color: '#374151' }}>
                     {selectedEnquiry.senderEmail} {selectedEnquiry.senderPhone ? `(${selectedEnquiry.senderPhone})` : ''}
                   </span>
                 </div>
                 <div>
-                  <strong style={{ color: '#12658F' }}>Order ID:</strong>{' '}
+                  <strong style={{ color: '#111827' }}>Order ID:</strong>{' '}
                   <span
                     style={{
-                      color: '#12658F',
-                      fontWeight: 700,
-                      backgroundColor: '#EAF7FC',
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                      border: '1px solid #BAE6FD',
+                      color: '#2196F3',
+                      fontWeight: 600,
                     }}
                   >
                     {selectedEnquiry.orderId
@@ -1202,7 +1134,7 @@ export function ContactUsPage() {
               </div>
             </div>
 
-            {/* 3. CONVERSATION HISTORY (WHATSAPP-STYLE CHAT BUBBLES IN CLEAN BLUE/NEUTRAL THEME) */}
+            {/* Conversation History */}
             <div
               ref={chatScrollRef}
               style={{
@@ -1210,28 +1142,24 @@ export function ContactUsPage() {
                 minHeight: 200,
                 maxHeight: 280,
                 overflowY: 'auto',
-                backgroundColor: '#F5FBFE',
-                backgroundImage: 'radial-gradient(#CBD5E1 0.75px, transparent 0.75px)',
-                backgroundSize: '16px 16px',
-                padding: '14px 18px',
+                backgroundColor: '#F5F7FA',
+                padding: '16px 20px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 10,
               }}
             >
-              {/* WhatsApp-style Centered Date/History Badge */}
               <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 6px 0' }}>
                 <span
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    color: '#12658F',
+                    backgroundColor: '#FFFFFF',
+                    color: '#6B7280',
                     fontSize: 11,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     textTransform: 'uppercase',
                     padding: '3px 12px',
-                    borderRadius: 8,
-                    boxShadow: '0 1px 2px rgba(18, 101, 143, 0.08)',
-                    border: '1px solid #E0F2FE',
+                    borderRadius: 9999,
+                    border: '1px solid #E5E7EB',
                     letterSpacing: '0.04em',
                   }}
                 >
@@ -1264,38 +1192,32 @@ export function ContactUsPage() {
                     style={{
                       alignSelf: isAdmin ? 'flex-end' : 'flex-start',
                       maxWidth: '82%',
-                      backgroundColor: isAdmin ? '#EAF7FC' : '#FFFFFF',
-                      color: '#0F172A',
-                      padding: '8px 12px',
-                      borderRadius: 10,
-                      borderTopRightRadius: isAdmin ? 2 : 10,
-                      borderTopLeftRadius: isAdmin ? 10 : 2,
-                      border: isAdmin ? '1px solid #BAE6FD' : '1px solid #E2E8F0',
-                      boxShadow: '0 1px 2px rgba(15, 23, 42, 0.06)',
-                      position: 'relative',
+                      backgroundColor: isAdmin ? '#E3F2FD' : '#FFFFFF',
+                      color: '#111827',
+                      padding: '10px 14px',
+                      borderRadius: 14,
+                      borderTopRightRadius: isAdmin ? 4 : 14,
+                      borderTopLeftRadius: isAdmin ? 14 : 4,
+                      border: isAdmin ? '1px solid #BAE6FD' : '1px solid #E5E7EB',
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
                     }}
                   >
-                    {/* Sender Name */}
                     <div
                       style={{
                         fontSize: 11,
-                        fontWeight: 700,
-                        color: isAdmin ? '#0369A1' : '#12658F',
+                        fontWeight: 600,
+                        color: isAdmin ? '#2196F3' : '#6B7280',
                         marginBottom: 3,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
                       }}
                     >
-                      <span>{isAdmin ? 'You (Admin Support)' : msg.senderName || selectedEnquiry.senderName}</span>
+                      {isAdmin ? 'You (Admin Support)' : msg.senderName || selectedEnquiry.senderName}
                     </div>
 
-                    {/* Chat Message Content */}
                     <div
                       style={{
-                        fontSize: 13.5,
+                        fontSize: 13,
                         lineHeight: 1.45,
-                        color: '#0F172A',
+                        color: '#111827',
                         wordBreak: 'break-word',
                         whiteSpace: 'pre-wrap',
                       }}
@@ -1303,45 +1225,27 @@ export function ContactUsPage() {
                       {msg.message}
                     </div>
 
-                    {/* Timestamp & Read Receipts */}
                     <div
                       style={{
-                        fontSize: 10.5,
-                        color: '#64748B',
+                        fontSize: 10,
+                        color: '#9CA3AF',
                         textAlign: 'right',
                         marginTop: 4,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
-                        gap: 4,
                       }}
                     >
-                      <span>{msg.timestamp || '15 mins ago'}</span>
-                      {isAdmin && (
-                        <span
-                          style={{
-                            color: '#0284C7',
-                            fontSize: 12,
-                            fontWeight: 800,
-                            letterSpacing: '-1px',
-                          }}
-                          title="Delivered & Read"
-                        >
-                          ✓✓
-                        </span>
-                      )}
+                      {msg.timestamp || 'Just now'}
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* 4. QUICK RESPONSE TEMPLATES (COMPACT ROUNDED BLUE CHIPS) */}
+            {/* Quick Response Templates */}
             <div
               style={{
-                backgroundColor: '#F8FAFC',
-                borderTop: '1px solid #E2E8F0',
-                padding: '9px 18px 6px 18px',
+                backgroundColor: '#FFFFFF',
+                borderTop: '1px solid #E5E7EB',
+                padding: '10px 20px',
                 flexShrink: 0,
               }}
             >
@@ -1356,18 +1260,14 @@ export function ContactUsPage() {
                 <label
                   style={{
                     fontSize: 11,
-                    fontWeight: 700,
-                    color: '#12658F',
+                    fontWeight: 600,
+                    color: '#6B7280',
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
                   }}
                 >
-                  <span style={{ fontSize: 12, color: '#168BC4' }}>⚡</span> Quick Response Templates
+                  Quick Templates
                 </label>
-                <span style={{ fontSize: 10.5, color: '#64748B' }}>Click template to insert</span>
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {QUICK_TEMPLATES.map((tmpl) => (
@@ -1376,106 +1276,39 @@ export function ContactUsPage() {
                     type="button"
                     onClick={() => setReplyText(tmpl.text)}
                     style={{
-                      padding: '4px 11px',
-                      borderRadius: 16,
-                      border: '1px solid #BAE6FD',
-                      backgroundColor: '#FFFFFF',
-                      color: '#12658F',
-                      fontSize: 11.5,
-                      fontWeight: 600,
+                      padding: '4px 10px',
+                      borderRadius: 9999,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#F9FAFB',
+                      color: '#374151',
+                      fontSize: 11,
+                      fontWeight: 500,
                       cursor: 'pointer',
-                      boxShadow: '0 1px 2px rgba(22, 139, 196, 0.06)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#EAF7FC';
-                      e.currentTarget.style.borderColor = '#168BC4';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#FFFFFF';
-                      e.currentTarget.style.borderColor = '#BAE6FD';
                     }}
                   >
-                    <span style={{ fontWeight: 800, color: '#168BC4' }}>+</span>
-                    <span>{tmpl.label}</span>
+                    + {tmpl.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* 5. WHATSAPP-STYLE MESSAGE COMPOSER (BLUE ACCENT) */}
+            {/* Message Composer */}
             <div
               style={{
-                backgroundColor: '#F8FAFC',
-                padding: '8px 18px 14px 18px',
+                backgroundColor: '#FFFFFF',
+                padding: '12px 20px 16px 20px',
+                borderTop: '1px solid #E5E7EB',
                 flexShrink: 0,
               }}
             >
-              <label
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#12658F',
-                  display: 'block',
-                  marginBottom: 6,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                Compose Response Message *
-              </label>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {/* Optional Attachment Icon */}
-                <button
-                  type="button"
-                  title="Attachment"
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    border: '1px solid #BAE6FD',
-                    backgroundColor: '#FFFFFF',
-                    color: '#168BC4',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                    boxShadow: '0 1px 2px rgba(22, 139, 196, 0.06)',
-                  }}
-                  onClick={() => {
-                    // Non-intrusive cosmetic trigger
-                  }}
-                >
-                  <svg
-                    width="17"
-                    height="17"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                  </svg>
-                </button>
-
-                {/* Rounded Message Input Box */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div
                   style={{
                     flex: 1,
                     backgroundColor: '#FFFFFF',
-                    borderRadius: 20,
-                    border: '1px solid #BAE6FD',
-                    padding: '6px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    boxShadow: '0 1px 2px rgba(22, 139, 196, 0.05)',
+                    borderRadius: 12,
+                    border: '1px solid #E5E7EB',
+                    padding: '8px 12px',
                   }}
                 >
                   <textarea
@@ -1488,13 +1321,13 @@ export function ContactUsPage() {
                       }
                     }}
                     rows={2}
-                    placeholder="Type your official reply message to be dispatched via email and SMS notification..."
+                    placeholder="Type your response message..."
                     style={{
                       width: '100%',
                       border: 'none',
                       outline: 'none',
                       backgroundColor: 'transparent',
-                      color: '#0F172A',
+                      color: '#111827',
                       fontSize: 13,
                       lineHeight: 1.4,
                       resize: 'none',
@@ -1505,68 +1338,25 @@ export function ContactUsPage() {
                   />
                 </div>
 
-                {/* Cancel Button */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedEnquiry(null)}
-                  style={{
-                    padding: '9px 14px',
-                    backgroundColor: '#FFFFFF',
-                    color: '#475569',
-                    border: '1px solid #BAE6FD',
-                    borderRadius: 20,
-                    fontWeight: 700,
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#F0F9FF';
-                    e.currentTarget.style.color = '#12658F';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#FFFFFF';
-                    e.currentTarget.style.color = '#475569';
-                  }}
-                >
-                  Cancel
-                </button>
-
-                {/* WhatsApp-Styled Blue Send / Dispatch Button */}
                 <button
                   type="submit"
-                  title="Dispatch Response Now"
-                  aria-label="Dispatch Response Now"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
-                    padding: '9px 16px',
-                    background: 'linear-gradient(135deg, #168BC4 0%, #12658F 100%)',
+                    padding: '10px 18px',
+                    background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                     color: '#FFFFFF',
                     border: 'none',
-                    borderRadius: 20,
-                    fontWeight: 800,
-                    fontSize: 12.5,
+                    borderRadius: 12,
+                    fontWeight: 600,
+                    fontSize: 13,
                     cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(22, 139, 196, 0.35)',
+                    boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
                     flexShrink: 0,
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(22, 139, 196, 0.48)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(22, 139, 196, 0.35)';
                   }}
                 >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                  </svg>
-                  <span>Dispatch Response Now</span>
+                  Send
                 </button>
               </div>
             </div>
@@ -1580,7 +1370,7 @@ export function ContactUsPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(8, 47, 73, 0.5)',
+            backgroundColor: 'rgba(17, 24, 39, 0.4)',
             backdropFilter: 'blur(4px)',
             zIndex: 9999,
             display: 'flex',
@@ -1594,12 +1384,12 @@ export function ContactUsPage() {
             onSubmit={handleCreateEnquiry}
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: 16,
+              borderRadius: 20,
               maxWidth: 540,
               width: '100%',
               padding: 28,
-              boxShadow: '0 20px 40px rgba(14, 165, 233, 0.2)',
-              border: '1px solid #BAE6FD',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #E5E7EB',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
@@ -1607,27 +1397,27 @@ export function ContactUsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
                 Log New Support Enquiry Ticket
               </h3>
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#0284C7' }}
+                style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6B7280', lineHeight: 1 }}
               >
-                ✕
+                &times;
               </button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                   Category *
                 </label>
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value as any)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827', outline: 'none', boxSizing: 'border-box' }}
                 >
                   <option value="CUSTOMER">Customer Enquiry</option>
                   <option value="RESTAURANT">Restaurant Enquiry</option>
@@ -1636,23 +1426,23 @@ export function ContactUsPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                   Priority Urgency *
                 </label>
                 <select
                   value={newPriority}
                   onChange={(e) => setNewPriority(e.target.value as any)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827', outline: 'none', boxSizing: 'border-box' }}
                 >
-                  <option value="HIGH">🔥 High Urgency</option>
-                  <option value="MEDIUM">⚡ Medium Urgency</option>
-                  <option value="LOW">💧 Low Urgency</option>
+                  <option value="HIGH">High Urgency</option>
+                  <option value="MEDIUM">Medium Urgency</option>
+                  <option value="LOW">Low Urgency</option>
                 </select>
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                 Sender Name *
               </label>
               <input
@@ -1660,14 +1450,14 @@ export function ContactUsPage() {
                 value={newSenderName}
                 onChange={(e) => setNewSenderName(e.target.value)}
                 placeholder="e.g. Ramesh Chandra"
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827', outline: 'none', boxSizing: 'border-box' }}
                 required
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                   Sender Email *
                 </label>
                 <input
@@ -1675,13 +1465,13 @@ export function ContactUsPage() {
                   value={newSenderEmail}
                   onChange={(e) => setNewSenderEmail(e.target.value)}
                   placeholder="ramesh@gmail.com"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827', outline: 'none', boxSizing: 'border-box' }}
                   required
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                   Sender Phone
                 </label>
                 <input
@@ -1689,13 +1479,13 @@ export function ContactUsPage() {
                   value={newSenderPhone}
                   onChange={(e) => setNewSenderPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                 Subject *
               </label>
               <input
@@ -1703,13 +1493,13 @@ export function ContactUsPage() {
                 value={newSubject}
                 onChange={(e) => setNewSubject(e.target.value)}
                 placeholder="Brief title of enquiry..."
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827', outline: 'none', boxSizing: 'border-box' }}
                 required
               />
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                 Detailed Enquiry Description *
               </label>
               <textarea
@@ -1717,7 +1507,7 @@ export function ContactUsPage() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 rows={4}
                 placeholder="Enter details of customer/partner inquiry..."
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, resize: 'vertical', backgroundColor: '#F0F9FF', color: '#0369A1', outline: 'none' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, resize: 'vertical', backgroundColor: '#FFFFFF', color: '#111827', outline: 'none', boxSizing: 'border-box' }}
                 required
               />
             </div>
@@ -1727,12 +1517,12 @@ export function ContactUsPage() {
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#F0F9FF',
-                  color: '#0369A1',
-                  border: '1px solid #BAE6FD',
-                  borderRadius: 8,
-                  fontWeight: 700,
+                  padding: '9px 16px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#374151',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 10,
+                  fontWeight: 600,
                   fontSize: 13,
                   cursor: 'pointer',
                 }}
@@ -1742,15 +1532,15 @@ export function ContactUsPage() {
               <button
                 type="submit"
                 style={{
-                  padding: '10px 20px',
-                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                  padding: '9px 20px',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
                   border: 'none',
-                  borderRadius: 8,
-                  fontWeight: 800,
+                  borderRadius: 10,
+                  fontWeight: 600,
                   fontSize: 13,
                   cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                  boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 Save & Open Ticket

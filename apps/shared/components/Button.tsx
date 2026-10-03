@@ -20,14 +20,14 @@ export function Button({
 }: ButtonProps) {
   const { tokens } = useTheme();
   const isDisabled = disabled || loading;
-  const backgroundColor =
+  const background =
     variant === 'primary'
-      ? tokens.color.accent
+      ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)'
       : variant === 'danger'
-        ? tokens.color.error
-        : tokens.color.surface;
+        ? '#EF4444'
+        : '#FFFFFF';
   const textColor =
-    variant === 'secondary' ? tokens.color.textPrimary : tokens.color.textInverse;
+    variant === 'secondary' ? '#374151' : '#FFFFFF';
 
   return (
     <button
@@ -36,22 +36,28 @@ export function Button({
       disabled={isDisabled}
       aria-busy={loading || undefined}
       style={{
-        minHeight: 44,
-        minWidth: 44,
-        padding: `${tokens.spacing.md}px ${tokens.spacing.lg}px`,
+        minHeight: 40,
+        padding: '10px 18px',
         borderRadius: tokens.radius.md,
         border:
           variant === 'secondary' ? `1px solid ${tokens.color.border}` : 'none',
-        backgroundColor,
+        background,
         color: textColor,
+        fontWeight: 600,
+        boxShadow: variant === 'primary' ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
         opacity: isDisabled ? 0.5 : 1,
         cursor: isDisabled ? 'not-allowed' : 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        transition: 'all 0.15s ease',
         ...style,
       }}
     >
-      <Text as="span" variant="label" color={textColor}>
+      <span style={{ color: textColor, fontWeight: 600, fontSize: 13 }}>
         {loading ? 'Loading…' : label}
-      </Text>
+      </span>
     </button>
   );
 }

@@ -24,7 +24,7 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
       }}
     >
       <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#4B5563' }}>
           From:
         </span>
         <input
@@ -36,12 +36,12 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
             onChange({ ...value, dateFrom: e.target.value })
           }
           style={{
-            padding: '8px 12px',
-            border: '1px solid #BAE6FD',
+            padding: '7px 12px',
+            border: '1px solid #E5E7EB',
             borderRadius: 8,
             fontSize: 13,
-            fontWeight: 600,
-            color: '#0369A1',
+            fontWeight: 500,
+            color: '#111827',
             backgroundColor: '#FFFFFF',
             outline: 'none',
             cursor: 'pointer',
@@ -49,7 +49,7 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
         />
       </label>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#4B5563' }}>
           To:
         </span>
         <input
@@ -59,12 +59,12 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
           aria-label="Date to"
           onChange={(e) => onChange({ ...value, dateTo: e.target.value })}
           style={{
-            padding: '8px 12px',
-            border: '1px solid #BAE6FD',
+            padding: '7px 12px',
+            border: '1px solid #E5E7EB',
             borderRadius: 8,
             fontSize: 13,
-            fontWeight: 600,
-            color: '#0369A1',
+            fontWeight: 500,
+            color: '#111827',
             backgroundColor: '#FFFFFF',
             outline: 'none',
             cursor: 'pointer',

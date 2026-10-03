@@ -29,17 +29,17 @@ const MOCK_RECENT_ORDERS: RecentOrder[] = [
 function getStatusBadge(status: RecentOrder['status']) {
   switch (status) {
     case 'PENDING':
-      return { label: 'Pending', color: '#0369A1', bg: '#E0F2FE', border: '#BAE6FD' };
+      return { label: 'Pending', color: '#B45309', bg: '#FEF3C7', border: '#FDE68A' };
     case 'CONFIRMED':
-      return { label: 'Confirmed', color: '#0284C7', bg: '#F0F9FF', border: '#7DD3FC' };
+      return { label: 'Confirmed', color: '#1D4ED8', bg: '#E3F2FD', border: '#BFDBFE' };
     case 'PROCESSING':
-      return { label: 'Packaging', color: '#075985', bg: '#E0F2FE', border: '#38BDF8' };
+      return { label: 'Packaging', color: '#1E40AF', bg: '#E3F2FD', border: '#BFDBFE' };
     case 'OUT_FOR_DELIVERY':
-      return { label: 'In Transit', color: '#0369A1', bg: '#BAE6FD', border: '#38BDF8' };
+      return { label: 'In Transit', color: '#1E40AF', bg: '#E3F2FD', border: '#BFDBFE' };
     case 'DELIVERED':
-      return { label: 'Delivered', color: '#FFFFFF', bg: '#0284C7', border: '#0284C7' };
+      return { label: 'Delivered', color: '#15803D', bg: '#DCFCE7', border: '#BBF7D0' };
     case 'CANCELED':
-      return { label: 'Canceled', color: '#0284C7', bg: '#F1F5F9', border: '#CBD5E1' };
+      return { label: 'Canceled', color: '#B91C1C', bg: '#FEE2E2', border: '#FECACA' };
   }
 }
 
@@ -64,9 +64,9 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
     <div
       style={{
         backgroundColor: '#FFFFFF',
-        borderRadius: 14,
-        border: '1px solid #BAE6FD',
-        boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)',
+        borderRadius: 20,
+        border: '1px solid #E5E7EB',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -74,37 +74,37 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
     >
       <div
         style={{
-          padding: '16px 20px',
-          borderBottom: '1px solid #BAE6FD',
+          padding: '20px 24px',
+          borderBottom: '1px solid #E5E7EB',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          backgroundColor: '#F0F9FF',
+          backgroundColor: '#FFFFFF',
         }}
       >
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0369A1', margin: 0 }}>Recent Orders Activity</h3>
-          <p style={{ fontSize: 12, color: '#0284C7', margin: '2px 0 0' }}>Real-time stream of incoming customer transactions</p>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0, letterSpacing: '-0.01em' }}>Recent Orders Activity</h3>
+          <p style={{ fontSize: 13, color: '#6B7280', margin: '3px 0 0' }}>Real-time stream of incoming customer transactions</p>
         </div>
         <button
           type="button"
           onClick={() => router.push('/orders')}
           style={{
             fontSize: 12,
-            fontWeight: 700,
-            color: '#0369A1',
-            backgroundColor: '#E0F2FE',
-            border: '1px solid #BAE6FD',
-            padding: '6px 14px',
-            borderRadius: 8,
+            fontWeight: 600,
+            color: '#2196F3',
+            backgroundColor: '#E3F2FD',
+            border: '1px solid #BFDBFE',
+            padding: '7px 14px',
+            borderRadius: 10,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#BAE6FD';
+            e.currentTarget.style.backgroundColor = '#DBEAFE';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#E0F2FE';
+            e.currentTarget.style.backgroundColor = '#E3F2FD';
           }}
         >
           View All Orders →
@@ -114,20 +114,20 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
           <thead>
-            <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontSize: 12, fontWeight: 700 }}>
-              <th style={{ padding: '12px 14px' }}>Order ID</th>
-              <th style={{ padding: '12px 14px' }}>Customer</th>
-              <th style={{ padding: '12px 14px' }}>Restaurant Outlet</th>
-              <th style={{ padding: '12px 14px' }}>Amount</th>
-              <th style={{ padding: '12px 14px' }}>Method</th>
-              <th style={{ padding: '12px 14px' }}>Status</th>
-              <th style={{ padding: '12px 14px', textAlign: 'right' }}>Actions</th>
+            <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <th style={{ padding: '14px 20px' }}>Order ID</th>
+              <th style={{ padding: '14px 20px' }}>Customer</th>
+              <th style={{ padding: '14px 20px' }}>Restaurant Outlet</th>
+              <th style={{ padding: '14px 20px' }}>Amount</th>
+              <th style={{ padding: '14px 20px' }}>Method</th>
+              <th style={{ padding: '14px 20px' }}>Status</th>
+              <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#0284C7' }}>
+                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#6B7280' }}>
                   No recent orders found matching selected module.
                 </td>
               </tr>
@@ -137,28 +137,28 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
                 return (
                   <tr
                     key={ord.id}
-                    style={{ borderBottom: '1px solid #E0F2FE', transition: 'background-color 0.15s ease' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F0F9FF')}
+                    style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s ease' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9FAFB')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
-                    <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0369A1' }}>{ord.orderCode}</td>
-                    <td style={{ padding: '12px 14px', color: '#075985', fontWeight: 600 }}>{ord.customerName}</td>
-                    <td style={{ padding: '12px 14px', color: '#0284C7' }}>{ord.restaurantName}</td>
-                    <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0369A1' }}>₹{ord.totalAmount.toFixed(2)}</td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#0369A1', backgroundColor: '#E0F2FE', border: '1px solid #BAE6FD', padding: '3px 8px', borderRadius: 4 }}>
+                    <td style={{ padding: '14px 20px', fontWeight: 600, color: '#2196F3' }}>{ord.orderCode}</td>
+                    <td style={{ padding: '14px 20px', color: '#111827', fontWeight: 500 }}>{ord.customerName}</td>
+                    <td style={{ padding: '14px 20px', color: '#4B5563' }}>{ord.restaurantName}</td>
+                    <td style={{ padding: '14px 20px', fontWeight: 700, color: '#111827' }}>₹{ord.totalAmount.toFixed(2)}</td>
+                    <td style={{ padding: '14px 20px' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#4B5563', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', padding: '3px 8px', borderRadius: 6 }}>
                         {ord.paymentMethod}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 14px' }}>
+                    <td style={{ padding: '14px 20px' }}>
                       <span
                         style={{
                           fontSize: 11,
-                          fontWeight: 700,
+                          fontWeight: 600,
                           color: badge.color,
                           backgroundColor: badge.bg,
                           border: `1px solid ${badge.border}`,
-                          padding: '4px 10px',
+                          padding: '3px 10px',
                           borderRadius: 20,
                           display: 'inline-block',
                         }}
@@ -166,19 +166,26 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
                         {badge.label}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                    <td style={{ padding: '14px 20px', textAlign: 'right' }}>
                       <button
                         type="button"
                         onClick={() => setSelectedOrder(ord)}
                         style={{
-                          padding: '5px 10px',
+                          padding: '6px 12px',
                           fontSize: 12,
-                          fontWeight: 700,
-                          color: '#0369A1',
-                          backgroundColor: '#E0F2FE',
-                          border: '1px solid #BAE6FD',
-                          borderRadius: 6,
+                          fontWeight: 600,
+                          color: '#2196F3',
+                          backgroundColor: '#F5F7FA',
+                          border: '1px solid #E5E7EB',
+                          borderRadius: 8,
                           cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#E3F2FD';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#F5F7FA';
                         }}
                       >
                         Quick View
@@ -198,7 +205,7 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(8, 47, 73, 0.5)',
+            backgroundColor: 'rgba(17, 24, 39, 0.4)',
             backdropFilter: 'blur(3px)',
             zIndex: 999,
             display: 'flex',
@@ -213,51 +220,51 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
               backgroundColor: '#FFFFFF',
               height: '100%',
               padding: '24px',
-              boxShadow: '-10px 0 25px rgba(3, 105, 161, 0.15)',
+              boxShadow: '-8px 0 24px rgba(0, 0, 0, 0.08)',
               display: 'flex',
               flexDirection: 'column',
               gap: 20,
               overflowY: 'auto',
-              borderLeft: '2px solid #BAE6FD',
+              borderLeft: '1px solid #E5E7EB',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #BAE6FD', paddingBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB', paddingBottom: 16 }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#0369A1' }}>Order {selectedOrder.orderCode}</div>
-                <div style={{ fontSize: 12, color: '#0284C7' }}>Created {selectedOrder.createdAt}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>Order {selectedOrder.orderCode}</div>
+                <div style={{ fontSize: 12, color: '#6B7280' }}>Created {selectedOrder.createdAt}</div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedOrder(null)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#0284C7' }}
+                style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6B7280' }}
               >
                 ×
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: 13 }}>
-              <div style={{ backgroundColor: '#F0F9FF', padding: 14, borderRadius: 10, border: '1px solid #BAE6FD' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Customer Details</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1', marginTop: 2 }}>{selectedOrder.customerName}</div>
-                <div style={{ color: '#075985', marginTop: 2 }}>Payment via {selectedOrder.paymentMethod}</div>
+              <div style={{ backgroundColor: '#F9FAFB', padding: 16, borderRadius: 14, border: '1px solid #E5E7EB' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Customer Details</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#111827', marginTop: 4 }}>{selectedOrder.customerName}</div>
+                <div style={{ color: '#4B5563', marginTop: 2 }}>Payment via {selectedOrder.paymentMethod}</div>
               </div>
 
-              <div style={{ backgroundColor: '#F0F9FF', padding: 14, borderRadius: 10, border: '1px solid #BAE6FD' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Store Details</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1', marginTop: 2 }}>{selectedOrder.restaurantName}</div>
-                <div style={{ color: '#075985', marginTop: 2 }}>{selectedOrder.itemsCount} Food items included</div>
+              <div style={{ backgroundColor: '#F9FAFB', padding: 16, borderRadius: 14, border: '1px solid #E5E7EB' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Store Details</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#111827', marginTop: 4 }}>{selectedOrder.restaurantName}</div>
+                <div style={{ color: '#4B5563', marginTop: 2 }}>{selectedOrder.itemsCount} Food items included</div>
               </div>
 
-              <div style={{ backgroundColor: '#F0F9FF', padding: 14, borderRadius: 10, border: '1px solid #BAE6FD' }}>
+              <div style={{ backgroundColor: '#F9FAFB', padding: 16, borderRadius: 14, border: '1px solid #E5E7EB' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0369A1' }}>Total Amount Paid</span>
-                  <span style={{ fontSize: 18, fontWeight: 800, color: '#0369A1' }}>₹{selectedOrder.totalAmount.toFixed(2)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#6B7280' }}>Total Amount Paid</span>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: '#111827' }}>₹{selectedOrder.totalAmount.toFixed(2)}</span>
                 </div>
               </div>
             </div>
 
-            <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #BAE6FD', display: 'flex', gap: 12 }}>
+            <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #E5E7EB', display: 'flex', gap: 12 }}>
               <button
                 type="button"
                 onClick={() => {
@@ -267,14 +274,14 @@ export function RecentOrdersTableWidget({ orders = [] }: Props) {
                 style={{
                   flex: 1,
                   padding: '12px',
-                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
                   border: 'none',
-                  borderRadius: 10,
-                  fontWeight: 800,
+                  borderRadius: 12,
+                  fontWeight: 700,
                   fontSize: 13,
                   cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)',
+                  boxShadow: '0 4px 14px rgba(33, 150, 243, 0.3)',
                 }}
               >
                 Go to Order Details

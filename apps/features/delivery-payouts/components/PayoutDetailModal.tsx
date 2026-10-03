@@ -99,7 +99,7 @@ export function PayoutDetailModal({
               padding: 4,
             }}
           >
-            ✕
+            ×
           </button>
         </div>
 
@@ -202,7 +202,7 @@ export function PayoutDetailModal({
                     color: '#0369A1',
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 800 }}>⚠️ Failure Reason:</div>
+                  <div style={{ fontSize: 13, fontWeight: 800 }}>Failure Reason:</div>
                   <div style={{ fontSize: 13, marginTop: 2, color: '#0284C7' }}>{payout.failureReason || 'Bank account detail validation failed or gateway timed out.'}</div>
                 </div>
               )}

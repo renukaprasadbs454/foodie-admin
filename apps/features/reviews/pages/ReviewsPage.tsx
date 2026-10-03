@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
+import { trackAnalyticsEvent } from 'foodie-shared-web';
 import { GAP_API_20_GLOBAL_REVIEWS } from '@/constants/gaps';
 import { useGetSupportTicketsQuery, useUpdateTicketStatusMutation } from '@/api/endpoints/customersApi';
 import { useGetAdminReviewsQuery, useFlagReviewMutation } from '@/api/endpoints/reviewsApi';
@@ -37,11 +37,9 @@ export interface SupportTicketRecord {
 
 type MainTab = 'REVIEWS_RATINGS' | 'CUSTOMER_COMPLAINTS';
 type ReviewSubTab = 'ALL' | 'RESTAURANT_RATINGS' | 'DELIVERY_RATINGS' | 'REPORTED_REVIEWS' | 'MODERATION';
-type TicketSubTab = 'ALL' | 'RESTAURANT_ISSUES' | 'DELIVERY_ISSUES' | 'REFUND_REQUESTS' | 'SUPPORT_TICKETS';
+type TicketSubTab = 'ALL' | 'RESTAURANT_ISSUES' | 'DELIVERY_ISSUES' | 'REFUND_REQUESTS';
 
 export function ReviewsPage() {
-  const { tokens } = useTheme();
-
   const [mainTab, setMainTab] = useState<MainTab>('REVIEWS_RATINGS');
   const [reviewSubTab, setReviewSubTab] = useState<ReviewSubTab>('ALL');
   const [ticketSubTab, setTicketSubTab] = useState<TicketSubTab>('ALL');
@@ -53,8 +51,8 @@ export function ReviewsPage() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   // Fetch live support tickets and restaurant reviews directly from backend
-  const { data: ticketsData, isLoading: isTicketsLoading } = useGetSupportTicketsQuery();
-  const { data: adminReviewsData, isLoading: isReviewsLoading } = useGetAdminReviewsQuery();
+  const { data: ticketsData } = useGetSupportTicketsQuery();
+  const { data: adminReviewsData } = useGetAdminReviewsQuery();
   const [updateTicketStatus] = useUpdateTicketStatusMutation();
   const [flagReviewMutation] = useFlagReviewMutation();
 
@@ -138,57 +136,69 @@ export function ReviewsPage() {
     );
     try {
       if (newStatus === 'FLAGGED') {
-        await flagReviewMutation({ id, reason: 'Flagged for moderation' }).unwrap();
+        await flagReviewMutation({ id, reason: 'Flagged by Admin' }).unwrap();
       }
+      setToastMsg(`Review marked as ${newStatus}`);
+      setTimeout(() => setToastMsg(null), 3000);
     } catch {
-      // optimistic
+      setToastMsg(`Review marked as ${newStatus} locally`);
+      setTimeout(() => setToastMsg(null), 3000);
     }
-    setToastMsg(`Review status updated to ${newStatus}`);
-    setTimeout(() => setToastMsg(null), 3000);
   };
 
-  const handleTicketStatusChange = async (id: string, newStatus: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED') => {
+  const handleTicketStatusChange = async (id: string, newStatus: 'RESOLVED' | 'CLOSED') => {
     setTickets((prev) =>
       prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t)),
     );
     try {
-      await updateTicketStatus({ id, status: newStatus as any, agentNotes: 'Updated by Compliance Auditor' }).unwrap();
+      await updateTicketStatus({ id, status: newStatus }).unwrap();
+      setToastMsg(`Ticket ${newStatus.toLowerCase()} successfully`);
+      setTimeout(() => setToastMsg(null), 3000);
     } catch {
-      // update state optimistic
+      setToastMsg(`Ticket marked ${newStatus.toLowerCase()} locally`);
+      setTimeout(() => setToastMsg(null), 3000);
     }
-    setToastMsg(`Ticket ${id.slice(0, 8)} status set to ${newStatus}`);
-    setTimeout(() => setToastMsg(null), 3000);
   };
 
   const filteredReviews = useMemo(() => {
     return reviews.filter((r) => {
+      const q = searchQuery.toLowerCase();
       const matchesSearch =
-        searchQuery === '' ||
-        r.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.restaurantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.comment.toLowerCase().includes(searchQuery.toLowerCase());
+        r.customerName.toLowerCase().includes(q) ||
+        r.restaurantName.toLowerCase().includes(q) ||
+        r.comment.toLowerCase().includes(q);
 
-      if (reviewSubTab === 'REPORTED_REVIEWS') return r.isReported && matchesSearch;
-      if (reviewSubTab === 'MODERATION') return r.status === 'FLAGGED' && matchesSearch;
-      return matchesSearch;
+      if (!matchesSearch) return false;
+
+      if (reviewSubTab === 'RESTAURANT_RATINGS') return r.rating > 0;
+      if (reviewSubTab === 'DELIVERY_RATINGS') return r.deliveryRating > 0;
+      if (reviewSubTab === 'REPORTED_REVIEWS') return r.isReported;
+      if (reviewSubTab === 'MODERATION') return r.status === 'FLAGGED' || r.status === 'HIDDEN';
+
+      return true;
     });
-  }, [reviews, reviewSubTab, searchQuery]);
+  }, [reviews, searchQuery, reviewSubTab]);
 
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
-      const matchesStatus = ticketStatusFilter === 'ALL' || t.status === ticketStatusFilter;
+      const q = searchQuery.toLowerCase();
       const matchesSearch =
-        searchQuery === '' ||
-        t.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.issueTitle.toLowerCase().includes(searchQuery.toLowerCase());
+        t.ticketNumber.toLowerCase().includes(q) ||
+        t.customerName.toLowerCase().includes(q) ||
+        t.issueTitle.toLowerCase().includes(q) ||
+        t.details.toLowerCase().includes(q);
 
-      if (ticketSubTab === 'RESTAURANT_ISSUES') return t.category === 'RESTAURANT_ISSUE' && matchesStatus && matchesSearch;
-      if (ticketSubTab === 'DELIVERY_ISSUES') return t.category === 'DELIVERY_ISSUE' && matchesStatus && matchesSearch;
-      if (ticketSubTab === 'REFUND_REQUESTS') return t.category === 'REFUND_REQUEST' && matchesStatus && matchesSearch;
-      return matchesStatus && matchesSearch;
+      if (!matchesSearch) return false;
+
+      if (ticketSubTab === 'RESTAURANT_ISSUES' && t.category !== 'RESTAURANT_ISSUE') return false;
+      if (ticketSubTab === 'DELIVERY_ISSUES' && t.category !== 'DELIVERY_ISSUE') return false;
+      if (ticketSubTab === 'REFUND_REQUESTS' && t.category !== 'REFUND_REQUEST') return false;
+
+      if (ticketStatusFilter !== 'ALL' && t.status !== ticketStatusFilter) return false;
+
+      return true;
     });
-  }, [tickets, ticketSubTab, ticketStatusFilter, searchQuery]);
+  }, [tickets, searchQuery, ticketSubTab, ticketStatusFilter]);
 
   const avgRestaurantRating = useMemo(() => {
     if (reviews.length === 0) return 0;
@@ -207,30 +217,30 @@ export function ReviewsPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#0369A1">
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>
             Reviews & Customer Complaints Desk
-          </Text>
-          <Text as="p" variant="caption" color="#0284C7">
+          </h1>
+          <p style={{ fontSize: 14, color: '#6B7280', margin: '4px 0 0' }}>
             Manage customer ratings, restaurant feedback, delivery partner scorecards, reported reviews & support complaints
-          </Text>
+          </p>
         </div>
 
         {/* Search Bar */}
         <input
           type="text"
-          placeholder="Search reviews, stores, comments, or ticket numbers..."
+          placeholder="Search reviews, stores, comments, or tickets..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
             padding: '10px 16px',
             borderRadius: 10,
-            border: '1px solid #BAE6FD',
+            border: '1px solid #E5E7EB',
             fontSize: 13,
             width: 320,
             maxWidth: '100%',
             outline: 'none',
             backgroundColor: '#FFFFFF',
-            color: '#0369A1',
+            color: '#111827',
           }}
         />
       </div>
@@ -241,9 +251,10 @@ export function ReviewsPage() {
           display: 'flex',
           gap: 12,
           backgroundColor: '#FFFFFF',
-          padding: '8px',
-          borderRadius: 12,
-          border: '1px solid #BAE6FD',
+          padding: '6px',
+          borderRadius: 16,
+          border: '1px solid #E5E7EB',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
         }}
       >
         <button
@@ -252,14 +263,14 @@ export function ReviewsPage() {
           style={{
             flex: 1,
             padding: '12px',
-            borderRadius: 8,
+            borderRadius: 12,
             border: 'none',
-            background: mainTab === 'REVIEWS_RATINGS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-            color: mainTab === 'REVIEWS_RATINGS' ? '#FFFFFF' : '#0369A1',
+            background: mainTab === 'REVIEWS_RATINGS' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
+            color: mainTab === 'REVIEWS_RATINGS' ? '#FFFFFF' : '#6B7280',
             fontSize: 14,
-            fontWeight: 800,
+            fontWeight: 600,
             cursor: 'pointer',
-            boxShadow: mainTab === 'REVIEWS_RATINGS' ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
+            boxShadow: mainTab === 'REVIEWS_RATINGS' ? '0 4px 14px rgba(33, 150, 243, 0.25)' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
@@ -272,14 +283,14 @@ export function ReviewsPage() {
           style={{
             flex: 1,
             padding: '12px',
-            borderRadius: 8,
+            borderRadius: 12,
             border: 'none',
-            background: mainTab === 'CUSTOMER_COMPLAINTS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-            color: mainTab === 'CUSTOMER_COMPLAINTS' ? '#FFFFFF' : '#0369A1',
+            background: mainTab === 'CUSTOMER_COMPLAINTS' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
+            color: mainTab === 'CUSTOMER_COMPLAINTS' ? '#FFFFFF' : '#6B7280',
             fontSize: 14,
-            fontWeight: 800,
+            fontWeight: 600,
             cursor: 'pointer',
-            boxShadow: mainTab === 'CUSTOMER_COMPLAINTS' ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
+            boxShadow: mainTab === 'CUSTOMER_COMPLAINTS' ? '0 4px 14px rgba(33, 150, 243, 0.25)' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
@@ -293,9 +304,9 @@ export function ReviewsPage() {
           {/* Sub Feature Tabs */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[
-              { id: 'ALL', label: 'Customer Reviews' },
-              { id: 'RESTAURANT_RATINGS', label: `Restaurant Ratings ${Number(avgRestaurantRating) > 0 ? `(${avgRestaurantRating})` : ''}` },
-              { id: 'DELIVERY_RATINGS', label: `Delivery Partner Ratings ${Number(avgDeliveryRating) > 0 ? `(${avgDeliveryRating})` : ''}` },
+              { id: 'ALL', label: 'All Reviews' },
+              { id: 'RESTAURANT_RATINGS', label: `Restaurant Ratings ${Number(avgRestaurantRating) > 0 ? `(${avgRestaurantRating} Avg)` : ''}` },
+              { id: 'DELIVERY_RATINGS', label: `Delivery Partner Ratings ${Number(avgDeliveryRating) > 0 ? `(${avgDeliveryRating} Avg)` : ''}` },
               { id: 'REPORTED_REVIEWS', label: 'Reported Reviews' },
               { id: 'MODERATION', label: 'Review Moderation' },
             ].map((tab) => (
@@ -305,14 +316,13 @@ export function ReviewsPage() {
                 onClick={() => setReviewSubTab(tab.id as ReviewSubTab)}
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  border: reviewSubTab === tab.id ? 'none' : '1px solid #BAE6FD',
-                  background: reviewSubTab === tab.id ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
-                  color: reviewSubTab === tab.id ? '#FFFFFF' : '#0369A1',
+                  borderRadius: 10,
+                  border: reviewSubTab === tab.id ? '1px solid #2196F3' : '1px solid #E5E7EB',
+                  background: reviewSubTab === tab.id ? '#E3F2FD' : '#FFFFFF',
+                  color: reviewSubTab === tab.id ? '#2196F3' : '#6B7280',
                   fontSize: 13,
-                  fontWeight: reviewSubTab === tab.id ? 800 : 600,
+                  fontWeight: 600,
                   cursor: 'pointer',
-                  boxShadow: reviewSubTab === tab.id ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -322,27 +332,27 @@ export function ReviewsPage() {
           </div>
 
           {/* Reviews Table */}
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #BAE6FD', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
-                <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
-                  <th style={{ padding: '14px 20px' }}>Customer & Store</th>
-                  <th style={{ padding: '14px 20px' }}>Ratings</th>
-                  <th style={{ padding: '14px 20px' }}>Feedback Comment</th>
-                  <th style={{ padding: '14px 20px' }}>Delivery Partner</th>
-                  <th style={{ padding: '14px 20px' }}>Status</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'right' }}>Review Moderation</th>
+                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Customer & Store</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ratings</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feedback Comment</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Partner</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Review Moderation</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredReviews.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#0284C7' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#0369A1' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#6B7280' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>
                           No customer reviews found in database
                         </div>
-                        <div style={{ fontSize: 13 }}>
+                        <div style={{ fontSize: 13, color: '#6B7280' }}>
                           Live customer reviews and ratings submitted in the platform will appear here.
                         </div>
                       </div>
@@ -350,58 +360,55 @@ export function ReviewsPage() {
                   </tr>
                 ) : (
                   filteredReviews.map((r) => (
-                    <tr key={r.id} style={{ borderBottom: '1px solid #BAE6FD' }}>
+                    <tr key={r.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#0369A1' }}>{r.customerName}</div>
-                        <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>{r.restaurantName}</div>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>{r.customerName}</div>
+                        <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{r.restaurantName}</div>
                       </td>
                       <td style={{ padding: '16px 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ color: '#0284C7', fontSize: 14 }}>★</span>
-                          <span style={{ fontWeight: 800, color: '#0369A1' }}>{r.rating}.0</span>
-                          <span style={{ fontSize: 11, color: '#0284C7' }}>(Rest.)</span>
+                          <span style={{ fontWeight: 600, color: '#2196F3' }}>{r.rating}.0 / 5</span>
+                          <span style={{ fontSize: 11, color: '#6B7280' }}>(Food)</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                          <span style={{ color: '#0284C7', fontSize: 13 }}>★</span>
-                          <span style={{ fontWeight: 700, color: '#0369A1', fontSize: 12 }}>{r.deliveryRating}.0</span>
-                          <span style={{ fontSize: 11, color: '#0284C7' }}>(Delivery)</span>
+                          <span style={{ fontWeight: 500, color: '#6B7280', fontSize: 12 }}>{r.deliveryRating}.0 / 5</span>
+                          <span style={{ fontSize: 11, color: '#6B7280' }}>(Delivery)</span>
                         </div>
                       </td>
                       <td style={{ padding: '16px 20px', maxWidth: 320 }}>
-                        <div style={{ fontSize: 13, color: '#0369A1', lineHeight: 1.5 }}>"{r.comment}"</div>
-                        <div style={{ fontSize: 11, color: '#0284C7', marginTop: 4 }}>{r.createdAt}</div>
+                        <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>"{r.comment}"</div>
+                        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{r.createdAt}</div>
                       </td>
-                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#0369A1', fontWeight: 600 }}>
+                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#111827', fontWeight: 500 }}>
                         {r.deliveryManName}
                       </td>
                       <td style={{ padding: '16px 20px' }}>
                         <span
                           style={{
-                            backgroundColor: r.status === 'PUBLISHED' ? '#E0F2FE' : '#0284C7',
-                            color: r.status === 'PUBLISHED' ? '#0369A1' : '#FFFFFF',
-                            border: '1px solid #BAE6FD',
+                            backgroundColor: r.status === 'PUBLISHED' ? '#DCFCE7' : r.status === 'FLAGGED' ? '#FEE2E2' : '#F3F4F6',
+                            color: r.status === 'PUBLISHED' ? '#15803D' : r.status === 'FLAGGED' ? '#EF4444' : '#6B7280',
                             fontSize: 11,
-                            fontWeight: 800,
-                            padding: '4px 8px',
-                            borderRadius: 6,
+                            fontWeight: 600,
+                            padding: '4px 10px',
+                            borderRadius: 9999,
                           }}
                         >
                           {r.status}
                         </span>
                       </td>
                       <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                           <button
                             type="button"
                             onClick={() => handleModeration(r.id, r.status === 'FLAGGED' ? 'PUBLISHED' : 'FLAGGED')}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: r.status === 'FLAGGED' ? '#0284C7' : '#F0F9FF',
-                              color: r.status === 'FLAGGED' ? '#FFFFFF' : '#0369A1',
-                              border: '1px solid #BAE6FD',
-                              borderRadius: 6,
+                              backgroundColor: r.status === 'FLAGGED' ? '#DCFCE7' : '#FEE2E2',
+                              color: r.status === 'FLAGGED' ? '#15803D' : '#EF4444',
+                              border: 'none',
+                              borderRadius: 8,
                               fontSize: 12,
-                              fontWeight: 700,
+                              fontWeight: 600,
                               cursor: 'pointer',
                             }}
                           >
@@ -413,15 +420,15 @@ export function ReviewsPage() {
                             style={{
                               padding: '6px 12px',
                               backgroundColor: '#FFFFFF',
-                              color: '#DC2626',
-                              border: '1px solid #FECACA',
-                              borderRadius: 6,
+                              color: '#6B7280',
+                              border: '1px solid #E5E7EB',
+                              borderRadius: 8,
                               fontSize: 12,
-                              fontWeight: 700,
+                              fontWeight: 600,
                               cursor: 'pointer',
                             }}
                           >
-                            {r.status === 'HIDDEN' ? 'Show' : 'Hide'}
+                            {r.status === 'HIDDEN' ? 'Unhide' : 'Hide'}
                           </button>
                         </div>
                       </td>
@@ -451,14 +458,13 @@ export function ReviewsPage() {
                 onClick={() => setTicketSubTab(tab.id as TicketSubTab)}
                 style={{
                   padding: '8px 16px',
-                  borderRadius: 8,
-                  border: ticketSubTab === tab.id ? 'none' : '1px solid #BAE6FD',
-                  background: ticketSubTab === tab.id ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
-                  color: ticketSubTab === tab.id ? '#FFFFFF' : '#0369A1',
+                  borderRadius: 10,
+                  border: ticketSubTab === tab.id ? '1px solid #2196F3' : '1px solid #E5E7EB',
+                  background: ticketSubTab === tab.id ? '#E3F2FD' : '#FFFFFF',
+                  color: ticketSubTab === tab.id ? '#2196F3' : '#6B7280',
                   fontSize: 13,
-                  fontWeight: ticketSubTab === tab.id ? 800 : 600,
+                  fontWeight: 600,
                   cursor: 'pointer',
-                  boxShadow: ticketSubTab === tab.id ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -468,23 +474,22 @@ export function ReviewsPage() {
           </div>
 
           {/* Ticket Status Filter Bar */}
-          <div style={{ display: 'flex', gap: 8, backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 10, border: '1px solid #BAE6FD' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', alignSelf: 'center', marginRight: 8 }}>Ticket Status:</span>
+          <div style={{ display: 'flex', gap: 8, backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 16, border: '1px solid #E5E7EB', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', marginRight: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ticket Status:</span>
             {(['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const).map((st) => (
               <button
                 key={st}
                 type="button"
                 onClick={() => setTicketStatusFilter(st)}
                 style={{
-                  padding: '6px 12px',
-                  borderRadius: 6,
-                  border: ticketStatusFilter === st ? 'none' : '1px solid #BAE6FD',
-                  background: ticketStatusFilter === st ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#F0F9FF',
-                  color: ticketStatusFilter === st ? '#FFFFFF' : '#0369A1',
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: ticketStatusFilter === st ? '1px solid #2196F3' : '1px solid transparent',
+                  background: ticketStatusFilter === st ? '#E3F2FD' : '#F9FAFB',
+                  color: ticketStatusFilter === st ? '#2196F3' : '#6B7280',
                   fontSize: 12,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   cursor: 'pointer',
-                  boxShadow: ticketStatusFilter === st ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -494,27 +499,27 @@ export function ReviewsPage() {
           </div>
 
           {/* Complaints Table */}
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #BAE6FD', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
-                <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1', fontWeight: 700 }}>
-                  <th style={{ padding: '14px 20px' }}>Ticket # & Customer</th>
-                  <th style={{ padding: '14px 20px' }}>Category & Issue</th>
-                  <th style={{ padding: '14px 20px' }}>Assigned Agent</th>
-                  <th style={{ padding: '14px 20px' }}>Claim Amount</th>
-                  <th style={{ padding: '14px 20px' }}>Ticket Status</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
+                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ticket # & Customer</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category & Issue</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assigned Agent</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Claim Amount</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ticket Status</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTickets.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#0284C7' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#0369A1' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#6B7280' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>
                           No support complaints found in database
                         </div>
-                        <div style={{ fontSize: 13 }}>
+                        <div style={{ fontSize: 13, color: '#6B7280' }}>
                           Customer complaints and escalation tickets logged in the platform will appear here.
                         </div>
                       </div>
@@ -522,47 +527,46 @@ export function ReviewsPage() {
                   </tr>
                 ) : (
                   filteredTickets.map((t) => (
-                    <tr key={t.id} style={{ borderBottom: '1px solid #BAE6FD' }}>
+                    <tr key={t.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#0369A1', fontFamily: 'monospace' }}>{t.ticketNumber}</div>
-                        <div style={{ fontSize: 12, color: '#0369A1', fontWeight: 600 }}>{t.customerName}</div>
-                        <div style={{ fontSize: 11, color: '#0284C7' }}>{t.customerPhone}</div>
+                        <div style={{ fontWeight: 600, color: '#2196F3', fontFamily: 'monospace' }}>{t.ticketNumber}</div>
+                        <div style={{ fontSize: 13, color: '#111827', fontWeight: 600, marginTop: 2 }}>{t.customerName}</div>
+                        <div style={{ fontSize: 12, color: '#6B7280' }}>{t.customerPhone}</div>
                       </td>
                       <td style={{ padding: '16px 20px', maxWidth: 340 }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: '#0369A1', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '2px 6px', borderRadius: 4, width: 'fit-content', marginBottom: 4 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#2196F3', backgroundColor: '#E3F2FD', padding: '2px 8px', borderRadius: 9999, width: 'fit-content', marginBottom: 6 }}>
                           {t.category.replace(/_/g, ' ')}
                         </div>
-                        <div style={{ fontWeight: 700, color: '#0369A1', fontSize: 13 }}>{t.issueTitle}</div>
-                        <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>{t.details}</div>
+                        <div style={{ fontWeight: 600, color: '#111827', fontSize: 13 }}>{t.issueTitle}</div>
+                        <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{t.details}</div>
                       </td>
-                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#0369A1', fontWeight: 600 }}>
+                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#111827', fontWeight: 500 }}>
                         {t.assignedAgent}
                       </td>
-                      <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0369A1' }}>
-                        {t.refundAmount ? `₹${t.refundAmount}` : 'N/A'}
+                      <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>
+                        {t.refundAmount ? `₹${t.refundAmount}` : '—'}
                       </td>
                       <td style={{ padding: '16px 20px' }}>
                         <span
                           style={{
-                            backgroundColor: t.status === 'OPEN' ? '#0284C7' : t.status === 'IN_PROGRESS' ? '#0369A1' : '#E0F2FE',
-                            color: t.status === 'OPEN' || t.status === 'IN_PROGRESS' ? '#FFFFFF' : '#0369A1',
-                            border: '1px solid #BAE6FD',
+                            backgroundColor: t.status === 'RESOLVED' ? '#DCFCE7' : t.status === 'IN_PROGRESS' ? '#FEF3C7' : t.status === 'OPEN' ? '#E3F2FD' : '#F3F4F6',
+                            color: t.status === 'RESOLVED' ? '#15803D' : t.status === 'IN_PROGRESS' ? '#B45309' : t.status === 'OPEN' ? '#2196F3' : '#6B7280',
                             fontSize: 11,
-                            fontWeight: 800,
+                            fontWeight: 600,
                             padding: '4px 10px',
-                            borderRadius: 20,
+                            borderRadius: 9999,
                           }}
                         >
                           {t.status}
                         </span>
                       </td>
                       <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                           {t.status !== 'RESOLVED' && (
                             <button
                               type="button"
                               onClick={() => handleTicketStatusChange(t.id, 'RESOLVED')}
-                              style={{ padding: '6px 12px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}
+                              style={{ padding: '6px 14px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 12px rgba(33, 150, 243, 0.2)' }}
                             >
                               Resolve
                             </button>
@@ -571,7 +575,7 @@ export function ReviewsPage() {
                             <button
                               type="button"
                               onClick={() => handleTicketStatusChange(t.id, 'CLOSED')}
-                              style={{ padding: '6px 12px', backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                              style={{ padding: '6px 14px', backgroundColor: '#FFFFFF', color: '#6B7280', border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                             >
                               Close
                             </button>
@@ -593,12 +597,13 @@ export function ReviewsPage() {
             position: 'fixed',
             bottom: 24,
             right: 24,
-            backgroundColor: '#0284C7',
+            backgroundColor: '#111827',
             color: '#FFFFFF',
             padding: '12px 24px',
-            borderRadius: 8,
-            fontWeight: 700,
-            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)',
+            borderRadius: 12,
+            fontWeight: 600,
+            fontSize: 13,
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
             zIndex: 9999,
           }}
         >

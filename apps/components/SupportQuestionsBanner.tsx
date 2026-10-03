@@ -27,8 +27,7 @@ export function SupportQuestionsBanner() {
       {/* Banner Container */}
       <div
         style={{
-          backgroundColor: '#075985',
-          backgroundImage: 'linear-gradient(135deg, #075985 0%, #0284C7 50%, #0EA5E9 100%)',
+          background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
           borderRadius: 20,
           padding: '36px 44px',
           color: '#FFFFFF',
@@ -37,18 +36,17 @@ export function SupportQuestionsBanner() {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 24,
-          boxShadow: '0 10px 25px rgba(2, 132, 199, 0.25)',
+          boxShadow: '0 4px 20px rgba(33, 150, 243, 0.25)',
           position: 'relative',
           overflow: 'hidden',
-          border: '1px solid #38BDF8',
         }}
       >
         {/* Left Text & CTA */}
         <div style={{ maxWidth: 520, zIndex: 2 }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>
-            Still Have <span style={{ color: '#E0F2FE' }}>Questions?</span>
+          <h2 style={{ fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+            Still Have Questions?
           </h2>
-          <p style={{ fontSize: 15, color: '#F0F9FF', marginTop: 12, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.9)', marginTop: 10, lineHeight: 1.6 }}>
             Book a meeting with our Foodie marketplace operations specialists and discuss your queries.
           </p>
 
@@ -56,16 +54,16 @@ export function SupportQuestionsBanner() {
             type="button"
             onClick={() => setIsModalOpen(true)}
             style={{
-              marginTop: 20,
-              padding: '12px 28px',
+              marginTop: 18,
+              padding: '10px 24px',
               backgroundColor: '#FFFFFF',
-              color: '#0369A1',
+              color: '#2196F3',
               border: 'none',
               borderRadius: 10,
-              fontSize: 14,
-              fontWeight: 800,
+              fontSize: 13,
+              fontWeight: 700,
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.2)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
               transition: 'transform 0.15s ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
@@ -81,18 +79,17 @@ export function SupportQuestionsBanner() {
             display: 'flex',
             alignItems: 'center',
             gap: 16,
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
             backdropFilter: 'blur(10px)',
             padding: '20px 28px',
             borderRadius: 16,
-            border: '1px solid rgba(255, 255, 255, 0.3)',
+            border: '1px solid rgba(255, 255, 255, 0.35)',
             zIndex: 2,
           }}
         >
-          <div style={{ fontSize: 48 }}>📞</div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#FFFFFF' }}>1-on-1 Operations Call</div>
-            <div style={{ fontSize: 12, color: '#E0F2FE', marginTop: 4 }}>30-min strategy session with Foodie experts</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#FFFFFF' }}>1-on-1 Operations Call</div>
+            <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.85)', marginTop: 4 }}>30-min strategy session with Foodie experts</div>
           </div>
         </div>
 
@@ -107,16 +104,16 @@ export function SupportQuestionsBanner() {
             transform: 'translateY(-50%) rotate(-90deg)',
             transformOrigin: 'bottom right',
             backgroundColor: '#FFFFFF',
-            color: '#0369A1',
-            padding: '8px 16px',
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            border: '1px solid #BAE6FD',
-            fontSize: 12,
-            fontWeight: 800,
+            color: '#2196F3',
+            padding: '7px 14px',
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            border: '1px solid #E5E7EB',
+            fontSize: 11,
+            fontWeight: 700,
             cursor: 'pointer',
             zIndex: 3,
-            boxShadow: '0 -4px 10px rgba(2, 132, 199, 0.15)',
+            boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.08)',
           }}
         >
           Upcoming Features
@@ -129,7 +126,7 @@ export function SupportQuestionsBanner() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(7, 89, 133, 0.6)',
+            backgroundColor: 'rgba(17, 24, 39, 0.5)',
             backdropFilter: 'blur(4px)',
             zIndex: 9999,
             display: 'flex',
@@ -142,78 +139,77 @@ export function SupportQuestionsBanner() {
           <div
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: 16,
+              borderRadius: 20,
               maxWidth: 480,
               width: '100%',
               padding: 28,
-              boxShadow: '0 20px 40px rgba(2, 132, 199, 0.25)',
-              border: '1px solid #BAE6FD',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
+              border: '1px solid #E5E7EB',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
-                📅 Schedule Foodie Operations Consultation
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+                Schedule Foodie Operations Consultation
               </h3>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#0284C7' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280' }}
               >
-                ✕
+                ×
               </button>
             </div>
 
             {booked ? (
               <div style={{ padding: '32px 0', textAlign: 'center' }}>
-                <div style={{ fontSize: 48 }}>✅</div>
-                <h4 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', marginTop: 12 }}>
+                <h4 style={{ fontSize: 18, fontWeight: 700, color: '#111827', marginTop: 12 }}>
                   Meeting Successfully Booked!
                 </h4>
-                <p style={{ fontSize: 13, color: '#0284C7' }}>
+                <p style={{ fontSize: 13, color: '#6B7280' }}>
                   A calendar invite has been dispatched to {email || 'your email'}. Our specialist looks forward to speaking with you!
                 </p>
               </div>
             ) : (
               <form onSubmit={handleBook} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 20 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Your Name</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4B5563' }}>Your Name</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Alex Morgan"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', marginTop: 4, outline: 'none' }}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', color: '#111827', marginTop: 4, outline: 'none' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Business Email</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4B5563' }}>Business Email</label>
                   <input
                     type="email"
                     required
                     placeholder="e.g. alex@foodie.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', marginTop: 4, outline: 'none' }}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', color: '#111827', marginTop: 4, outline: 'none' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Preferred Consultation Date</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4B5563' }}>Preferred Consultation Date</label>
                   <input
                     type="date"
                     required
                     value={meetingDate}
                     onChange={(e) => setMeetingDate(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', marginTop: 4, outline: 'none' }}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', color: '#111827', marginTop: 4, outline: 'none' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Discussion Topic</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4B5563' }}>Discussion Topic</label>
                   <select
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', color: '#0369A1', marginTop: 4, outline: 'none' }}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', color: '#111827', marginTop: 4, outline: 'none' }}
                   >
                     <option>Vendor Onboarding & Commission Strategy</option>
                     <option>Delivery Fleet Logistics & Dynamic Surge Pricing</option>
@@ -226,15 +222,14 @@ export function SupportQuestionsBanner() {
                   style={{
                     marginTop: 10,
                     padding: '12px',
-                    backgroundColor: '#0284C7',
-                    backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+                    background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 10,
-                    fontWeight: 800,
+                    fontWeight: 700,
                     fontSize: 14,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)',
+                    boxShadow: '0 4px 12px rgba(33, 150, 243, 0.25)',
                   }}
                 >
                   Confirm Booking 
@@ -251,7 +246,7 @@ export function SupportQuestionsBanner() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(7, 89, 133, 0.6)',
+            backgroundColor: 'rgba(17, 24, 39, 0.5)',
             backdropFilter: 'blur(4px)',
             zIndex: 9999,
             display: 'flex',
@@ -269,36 +264,36 @@ export function SupportQuestionsBanner() {
               display: 'flex',
               flexDirection: 'column',
               gap: 20,
-              borderLeft: '1px solid #BAE6FD',
-              boxShadow: '-10px 0 25px rgba(2, 132, 199, 0.15)',
+              borderLeft: '1px solid #E5E7EB',
+              boxShadow: '-8px 0 24px rgba(0, 0, 0, 0.08)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #BAE6FD', paddingBottom: 16 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
-                🚀 Upcoming Foodie Features Roadmap
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E5E7EB', paddingBottom: 16 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+                Upcoming Foodie Features Roadmap
               </h3>
               <button
                 type="button"
                 onClick={() => setIsRoadmapOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#0284C7' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280' }}
               >
-                ✕
+                ×
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {[
-                { title: '🎙️ AI Multilingual Order Voice Bot', status: 'Q4 2025', desc: 'Allows customers to speak complex food orders directly in native languages.' },
-                { title: '🚁 Autonomous Drone Delivery Dispatch', status: 'Q1 2026', desc: 'Integration with automated aerial food delivery route planners.' },
-                { title: '🔥 Thermal Kitchen Heatmap Analytics', status: 'In Progress', desc: 'Real-time kitchen prep bottle-neck diagnostics for cloud kitchens.' },
+                { title: 'AI Multilingual Order Voice Bot', status: 'Q4 2025', desc: 'Allows customers to speak complex food orders directly in native languages.' },
+                { title: 'Autonomous Drone Delivery Dispatch', status: 'Q1 2026', desc: 'Integration with automated aerial food delivery route planners.' },
+                { title: 'Thermal Kitchen Heatmap Analytics', status: 'In Progress', desc: 'Real-time kitchen prep bottle-neck diagnostics for cloud kitchens.' },
               ].map((f) => (
-                <div key={f.title} style={{ padding: 14, borderRadius: 10, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+                <div key={f.title} style={{ padding: 16, borderRadius: 12, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0369A1' }}>{f.title}</div>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: '#0369A1', backgroundColor: '#BAE6FD', border: '1px solid #7DD3FC', padding: '2px 6px', borderRadius: 4 }}>{f.status}</span>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{f.title}</div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#2196F3', backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '2px 8px', borderRadius: 12 }}>{f.status}</span>
                   </div>
-                  <div style={{ fontSize: 12, color: '#0284C7', marginTop: 4 }}>{f.desc}</div>
+                  <div style={{ fontSize: 12, color: '#6B7280', marginTop: 6, lineHeight: 1.5 }}>{f.desc}</div>
                 </div>
               ))}
             </div>

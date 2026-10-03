@@ -19,35 +19,45 @@ export function DataTableShell({
 }: DataTableShellProps) {
   const { tokens } = useTheme();
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div
+      style={{
+        overflowX: 'auto',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        border: '1px solid #E5E7EB',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+      }}
+    >
       <table
         style={{
           width: '100%',
           borderCollapse: 'collapse',
           color: tokens.color.textPrimary,
+          fontSize: 14,
         }}
       >
-        <caption style={{ textAlign: 'left', paddingBottom: tokens.spacing.sm }}>
-          <Text as="span" variant="heading3">
+        {caption ? (
+          <caption style={{ textAlign: 'left', padding: '16px 20px', fontWeight: 700, color: '#111827', fontSize: 16 }}>
             {caption}
-          </Text>
-        </caption>
+          </caption>
+        ) : null}
         <thead>
-          <tr>
+          <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
             {headers.map((header) => (
               <th
                 key={header}
                 scope="col"
                 style={{
                   textAlign: 'left',
-                  padding: tokens.spacing.md,
-                  borderBottom: `1px solid ${tokens.color.border}`,
-                  background: tokens.color.surface,
+                  padding: '12px 20px',
+                  color: '#6B7280',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
                 }}
               >
-                <Text as="span" variant="label">
-                  {header}
-                </Text>
+                {header}
               </th>
             ))}
           </tr>

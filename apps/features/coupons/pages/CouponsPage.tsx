@@ -383,16 +383,16 @@ export function CouponsPage() {
   const activeCoupons = coupons.filter((c) => c.approvalStatus !== 'PENDING');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1400, margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#0369A1">
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>
             Campaigns, Offers & Promo Vouchers
-          </Text>
-          <Text as="p" variant="caption" color="#0284C7">
+          </h1>
+          <p style={{ fontSize: 14, color: '#6B7280', margin: '4px 0 0 0' }}>
             Manage promotional coupons, first-order welcome offers, referral rewards & seasonal campaigns
-          </Text>
+          </p>
         </div>
 
         {/* Search Bar */}
@@ -404,14 +404,13 @@ export function CouponsPage() {
           style={{
             padding: '10px 16px',
             borderRadius: 10,
-            border: '1px solid #BAE6FD',
+            border: '1px solid #E5E7EB',
             fontSize: 13,
             width: 320,
             maxWidth: '100%',
             outline: 'none',
             backgroundColor: '#FFFFFF',
-            color: '#0369A1',
-            boxShadow: 'inset 0 1px 3px rgba(2, 132, 199, 0.06)',
+            color: '#111827',
           }}
         />
       </div>
@@ -423,10 +422,10 @@ export function CouponsPage() {
           gap: 8,
           backgroundColor: '#FFFFFF',
           padding: '8px',
-          borderRadius: 12,
-          border: '1px solid #BAE6FD',
+          borderRadius: 20,
+          border: '1px solid #E5E7EB',
           overflowX: 'auto',
-          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
         }}
       >
         <button
@@ -434,13 +433,13 @@ export function CouponsPage() {
           onClick={() => setActiveTab('BANNERS')}
           style={{
             padding: '10px 20px',
-            borderRadius: 8,
+            borderRadius: 12,
             border: 'none',
-            background: activeTab === 'BANNERS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-            color: activeTab === 'BANNERS' ? '#FFFFFF' : '#0369A1',
-            boxShadow: activeTab === 'BANNERS' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+            background: activeTab === 'BANNERS' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
+            color: activeTab === 'BANNERS' ? '#FFFFFF' : '#6B7280',
+            boxShadow: activeTab === 'BANNERS' ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
             fontSize: 13,
-            fontWeight: 800,
+            fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
@@ -454,13 +453,13 @@ export function CouponsPage() {
           onClick={() => setActiveTab('PROMO_COUPONS')}
           style={{
             padding: '10px 20px',
-            borderRadius: 8,
+            borderRadius: 12,
             border: 'none',
-            background: activeTab === 'PROMO_COUPONS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-            color: activeTab === 'PROMO_COUPONS' ? '#FFFFFF' : '#0369A1',
-            boxShadow: activeTab === 'PROMO_COUPONS' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+            background: activeTab === 'PROMO_COUPONS' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
+            color: activeTab === 'PROMO_COUPONS' ? '#FFFFFF' : '#6B7280',
+            boxShadow: activeTab === 'PROMO_COUPONS' ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
             fontSize: 13,
-            fontWeight: 800,
+            fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
@@ -474,13 +473,13 @@ export function CouponsPage() {
           onClick={() => setActiveTab('PENDING_APPROVALS')}
           style={{
             padding: '10px 20px',
-            borderRadius: 8,
+            borderRadius: 12,
             border: 'none',
-            background: activeTab === 'PENDING_APPROVALS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-            color: activeTab === 'PENDING_APPROVALS' ? '#FFFFFF' : '#0369A1',
-            boxShadow: activeTab === 'PENDING_APPROVALS' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+            background: activeTab === 'PENDING_APPROVALS' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
+            color: activeTab === 'PENDING_APPROVALS' ? '#FFFFFF' : '#6B7280',
+            boxShadow: activeTab === 'PENDING_APPROVALS' ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
             fontSize: 13,
-            fontWeight: 800,
+            fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
@@ -494,13 +493,13 @@ export function CouponsPage() {
           onClick={() => setActiveTab('FIRST_ORDER_OFFERS')}
           style={{
             padding: '10px 20px',
-            borderRadius: 8,
+            borderRadius: 12,
             border: 'none',
-            background: activeTab === 'FIRST_ORDER_OFFERS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-            color: activeTab === 'FIRST_ORDER_OFFERS' ? '#FFFFFF' : '#0369A1',
-            boxShadow: activeTab === 'FIRST_ORDER_OFFERS' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+            background: activeTab === 'FIRST_ORDER_OFFERS' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
+            color: activeTab === 'FIRST_ORDER_OFFERS' ? '#FFFFFF' : '#6B7280',
+            boxShadow: activeTab === 'FIRST_ORDER_OFFERS' ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
             fontSize: 13,
-            fontWeight: 800,
+            fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
@@ -514,13 +513,13 @@ export function CouponsPage() {
           onClick={() => setActiveTab('REFERRAL_OFFERS')}
           style={{
             padding: '10px 20px',
-            borderRadius: 8,
+            borderRadius: 12,
             border: 'none',
-            background: activeTab === 'REFERRAL_OFFERS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-            color: activeTab === 'REFERRAL_OFFERS' ? '#FFFFFF' : '#0369A1',
-            boxShadow: activeTab === 'REFERRAL_OFFERS' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+            background: activeTab === 'REFERRAL_OFFERS' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
+            color: activeTab === 'REFERRAL_OFFERS' ? '#FFFFFF' : '#6B7280',
+            boxShadow: activeTab === 'REFERRAL_OFFERS' ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
             fontSize: 13,
-            fontWeight: 800,
+            fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
@@ -534,13 +533,13 @@ export function CouponsPage() {
           onClick={() => setActiveTab('CAMPAIGN_MANAGEMENT')}
           style={{
             padding: '10px 20px',
-            borderRadius: 8,
+            borderRadius: 12,
             border: 'none',
-            background: activeTab === 'CAMPAIGN_MANAGEMENT' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-            color: activeTab === 'CAMPAIGN_MANAGEMENT' ? '#FFFFFF' : '#0369A1',
-            boxShadow: activeTab === 'CAMPAIGN_MANAGEMENT' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+            background: activeTab === 'CAMPAIGN_MANAGEMENT' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
+            color: activeTab === 'CAMPAIGN_MANAGEMENT' ? '#FFFFFF' : '#6B7280',
+            boxShadow: activeTab === 'CAMPAIGN_MANAGEMENT' ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
             fontSize: 13,
-            fontWeight: 800,
+            fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
@@ -561,72 +560,72 @@ export function CouponsPage() {
             onSubmit={handleCreateCoupon}
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: 14,
-              border: '1px solid #BAE6FD',
+              borderRadius: 20,
+              border: '1px solid #E5E7EB',
               padding: '24px',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
-              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
               height: 'fit-content',
             }}
           >
-            <Text as="h2" variant="heading3" color="#0369A1">
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
               Create Promo Coupon
-            </Text>
+            </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Coupon Code</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Coupon Code</label>
               <input
                 type="text"
                 placeholder="e.g. FOODIE50"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', textTransform: 'uppercase', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', textTransform: 'uppercase', color: '#111827', backgroundColor: '#FFFFFF' }}
               />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Campaign Title</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Campaign Title</label>
               <input
                 type="text"
                 placeholder="e.g. 50% OFF Super Meal Deal"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Discount Type</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Discount Type</label>
                 <select
                   value={discountType}
                   onChange={(e) => setDiscountType(e.target.value as 'PERCENT' | 'FIXED')}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                 >
                   <option value="PERCENT">Percentage (%)</option>
                   <option value="FIXED">Fixed Amount (₹)</option>
                 </select>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Value</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Value</label>
                 <input
                   type="number"
                   placeholder="e.g. 50"
                   value={discountValue}
                   onChange={(e) => setDiscountValue(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                 />
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Target Food Category</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Target Food Category</label>
               <select
                 value={module}
                 onChange={(e) => setModule(e.target.value)}
-                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
               >
                 <option value="All Food Delivery">All Food Delivery</option>
                 <option value="Fine Dining & Pizzerias">Fine Dining & Pizzerias</option>
@@ -636,13 +635,13 @@ export function CouponsPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Minimum Purchase (₹)</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Minimum Purchase (₹)</label>
               <input
                 type="number"
                 placeholder="e.g. 300"
                 value={minPurchase}
                 onChange={(e) => setMinPurchase(e.target.value)}
-                style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
               />
             </div>
 
@@ -651,16 +650,16 @@ export function CouponsPage() {
               disabled={isCreatingCoupon}
               style={{
                 padding: '12px 18px',
-                background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                 color: '#FFFFFF',
                 border: 'none',
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 14,
-                fontWeight: 800,
+                fontWeight: 600,
                 cursor: isCreatingCoupon ? 'not-allowed' : 'pointer',
                 marginTop: 8,
                 opacity: isCreatingCoupon ? 0.7 : 1,
-                boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
               }}
             >
               {isCreatingCoupon ? 'Creating...' : 'Create Coupon'}
@@ -671,20 +670,20 @@ export function CouponsPage() {
           <div
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: 14,
-              border: '1px solid #BAE6FD',
+              borderRadius: 20,
+              border: '1px solid #E5E7EB',
               overflow: 'hidden',
-              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
             }}
           >
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF' }}>
-              <Text as="h2" variant="heading3" color="#0369A1">
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>
                 Active Promo Coupons Directory
-              </Text>
+              </h2>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #BAE6FD', color: '#0369A1', backgroundColor: '#F0F9FF', fontSize: 12, fontWeight: 800 }}>
+                <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   <th style={{ padding: '14px 20px' }}>Code & Title</th>
                   <th style={{ padding: '14px 20px' }}>Discount</th>
                   <th style={{ padding: '14px 20px' }}>Min Purchase</th>
@@ -711,34 +710,32 @@ export function CouponsPage() {
                     return true;
                   })
                   .map((c) => (
-                    <tr key={c.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                    <tr key={c.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#0369A1', fontFamily: 'monospace' }}>{c.code}</div>
-                        <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>{c.title}</div>
+                        <div style={{ fontWeight: 700, color: '#111827', fontFamily: 'monospace' }}>{c.code}</div>
+                        <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{c.title}</div>
                       </td>
-                      <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0369A1' }}>
+                      <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>
                         {c.discountType === 'PERCENT' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT`}
                       </td>
-                      <td style={{ padding: '16px 20px', color: '#0369A1', fontWeight: 700 }}>
+                      <td style={{ padding: '16px 20px', color: '#111827', fontWeight: 600 }}>
                         ₹{c.minPurchase}
                       </td>
                       <td style={{ padding: '16px 20px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: '#F0F9FF', color: '#0369A1', padding: '3px 8px', borderRadius: 4, border: '1px solid #BAE6FD' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '3px 8px', borderRadius: 6 }}>
                           {c.module}
                         </span>
                       </td>
-                      <td style={{ padding: '16px 20px', color: '#0284C7', fontSize: 12 }}>{c.expiryDate}</td>
+                      <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>{c.expiryDate}</td>
                       <td style={{ padding: '16px 20px' }}>
                         <span
                           style={{
-                            background: c.status === 'ACTIVE' ? 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)' : '#F0F9FF',
-                            color: c.status === 'ACTIVE' ? '#FFFFFF' : '#0284C7',
-                            border: c.status === 'ACTIVE' ? '1px solid #0284C7' : '1px solid #BAE6FD',
-                            boxShadow: c.status === 'ACTIVE' ? '0 2px 6px rgba(14, 165, 233, 0.2)' : 'none',
+                            background: c.status === 'ACTIVE' ? '#DCFCE7' : '#F3F4F6',
+                            color: c.status === 'ACTIVE' ? '#15803D' : '#6B7280',
                             fontSize: 11,
-                            fontWeight: 800,
+                            fontWeight: 600,
                             padding: '4px 10px',
-                            borderRadius: 20,
+                            borderRadius: 9999,
                             display: 'inline-block',
                           }}
                         >
@@ -753,12 +750,12 @@ export function CouponsPage() {
                             disabled={c.status === 'ACTIVE' ? isDeactivatingCoupon : isActivatingCoupon}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#F0F9FF',
-                              color: '#0369A1',
-                              border: '1px solid #BAE6FD',
-                              borderRadius: 6,
+                              backgroundColor: '#E3F2FD',
+                              color: '#2196F3',
+                              border: 'none',
+                              borderRadius: 8,
                               fontSize: 11,
-                              fontWeight: 800,
+                              fontWeight: 600,
                               cursor: isDeactivatingCoupon || isActivatingCoupon ? 'not-allowed' : 'pointer',
                               opacity: isDeactivatingCoupon || isActivatingCoupon ? 0.5 : 1,
                             }}
@@ -772,11 +769,11 @@ export function CouponsPage() {
                             style={{
                               padding: '6px 12px',
                               backgroundColor: '#FEE2E2',
-                              color: '#991B1B',
+                              color: '#EF4444',
                               border: '1px solid #FECACA',
-                              borderRadius: 6,
+                              borderRadius: 8,
                               fontSize: 11,
-                              fontWeight: 800,
+                              fontWeight: 600,
                               cursor: isDeletingCoupon ? 'not-allowed' : 'pointer',
                               opacity: isDeletingCoupon ? 0.5 : 1,
                             }}
@@ -799,20 +796,20 @@ export function CouponsPage() {
           <div
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: 14,
-              border: '1px solid #BAE6FD',
+              borderRadius: 20,
+              border: '1px solid #E5E7EB',
               overflow: 'hidden',
-              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
             }}
           >
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF' }}>
-              <Text as="h2" variant="heading3" color="#0369A1">
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>
                 Restaurant Campaigns Pending Approval
-              </Text>
+              </h2>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #BAE6FD', color: '#0369A1', backgroundColor: '#F0F9FF', fontSize: 12, fontWeight: 800 }}>
+                <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   <th style={{ padding: '14px 20px' }}>CODE</th>
                   <th style={{ padding: '14px 20px' }}>TITLE</th>
                   <th style={{ padding: '14px 20px' }}>RESTAURANT</th>
@@ -824,28 +821,28 @@ export function CouponsPage() {
               <tbody>
                 {pendingCoupons.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: '28px', textAlign: 'center', color: '#0284C7', fontWeight: 600 }}>
+                    <td colSpan={6} style={{ padding: '28px', textAlign: 'center', color: '#6B7280', fontWeight: 500 }}>
                       No pending campaigns found.
                     </td>
                   </tr>
                 ) : (
                   pendingCoupons.map((coupon) => (
-                    <tr key={coupon.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
-                      <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0369A1' }}>
+                    <tr key={coupon.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '16px 20px', fontWeight: 700, color: '#111827' }}>
                         {coupon.code}
                       </td>
-                      <td style={{ padding: '16px 20px', color: '#0369A1' }}>
+                      <td style={{ padding: '16px 20px', color: '#111827' }}>
                         {coupon.title}
                       </td>
-                      <td style={{ padding: '16px 20px', color: '#0284C7' }}>
+                      <td style={{ padding: '16px 20px', color: '#6B7280' }}>
                         {coupon.module}
                       </td>
                       <td style={{ padding: '16px 20px' }}>
-                        <span style={{ backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 800 }}>
+                        <span style={{ backgroundColor: '#E3F2FD', color: '#2196F3', padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
                           {coupon.discountType === 'PERCENT' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`}
                         </span>
                       </td>
-                      <td style={{ padding: '16px 20px', color: '#0284C7', fontSize: 12 }}>
+                      <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>
                         Min ₹{coupon.minPurchase}
                         {coupon.maxDiscount > 0 && <span> <br />Max ₹{coupon.maxDiscount}</span>}
                       </td>
@@ -856,14 +853,14 @@ export function CouponsPage() {
                             onClick={() => handleApprove(coupon.id)}
                             style={{
                               padding: '6px 14px',
-                              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                               color: '#FFFFFF',
                               border: 'none',
-                              borderRadius: 6,
+                              borderRadius: 8,
                               fontSize: 11,
-                              fontWeight: 800,
+                              fontWeight: 600,
                               cursor: 'pointer',
-                              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                              boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
                             }}
                           >
                             Approve
@@ -874,11 +871,11 @@ export function CouponsPage() {
                             style={{
                               padding: '6px 14px',
                               backgroundColor: '#FEE2E2',
-                              color: '#991B1B',
+                              color: '#EF4444',
                               border: '1px solid #FECACA',
-                              borderRadius: 6,
+                              borderRadius: 8,
                               fontSize: 11,
-                              fontWeight: 800,
+                              fontWeight: 600,
                               cursor: 'pointer',
                             }}
                           >
@@ -900,17 +897,17 @@ export function CouponsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Overview Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
-            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>Active First-Order Deals</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>{firstOrderOffers.length}</div>
+            <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>Active First-Order Deals</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#111827', marginTop: 4 }}>{firstOrderOffers.length}</div>
             </div>
-            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>Total New User Claims</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>1,480 Claims</div>
+            <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>Total New User Claims</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#111827', marginTop: 4 }}>1,480 Claims</div>
             </div>
-            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>New Customer Conversion Boost</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>+24.8%</div>
+            <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>New Customer Conversion Boost</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#22C55E', marginTop: 4 }}>+24.8%</div>
             </div>
           </div>
 
@@ -920,62 +917,62 @@ export function CouponsPage() {
               onSubmit={handleCreateFirstOrderOffer}
               style={{
                 backgroundColor: '#FFFFFF',
-                borderRadius: 14,
-                border: '1px solid #BAE6FD',
+                borderRadius: 20,
+                border: '1px solid #E5E7EB',
                 padding: '24px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 16,
-                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
               }}
             >
-              <Text as="h2" variant="heading3" color="#0369A1">
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
                 Create First Order Offer
-              </Text>
+              </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Promo Code *</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Promo Code *</label>
                 <input
                   type="text"
                   placeholder="e.g. FIRST50"
                   value={foCode}
                   onChange={(e) => setFoCode(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', textTransform: 'uppercase', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', textTransform: 'uppercase', color: '#111827', backgroundColor: '#FFFFFF' }}
                   required
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Offer Title</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Offer Title</label>
                 <input
                   type="text"
                   placeholder="e.g. 50% OFF Welcome Bonus on First Order"
                   value={foTitle}
                   onChange={(e) => setFoTitle(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Discount % *</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Discount % *</label>
                   <input
                     type="number"
                     placeholder="e.g. 50"
                     value={foValue}
                     onChange={(e) => setFoValue(e.target.value)}
-                    style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                    style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                     required
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Min Order (₹)</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Min Order (₹)</label>
                   <input
                     type="number"
                     placeholder="e.g. 200"
                     value={foMinPurchase}
                     onChange={(e) => setFoMinPurchase(e.target.value)}
-                    style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                    style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                   />
                 </div>
               </div>
@@ -984,15 +981,15 @@ export function CouponsPage() {
                 type="submit"
                 style={{
                   padding: '12px 18px',
-                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
                   border: 'none',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   fontSize: 14,
-                  fontWeight: 800,
+                  fontWeight: 600,
                   cursor: 'pointer',
                   marginTop: 8,
-                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                  boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 Activate First Order Offer
@@ -1000,15 +997,15 @@ export function CouponsPage() {
             </form>
 
             {/* First Order Offers List */}
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF' }}>
-                <Text as="h2" variant="heading3" color="#0369A1">
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}>
+                <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>
                   Active First Order Offers Directory
-                </Text>
+                </h2>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #BAE6FD', color: '#0369A1', backgroundColor: '#F0F9FF', fontSize: 12, fontWeight: 800 }}>
+                  <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     <th style={{ padding: '14px 20px' }}>Code & Deal</th>
                     <th style={{ padding: '14px 20px' }}>Discount</th>
                     <th style={{ padding: '14px 20px' }}>Min Order</th>
@@ -1023,18 +1020,18 @@ export function CouponsPage() {
                       return !q || fo.code.toLowerCase().includes(q) || fo.title.toLowerCase().includes(q);
                     })
                     .map((fo) => (
-                      <tr key={fo.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                      <tr key={fo.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                         <td style={{ padding: '16px 20px' }}>
-                          <div style={{ fontWeight: 800, color: '#0369A1', fontFamily: 'monospace' }}>{fo.code}</div>
-                          <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>{fo.title}</div>
+                          <div style={{ fontWeight: 700, color: '#111827', fontFamily: 'monospace' }}>{fo.code}</div>
+                          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{fo.title}</div>
                         </td>
-                        <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0369A1' }}>
+                        <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>
                           {fo.discountType === 'PERCENT' ? `${fo.discountValue}% OFF` : `₹${fo.discountValue} FLAT`}
                         </td>
-                        <td style={{ padding: '16px 20px', color: '#0369A1', fontWeight: 700 }}>₹{fo.minPurchase}</td>
-                        <td style={{ padding: '16px 20px', color: '#0284C7', fontWeight: 700 }}>{fo.totalClaims} redemptions</td>
+                        <td style={{ padding: '16px 20px', color: '#111827', fontWeight: 600 }}>₹{fo.minPurchase}</td>
+                        <td style={{ padding: '16px 20px', color: '#6B7280', fontWeight: 500 }}>{fo.totalClaims} redemptions</td>
                         <td style={{ padding: '16px 20px' }}>
-                          <span style={{ backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 20 }}>
+                          <span style={{ backgroundColor: '#DCFCE7', color: '#15803D', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 9999 }}>
                             {fo.status}
                           </span>
                         </td>
@@ -1052,19 +1049,19 @@ export function CouponsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Overview Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
-            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>Referral Status</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>
+            <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>Referral Status</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginTop: 4 }}>
                 {isReferralActive ? 'Active Campaign' : 'Paused'}
               </div>
             </div>
-            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>Total Successful Referrals</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>3,240 Users</div>
+            <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>Total Successful Referrals</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#111827', marginTop: 4 }}>3,240 Users</div>
             </div>
-            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>Total Referral Cash Paid</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>₹3,24,000</div>
+            <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>Total Referral Cash Paid</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#22C55E', marginTop: 4 }}>₹3,24,000</div>
             </div>
           </div>
 
@@ -1073,46 +1070,46 @@ export function CouponsPage() {
             <div
               style={{
                 backgroundColor: '#FFFFFF',
-                borderRadius: 14,
-                border: '1px solid #BAE6FD',
+                borderRadius: 20,
+                border: '1px solid #E5E7EB',
                 padding: '24px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 16,
-                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
               }}
             >
-              <Text as="h2" variant="heading3" color="#0369A1">
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
                 Referral Program Settings
-              </Text>
+              </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Referrer Reward (₹)</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Referrer Reward (₹)</label>
                 <input
                   type="number"
                   value={referrerBonus}
                   onChange={(e) => setReferrerBonus(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Referee Signup Bonus (₹)</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Referee Signup Bonus (₹)</label>
                 <input
                   type="number"
                   value={refereeBonus}
                   onChange={(e) => setRefereeBonus(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Min Order Value for Reward (₹)</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Min Order Value for Reward (₹)</label>
                 <input
                   type="number"
                   value={referralMinOrder}
                   onChange={(e) => setReferralMinOrder(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                 />
               </div>
 
@@ -1124,15 +1121,15 @@ export function CouponsPage() {
                 }}
                 style={{
                   padding: '12px 18px',
-                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
                   border: 'none',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   fontSize: 14,
-                  fontWeight: 800,
+                  fontWeight: 600,
                   cursor: 'pointer',
                   marginTop: 8,
-                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                  boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 Save Referral Configuration
@@ -1140,15 +1137,15 @@ export function CouponsPage() {
             </div>
 
             {/* Top Referral Champions Table */}
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF' }}>
-                <Text as="h2" variant="heading3" color="#0369A1">
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}>
+                <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>
                   Top Referral Champions
-                </Text>
+                </h2>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #BAE6FD', color: '#0369A1', backgroundColor: '#F0F9FF', fontSize: 12, fontWeight: 800 }}>
+                  <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     <th style={{ padding: '14px 20px' }}>User Name</th>
                     <th style={{ padding: '14px 20px' }}>Referral Code</th>
                     <th style={{ padding: '14px 20px' }}>Friends Joined</th>
@@ -1161,11 +1158,11 @@ export function CouponsPage() {
                     { name: 'Karthik Raja', code: 'KARTHIK01', count: 35, earned: '₹3,500' },
                     { name: 'Divya Nambiar', code: 'DIVYA99', count: 29, earned: '₹2,900' },
                   ].map((row, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #E0F2FE' }}>
-                      <td style={{ padding: '16px 20px', fontWeight: 700, color: '#0369A1' }}>{row.name}</td>
-                      <td style={{ padding: '16px 20px', fontFamily: 'monospace', fontWeight: 800, color: '#0369A1' }}>{row.code}</td>
-                      <td style={{ padding: '16px 20px', color: '#0284C7', fontWeight: 600 }}>{row.count} referred</td>
-                      <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0369A1' }}>{row.earned}</td>
+                    <tr key={idx} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{row.name}</td>
+                      <td style={{ padding: '16px 20px', fontFamily: 'monospace', fontWeight: 600, color: '#2196F3' }}>{row.code}</td>
+                      <td style={{ padding: '16px 20px', color: '#6B7280', fontWeight: 500 }}>{row.count} referred</td>
+                      <td style={{ padding: '16px 20px', fontWeight: 600, color: '#22C55E' }}>{row.earned}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1180,19 +1177,19 @@ export function CouponsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Overview Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
-            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>Live Marketing Campaigns</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>
+            <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>Live Marketing Campaigns</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#111827', marginTop: 4 }}>
                 {campaigns.filter((c) => c.status === 'LIVE').length} Running
               </div>
             </div>
-            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>Total Campaign Orders</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>8,920 Orders</div>
+            <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>Total Campaign Orders</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#111827', marginTop: 4 }}>8,920 Orders</div>
             </div>
-            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600 }}>Campaign Revenue Driven</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>₹48.5 Lakhs</div>
+            <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>Campaign Revenue Driven</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#22C55E', marginTop: 4 }}>₹48.5 Lakhs</div>
             </div>
           </div>
 
@@ -1202,49 +1199,49 @@ export function CouponsPage() {
               onSubmit={handleCreateCampaign}
               style={{
                 backgroundColor: '#FFFFFF',
-                borderRadius: 14,
-                border: '1px solid #BAE6FD',
+                borderRadius: 20,
+                border: '1px solid #E5E7EB',
                 padding: '24px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 16,
-                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
               }}
             >
-              <Text as="h2" variant="heading3" color="#0369A1">
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
                 Launch Promotional Campaign
-              </Text>
+              </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Campaign Title *</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Campaign Title *</label>
                 <input
                   type="text"
                   placeholder="e.g. Diwali Super Feast Gala 2026"
                   value={cmpTitle}
                   onChange={(e) => setCmpTitle(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                   required
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Banner Offer Details *</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Banner Offer Details *</label>
                 <input
                   type="text"
                   placeholder="e.g. Up to 60% OFF + Free Delivery"
                   value={cmpBanner}
                   onChange={(e) => setCmpBanner(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                   required
                 />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Category / Outlets</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Category / Outlets</label>
                 <select
                   value={cmpCategory}
                   onChange={(e) => setCmpCategory(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                 >
                   <option value="All Food Delivery">All Food Delivery</option>
                   <option value="Fine Dining & Pizzerias">Fine Dining & Pizzerias</option>
@@ -1254,13 +1251,13 @@ export function CouponsPage() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1' }}>Marketing Budget (₹)</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Marketing Budget (₹)</label>
                 <input
                   type="number"
                   placeholder="e.g. 150000"
                   value={cmpBudget}
                   onChange={(e) => setCmpBudget(e.target.value)}
-                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, outline: 'none', color: '#0369A1', backgroundColor: '#FFFFFF' }}
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
                 />
               </div>
 
@@ -1268,15 +1265,15 @@ export function CouponsPage() {
                 type="submit"
                 style={{
                   padding: '12px 18px',
-                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
                   border: 'none',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   fontSize: 14,
-                  fontWeight: 800,
+                  fontWeight: 600,
                   cursor: 'pointer',
                   marginTop: 8,
-                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                  boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
                 }}
               >
                 Launch Marketing Campaign
@@ -1284,15 +1281,15 @@ export function CouponsPage() {
             </form>
 
             {/* Campaign Directory Table */}
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #BAE6FD', backgroundColor: '#F0F9FF' }}>
-                <Text as="h2" variant="heading3" color="#0369A1">
+            <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}>
+                <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>
                   Marketing Campaigns Directory
-                </Text>
+                </h2>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #BAE6FD', color: '#0369A1', backgroundColor: '#F0F9FF', fontSize: 12, fontWeight: 800 }}>
+                  <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     <th style={{ padding: '14px 20px' }}>Campaign Title & Offer</th>
                     <th style={{ padding: '14px 20px' }}>Category</th>
                     <th style={{ padding: '14px 20px' }}>Budget</th>
@@ -1302,25 +1299,23 @@ export function CouponsPage() {
                 </thead>
                 <tbody>
                   {campaigns.map((cmp) => (
-                    <tr key={cmp.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                    <tr key={cmp.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 800, color: '#0369A1' }}>{cmp.title}</div>
-                        <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600, marginTop: 2 }}>{cmp.bannerOffer}</div>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>{cmp.title}</div>
+                        <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{cmp.bannerOffer}</div>
                       </td>
-                      <td style={{ padding: '16px 20px', color: '#0284C7', fontSize: 13 }}>{cmp.category}</td>
-                      <td style={{ padding: '16px 20px', fontWeight: 700, color: '#0369A1' }}>₹{cmp.budget.toLocaleString()}</td>
-                      <td style={{ padding: '16px 20px', fontWeight: 700, color: '#0369A1' }}>{cmp.totalOrders} orders</td>
+                      <td style={{ padding: '16px 20px', color: '#374151', fontSize: 13 }}>{cmp.category}</td>
+                      <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>₹{cmp.budget.toLocaleString()}</td>
+                      <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{cmp.totalOrders} orders</td>
                       <td style={{ padding: '16px 20px' }}>
                         <span
                           style={{
-                            background: cmp.status === 'LIVE' ? 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)' : '#F0F9FF',
-                            color: cmp.status === 'LIVE' ? '#FFFFFF' : '#0284C7',
-                            border: cmp.status === 'LIVE' ? '1px solid #0284C7' : '1px solid #BAE6FD',
-                            boxShadow: cmp.status === 'LIVE' ? '0 2px 6px rgba(14, 165, 233, 0.2)' : 'none',
+                            background: cmp.status === 'LIVE' ? '#DCFCE7' : '#F3F4F6',
+                            color: cmp.status === 'LIVE' ? '#15803D' : '#6B7280',
                             fontSize: 11,
-                            fontWeight: 800,
+                            fontWeight: 600,
                             padding: '4px 10px',
-                            borderRadius: 20,
+                            borderRadius: 9999,
                             display: 'inline-block',
                           }}
                         >
@@ -1342,13 +1337,12 @@ export function CouponsPage() {
             position: 'fixed',
             bottom: 24,
             right: 24,
-            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+            background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
             color: '#FFFFFF',
             padding: '12px 24px',
-            borderRadius: 8,
-            fontWeight: 800,
-            boxShadow: '0 10px 25px rgba(2, 132, 199, 0.35)',
-            border: '1px solid #38BDF8',
+            borderRadius: 12,
+            fontWeight: 600,
+            boxShadow: '0 10px 25px rgba(33, 150, 243, 0.35)',
             zIndex: 9999,
           }}
         >

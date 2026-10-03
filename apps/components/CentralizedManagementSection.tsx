@@ -28,20 +28,20 @@ export function CentralizedManagementSection() {
           backgroundColor: '#FFFFFF',
           borderRadius: 20,
           padding: '32px 28px',
-          border: '1px solid #BAE6FD',
+          border: '1px solid #E5E7EB',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           gap: 20,
-          boxShadow: '0 4px 14px rgba(2, 132, 199, 0.08)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
         }}
       >
         <div>
-          <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', margin: 0 }}>
-              <span style={{ color: '#0284C7' }}>Zone-wise</span> Business Setup
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0, letterSpacing: '-0.01em' }}>
+              <span style={{ color: '#2196F3' }}>Zone-wise</span> Business Setup
             </h2>
-            <p style={{ fontSize: 13, color: '#0284C7', marginTop: 10, lineHeight: 1.6, maxWidth: 500, marginLeft: 'auto', marginRight: 'auto' }}>
+            <p style={{ fontSize: 13, color: '#6B7280', marginTop: 8, lineHeight: 1.6, maxWidth: 500, marginLeft: 'auto', marginRight: 'auto' }}>
               With Foodie, you can choose in which area your food delivery business will be effective by simply adding geo-boundary points on the map. It is unbelievably simple yet a very powerful tool in your hand.
             </p>
           </div>
@@ -51,22 +51,21 @@ export function CentralizedManagementSection() {
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: 16,
-              border: '2px solid #0284C7',
-              padding: 16,
-              boxShadow: '0 8px 20px rgba(2, 132, 199, 0.12)',
+              border: '1px solid #E5E7EB',
+              padding: 14,
             }}
           >
             <div
               style={{
                 height: 180,
-                backgroundColor: '#F0F9FF',
+                backgroundColor: '#F5F7FA',
                 borderRadius: 12,
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px dashed #BAE6FD',
+                border: '1px dashed #D1D5DB',
               }}
             >
               {/* SVG Grid Overlay */}
@@ -74,9 +73,9 @@ export function CentralizedManagementSection() {
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  backgroundImage: 'radial-gradient(#0284C7 1px, transparent 1px)',
+                  backgroundImage: 'radial-gradient(#94A3B8 1px, transparent 1px)',
                   backgroundSize: '20px 20px',
-                  opacity: 0.2,
+                  opacity: 0.3,
                 }}
               />
 
@@ -90,26 +89,25 @@ export function CentralizedManagementSection() {
                     position: 'absolute',
                     top: `${30 + idx * 25}%`,
                     left: `${25 + idx * 30}%`,
-                    backgroundColor: selectedZone.id === z.id ? '#0284C7' : '#FFFFFF',
-                    backgroundImage: selectedZone.id === z.id ? 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)' : 'none',
-                    color: selectedZone.id === z.id ? '#FFFFFF' : '#0369A1',
-                    border: '2px solid #0284C7',
+                    background: selectedZone.id === z.id ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : '#FFFFFF',
+                    color: selectedZone.id === z.id ? '#FFFFFF' : '#4B5563',
+                    border: selectedZone.id === z.id ? 'none' : '1px solid #E5E7EB',
                     borderRadius: 20,
-                    padding: '4px 10px',
+                    padding: '5px 12px',
                     fontSize: 11,
-                    fontWeight: 800,
+                    fontWeight: 600,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 8px rgba(14, 165, 233, 0.25)',
-                    transform: selectedZone.id === z.id ? 'scale(1.1)' : 'scale(1)',
-                    transition: 'all 0.2s ease',
+                    boxShadow: selectedZone.id === z.id ? '0 2px 8px rgba(33, 150, 243, 0.3)' : '0 1px 3px rgba(0,0,0,0.05)',
+                    transform: selectedZone.id === z.id ? 'scale(1.05)' : 'scale(1)',
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  📍 {z.name}
+                  {z.name}
                 </button>
               ))}
 
-              <div style={{ position: 'absolute', bottom: 10, left: 12, fontSize: 11, fontWeight: 700, color: '#0369A1' }}>
-                🗺️ Active Zone: {selectedZone.name} ({selectedZone.activeStores} Food Outlets)
+              <div style={{ position: 'absolute', bottom: 10, left: 12, fontSize: 11, fontWeight: 600, color: '#4B5563' }}>
+                Active Zone: <span style={{ color: '#2196F3' }}>{selectedZone.name}</span> ({selectedZone.activeStores} Food Outlets)
               </div>
             </div>
           </div>
@@ -122,20 +120,20 @@ export function CentralizedManagementSection() {
           backgroundColor: '#FFFFFF',
           borderRadius: 20,
           padding: '32px 28px',
-          border: '1px solid #BAE6FD',
+          border: '1px solid #E5E7EB',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           gap: 20,
-          boxShadow: '0 4px 14px rgba(2, 132, 199, 0.08)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
         }}
       >
         <div>
-          <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', margin: 0 }}>
-              <span style={{ color: '#0284C7' }}>Centralized</span> Business Management
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0, letterSpacing: '-0.01em' }}>
+              <span style={{ color: '#2196F3' }}>Centralized</span> Business Management
             </h2>
-            <p style={{ fontSize: 13, color: '#0284C7', marginTop: 10, lineHeight: 1.6, maxWidth: 500, marginLeft: 'auto', marginRight: 'auto' }}>
+            <p style={{ fontSize: 13, color: '#6B7280', marginTop: 8, lineHeight: 1.6, maxWidth: 500, marginLeft: 'auto', marginRight: 'auto' }}>
               You can have multiple food delivery modules on your Foodie system, but managing them is simpler than you imagine. One centralized control for managing everything in your entire system.
             </p>
           </div>
@@ -149,10 +147,10 @@ export function CentralizedManagementSection() {
             }}
           >
             {[
-              { label: 'Fine Dining & Pizzerias', icon: '🍕', count: '18 Active Outlets' },
-              { label: 'Cafes & Bakery', icon: '☕', count: '12 Active Outlets' },
-              { label: 'Cloud Kitchens', icon: '🍳', count: '8 Active Outlets' },
-              { label: 'All Food Delivery', icon: '🛵', count: '42 Total Outlets' },
+              { label: 'Fine Dining & Pizzerias', count: '18 Active Outlets' },
+              { label: 'Cafes & Bakery', count: '12 Active Outlets' },
+              { label: 'Cloud Kitchens', count: '8 Active Outlets' },
+              { label: 'All Food Delivery', count: '42 Total Outlets' },
             ].map((m) => {
               const isSelected = activeModuleTile === m.label;
               return (
@@ -160,20 +158,29 @@ export function CentralizedManagementSection() {
                   key={m.label}
                   onClick={() => setActiveModuleTile(m.label)}
                   style={{
-                    backgroundColor: isSelected ? '#0284C7' : '#F0F9FF',
-                    backgroundImage: isSelected ? 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)' : 'none',
-                    color: isSelected ? '#FFFFFF' : '#0369A1',
-                    borderRadius: 12,
+                    backgroundColor: isSelected ? '#2196F3' : '#F9FAFB',
+                    backgroundImage: isSelected ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'none',
+                    color: isSelected ? '#FFFFFF' : '#111827',
+                    borderRadius: 14,
                     padding: '16px',
-                    border: isSelected ? '2px solid #38BDF8' : '1px solid #BAE6FD',
-                    boxShadow: isSelected ? '0 4px 12px rgba(14, 165, 233, 0.35)' : '0 2px 6px rgba(0,0,0,0.03)',
+                    border: isSelected ? 'none' : '1px solid #E5E7EB',
+                    boxShadow: isSelected ? '0 4px 12px rgba(33, 150, 243, 0.25)' : 'none',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = '#F3F4F6';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = '#F9FAFB';
+                    }
+                  }}
                 >
-                  <div style={{ fontSize: 24 }}>{m.icon}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8 }}>{m.label}</div>
-                  <div style={{ fontSize: 11, opacity: isSelected ? 0.95 : 0.8, marginTop: 2 }}>{m.count}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{m.label}</div>
+                  <div style={{ fontSize: 11, color: isSelected ? 'rgba(255,255,255,0.85)' : '#6B7280', marginTop: 4 }}>{m.count}</div>
                 </div>
               );
             })}

@@ -158,10 +158,10 @@ export function CustomerManagementStudio() {
         }}
       >
         <div style={{ minWidth: 280, flex: 1 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0369A1', margin: 0, wordBreak: 'break-word' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em', wordBreak: 'break-word' }}>
             Customer Operations & Support Desk
           </h1>
-          <p style={{ fontSize: 13, color: '#0284C7', margin: '4px 0 0' }}>
+          <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
             Manage customer profiles, account security controls, and customer dispute support tickets.
           </p>
         </div>
@@ -170,10 +170,10 @@ export function CustomerManagementStudio() {
         <div
           style={{
             display: 'flex',
-            backgroundColor: '#E0F2FE',
-            border: '1px solid #BAE6FD',
+            backgroundColor: '#F5F7FA',
+            border: '1px solid #E5E7EB',
             padding: 4,
-            borderRadius: 10,
+            borderRadius: 12,
             width: '100%',
             maxWidth: 420,
             overflowX: 'auto',
@@ -186,14 +186,14 @@ export function CustomerManagementStudio() {
               flex: 1,
               padding: '8px 14px',
               borderRadius: 8,
-              border: 'none',
+              border: activeTab === 'DIRECTORY' ? '1px solid #E5E7EB' : 'none',
               fontSize: 13,
-              fontWeight: 700,
+              fontWeight: activeTab === 'DIRECTORY' ? 700 : 500,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              background: activeTab === 'DIRECTORY' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-              color: activeTab === 'DIRECTORY' ? '#FFFFFF' : '#0369A1',
-              boxShadow: activeTab === 'DIRECTORY' ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
+              backgroundColor: activeTab === 'DIRECTORY' ? '#FFFFFF' : 'transparent',
+              color: activeTab === 'DIRECTORY' ? '#2196F3' : '#6B7280',
+              boxShadow: activeTab === 'DIRECTORY' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
               transition: 'all 0.15s ease',
             }}
           >
@@ -206,14 +206,14 @@ export function CustomerManagementStudio() {
               flex: 1,
               padding: '8px 14px',
               borderRadius: 8,
-              border: 'none',
+              border: activeTab === 'TICKETS' ? '1px solid #E5E7EB' : 'none',
               fontSize: 13,
-              fontWeight: 700,
+              fontWeight: activeTab === 'TICKETS' ? 700 : 500,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              background: activeTab === 'TICKETS' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-              color: activeTab === 'TICKETS' ? '#FFFFFF' : '#0369A1',
-              boxShadow: activeTab === 'TICKETS' ? '0 2px 6px rgba(2, 132, 199, 0.3)' : 'none',
+              backgroundColor: activeTab === 'TICKETS' ? '#FFFFFF' : 'transparent',
+              color: activeTab === 'TICKETS' ? '#2196F3' : '#6B7280',
+              boxShadow: activeTab === 'TICKETS' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
               transition: 'all 0.15s ease',
             }}
           >
@@ -224,42 +224,42 @@ export function CustomerManagementStudio() {
 
       {/* Top Executive Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Total Registered</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Registered</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 4 }}>
             {isLoadingCustomers ? '...' : summary.totalRegistered}
           </div>
-          <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600, marginTop: 6 }}>● Real Database Users</div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Real Database Users</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Active Accounts</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Accounts</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 4 }}>
             {isLoadingCustomers ? '...' : summary.activeAccounts}
           </div>
-          <div style={{ fontSize: 12, color: '#0284C7', marginTop: 6 }}>Verified & Unrestricted</div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Verified & Unrestricted</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Suspended Accounts</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Suspended Accounts</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 4 }}>
             {isLoadingCustomers ? '...' : summary.suspendedAccounts}
           </div>
-          <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600, marginTop: 6 }}>Safety / Abuse Flagged</div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Safety / Abuse Flagged</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '18px 20px', borderRadius: 14, border: '1px solid #BAE6FD', boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase' }}>Average Customer LTV</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0369A1', marginTop: 4 }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '20px 24px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Average Customer LTV</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 4 }}>
             {isLoadingCustomers ? '...' : formatMoneyInr(summary.averageCustomerLtv)}
           </div>
-          <div style={{ fontSize: 12, color: '#0284C7', fontWeight: 600, marginTop: 6 }}>Lifetime value per customer</div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Lifetime value per customer</div>
         </div>
       </div>
 
       {/* TAB 1: CUSTOMER DIRECTORY */}
       {activeTab === 'DIRECTORY' ? (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 16, border: '1px solid #BAE6FD', padding: 20, boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', padding: 24, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
           {/* Responsive Controls Bar */}
           <div
             style={{
@@ -280,20 +280,21 @@ export function CustomerManagementStudio() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   padding: '9px 14px',
-                  borderRadius: 10,
-                  border: '1px solid #BAE6FD',
+                  borderRadius: 8,
+                  border: '1px solid #E5E7EB',
                   fontSize: 13,
                   flex: 1,
                   minWidth: 220,
-                  color: '#0369A1',
-                  backgroundColor: '#F0F9FF',
+                  color: '#111827',
+                  backgroundColor: '#FFFFFF',
+                  outline: 'none',
                 }}
               />
 
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ padding: '9px 12px', borderRadius: 10, border: '1px solid #BAE6FD', fontSize: 13, fontWeight: 600, minWidth: 160, color: '#0369A1', backgroundColor: '#F0F9FF' }}
+                style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, fontWeight: 500, minWidth: 160, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }}
               >
                 <option value="ALL">Filter: All Statuses</option>
                 <option value="ACTIVE">● Active Only</option>
@@ -339,14 +340,14 @@ export function CustomerManagementStudio() {
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 700 }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '2px solid #BAE6FD', textAlign: 'left' }}>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Customer</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Contact</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Total Orders</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Total Spend</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>LTV Tier</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Status</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Actions</th>
+                  <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left' }}>
+                    <th style={{ padding: '14px 16px' }}>Customer</th>
+                    <th style={{ padding: '14px 16px' }}>Contact</th>
+                    <th style={{ padding: '14px 16px' }}>Total Orders</th>
+                    <th style={{ padding: '14px 16px' }}>Total Spend</th>
+                    <th style={{ padding: '14px 16px' }}>LTV Tier</th>
+                    <th style={{ padding: '14px 16px' }}>Status</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -354,8 +355,8 @@ export function CustomerManagementStudio() {
                     const ltv = calculateCustomerLtvBadge(cust.totalSpend);
 
                     return (
-                      <tr key={cust.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
-                        <td style={{ padding: '12px' }}>
+                      <tr key={cust.id} style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s ease' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9FAFB')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                        <td style={{ padding: '14px 16px' }}>
                           <div
                             style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
                             onClick={() => setSelectedCustomerForDetails(cust)}
@@ -365,12 +366,12 @@ export function CustomerManagementStudio() {
                                 width: 36,
                                 height: 36,
                                 borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                                 color: '#FFFFFF',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontWeight: 800,
+                                fontWeight: 700,
                                 fontSize: 14,
                                 flexShrink: 0,
                               }}
@@ -378,70 +379,70 @@ export function CustomerManagementStudio() {
                               {cust.name ? cust.name.charAt(0).toUpperCase() : 'C'}
                             </div>
                             <div>
-                              <div style={{ fontWeight: 700, color: '#0369A1' }}>{cust.name}</div>
-                              <div style={{ fontSize: 11, color: '#0284C7' }}>Joined: {cust.joinedDate}</div>
+                              <div style={{ fontWeight: 600, color: '#111827' }}>{cust.name}</div>
+                              <div style={{ fontSize: 11, color: '#6B7280' }}>Joined: {cust.joinedDate}</div>
                             </div>
                           </div>
                         </td>
 
-                        <td style={{ padding: '12px' }}>
-                          <div style={{ color: '#075985', fontWeight: 600 }}>{cust.email}</div>
-                          <div style={{ fontSize: 11, color: '#0284C7' }}>{cust.phone}</div>
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ color: '#111827', fontWeight: 500 }}>{cust.email}</div>
+                          <div style={{ fontSize: 11, color: '#6B7280' }}>{cust.phone}</div>
                         </td>
 
-                        <td style={{ padding: '12px', fontWeight: 700, color: '#0369A1' }}>
+                        <td style={{ padding: '14px 16px', fontWeight: 600, color: '#111827' }}>
                           {cust.totalOrders} orders
                         </td>
 
-                        <td style={{ padding: '12px', fontWeight: 800, color: '#0369A1' }}>
+                        <td style={{ padding: '14px 16px', fontWeight: 700, color: '#111827' }}>
                           {formatMoneyInr(cust.totalSpend)}
                         </td>
 
-                        <td style={{ padding: '12px' }}>
+                        <td style={{ padding: '14px 16px' }}>
                           <span
                             style={{
                               fontSize: 10,
-                              fontWeight: 800,
+                              fontWeight: 700,
                               padding: '3px 8px',
                               borderRadius: 6,
-                              backgroundColor: '#E0F2FE',
-                              border: '1px solid #BAE6FD',
-                              color: '#0369A1',
+                              backgroundColor: '#E3F2FD',
+                              border: '1px solid #BFDBFE',
+                              color: '#1D4ED8',
                             }}
                           >
                             {cust.loyaltyTier || ltv.tier}
                           </span>
                         </td>
 
-                        <td style={{ padding: '12px' }}>
+                        <td style={{ padding: '14px 16px' }}>
                           <span
                             style={{
                               fontSize: 11,
-                              fontWeight: 700,
-                              padding: '3px 8px',
+                              fontWeight: 600,
+                              padding: '3px 10px',
                               borderRadius: 20,
-                              backgroundColor: cust.accountStatus === 'ACTIVE' ? '#E0F2FE' : '#FFF1F2',
-                              color: cust.accountStatus === 'ACTIVE' ? '#0369A1' : '#DC2626',
-                              border: `1px solid ${cust.accountStatus === 'ACTIVE' ? '#BAE6FD' : '#FECDD3'}`,
+                              backgroundColor: cust.accountStatus === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
+                              color: cust.accountStatus === 'ACTIVE' ? '#15803D' : '#B91C1C',
+                              border: `1px solid ${cust.accountStatus === 'ACTIVE' ? '#BBF7D0' : '#FECACA'}`,
                             }}
                           >
-                            {cust.accountStatus === 'ACTIVE' ? '● Active' : '○ Suspended'}
+                            {cust.accountStatus === 'ACTIVE' ? 'Active' : 'Suspended'}
                           </span>
                         </td>
 
-                        <td style={{ padding: '12px' }}>
-                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
                             <button
                               type="button"
                               onClick={() => setSelectedCustomerForDetails(cust)}
                               style={{
                                 padding: '5px 10px',
-                                borderRadius: 6,
-                                border: '1px solid #BAE6FD',
-                                backgroundColor: '#F0F9FF',
-                                color: '#0369A1',
+                                borderRadius: 8,
+                                border: '1px solid #E5E7EB',
+                                backgroundColor: '#F5F7FA',
+                                color: '#2196F3',
                                 fontSize: 11,
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 cursor: 'pointer',
                               }}
                             >
@@ -452,14 +453,14 @@ export function CustomerManagementStudio() {
                               onClick={() => setSelectedCustomerForBlock(cust)}
                               style={{
                                 padding: '5px 10px',
-                                borderRadius: 6,
-                                border: 'none',
-                                background: cust.accountStatus === 'ACTIVE' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#E0F2FE',
-                                color: cust.accountStatus === 'ACTIVE' ? '#FFFFFF' : '#0369A1',
+                                borderRadius: 8,
+                                border: cust.accountStatus === 'ACTIVE' ? '1px solid #FECACA' : 'none',
+                                background: cust.accountStatus === 'ACTIVE' ? '#FEE2E2' : 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                                color: cust.accountStatus === 'ACTIVE' ? '#B91C1C' : '#FFFFFF',
                                 fontSize: 11,
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 cursor: 'pointer',
-                                boxShadow: cust.accountStatus === 'ACTIVE' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+                                boxShadow: cust.accountStatus === 'ACTIVE' ? 'none' : '0 2px 6px rgba(33, 150, 243, 0.25)',
                               }}
                             >
                               {cust.accountStatus === 'ACTIVE' ? 'Suspend' : 'Re-activate'}
@@ -476,75 +477,75 @@ export function CustomerManagementStudio() {
         </div>
       ) : (
         /* TAB 2: SUPPORT TICKETS DESK */
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 16, border: '1px solid #BAE6FD', padding: 20, boxShadow: '0 2px 8px rgba(14, 165, 233, 0.08)' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0369A1', margin: '0 0 16px' }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', padding: 24, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: '0 0 16px' }}>
             Active Customer Support & Dispute Tickets
           </h3>
 
           {isTicketsError ? (
-            <div style={{ padding: '20px 16px', textAlign: 'center', backgroundColor: '#F0F9FF', borderRadius: 10, color: '#0369A1', border: '1px solid #BAE6FD' }}>
-              Failed to load support tickets. <button onClick={() => refetchTickets()} style={{ marginLeft: 8, padding: '4px 10px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFF', cursor: 'pointer' }}>Retry</button>
+            <div style={{ padding: '20px 16px', textAlign: 'center', backgroundColor: '#F9FAFB', borderRadius: 10, color: '#6B7280', border: '1px solid #E5E7EB' }}>
+              Failed to load support tickets. <button onClick={() => refetchTickets()} style={{ marginLeft: 8, padding: '4px 10px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFF', cursor: 'pointer' }}>Retry</button>
             </div>
           ) : isLoadingTickets ? (
-            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#0284C7' }}>Fetching support tickets...</div>
+            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#6B7280' }}>Fetching support tickets...</div>
           ) : ticketsList.length === 0 ? (
-            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#0284C7' }}>No active support tickets found.</div>
+            <div style={{ padding: '36px 16px', textAlign: 'center', color: '#6B7280' }}>No active support tickets found.</div>
           ) : (
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 700 }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '2px solid #BAE6FD', textAlign: 'left' }}>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Ticket ID</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Customer</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Order</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Category & Subject</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Priority</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Status</th>
-                    <th style={{ padding: '10px 12px', color: '#0369A1', fontWeight: 700 }}>Created</th>
+                  <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left' }}>
+                    <th style={{ padding: '12px 14px' }}>Ticket ID</th>
+                    <th style={{ padding: '12px 14px' }}>Customer</th>
+                    <th style={{ padding: '12px 14px' }}>Order</th>
+                    <th style={{ padding: '12px 14px' }}>Category & Subject</th>
+                    <th style={{ padding: '12px 14px' }}>Priority</th>
+                    <th style={{ padding: '12px 14px' }}>Status</th>
+                    <th style={{ padding: '12px 14px' }}>Created</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ticketsList.map((tck) => (
-                    <tr key={tck.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
-                      <td style={{ padding: '12px', fontWeight: 800, color: '#0369A1' }}>{tck.ticketNumber || tck.id}</td>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ fontWeight: 700, color: '#0369A1' }}>{tck.customerName}</div>
-                        <div style={{ fontSize: 11, color: '#0284C7' }}>{tck.customerEmail}</div>
+                    <tr key={tck.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '14px', fontWeight: 600, color: '#2196F3' }}>{tck.ticketNumber || tck.id}</td>
+                      <td style={{ padding: '14px' }}>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>{tck.customerName}</div>
+                        <div style={{ fontSize: 11, color: '#6B7280' }}>{tck.customerEmail}</div>
                       </td>
-                      <td style={{ padding: '12px', fontWeight: 700, color: '#0369A1' }}>{tck.orderId}</td>
-                      <td style={{ padding: '12px' }}>
+                      <td style={{ padding: '14px', fontWeight: 600, color: '#111827' }}>{tck.orderId}</td>
+                      <td style={{ padding: '14px' }}>
                         <span
                           style={{
                             fontSize: 10,
-                            fontWeight: 800,
+                            fontWeight: 700,
                             padding: '2px 6px',
                             borderRadius: 4,
-                            backgroundColor: '#E0F2FE',
-                            border: '1px solid #BAE6FD',
-                            color: '#0369A1',
+                            backgroundColor: '#F3F4F6',
+                            border: '1px solid #E5E7EB',
+                            color: '#4B5563',
                             marginRight: 6,
                           }}
                         >
                           {tck.category}
                         </span>
-                        <span style={{ fontWeight: 600, color: '#075985' }}>{tck.subject}</span>
+                        <span style={{ fontWeight: 500, color: '#111827' }}>{tck.subject}</span>
                       </td>
-                      <td style={{ padding: '12px' }}>
+                      <td style={{ padding: '14px' }}>
                         <span
                           style={{
                             fontSize: 11,
-                            fontWeight: 800,
+                            fontWeight: 600,
                             padding: '3px 8px',
                             borderRadius: 6,
-                            backgroundColor: '#E0F2FE',
-                            color: '#0369A1',
-                            border: '1px solid #BAE6FD',
+                            backgroundColor: tck.priority === 'HIGH' ? '#FEE2E2' : '#E3F2FD',
+                            color: tck.priority === 'HIGH' ? '#B91C1C' : '#1D4ED8',
+                            border: `1px solid ${tck.priority === 'HIGH' ? '#FECACA' : '#BFDBFE'}`,
                           }}
                         >
                           {tck.priority}
                         </span>
                       </td>
-                      <td style={{ padding: '12px' }}>
+                      <td style={{ padding: '14px' }}>
                         <select
                           value={tck.status}
                           disabled={isUpdatingTicket}
@@ -552,11 +553,12 @@ export function CustomerManagementStudio() {
                           style={{
                             padding: '4px 8px',
                             borderRadius: 6,
-                            border: '1px solid #BAE6FD',
+                            border: '1px solid #E5E7EB',
                             fontSize: 11,
-                            fontWeight: 700,
-                            backgroundColor: tck.status === 'OPEN' ? '#0284C7' : '#F0F9FF',
-                            color: tck.status === 'OPEN' ? '#FFFFFF' : '#0369A1',
+                            fontWeight: 600,
+                            backgroundColor: '#FFFFFF',
+                            color: '#111827',
+                            outline: 'none',
                           }}
                         >
                           <option value="OPEN">OPEN</option>
@@ -565,7 +567,7 @@ export function CustomerManagementStudio() {
                           <option value="CLOSED">CLOSED</option>
                         </select>
                       </td>
-                      <td style={{ padding: '12px', fontSize: 12, color: '#0284C7' }}>{tck.createdAt}</td>
+                      <td style={{ padding: '14px', fontSize: 12, color: '#6B7280' }}>{tck.createdAt}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -581,7 +583,7 @@ export function CustomerManagementStudio() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(8, 47, 73, 0.5)',
+            backgroundColor: 'rgba(17, 24, 39, 0.4)',
             backdropFilter: 'blur(4px)',
             zIndex: 100,
             display: 'flex',
@@ -598,31 +600,31 @@ export function CustomerManagementStudio() {
               padding: 24,
               maxWidth: 440,
               width: '100%',
-              boxShadow: '0 20px 40px rgba(3, 105, 161, 0.2)',
-              border: '1px solid #BAE6FD',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
+              border: '1px solid #E5E7EB',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
                 {selectedCustomerForBlock.accountStatus === 'ACTIVE' ? 'Suspend Account' : 'Re-activate Account'}
               </h3>
               <button
                 type="button"
                 onClick={() => setSelectedCustomerForBlock(null)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#0284C7' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280' }}
               >
-                ✕
+                ×
               </button>
             </div>
 
-            <p style={{ fontSize: 13, color: '#0284C7', marginBottom: 16 }}>
-              You are updating account status for <strong style={{ color: '#0369A1' }}>{selectedCustomerForBlock.name}</strong> ({selectedCustomerForBlock.email}).
+            <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
+              You are updating account status for <strong style={{ color: '#111827' }}>{selectedCustomerForBlock.name}</strong> ({selectedCustomerForBlock.email}).
             </p>
 
             {selectedCustomerForBlock.accountStatus === 'ACTIVE' ? (
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 4 }}>
                   Suspension Reason (Audit Log)
                 </label>
                 <textarea
@@ -630,7 +632,7 @@ export function CustomerManagementStudio() {
                   placeholder="State reason for security audit..."
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, color: '#0369A1', backgroundColor: '#F0F9FF' }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }}
                 />
               </div>
             ) : null}
@@ -639,7 +641,7 @@ export function CustomerManagementStudio() {
               <button
                 type="button"
                 onClick={() => setSelectedCustomerForBlock(null)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', fontSize: 13, cursor: 'pointer', color: '#0369A1' }}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', fontSize: 13, cursor: 'pointer', color: '#6B7280', fontWeight: 600 }}
               >
                 Cancel
               </button>
@@ -656,13 +658,13 @@ export function CustomerManagementStudio() {
                   padding: '8px 16px',
                   borderRadius: 8,
                   border: 'none',
-                  background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                  background: selectedCustomerForBlock.accountStatus === 'ACTIVE' ? '#EF4444' : 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                   color: '#FFFFFF',
                   fontSize: 13,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   cursor: 'pointer',
                   opacity: isUpdatingStatus ? 0.7 : 1,
-                  boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
                 }}
               >
                 {isUpdatingStatus ? 'Updating...' : `Confirm ${selectedCustomerForBlock.accountStatus === 'ACTIVE' ? 'Suspension' : 'Activation'}`}
@@ -678,7 +680,7 @@ export function CustomerManagementStudio() {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(8, 47, 73, 0.5)',
+            backgroundColor: 'rgba(17, 24, 39, 0.4)',
             backdropFilter: 'blur(4px)',
             zIndex: 100,
             display: 'flex',
@@ -695,8 +697,8 @@ export function CustomerManagementStudio() {
               padding: 24,
               maxWidth: 520,
               width: '100%',
-              boxShadow: '0 20px 40px rgba(3, 105, 161, 0.2)',
-              border: '1px solid #BAE6FD',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
+              border: '1px solid #E5E7EB',
               maxHeight: '90vh',
               overflowY: 'auto',
             }}
@@ -709,7 +711,7 @@ export function CustomerManagementStudio() {
                     width: 44,
                     height: 44,
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                    background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                     color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
@@ -721,55 +723,55 @@ export function CustomerManagementStudio() {
                   {selectedCustomerForDetails.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
                     {selectedCustomerForDetails.name}
                   </h3>
-                  <div style={{ fontSize: 12, color: '#0284C7' }}>Customer ID: {selectedCustomerForDetails.id}</div>
+                  <div style={{ fontSize: 12, color: '#6B7280' }}>Customer ID: {selectedCustomerForDetails.id}</div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedCustomerForDetails(null)}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#0284C7' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280' }}
               >
-                ✕
+                ×
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: 16, borderRadius: 12, marginBottom: 16, fontSize: 13 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', padding: 16, borderRadius: 14, marginBottom: 16, fontSize: 13 }}>
               <div>
-                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 600 }}>EMAIL ADDRESS</span>
-                <span style={{ fontWeight: 700, color: '#0369A1' }}>{selectedCustomerForDetails.email}</span>
+                <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>EMAIL ADDRESS</span>
+                <span style={{ fontWeight: 600, color: '#111827', marginTop: 2, display: 'block' }}>{selectedCustomerForDetails.email}</span>
               </div>
               <div>
-                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 600 }}>PHONE NUMBER</span>
-                <span style={{ fontWeight: 700, color: '#0369A1' }}>{selectedCustomerForDetails.phone}</span>
+                <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>PHONE NUMBER</span>
+                <span style={{ fontWeight: 600, color: '#111827', marginTop: 2, display: 'block' }}>{selectedCustomerForDetails.phone}</span>
               </div>
               <div>
-                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 600 }}>ACCOUNT STATUS</span>
-                <span style={{ fontWeight: 700, color: '#0369A1' }}>
+                <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>ACCOUNT STATUS</span>
+                <span style={{ fontWeight: 600, color: '#111827', marginTop: 2, display: 'block' }}>
                   {selectedCustomerForDetails.accountStatus}
                 </span>
               </div>
               <div>
-                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 600 }}>LTV TIER</span>
-                <span style={{ fontWeight: 700, color: '#0369A1' }}>{selectedCustomerForDetails.loyaltyTier}</span>
+                <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>LTV TIER</span>
+                <span style={{ fontWeight: 600, color: '#111827', marginTop: 2, display: 'block' }}>{selectedCustomerForDetails.loyaltyTier}</span>
               </div>
               <div>
-                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 600 }}>TOTAL ORDERS</span>
-                <span style={{ fontWeight: 700, color: '#0369A1' }}>{selectedCustomerForDetails.totalOrders}</span>
+                <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>TOTAL ORDERS</span>
+                <span style={{ fontWeight: 700, color: '#111827', marginTop: 2, display: 'block' }}>{selectedCustomerForDetails.totalOrders}</span>
               </div>
               <div>
-                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 600 }}>TOTAL SPEND</span>
-                <span style={{ fontWeight: 700, color: '#0369A1' }}>{formatMoneyInr(selectedCustomerForDetails.totalSpend)}</span>
+                <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>TOTAL SPEND</span>
+                <span style={{ fontWeight: 700, color: '#111827', marginTop: 2, display: 'block' }}>{formatMoneyInr(selectedCustomerForDetails.totalSpend)}</span>
               </div>
               <div>
-                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 600 }}>JOINED DATE</span>
-                <span style={{ fontWeight: 700, color: '#0284C7' }}>{selectedCustomerForDetails.joinedDate}</span>
+                <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>JOINED DATE</span>
+                <span style={{ fontWeight: 500, color: '#4B5563', marginTop: 2, display: 'block' }}>{selectedCustomerForDetails.joinedDate}</span>
               </div>
               <div>
-                <span style={{ color: '#0284C7', display: 'block', fontSize: 11, fontWeight: 600 }}>SAVED ADDRESSES</span>
-                <span style={{ fontWeight: 700, color: '#0284C7' }}>{selectedCustomerForDetails.savedAddressesCount || 1} addresses</span>
+                <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>SAVED ADDRESSES</span>
+                <span style={{ fontWeight: 500, color: '#4B5563', marginTop: 2, display: 'block' }}>{selectedCustomerForDetails.savedAddressesCount || 1} addresses</span>
               </div>
             </div>
 
@@ -777,7 +779,7 @@ export function CustomerManagementStudio() {
               <button
                 type="button"
                 onClick={() => setSelectedCustomerForDetails(null)}
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #BAE6FD', backgroundColor: '#F0F9FF', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#0369A1' }}
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#111827' }}
               >
                 Close Details
               </button>

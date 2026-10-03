@@ -13,17 +13,37 @@ export function Badge({
   tone = 'accent',
   'aria-label': ariaLabel,
 }: BadgeProps) {
-  const { tokens } = useTheme();
-  const backgroundColor =
-    tone === 'success'
-      ? tokens.color.success
-      : tone === 'error'
-        ? tokens.color.error
-        : tone === 'warning'
-          ? tokens.color.warning
-          : tone === 'neutral'
-            ? tokens.color.border
-            : tokens.color.accent;
+  const badgeStyles = {
+    success: {
+      bg: '#DCFCE7',
+      color: '#15803D',
+      border: '1px solid #BBF7D0',
+    },
+    error: {
+      bg: '#FEE2E2',
+      color: '#B91C1C',
+      border: '1px solid #FECACA',
+    },
+    warning: {
+      bg: '#FEF3C7',
+      color: '#B45309',
+      border: '1px solid #FDE68A',
+    },
+    neutral: {
+      bg: '#F3F4F6',
+      color: '#374151',
+      border: '1px solid #E5E7EB',
+    },
+    accent: {
+      bg: '#E3F2FD',
+      color: '#1E40AF',
+      border: '1px solid #BFDBFE',
+    },
+  }[tone] || {
+    bg: '#E3F2FD',
+    color: '#1E40AF',
+    border: '1px solid #BFDBFE',
+  };
 
   return (
     <span
@@ -31,21 +51,18 @@ export function Badge({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        padding: `${tokens.spacing.xs}px ${tokens.spacing.sm}px`,
-        borderRadius: tokens.radius.full,
-        background: backgroundColor,
-        minHeight: 24,
+        padding: '3px 10px',
+        borderRadius: 9999,
+        backgroundColor: badgeStyles.bg,
+        color: badgeStyles.color,
+        border: badgeStyles.border,
+        fontSize: 12,
+        fontWeight: 600,
+        lineHeight: 1.3,
+        whiteSpace: 'nowrap',
       }}
     >
-      <Text
-        as="span"
-        variant="caption"
-        color={
-          tone === 'neutral' ? tokens.color.textPrimary : tokens.color.textInverse
-        }
-      >
-        {label}
-      </Text>
+      {label}
     </span>
   );
 }

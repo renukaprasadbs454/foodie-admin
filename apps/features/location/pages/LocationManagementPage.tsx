@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
+import { trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import {
   useGetZonesQuery,
   useCreateZoneMutation,
@@ -39,7 +39,6 @@ export interface DeliveryZoneRecord {
   activeDrivers: number;
   surgeMultiplier: number;
   status: 'ACTIVE' | 'HIGH_DEMAND' | 'PAUSED';
-  // 3-Way Service Toggles
   restaurantEnabled: boolean;
   deliveryPartnerEnabled: boolean;
   customerOrderingEnabled: boolean;
@@ -119,7 +118,6 @@ export function GoogleMapsPolygonPinPicker({
   const [manualLng, setManualLng] = useState('');
   const [hoveredPinIndex, setHoveredPinIndex] = useState<number | null>(null);
 
-  // Parse polygon string into array of pins
   const parsePins = (str: string) => {
     if (!str || !str.trim()) return [];
     const parts = str.split('|').map((p) => p.trim()).filter(Boolean);
@@ -153,37 +151,29 @@ export function GoogleMapsPolygonPinPicker({
     onChangePolygon('');
   };
 
-  const handleAutoPreset = (preset: '4POINT' | '6POINT' | 'CENTER') => {
-    const lat = centerLat || 12.9716;
-    const lng = centerLng || 77.5946;
-    const rDeg = (radiusKm || 5.0) / 111.0;
-    const cosLat = Math.cos((lat * Math.PI) / 180);
-
+  const handleAutoPreset = (preset: 'CENTER' | '4POINT' | '6POINT') => {
+    const offset = (radiusKm || 5.0) / 111.0;
     if (preset === 'CENTER') {
-      handleAddPin(lat, lng);
-      return;
-    }
-
-    const pins: { lat: number; lng: number }[] = [];
-    if (preset === '4POINT') {
-      pins.push({ lat: lat + rDeg, lng: lng }); // North
-      pins.push({ lat: lat, lng: lng + rDeg / cosLat }); // East
-      pins.push({ lat: lat - rDeg, lng: lng }); // South
-      pins.push({ lat: lat, lng: lng - rDeg / cosLat }); // West
+      onChangePolygon(`${centerLat.toFixed(4)},${centerLng.toFixed(4)}`);
+    } else if (preset === '4POINT') {
+      const p1 = `${(centerLat + offset).toFixed(4)},${centerLng.toFixed(4)}`;
+      const p2 = `${centerLat.toFixed(4)},${(centerLng + offset).toFixed(4)}`;
+      const p3 = `${(centerLat - offset).toFixed(4)},${centerLng.toFixed(4)}`;
+      const p4 = `${centerLat.toFixed(4)},${(centerLng - offset).toFixed(4)}`;
+      onChangePolygon(`${p1} | ${p2} | ${p3} | ${p4}`);
     } else if (preset === '6POINT') {
-      const numPoints = 6;
-      for (let i = 0; i < numPoints; i++) {
-        const angle = (i * 2 * Math.PI) / numPoints;
-        const dLat = rDeg * Math.cos(angle);
-        const dLng = (rDeg * Math.sin(angle)) / cosLat;
-        pins.push({ lat: lat + dLat, lng: lng + dLng });
+      const points: string[] = [];
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * 60 * Math.PI) / 180;
+        const pLat = centerLat + offset * Math.sin(angle);
+        const pLng = centerLng + offset * Math.cos(angle);
+        points.push(`${pLat.toFixed(4)},${pLng.toFixed(4)}`);
       }
+      onChangePolygon(points.join(' | '));
     }
-    onChangePolygon(stringifyPins(pins));
   };
 
-  const handleManualAdd = (e: React.SyntheticEvent) => {
-    e.preventDefault();
+  const handleManualAdd = () => {
     const lat = parseFloat(manualLat);
     const lng = parseFloat(manualLng);
     if (!isNaN(lat) && !isNaN(lng)) {
@@ -193,7 +183,6 @@ export function GoogleMapsPolygonPinPicker({
     }
   };
 
-  // Convert lat/lng to SVG percentage relative to center
   const getSvgCoords = (pLat: number, pLng: number) => {
     const latSpan = ((radiusKm || 5.0) / 111.0) * 2.8;
     const lngSpan = latSpan / Math.max(0.1, Math.cos((centerLat * Math.PI) / 180));
@@ -205,13 +194,12 @@ export function GoogleMapsPolygonPinPicker({
     };
   };
 
-  // Click on interactive map canvas to drop a pin marker
   const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
-    const normX = (clickX / rect.width - 0.5) * 2; // -1 to +1
-    const normY = (0.5 - clickY / rect.height) * 2; // -1 to +1
+    const normX = (clickX / rect.width - 0.5) * 2;
+    const normY = (0.5 - clickY / rect.height) * 2;
 
     const latSpan = ((radiusKm || 5.0) / 111.0) * 1.4;
     const lngSpan = latSpan / Math.max(0.1, Math.cos((centerLat * Math.PI) / 180));
@@ -231,10 +219,10 @@ export function GoogleMapsPolygonPinPicker({
     <div
       style={{
         backgroundColor: '#FFFFFF',
-        borderRadius: 14,
-        padding: 20,
-        border: '1px solid #BAE6FD',
-        boxShadow: '0 4px 16px rgba(2, 132, 199, 0.08)',
+        borderRadius: 20,
+        padding: 24,
+        border: '1px solid #E5E7EB',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
@@ -243,17 +231,16 @@ export function GoogleMapsPolygonPinPicker({
       {/* Header Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 900, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>📍</span> {title}
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>
+            {title}
           </div>
-          <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
-            Click anywhere on the interactive map canvas below to drop Google Maps Pins (📍) and dynamically build the polygon string.
+          <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
+            Click anywhere on the interactive map canvas below to drop pins and dynamically construct the polygon boundary.
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Map Theme Switcher */}
-          <div style={{ display: 'flex', backgroundColor: '#F0F9FF', borderRadius: 8, padding: 3, border: '1px solid #BAE6FD' }}>
+          <div style={{ display: 'flex', backgroundColor: '#F3F4F6', borderRadius: 8, padding: 3, border: '1px solid #E5E7EB' }}>
             {(['VECTOR', 'SATELLITE', 'HYBRID'] as const).map((thm) => (
               <button
                 key={thm}
@@ -264,15 +251,15 @@ export function GoogleMapsPolygonPinPicker({
                   borderRadius: 6,
                   border: 'none',
                   fontSize: 11,
-                  fontWeight: 800,
+                  fontWeight: 600,
                   cursor: 'pointer',
-                  background: mapTheme === thm ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-                  color: mapTheme === thm ? '#FFFFFF' : '#0369A1',
-                  boxShadow: mapTheme === thm ? '0 2px 4px rgba(2, 132, 199, 0.3)' : 'none',
+                  background: mapTheme === thm ? '#2196F3' : 'transparent',
+                  color: mapTheme === thm ? '#FFFFFF' : '#6B7280',
+                  boxShadow: mapTheme === thm ? '0 1px 3px rgba(33, 150, 243, 0.3)' : 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
-                {thm === 'VECTOR' ? '🗺️ Vector' : thm === 'SATELLITE' ? '🛰️ Satellite' : '🌐 Hybrid'}
+                {thm === 'VECTOR' ? 'Vector' : thm === 'SATELLITE' ? 'Satellite' : 'Hybrid'}
               </button>
             ))}
           </div>
@@ -282,46 +269,42 @@ export function GoogleMapsPolygonPinPicker({
               padding: '6px 12px',
               borderRadius: 20,
               fontSize: 12,
-              fontWeight: 900,
-              backgroundColor: '#F0F9FF',
-              color: '#0369A1',
-              border: '1px solid #BAE6FD',
+              fontWeight: 600,
+              backgroundColor: '#E3F2FD',
+              color: '#2196F3',
             }}
           >
-            📍 {currentPins.length} Pins Placed
+            {currentPins.length} Pins Placed
           </span>
         </div>
       </div>
 
-      {/* Interactive Google Maps Grid Canvas (Click to Place Google Maps Pin Marker) */}
+      {/* Interactive Google Maps Grid Canvas */}
       <div
         onClick={handleMapClick}
         style={{
           position: 'relative',
           height: 320,
-          borderRadius: 12,
-          border: '1.5px solid #BAE6FD',
+          borderRadius: 14,
+          border: '1px solid #E5E7EB',
           overflow: 'hidden',
           cursor: 'crosshair',
-          backgroundColor: mapTheme === 'SATELLITE' ? '#0C4A6E' : mapTheme === 'HYBRID' ? '#075985' : '#F0F9FF',
+          backgroundColor: mapTheme === 'SATELLITE' ? '#0F172A' : mapTheme === 'HYBRID' ? '#1E293B' : '#F8FAFC',
           backgroundImage:
             mapTheme === 'VECTOR'
-              ? 'radial-gradient(#BAE6FD 1.5px, transparent 1.5px)'
-              : 'radial-gradient(rgba(186, 230, 253, 0.35) 1.5px, transparent 1.5px)',
+              ? 'radial-gradient(#E2E8F0 1.5px, transparent 1.5px)'
+              : 'radial-gradient(rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px)',
           backgroundSize: '24px 24px',
-          boxShadow: 'inset 0 2px 8px rgba(2, 132, 199, 0.08)',
         }}
       >
-        {/* Map Watermark & Scale */}
-        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 5, background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, backdropFilter: 'blur(4px)', border: '1px solid #38BDF8', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.3)' }}>
+        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 5, background: 'rgba(17, 24, 39, 0.75)', color: '#FFFFFF', padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, backdropFilter: 'blur(4px)' }}>
           Center: {centerLat.toFixed(4)}, {centerLng.toFixed(4)} (Scale: {radiusKm} KM Circle)
         </div>
 
-        <div style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 5, backgroundColor: 'rgba(255, 255, 255, 0.95)', color: '#0369A1', padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 800, border: '1px solid #BAE6FD', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.15)' }}>
-          Click Map Canvas to Drop Google Pin
+        <div style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 5, backgroundColor: 'rgba(255, 255, 255, 0.95)', color: '#111827', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          Click Canvas to Drop Pin
         </div>
 
-        {/* Center Crosshair Marker */}
         <div
           style={{
             position: 'absolute',
@@ -331,34 +314,30 @@ export function GoogleMapsPolygonPinPicker({
             height: 16,
             marginLeft: -8,
             marginTop: -8,
-            border: '2px dashed #0284C7',
+            border: '2px dashed #2196F3',
             borderRadius: '50%',
             pointerEvents: 'none',
             zIndex: 4,
           }}
         />
 
-        {/* SVG Layer: Coverage Circle */}
         <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }}>
-          {/* Outer Coverage Circle */}
-          <circle cx="50%" cy="50%" r="35%" fill="none" stroke="#38BDF8" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.8" />
+          <circle cx="50%" cy="50%" r="35%" fill="none" stroke="#2196F3" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.6" />
         </svg>
 
-        {/* Polygon Perimeter Line */}
         {currentPins.length >= 2 && (
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }}>
             <polygon
               points={svgPolygonPoints}
-              fill="rgba(2, 132, 199, 0.18)"
-              stroke="#0284C7"
-              strokeWidth="2.5"
+              fill="rgba(33, 150, 243, 0.15)"
+              stroke="#2196F3"
+              strokeWidth="2"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
             />
           </svg>
         )}
 
-        {/* Render Dropped Google Maps Pin Markers */}
         {currentPins.map((pin, idx) => {
           const coords = getSvgCoords(pin.lat, pin.lng);
           const isHovered = hoveredPinIndex === idx;
@@ -379,7 +358,7 @@ export function GoogleMapsPolygonPinPicker({
               onMouseEnter={() => setHoveredPinIndex(idx)}
               onMouseLeave={() => setHoveredPinIndex(null)}
               onClick={(e) => {
-                e.stopPropagation(); // Prevent dropping extra pin when clicking existing marker
+                e.stopPropagation();
                 handleRemovePin(idx);
               }}
             >
@@ -388,46 +367,42 @@ export function GoogleMapsPolygonPinPicker({
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  filter: 'drop-shadow(0 4px 8px rgba(2,132,199,0.35))',
                 }}
               >
-                {/* Pin Tooltip Badge */}
                 <div
                   style={{
-                    background: isHovered ? 'linear-gradient(135deg, #0369A1 0%, #075985 100%)' : 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                    background: '#111827',
                     color: '#FFFFFF',
                     padding: '2px 6px',
                     borderRadius: 4,
                     fontSize: 10,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     whiteSpace: 'nowrap',
                     marginBottom: 2,
-                    boxShadow: '0 2px 4px rgba(2,132,199,0.3)',
-                    border: '1px solid #BAE6FD',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
                   }}
                 >
                   Pin #{idx + 1}
                 </div>
 
-                {/* Google Maps Pin Marker Icon */}
                 <div
                   style={{
-                    width: 28,
-                    height: 28,
+                    width: 24,
+                    height: 24,
                     borderRadius: '50% 50% 50% 0',
-                    background: isHovered ? 'linear-gradient(135deg, #0369A1 0%, #075985 100%)' : 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                    background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                     transform: 'rotate(-45deg)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     border: '2px solid #FFFFFF',
-                    boxShadow: '0 2px 8px rgba(2,132,199,0.4)',
+                    boxShadow: '0 2px 6px rgba(33, 150, 243, 0.4)',
                   }}
                 >
                   <div
                     style={{
-                      width: 10,
-                      height: 10,
+                      width: 8,
+                      height: 8,
                       borderRadius: '50%',
                       backgroundColor: '#FFFFFF',
                       transform: 'rotate(45deg)',
@@ -448,14 +423,14 @@ export function GoogleMapsPolygonPinPicker({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 10,
-          backgroundColor: '#F0F9FF',
+          backgroundColor: '#F9FAFB',
           padding: 12,
-          borderRadius: 10,
-          border: '1px solid #BAE6FD',
+          borderRadius: 12,
+          border: '1px solid #E5E7EB',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: '#0369A1' }}>Quick Pin Presets:</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Quick Pin Presets:</span>
 
           <button
             type="button"
@@ -463,16 +438,15 @@ export function GoogleMapsPolygonPinPicker({
             style={{
               padding: '6px 12px',
               backgroundColor: '#FFFFFF',
-              color: '#0369A1',
-              border: '1px solid #BAE6FD',
-              borderRadius: 6,
+              color: '#374151',
+              border: '1px solid #E5E7EB',
+              borderRadius: 8,
               fontSize: 12,
-              fontWeight: 800,
+              fontWeight: 500,
               cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(2, 132, 199, 0.1)',
             }}
           >
-            📍 Drop Pin at Center
+            Drop Pin at Center
           </button>
 
           <button
@@ -480,17 +454,16 @@ export function GoogleMapsPolygonPinPicker({
             onClick={() => handleAutoPreset('4POINT')}
             style={{
               padding: '6px 12px',
-              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+              background: '#2196F3',
               color: '#FFFFFF',
               border: 'none',
-              borderRadius: 6,
+              borderRadius: 8,
               fontSize: 12,
-              fontWeight: 800,
+              fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
             }}
           >
-            🔲 Auto 4-Point Square Pins
+            Auto 4-Point Square Pins
           </button>
 
           <button
@@ -498,17 +471,16 @@ export function GoogleMapsPolygonPinPicker({
             onClick={() => handleAutoPreset('6POINT')}
             style={{
               padding: '6px 12px',
-              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+              background: '#2196F3',
               color: '#FFFFFF',
               border: 'none',
-              borderRadius: 6,
+              borderRadius: 8,
               fontSize: 12,
-              fontWeight: 800,
+              fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
             }}
           >
-            ⬡ Auto 6-Point Hexagon Pins
+            Auto 6-Point Hexagon Pins
           </button>
 
           {currentPins.length > 0 && (
@@ -518,15 +490,15 @@ export function GoogleMapsPolygonPinPicker({
               style={{
                 padding: '6px 12px',
                 backgroundColor: '#FFFFFF',
-                color: '#0369A1',
-                border: '1px solid #BAE6FD',
-                borderRadius: 6,
+                color: '#DC2626',
+                border: '1px solid #FECACA',
+                borderRadius: 8,
                 fontSize: 12,
-                fontWeight: 800,
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
-              ✕ Clear All Pins ({currentPins.length})
+              Clear All ({currentPins.length})
             </button>
           )}
         </div>
@@ -539,7 +511,7 @@ export function GoogleMapsPolygonPinPicker({
             placeholder="Lat (12.97)"
             value={manualLat}
             onChange={(e) => setManualLat(e.target.value)}
-            style={{ width: 100, padding: '6px 8px', borderRadius: 6, border: '1px solid #BAE6FD', fontSize: 12, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+            style={{ width: 100, padding: '6px 8px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, backgroundColor: '#FFFFFF', color: '#111827' }}
           />
           <input
             type="number"
@@ -547,21 +519,20 @@ export function GoogleMapsPolygonPinPicker({
             placeholder="Lng (77.59)"
             value={manualLng}
             onChange={(e) => setManualLng(e.target.value)}
-            style={{ width: 100, padding: '6px 8px', borderRadius: 6, border: '1px solid #BAE6FD', fontSize: 12, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+            style={{ width: 100, padding: '6px 8px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, backgroundColor: '#FFFFFF', color: '#111827' }}
           />
           <button
             type="button"
             onClick={handleManualAdd}
             style={{
               padding: '6px 12px',
-              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
               color: '#FFFFFF',
               border: 'none',
-              borderRadius: 6,
+              borderRadius: 8,
               fontSize: 12,
-              fontWeight: 800,
+              fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
             }}
           >
             + Add Pin
@@ -572,8 +543,8 @@ export function GoogleMapsPolygonPinPicker({
       {/* Pins Cards List */}
       {currentPins.length > 0 ? (
         <div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#0369A1', marginBottom: 8 }}>
-            Polygon Pin Marker Coordinates List ({currentPins.length} points):
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+            Coordinates List ({currentPins.length} points):
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
             {currentPins.map((pin, idx) => (
@@ -582,10 +553,10 @@ export function GoogleMapsPolygonPinPicker({
                 onMouseEnter={() => setHoveredPinIndex(idx)}
                 onMouseLeave={() => setHoveredPinIndex(null)}
                 style={{
-                  backgroundColor: hoveredPinIndex === idx ? '#E0F2FE' : '#F0F9FF',
+                  backgroundColor: hoveredPinIndex === idx ? '#F3F4F6' : '#FFFFFF',
                   padding: '10px 12px',
-                  borderRadius: 8,
-                  border: hoveredPinIndex === idx ? '1.5px solid #0284C7' : '1px solid #BAE6FD',
+                  borderRadius: 10,
+                  border: hoveredPinIndex === idx ? '1px solid #9CA3AF' : '1px solid #E5E7EB',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -594,10 +565,10 @@ export function GoogleMapsPolygonPinPicker({
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 800, color: '#0369A1' }}>
-                    📍 Pin #{idx + 1}
+                  <div style={{ fontWeight: 600, color: '#111827' }}>
+                    Pin #{idx + 1}
                   </div>
-                  <div style={{ color: '#0284C7', fontSize: 11, fontFamily: 'monospace', marginTop: 2 }}>
+                  <div style={{ color: '#6B7280', fontSize: 11, fontFamily: 'monospace', marginTop: 2 }}>
                     {pin.lat.toFixed(4)}, {pin.lng.toFixed(4)}
                   </div>
                 </div>
@@ -605,26 +576,26 @@ export function GoogleMapsPolygonPinPicker({
                 <button
                   type="button"
                   onClick={() => handleRemovePin(idx)}
-                  title="Remove this pin marker"
+                  title="Remove this pin"
                   style={{
                     backgroundColor: 'transparent',
-                    color: '#0284C7',
+                    color: '#6B7280',
                     border: 'none',
                     fontSize: 14,
-                    fontWeight: 900,
+                    fontWeight: 600,
                     cursor: 'pointer',
                     padding: '4px 8px',
                   }}
                 >
-                  ✕
+                  ×
                 </button>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: 16, backgroundColor: '#F0F9FF', borderRadius: 8, border: '1px dashed #BAE6FD', fontSize: 12, color: '#0284C7' }}>
-          📍 No polygon pins dropped yet. Click anywhere on the map above or click <strong>"Auto 4-Point Square Pins"</strong> to place boundary markers.
+        <div style={{ textAlign: 'center', padding: 16, backgroundColor: '#F9FAFB', borderRadius: 10, border: '1px dashed #E5E7EB', fontSize: 12, color: '#6B7280' }}>
+          No polygon pins dropped yet. Click anywhere on the map above or click "Auto 4-Point Square Pins" to place boundary markers.
         </div>
       )}
     </div>
@@ -635,7 +606,6 @@ export function LocationManagementPage() {
   const { tokens } = useTheme();
   const [activeTab, setActiveTab] = useState<LocationTab>('DELIVERY_ZONES');
 
-  // RTK Query Real Data Source
   const { data: dbCities = [], refetch: refetchCities } = useGetCitiesQuery();
   const [createCity] = useCreateCityMutation();
   const { data: dbDeliveryZones = [] } = useGetZonesQuery();
@@ -648,10 +618,8 @@ export function LocationManagementPage() {
   const [newCityName, setNewCityName] = useState('');
   const [newState, setNewState] = useState('');
 
-  // Service Areas State
   const [serviceAreas, setServiceAreas] = useState<ServiceAreaRecord[]>(MOCK_SERVICE_AREAS);
 
-  // Multi-Zone State with 3-Way Toggles
   const [isCreatingZone, setIsCreatingZone] = useState(false);
   const [newZoneName, setNewZoneName] = useState('');
   const [newZoneCity, setNewZoneCity] = useState('Bangalore');
@@ -664,7 +632,6 @@ export function LocationManagementPage() {
   const [newCustomerEnabled, setNewCustomerEnabled] = useState(true);
   const [editingZoneMap, setEditingZoneMap] = useState<DeliveryZoneRecord | null>(null);
 
-  // Unserviceable Location Requests State
   const [unserviceableRequests, setUnserviceableRequests] = useState<UnserviceableRequestRecord[]>(MOCK_UNSERVICEABLE_REQUESTS);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [reqRestName, setReqRestName] = useState('');
@@ -676,7 +643,6 @@ export function LocationManagementPage() {
   const [reqLat, setReqLat] = useState('12.9698');
   const [reqLng, setReqLng] = useState('77.7499');
 
-  // Delivery Charges State
   const [baseCharge, setBaseCharge] = useState('35');
   const [baseDistanceKm, setBaseDistanceKm] = useState('3');
   const [additionalChargePerKm, setAdditionalChargePerKm] = useState('10');
@@ -684,7 +650,6 @@ export function LocationManagementPage() {
   const [nightSurcharge, setNightSurcharge] = useState('25');
   const [surgeMultiplier, setSurgeMultiplier] = useState('1.15');
 
-  // Radius Settings State
   const [maxDeliveryRadius, setMaxDeliveryRadius] = useState('15');
   const [customerSearchRadius, setCustomerSearchRadius] = useState('10');
   const [driverDispatchRadius, setDriverDispatchRadius] = useState('5');
@@ -713,7 +678,7 @@ export function LocationManagementPage() {
       const p = predefined[selectedCity];
       setNewLat(p.lat);
       setNewLng(p.lng);
-      setNewPolygon(''); // Clear pins for fresh start
+      setNewPolygon('');
       return;
     }
 
@@ -727,9 +692,7 @@ export function LocationManagementPage() {
           setNewLat(lat);
           setNewLng(lon);
           setNewPolygon('');
-          showToast(`Map dynamically centered to ${selectedCity}!`);
-        } else {
-          showToast(`Notice: Cannot find exact GPS coordinates for ${selectedCity}.`);
+          showToast(`Map centered to ${selectedCity}!`);
         }
       }
     } catch (e) {
@@ -737,7 +700,6 @@ export function LocationManagementPage() {
     }
   };
 
-  // Toggle individual service powers (Restaurants / Drivers / Customers) per zone
   const handleToggleZonePower = (zoneId: string, powerType: 'RESTAURANT' | 'DRIVER' | 'CUSTOMER') => {
     const activeZone = deliveryZones.find(z => z.id === zoneId);
     if (!activeZone) return;
@@ -751,10 +713,9 @@ export function LocationManagementPage() {
     if (powerType === 'CUSTOMER') {
       void updateZoneToggles({ id: zoneId, customerOrderingEnabled: !activeZone.customerOrderingEnabled });
     }
-    showToast(`Zone permission DB updating for ${powerType}...`);
+    showToast(`Zone permission updated for ${powerType}.`);
   };
 
-  // Step 1 & 2: Create Multi-Zone with Coordinates & 3-Way Toggles
   const handleCreateZone = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newZoneName.trim()) {
@@ -776,14 +737,13 @@ export function LocationManagementPage() {
       customerOrderingEnabled: newCustomerEnabled,
     }).unwrap().then(() => {
       setIsCreatingZone(false);
-      showToast(`Multi-Zone "${newZoneName.trim()}" dispatched successfully via DB creation!`);
+      showToast(`Multi-Zone "${newZoneName.trim()}" created successfully!`);
       setNewZoneName('');
     }).catch((err) => {
       showToast(`Failed to create zone: ${err?.message || 'Server Error'}`);
     });
   };
 
-  // Submit unserviceable restaurant request
   const handleSubmitUnserviceableRequest = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reqRestName.trim() || !reqAddress.trim()) {
@@ -807,10 +767,9 @@ export function LocationManagementPage() {
     setShowRequestModal(false);
     setReqRestName('');
     setReqAddress('');
-    showToast(`Unserviceable restaurant expansion request submitted for ${req.restaurantName}!`);
+    showToast(`Unserviceable restaurant request submitted for ${req.restaurantName}!`);
   };
 
-  // Convert unserviceable request into a new Zone
   const handleApproveRequestAndCreateZone = (req: UnserviceableRequestRecord) => {
     setNewZoneName(`${req.restaurantName} Dedicated Zone`);
     setNewZoneCity(req.cityName);
@@ -821,30 +780,30 @@ export function LocationManagementPage() {
     setIsCreatingZone(true);
     setActiveTab('DELIVERY_ZONES');
 
-    // Update request status
     setUnserviceableRequests((prev) =>
       prev.map((r) => (r.id === req.id ? { ...r, status: 'APPROVED' } : r)),
     );
-    showToast(`Pre-filled coordinates for ${req.restaurantName}. Complete zone creation below!`);
+    showToast(`Pre-filled coordinates for ${req.restaurantName}. Complete zone creation below.`);
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 40 }}>
       {/* Toast Alert */}
       {toastMsg && (
         <div
           style={{
             position: 'fixed',
-            top: 20,
-            right: 20,
-            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+            top: 24,
+            right: 24,
+            backgroundColor: '#111827',
             color: '#FFFFFF',
-            padding: '14px 24px',
-            borderRadius: 10,
-            fontWeight: 800,
-            boxShadow: '0 10px 25px rgba(2, 132, 199, 0.35)',
+            padding: '12px 20px',
+            borderRadius: 12,
+            fontWeight: 600,
+            fontSize: 13,
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)',
             zIndex: 9999,
-            border: '1px solid #38BDF8',
+            border: '1px solid #374151',
           }}
         >
           {toastMsg}
@@ -854,28 +813,28 @@ export function LocationManagementPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Text as="h1" variant="heading1" color="#0369A1">
-            Multi-Zone & Location Operations Center
-          </Text>
-          <Text as="p" variant="caption" color="#0284C7">
-            Create accurate polygon/radius zones, manage 3-way permissions (Restaurants, Drivers, Customers) & review unserviceable location expansion requests
-          </Text>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>
+            Multi-Zone & Location Operations
+          </h1>
+          <p style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+            Create polygon and radius zones, manage 3-way permissions (Restaurants, Drivers, Customers) & review location requests
+          </p>
         </div>
 
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 10 }}>
           <button
             type="button"
             onClick={() => setShowRequestModal(true)}
             style={{
               padding: '10px 16px',
-              backgroundColor: '#F0F9FF',
-              color: '#0369A1',
-              border: '1px solid #BAE6FD',
-              borderRadius: 8,
+              backgroundColor: '#FFFFFF',
+              color: '#374151',
+              border: '1px solid #E5E7EB',
+              borderRadius: 10,
               fontSize: 13,
-              fontWeight: 800,
+              fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(2, 132, 199, 0.08)',
+              transition: 'all 0.15s ease',
             }}
           >
             + Request Unserviceable Location
@@ -885,14 +844,15 @@ export function LocationManagementPage() {
             onClick={() => setIsCreatingZone(true)}
             style={{
               padding: '10px 18px',
-              background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
               color: '#FFFFFF',
               border: 'none',
-              borderRadius: 8,
+              borderRadius: 10,
               fontSize: 13,
-              fontWeight: 800,
+              fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)',
+              boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
+              transition: 'all 0.15s ease',
             }}
           >
             + Create Multi-Zone
@@ -900,17 +860,16 @@ export function LocationManagementPage() {
         </div>
       </div>
 
-      {/* 6 Outer Visible Navigation Tabs */}
+      {/* Navigation Tabs */}
       <div
         style={{
           display: 'flex',
-          gap: 8,
+          gap: 6,
           backgroundColor: '#FFFFFF',
-          padding: '8px',
-          borderRadius: 12,
-          border: '1px solid #BAE6FD',
+          padding: 6,
+          borderRadius: 14,
+          border: '1px solid #E5E7EB',
           overflowX: 'auto',
-          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
         }}
       >
         {[
@@ -920,76 +879,77 @@ export function LocationManagementPage() {
           { id: 'SERVICE_AREAS', label: `Service Areas (${serviceAreas.length})` },
           { id: 'DELIVERY_CHARGES', label: 'Delivery Charges' },
           { id: 'RADIUS_SETTINGS', label: 'Radius Settings' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id as LocationTab)}
-            style={{
-              padding: '10px 18px',
-              borderRadius: 8,
-              border: 'none',
-              background: activeTab === tab.id ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : 'transparent',
-              color: activeTab === tab.id ? '#FFFFFF' : '#0369A1',
-              boxShadow: activeTab === tab.id ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
-              fontSize: 13,
-              fontWeight: 800,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+        ].map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as LocationTab)}
+              style={{
+                padding: '9px 16px',
+                borderRadius: 10,
+                border: 'none',
+                backgroundColor: isActive ? '#E3F2FD' : 'transparent',
+                color: isActive ? '#2196F3' : '#6B7280',
+                fontSize: 13,
+                fontWeight: isActive ? 600 : 500,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* STEP 1 & 2: MULTI-ZONE CREATION MODAL / DRAWER */}
+      {/* MULTI-ZONE CREATION DRAWER */}
       {isCreatingZone && (
         <form
           onSubmit={handleCreateZone}
           style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 16,
-            padding: 28,
-            border: '1px solid #BAE6FD',
-            boxShadow: '0 8px 30px rgba(2, 132, 199, 0.12)',
+            borderRadius: 20,
+            padding: 24,
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
             display: 'flex',
             flexDirection: 'column',
             gap: 20,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
-              Step 1 & 2: Accurate Multi-Zone Creation & 3-Way Power Switches
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+              Create Multi-Zone & 3-Way Power Switches
             </h3>
             <button
               type="button"
               onClick={() => setIsCreatingZone(false)}
-              style={{ padding: '6px 12px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 6, fontWeight: 700, cursor: 'pointer', color: '#0369A1' }}
+              style={{ padding: '6px 12px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, fontWeight: 600, cursor: 'pointer', color: '#374151' }}
             >
               Close
             </button>
           </div>
 
-          {/* Form Fields: Zone Details */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Zone Name *
               </label>
               <input
                 type="text"
-                placeholder="e.g. Whitefield Tech Corridor Zone"
+                placeholder="e.g. Whitefield Tech Corridor"
                 value={newZoneName}
                 onChange={(e) => setNewZoneName(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
                 required
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 City
               </label>
               <select
@@ -998,7 +958,7 @@ export function LocationManagementPage() {
                   setNewZoneCity(e.target.value);
                   void handleCityMapUpdate(e.target.value);
                 }}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
               >
                 {cities.map((c) => (
                   <option key={c.id} value={c.cityName}>
@@ -1009,7 +969,7 @@ export function LocationManagementPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Operational Radius (KM)
               </label>
               <input
@@ -1017,122 +977,118 @@ export function LocationManagementPage() {
                 step="0.5"
                 value={newRadiusKm}
                 onChange={(e) => setNewRadiusKm(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
-                Center Latitude (GPS Coordinate)
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Center Latitude
               </label>
               <input
                 type="number"
                 step="0.0001"
                 value={newLat}
                 onChange={(e) => setNewLat(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
-                Center Longitude (GPS Coordinate)
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Center Longitude
               </label>
               <input
                 type="number"
                 step="0.0001"
                 value={newLng}
                 onChange={(e) => setNewLng(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
               />
             </div>
 
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
-                Polygon Boundary Coordinates String (Format: lat1,lng1 | lat2,lng2 | ...)
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Polygon Boundary Coordinates String (lat1,lng1 | lat2,lng2 | ...)
               </label>
               <input
                 type="text"
                 value={newPolygon}
                 onChange={(e) => setNewPolygon(e.target.value)}
                 placeholder="e.g. 12.9716,77.5946 | 12.9800,77.6000 | 12.9600,77.6100"
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, fontFamily: 'monospace', backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontFamily: 'monospace', backgroundColor: '#FFFFFF', color: '#111827' }}
               />
             </div>
           </div>
 
-          {/* Interactive Google Maps Polygon Pin Picker Feature */}
           <GoogleMapsPolygonPinPicker
             centerLat={parseFloat(newLat) || 12.9716}
             centerLng={parseFloat(newLng) || 77.5946}
             radiusKm={parseFloat(newRadiusKm) || 5.0}
             polygonString={newPolygon}
             onChangePolygon={(str) => setNewPolygon(str)}
-            title="Google Maps Interactive Multi-Zone Pin Picker & Polygon Builder"
+            title="Interactive Multi-Zone Pin Picker & Polygon Builder"
           />
 
-          {/* STEP 2: INDIVIDUAL 3-WAY POWER TOGGLE SWITCHES */}
-          <div style={{ backgroundColor: '#F0F9FF', padding: 20, borderRadius: 12, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#0369A1' }}>
-              Step 2: Individual 3-Way Power Switches (Enable / Disable per Zone)
+          {/* 3-WAY POWER SWITCHES */}
+          <div style={{ backgroundColor: '#F9FAFB', padding: 20, borderRadius: 14, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
+              Service Power Switches (Enable / Disable per Zone)
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-              {/* Toggle 1: Restaurants */}
-              <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+              <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0369A1' }}> Restaurant Onboarding</div>
-                  <div style={{ fontSize: 11, color: '#0284C7' }}>Allow restaurants to register & accept orders</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Restaurant Onboarding</div>
+                  <div style={{ fontSize: 11, color: '#6B7280' }}>Allow restaurants to register & accept orders</div>
                 </div>
                 <input
                   type="checkbox"
                   checked={newRestEnabled}
                   onChange={(e) => setNewRestEnabled(e.target.checked)}
-                  style={{ width: 22, height: 22, cursor: 'pointer', accentColor: '#0284C7' }}
+                  style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2196F3' }}
                 />
               </div>
 
-              {/* Toggle 2: Delivery Partners */}
-              <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0369A1' }}> Delivery Partner Dispatch</div>
-                  <div style={{ fontSize: 11, color: '#0284C7' }}>Allow driver fleet dispatch & payouts</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Delivery Partner Dispatch</div>
+                  <div style={{ fontSize: 11, color: '#6B7280' }}>Allow driver fleet dispatch & payouts</div>
                 </div>
                 <input
                   type="checkbox"
                   checked={newDriverEnabled}
                   onChange={(e) => setNewDriverEnabled(e.target.checked)}
-                  style={{ width: 22, height: 22, cursor: 'pointer', accentColor: '#0284C7' }}
+                  style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2196F3' }}
                 />
               </div>
 
-              {/* Toggle 3: Customer Ordering */}
-              <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #BAE6FD', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0369A1' }}> Customer Ordering Power</div>
-                  <div style={{ fontSize: 11, color: '#0284C7' }}>Allow customers to place food orders</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Customer Ordering</div>
+                  <div style={{ fontSize: 11, color: '#6B7280' }}>Allow customers to place food orders</div>
                 </div>
                 <input
                   type="checkbox"
                   checked={newCustomerEnabled}
                   onChange={(e) => setNewCustomerEnabled(e.target.checked)}
-                  style={{ width: 22, height: 22, cursor: 'pointer', accentColor: '#0284C7' }}
+                  style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2196F3' }}
                 />
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <button
               type="button"
               onClick={() => setIsCreatingZone(false)}
-              style={{ padding: '10px 18px', backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}
+              style={{ padding: '10px 18px', backgroundColor: '#F3F4F6', color: '#374151', border: '1px solid #E5E7EB', borderRadius: 10, fontWeight: 600, cursor: 'pointer' }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}
+              style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}
             >
               Create Multi-Zone Now
             </button>
@@ -1140,41 +1096,39 @@ export function LocationManagementPage() {
         </form>
       )}
 
-      {/* TAB 1: DELIVERY MULTI-ZONES TABLE & 3-WAY TOGGLE CONTROLS */}
+      {/* TAB 1: DELIVERY MULTI-ZONES TABLE */}
       {activeTab === 'DELIVERY_ZONES' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
-              <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1' }}>
-                <th style={{ padding: '14px 20px' }}>Delivery Polygon Zone & Map Center</th>
-                <th style={{ padding: '14px 20px' }}>City</th>
-                <th style={{ padding: '14px 20px' }}>Coverage Radius</th>
-                <th style={{ padding: '14px 20px' }}>3-Way Service Power Switches</th>
-                <th style={{ padding: '14px 20px' }}>Surge Multiplier</th>
-                <th style={{ padding: '14px 20px' }}>Status</th>
-                <th style={{ padding: '14px 20px' }}>Map Pins & Actions</th>
+              <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Zone & Map Center</th>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>City</th>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coverage Radius</th>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>3-Way Service Switches</th>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Surge Multiplier</th>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {deliveryZones.map((dz) => (
-                <tr key={dz.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                <tr key={dz.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                   <td style={{ padding: '16px 20px' }}>
-                    <div style={{ fontWeight: 800, color: '#0369A1' }}>{dz.zoneName}</div>
-                    <div style={{ fontSize: 11, color: '#0284C7', marginTop: 2 }}>
+                    <div style={{ fontWeight: 600, color: '#111827' }}>{dz.zoneName}</div>
+                    <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
                       Lat: {dz.latitude}, Lng: {dz.longitude}
                     </div>
                   </td>
 
-                  <td style={{ padding: '16px 20px', color: '#0284C7' }}>{dz.cityName}</td>
+                  <td style={{ padding: '16px 20px', color: '#374151' }}>{dz.cityName}</td>
 
-                  <td style={{ padding: '16px 20px', fontWeight: 700, color: '#0369A1' }}>
+                  <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>
                     {dz.radiusKm} KM Circle
                   </td>
 
-                  {/* 3-Way Switch Buttons Column */}
                   <td style={{ padding: '16px 20px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {/* Switch 1: Restaurant */}
                       <button
                         type="button"
                         onClick={() => handleToggleZonePower(dz.id, 'RESTAURANT')}
@@ -1183,23 +1137,20 @@ export function LocationManagementPage() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: 10,
-                          padding: '5px 12px',
+                          padding: '4px 10px',
                           borderRadius: 6,
-                          border: dz.restaurantEnabled ? '1px solid #0284C7' : '1px solid #BAE6FD',
-                          background: dz.restaurantEnabled ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#F0F9FF',
-                          color: dz.restaurantEnabled ? '#FFFFFF' : '#0284C7',
-                          boxShadow: dz.restaurantEnabled ? '0 2px 6px rgba(2, 132, 199, 0.2)' : 'none',
+                          border: dz.restaurantEnabled ? '1px solid #BBF7D0' : '1px solid #E5E7EB',
+                          background: dz.restaurantEnabled ? '#F0FDF4' : '#F9FAFB',
+                          color: dz.restaurantEnabled ? '#15803D' : '#6B7280',
                           fontSize: 11,
-                          fontWeight: 800,
+                          fontWeight: 600,
                           cursor: 'pointer',
-                          transition: 'all 0.15s ease',
                         }}
                       >
-                        <span> Restaurant Service:</span>
+                        <span>Restaurant Service:</span>
                         <span>{dz.restaurantEnabled ? 'ON' : 'OFF'}</span>
                       </button>
 
-                      {/* Switch 2: Delivery Partner */}
                       <button
                         type="button"
                         onClick={() => handleToggleZonePower(dz.id, 'DRIVER')}
@@ -1208,23 +1159,20 @@ export function LocationManagementPage() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: 10,
-                          padding: '5px 12px',
+                          padding: '4px 10px',
                           borderRadius: 6,
-                          border: dz.deliveryPartnerEnabled ? '1px solid #0284C7' : '1px solid #BAE6FD',
-                          background: dz.deliveryPartnerEnabled ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#F0F9FF',
-                          color: dz.deliveryPartnerEnabled ? '#FFFFFF' : '#0284C7',
-                          boxShadow: dz.deliveryPartnerEnabled ? '0 2px 6px rgba(2, 132, 199, 0.2)' : 'none',
+                          border: dz.deliveryPartnerEnabled ? '1px solid #BBF7D0' : '1px solid #E5E7EB',
+                          background: dz.deliveryPartnerEnabled ? '#F0FDF4' : '#F9FAFB',
+                          color: dz.deliveryPartnerEnabled ? '#15803D' : '#6B7280',
                           fontSize: 11,
-                          fontWeight: 800,
+                          fontWeight: 600,
                           cursor: 'pointer',
-                          transition: 'all 0.15s ease',
                         }}
                       >
-                        <span> Driver Dispatch:</span>
+                        <span>Driver Dispatch:</span>
                         <span>{dz.deliveryPartnerEnabled ? 'ON' : 'OFF'}</span>
                       </button>
 
-                      {/* Switch 3: Customer Ordering */}
                       <button
                         type="button"
                         onClick={() => handleToggleZonePower(dz.id, 'CUSTOMER')}
@@ -1233,25 +1181,23 @@ export function LocationManagementPage() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: 10,
-                          padding: '5px 12px',
+                          padding: '4px 10px',
                           borderRadius: 6,
-                          border: dz.customerOrderingEnabled ? '1px solid #0284C7' : '1px solid #BAE6FD',
-                          background: dz.customerOrderingEnabled ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#F0F9FF',
-                          color: dz.customerOrderingEnabled ? '#FFFFFF' : '#0284C7',
-                          boxShadow: dz.customerOrderingEnabled ? '0 2px 6px rgba(2, 132, 199, 0.2)' : 'none',
+                          border: dz.customerOrderingEnabled ? '1px solid #BBF7D0' : '1px solid #E5E7EB',
+                          background: dz.customerOrderingEnabled ? '#F0FDF4' : '#F9FAFB',
+                          color: dz.customerOrderingEnabled ? '#15803D' : '#6B7280',
                           fontSize: 11,
-                          fontWeight: 800,
+                          fontWeight: 600,
                           cursor: 'pointer',
-                          transition: 'all 0.15s ease',
                         }}
                       >
-                        <span> Customer Ordering:</span>
+                        <span>Customer Ordering:</span>
                         <span>{dz.customerOrderingEnabled ? 'ON' : 'OFF'}</span>
                       </button>
                     </div>
                   </td>
 
-                  <td style={{ padding: '16px 20px', fontWeight: 800, color: '#0369A1' }}>
+                  <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>
                     {dz.surgeMultiplier}x
                   </td>
 
@@ -1259,12 +1205,11 @@ export function LocationManagementPage() {
                     <span
                       style={{
                         fontSize: 11,
-                        fontWeight: 800,
-                        backgroundColor: '#F0F9FF',
-                        color: '#0369A1',
-                        border: '1px solid #BAE6FD',
+                        fontWeight: 600,
+                        backgroundColor: '#DCFCE7',
+                        color: '#15803D',
                         padding: '3px 8px',
-                        borderRadius: 4,
+                        borderRadius: 6,
                       }}
                     >
                       {dz.status}
@@ -1277,20 +1222,16 @@ export function LocationManagementPage() {
                       onClick={() => setEditingZoneMap(dz)}
                       style={{
                         padding: '6px 12px',
-                        background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: 6,
+                        background: '#FFFFFF',
+                        color: '#2196F3',
+                        border: '1px solid #2196F3',
+                        borderRadius: 8,
                         fontSize: 11,
-                        fontWeight: 800,
+                        fontWeight: 600,
                         cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
                       }}
                     >
-                      <span> Edit Pins ({dz.polygonCoordinates ? dz.polygonCoordinates.split('|').length : 0})</span>
+                      Edit Pins ({dz.polygonCoordinates ? dz.polygonCoordinates.split('|').length : 0})
                     </button>
                   </td>
                 </tr>
@@ -1302,23 +1243,23 @@ export function LocationManagementPage() {
 
       {/* Existing Zone Map Pins Edit Modal */}
       {editingZoneMap && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(8, 47, 73, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 16, maxWidth: 900, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid #BAE6FD', boxShadow: '0 20px 40px rgba(2, 132, 199, 0.2)' }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(17, 24, 39, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, maxWidth: 900, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid #E5E7EB', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0369A1', margin: 0 }}>
-                  Google Maps Pin Boundary Markers — {editingZoneMap.zoneName}
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+                  Boundary Pins — {editingZoneMap.zoneName}
                 </h3>
-                <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
                   City: {editingZoneMap.cityName} | Center Lat: {editingZoneMap.latitude}, Lng: {editingZoneMap.longitude}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingZoneMap(null)}
-                style={{ padding: '6px 14px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 6, fontWeight: 700, cursor: 'pointer', color: '#0369A1' }}
+                style={{ padding: '6px 14px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, fontWeight: 600, cursor: 'pointer', color: '#374151' }}
               >
-                Close Window
+                Close
               </button>
             </div>
 
@@ -1330,7 +1271,7 @@ export function LocationManagementPage() {
               onChangePolygon={(str) => {
                 setEditingZoneMap((prev) => (prev ? { ...prev, polygonCoordinates: str } : null));
               }}
-              title={`Google Maps Pin Picker — ${editingZoneMap.zoneName}`}
+              title={`Pin Picker — ${editingZoneMap.zoneName}`}
             />
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
@@ -1338,9 +1279,9 @@ export function LocationManagementPage() {
                 type="button"
                 onClick={() => {
                   setEditingZoneMap(null);
-                  showToast(`Google Maps pin coordinates updated for ${editingZoneMap.zoneName}!`);
+                  showToast(`Map pin coordinates updated for ${editingZoneMap.zoneName}!`);
                 }}
-                style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}
+                style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}
               >
                 Save Map Pins & Close
               </button>
@@ -1349,52 +1290,51 @@ export function LocationManagementPage() {
         </div>
       )}
 
-      {/* TAB 2: UNSERVICEABLE RESTAURANT EXPANSION REQUESTS DESK */}
+      {/* TAB 2: UNSERVICEABLE REQUESTS */}
       {activeTab === 'UNSERVICEABLE_REQUESTS' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: 16, borderRadius: 12, color: '#0369A1', fontSize: 13, fontWeight: 700 }}>
-            Restaurants outside existing active zones submit location expansion requests here. Review their map coordinates & convert them into new active Multi-Zones!
+          <div style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB', padding: 16, borderRadius: 14, color: '#374151', fontSize: 13, fontWeight: 500 }}>
+            Restaurants outside existing active zones submit location expansion requests here. Review their map coordinates & convert them into new active Multi-Zones.
           </div>
 
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
-                <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1' }}>
-                  <th style={{ padding: '14px 20px' }}>Applicant Restaurant & Location</th>
-                  <th style={{ padding: '14px 20px' }}>Contact Person</th>
-                  <th style={{ padding: '14px 20px' }}>GPS Map Coordinates</th>
-                  <th style={{ padding: '14px 20px' }}>Submitted Date</th>
-                  <th style={{ padding: '14px 20px' }}>Status</th>
-                  <th style={{ padding: '14px 20px' }}>Action</th>
+                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Restaurant & Location</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Person</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Map Coordinates</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Submitted Date</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {unserviceableRequests.map((req) => (
-                  <tr key={req.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                  <tr key={req.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                     <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 800, color: '#0369A1' }}>{req.restaurantName}</div>
-                      <div style={{ fontSize: 11, color: '#0284C7' }}>{req.address}, {req.cityName}</div>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>{req.restaurantName}</div>
+                      <div style={{ fontSize: 11, color: '#6B7280' }}>{req.address}, {req.cityName}</div>
                     </td>
                     <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 700, color: '#0369A1' }}>{req.contactPerson}</div>
-                      <div style={{ fontSize: 11, color: '#0284C7' }}>{req.contactPhone}</div>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>{req.contactPerson}</div>
+                      <div style={{ fontSize: 11, color: '#6B7280' }}>{req.contactPhone}</div>
                     </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 700, color: '#0369A1' }}>
+                    <td style={{ padding: '16px 20px', fontWeight: 500, color: '#374151' }}>
                       Lat: {req.latitude}, Lng: {req.longitude}
                     </td>
-                    <td style={{ padding: '16px 20px', color: '#0284C7', fontSize: 12 }}>
+                    <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>
                       {req.createdAt}
                     </td>
                     <td style={{ padding: '16px 20px' }}>
                       <span
                         style={{
                           fontSize: 11,
-                          fontWeight: 800,
-                          backgroundColor: '#F0F9FF',
-                          color: '#0369A1',
-                          border: '1px solid #BAE6FD',
+                          fontWeight: 600,
+                          backgroundColor: req.status === 'PENDING' ? '#FEF3C7' : '#DCFCE7',
+                          color: req.status === 'PENDING' ? '#B45309' : '#15803D',
                           padding: '3px 8px',
-                          borderRadius: 4,
+                          borderRadius: 6,
                         }}
                       >
                         {req.status}
@@ -1407,20 +1347,20 @@ export function LocationManagementPage() {
                           onClick={() => handleApproveRequestAndCreateZone(req)}
                           style={{
                             padding: '6px 12px',
-                            background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
+                            background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                             color: '#FFFFFF',
                             border: 'none',
-                            borderRadius: 6,
+                            borderRadius: 8,
                             fontSize: 12,
-                            fontWeight: 800,
+                            fontWeight: 600,
                             cursor: 'pointer',
-                            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                            boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
                           }}
                         >
                           Approve & Create Zone
                         </button>
                       ) : (
-                        <span style={{ fontSize: 12, color: '#0284C7', fontWeight: 700 }}>Resolved</span>
+                        <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>Resolved</span>
                       )}
                     </td>
                   </tr>
@@ -1437,31 +1377,31 @@ export function LocationManagementPage() {
           onSubmit={handleSubmitUnserviceableRequest}
           style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 16,
-            padding: 28,
-            border: '1px solid #BAE6FD',
+            borderRadius: 20,
+            padding: 24,
+            border: '1px solid #E5E7EB',
             display: 'flex',
             flexDirection: 'column',
             gap: 16,
-            boxShadow: '0 8px 30px rgba(2, 132, 199, 0.12)',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
               Submit Unserviceable Restaurant Expansion Request
             </h3>
             <button
               type="button"
               onClick={() => setShowRequestModal(false)}
-              style={{ padding: '6px 12px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 6, fontWeight: 700, cursor: 'pointer', color: '#0369A1' }}
+              style={{ padding: '6px 12px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, fontWeight: 600, cursor: 'pointer', color: '#374151' }}
             >
               Close
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Restaurant Name *
               </label>
               <input
@@ -1469,12 +1409,12 @@ export function LocationManagementPage() {
                 placeholder="e.g. Punjabi Rasoi"
                 value={reqRestName}
                 onChange={(e) => setReqRestName(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
                 required
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Contact Person Name
               </label>
               <input
@@ -1482,11 +1422,11 @@ export function LocationManagementPage() {
                 placeholder="e.g. Vikram Singh"
                 value={reqContactPerson}
                 onChange={(e) => setReqContactPerson(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Contact Phone Number
               </label>
               <input
@@ -1494,17 +1434,17 @@ export function LocationManagementPage() {
                 placeholder="+91 98765 43210"
                 value={reqPhone}
                 onChange={(e) => setReqPhone(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 City
               </label>
               <select
                 value={reqCity}
                 onChange={(e) => setReqCity(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
               >
                 {cities.map((c) => (
                   <option key={c.id} value={c.cityName}>
@@ -1514,7 +1454,7 @@ export function LocationManagementPage() {
               </select>
             </div>
             <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Full Address *
               </label>
               <input
@@ -1522,12 +1462,12 @@ export function LocationManagementPage() {
                 placeholder="e.g. Shop 12, MG Road Cyber Hub"
                 value={reqAddress}
                 onChange={(e) => setReqAddress(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
                 required
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Latitude Coordinates
               </label>
               <input
@@ -1535,11 +1475,11 @@ export function LocationManagementPage() {
                 step="0.0001"
                 value={reqLat}
                 onChange={(e) => setReqLat(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Longitude Coordinates
               </label>
               <input
@@ -1547,22 +1487,22 @@ export function LocationManagementPage() {
                 step="0.0001"
                 value={reqLng}
                 onChange={(e) => setReqLng(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
             <button
               type="button"
               onClick={() => setShowRequestModal(false)}
-              style={{ padding: '10px 18px', backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}
+              style={{ padding: '10px 18px', backgroundColor: '#F3F4F6', color: '#374151', border: '1px solid #E5E7EB', borderRadius: 10, fontWeight: 600, cursor: 'pointer' }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}
+              style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}
             >
               Submit Expansion Request
             </button>
@@ -1572,7 +1512,7 @@ export function LocationManagementPage() {
 
       {/* TAB 3: CITIES */}
       {activeTab === 'CITIES' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -1585,8 +1525,7 @@ export function LocationManagementPage() {
                 activeMerchantsCount: 0,
                 status: 'ACTIVE'
               }).unwrap().then(async () => {
-                await refetchCities(); // FORCE WAIT FOR REFETCH so UI table doesn't map early
-
+                await refetchCities();
                 setNewZoneCity(addedCityName);
                 void handleCityMapUpdate(addedCityName);
                 setNewCityName('');
@@ -1598,51 +1537,51 @@ export function LocationManagementPage() {
             }}
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: 14,
+              borderRadius: 20,
               padding: 24,
-              border: '1px solid #BAE6FD',
+              border: '1px solid #E5E7EB',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
               height: 'fit-content',
-              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
             }}
           >
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0369A1', margin: 0 }}>Add Operating City</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>Add Operating City</h3>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>City Name</label>
-              <input type="text" placeholder="e.g. Pune" value={newCityName} onChange={(e) => setNewCityName(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>City Name</label>
+              <input type="text" placeholder="e.g. Pune" value={newCityName} onChange={(e) => setNewCityName(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>State / Region</label>
-              <input type="text" placeholder="e.g. Maharashtra" value={newState} onChange={(e) => setNewState(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>State / Region</label>
+              <input type="text" placeholder="e.g. Maharashtra" value={newState} onChange={(e) => setNewState(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
-            <button type="submit" style={{ padding: '12px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', marginTop: 8, boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}>
+            <button type="submit" style={{ padding: '12px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: 'pointer', marginTop: 8, boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}>
               Add City
             </button>
           </form>
 
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
-                <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1' }}>
-                  <th style={{ padding: '14px 20px' }}>City & State</th>
-                  <th style={{ padding: '14px 20px' }}>Active Zones</th>
-                  <th style={{ padding: '14px 20px' }}>Active Merchants</th>
-                  <th style={{ padding: '14px 20px' }}>Status</th>
+                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>City & State</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Zones</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Merchants</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {cities.map((c) => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                  <tr key={c.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                     <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 800, color: '#0369A1' }}>{c.cityName}</div>
-                      <div style={{ fontSize: 11, color: '#0284C7' }}>{c.state}</div>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>{c.cityName}</div>
+                      <div style={{ fontSize: 11, color: '#6B7280' }}>{c.state}</div>
                     </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 700, color: '#0369A1' }}>{c.activeZonesCount} Zones</td>
-                    <td style={{ padding: '16px 20px', fontWeight: 700, color: '#0369A1' }}>{c.activeMerchantsCount} Outlets</td>
+                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{c.activeZonesCount} Zones</td>
+                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{c.activeMerchantsCount} Outlets</td>
                     <td style={{ padding: '16px 20px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '3px 8px', borderRadius: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: 6 }}>
                         {c.status}
                       </span>
                     </td>
@@ -1656,30 +1595,30 @@ export function LocationManagementPage() {
 
       {/* TAB 4: SERVICE AREAS */}
       {activeTab === 'SERVICE_AREAS' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 14, border: '1px solid #BAE6FD', overflow: 'hidden', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
-              <tr style={{ backgroundColor: '#F0F9FF', borderBottom: '1px solid #BAE6FD', color: '#0369A1' }}>
-                <th style={{ padding: '14px 20px' }}>Service Area & City</th>
-                <th style={{ padding: '14px 20px' }}>Pincode</th>
-                <th style={{ padding: '14px 20px' }}>Coverage Level</th>
-                <th style={{ padding: '14px 20px' }}>Active Outlets</th>
+              <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service Area & City</th>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pincode</th>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coverage Level</th>
+                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Outlets</th>
               </tr>
             </thead>
             <tbody>
               {serviceAreas.map((sa) => (
-                <tr key={sa.id} style={{ borderBottom: '1px solid #E0F2FE' }}>
+                <tr key={sa.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                   <td style={{ padding: '16px 20px' }}>
-                    <div style={{ fontWeight: 800, color: '#0369A1' }}>{sa.areaName}</div>
-                    <div style={{ fontSize: 11, color: '#0284C7' }}>{sa.cityName}</div>
+                    <div style={{ fontWeight: 600, color: '#111827' }}>{sa.areaName}</div>
+                    <div style={{ fontSize: 11, color: '#6B7280' }}>{sa.cityName}</div>
                   </td>
-                  <td style={{ padding: '16px 20px', fontWeight: 700, color: '#0369A1' }}>{sa.pincode}</td>
+                  <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{sa.pincode}</td>
                   <td style={{ padding: '16px 20px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', padding: '3px 8px', borderRadius: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: 6 }}>
                       {sa.coverageStatus.replace('_', ' ')}
                     </span>
                   </td>
-                  <td style={{ padding: '16px 20px', fontWeight: 700, color: '#0369A1' }}>{sa.totalOutlets} Outlets</td>
+                  <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{sa.totalOutlets} Outlets</td>
                 </tr>
               ))}
             </tbody>
@@ -1694,37 +1633,37 @@ export function LocationManagementPage() {
             e.preventDefault();
             showToast('Delivery charge rules updated!');
           }}
-          style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}
+          style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}
         >
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Distance-Based Delivery Charge Matrix</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Distance-Based Delivery Charge Matrix</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Base Delivery Fee (₹)</label>
-              <input type="number" value={baseCharge} onChange={(e) => setBaseCharge(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Base Delivery Fee (₹)</label>
+              <input type="number" value={baseCharge} onChange={(e) => setBaseCharge(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Base Distance Coverage (KM)</label>
-              <input type="number" value={baseDistanceKm} onChange={(e) => setBaseDistanceKm(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Base Distance Coverage (KM)</label>
+              <input type="number" value={baseDistanceKm} onChange={(e) => setBaseDistanceKm(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Additional Fee per KM (₹)</label>
-              <input type="number" value={additionalChargePerKm} onChange={(e) => setAdditionalChargePerKm(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Additional Fee per KM (₹)</label>
+              <input type="number" value={additionalChargePerKm} onChange={(e) => setAdditionalChargePerKm(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Free Delivery Order Threshold (₹)</label>
-              <input type="number" value={freeDeliveryMinOrder} onChange={(e) => setFreeDeliveryMinOrder(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Free Delivery Order Threshold (₹)</label>
+              <input type="number" value={freeDeliveryMinOrder} onChange={(e) => setFreeDeliveryMinOrder(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Night Dispatch Surcharge (₹)</label>
-              <input type="number" value={nightSurcharge} onChange={(e) => setNightSurcharge(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Night Dispatch Surcharge (₹)</label>
+              <input type="number" value={nightSurcharge} onChange={(e) => setNightSurcharge(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Peak Surge Multiplier</label>
-              <input type="number" step="0.05" value={surgeMultiplier} onChange={(e) => setSurgeMultiplier(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Peak Surge Multiplier</label>
+              <input type="number" step="0.05" value={surgeMultiplier} onChange={(e) => setSurgeMultiplier(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-            <button type="submit" style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}>
+            <button type="submit" style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}>
               Save Delivery Charges
             </button>
           </div>
@@ -1738,32 +1677,32 @@ export function LocationManagementPage() {
             e.preventDefault();
             showToast('Radius settings saved!');
           }}
-          style={{ backgroundColor: '#FFFFFF', borderRadius: 14, padding: 28, border: '1px solid #BAE6FD', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)' }}
+          style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}
         >
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369A1', margin: 0 }}>Operational Radius & Dispatch Parameters</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Operational Radius & Dispatch Parameters</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Maximum Operating Delivery Radius (KM)</label>
-              <input type="number" value={maxDeliveryRadius} onChange={(e) => setMaxDeliveryRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Maximum Operating Delivery Radius (KM)</label>
+              <input type="number" value={maxDeliveryRadius} onChange={(e) => setMaxDeliveryRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Customer Restaurant Discovery Radius (KM)</label>
-              <input type="number" value={customerSearchRadius} onChange={(e) => setCustomerSearchRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Customer Restaurant Discovery Radius (KM)</label>
+              <input type="number" value={customerSearchRadius} onChange={(e) => setCustomerSearchRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Driver Auto-Dispatch Broadcast Radius (KM)</label>
-              <input type="number" value={driverDispatchRadius} onChange={(e) => setDriverDispatchRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Driver Auto-Dispatch Broadcast Radius (KM)</label>
+              <input type="number" value={driverDispatchRadius} onChange={(e) => setDriverDispatchRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369A1', marginBottom: 6 }}>Distance Calculation Engine Mode</label>
-              <select value={distanceCalculationMode} onChange={(e) => setDistanceCalculationMode(e.target.value as 'GPS_ROAD' | 'HAVERSINE')} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #BAE6FD', fontSize: 13, backgroundColor: '#FFFFFF', color: '#0369A1' }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Distance Calculation Engine Mode</label>
+              <select value={distanceCalculationMode} onChange={(e) => setDistanceCalculationMode(e.target.value as 'GPS_ROAD' | 'HAVERSINE')} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}>
                 <option value="GPS_ROAD">Google Maps GPS Road Navigation Distance</option>
                 <option value="HAVERSINE">Straight Line Haversine Distance (Fast)</option>
               </select>
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-            <button type="submit" style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: '#FFFFFF', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}>
+            <button type="submit" style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}>
               Save Radius Settings
             </button>
           </div>

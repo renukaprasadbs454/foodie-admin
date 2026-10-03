@@ -85,28 +85,28 @@ export type DesignTokens = {
 const sharedSpacing: SpacingTokens = {
   xs: 4,
   sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  xxl: 32,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
 };
 
 const sharedRadius: RadiusTokens = {
-  sm: 4,
-  md: 8,
-  lg: 12,
+  sm: 6,
+  md: 12,
+  lg: 20,
   full: 9999,
 };
 
 const sharedElevation: ElevationTokens = {
   none: 0,
-  sm: 2,
-  md: 4,
-  lg: 8,
+  sm: 1,
+  md: 3,
+  lg: 6,
 };
 
 /** System default; apps may substitute brand typefaces via theme extension. */
-const systemFont = 'System';
+const systemFont = 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
 const sharedTypography: TypographyTokens = {
   display: {
@@ -117,33 +117,33 @@ const sharedTypography: TypographyTokens = {
   },
   heading1: {
     fontFamily: systemFont,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
-    lineHeight: 34,
+    lineHeight: 32,
   },
   heading2: {
     fontFamily: systemFont,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '600',
-    lineHeight: 28,
+    lineHeight: 26,
   },
   heading3: {
     fontFamily: systemFont,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   body: {
     fontFamily: systemFont,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '400',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   bodySmall: {
     fontFamily: systemFont,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '400',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   caption: {
     fontFamily: systemFont,
@@ -153,44 +153,44 @@ const sharedTypography: TypographyTokens = {
   },
   label: {
     fontFamily: systemFont,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 16,
+    lineHeight: 18,
   },
 };
 
 const lightColors: SemanticColorTokens = {
-  background: '#F0F9FF',
+  background: '#F5F7FA',
   surface: '#FFFFFF',
-  textPrimary: '#0369A1',
-  textSecondary: '#0284C7',
+  textPrimary: '#111827',
+  textSecondary: '#6B7280',
   textInverse: '#FFFFFF',
-  accent: '#0284C7',
-  accentMuted: '#E0F2FE',
-  error: '#0284C7',
-  success: '#0EA5E9',
-  warning: '#38BDF8',
-  inProgress: '#0284C7',
-  border: '#BAE6FD',
-  overlay: 'rgba(7, 89, 133, 0.5)',
-  disabled: '#7DD3FC',
+  accent: '#2196F3',
+  accentMuted: '#E3F2FD',
+  error: '#EF4444',
+  success: '#22C55E',
+  warning: '#F59E0B',
+  inProgress: '#2196F3',
+  border: '#E5E7EB',
+  overlay: 'rgba(17, 24, 39, 0.5)',
+  disabled: '#9CA3AF',
 };
 
 const darkColors: SemanticColorTokens = {
-  background: '#082F49',
-  surface: '#0C4A6E',
-  textPrimary: '#E0F2FE',
-  textSecondary: '#7DD3FC',
-  textInverse: '#082F49',
+  background: '#0F172A',
+  surface: '#1E293B',
+  textPrimary: '#F9FAFB',
+  textSecondary: '#94A3B8',
+  textInverse: '#0F172A',
   accent: '#38BDF8',
-  accentMuted: '#075985',
-  error: '#7DD3FC',
-  success: '#38BDF8',
-  warning: '#BAE6FD',
+  accentMuted: '#0369A1',
+  error: '#F87171',
+  success: '#4ADE80',
+  warning: '#FBBF24',
   inProgress: '#38BDF8',
-  border: '#0369A1',
-  overlay: 'rgba(8, 47, 73, 0.8)',
-  disabled: '#0369A1',
+  border: '#334155',
+  overlay: 'rgba(15, 23, 42, 0.8)',
+  disabled: '#64748B',
 };
 
 export const lightTokens: DesignTokens = {
