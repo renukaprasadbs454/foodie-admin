@@ -37,7 +37,7 @@ export const locationApi = baseApi.injectEndpoints({
                 method: 'POST',
                 body,
             }),
-            invalidatesTags: ['LocationZone'],
+            invalidatesTags: ['LocationZone', 'City'],
         }),
         updateZoneToggles: builder.mutation<LocationZoneDto, { id: string, restaurantEnabled?: boolean, deliveryPartnerEnabled?: boolean, customerOrderingEnabled?: boolean }>({
             query: ({ id, ...body }) => {
@@ -51,7 +51,7 @@ export const locationApi = baseApi.injectEndpoints({
                     method: 'PATCH',
                 };
             },
-            invalidatesTags: ['LocationZone'],
+            invalidatesTags: ['LocationZone', 'City'],
         }),
         getCities: builder.query<CityDto[], void>({
             query: () => `/api/bff/admin/location/cities`,
@@ -84,14 +84,14 @@ export const locationApi = baseApi.injectEndpoints({
                 url: `/api/bff/admin/location/zones/${id}/status?status=${status}`,
                 method: 'PATCH',
             }),
-            invalidatesTags: ['LocationZone'],
+            invalidatesTags: ['LocationZone', 'City'],
         }),
         deleteZone: builder.mutation<void, string>({
             query: (id) => ({
                 url: `/api/bff/admin/location/zones/${id}`,
                 method: 'DELETE',
             }),
-            invalidatesTags: ['LocationZone'],
+            invalidatesTags: ['LocationZone', 'City'],
         }),
     }),
 });

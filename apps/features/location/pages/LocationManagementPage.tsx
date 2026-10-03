@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
+import Select from 'react-select';
+import { State, City } from 'country-state-city';
 import {
   useGetZonesQuery,
   useCreateZoneMutation,
@@ -625,6 +627,7 @@ export function LocationManagementPage() {
 
   const [newCityName, setNewCityName] = useState('');
   const [newState, setNewState] = useState('');
+  const [newStateIsoCode, setNewStateIsoCode] = useState('');
 
   const [serviceAreas, setServiceAreas] = useState<ServiceAreaRecord[]>(MOCK_SERVICE_AREAS);
 
@@ -1533,17 +1536,21 @@ export function LocationManagementPage() {
                 state: newState.trim(),
                 activeZonesCount: 0,
                 activeMerchantsCount: 0,
-                status: 'ACTIVE'
-              }).unwrap().then(async () => {
-                await refetchCities();
-                setNewZoneCity(addedCityName);
-                void handleCityMapUpdate(addedCityName);
-                setNewCityName('');
-                setNewState('');
-                showToast(`City added successfully! Map prepared for ${addedCityName}.`);
-              }).catch(() => {
-                showToast(`Failed to establish new city record.`);
-              });
+                status: 'ACTIVE',
+              })
+                .unwrap()
+                .then(() => {
+                  showToast('City added successfully!');
+                  setNewCityName('');
+                  setNewState('');
+                  setNewStateIsoCode('');
+                  if (activeTab === 'Delivery Multi-Zones' && isCreatingZone) {
+                    setNewZoneCity(addedCityName);
+                  }
+                })
+                .catch(() => {
+                  showToast(`Failed to establish new city record.`);
+                });
             }}
             style={{
               backgroundColor: '#FFFFFF',
@@ -1559,12 +1566,31 @@ export function LocationManagementPage() {
           >
             <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>Add Operating City</h3>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>City Name</label>
-              <input type="text" placeholder="e.g. Pune" value={newCityName} onChange={(e) => setNewCityName(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>State / Region</label>
+              <Select
+                options={State.getStatesOfCountry('IN').map(s => ({ value: s.isoCode, label: s.name }))}
+                placeholder="Search State..."
+                onChange={(option) => {
+                  setNewStateIsoCode(option?.value || '');
+                  setNewState(option?.label || '');
+                  setNewCityName('');
+                }}
+                value={newState ? { label: newState, value: newStateIsoCode } : null}
+                styles={{ control: (base) => ({ ...base, borderRadius: 10, borderColor: '#E5E7EB', fontSize: 13 }) }}
+              />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>State / Region</label>
-              <input type="text" placeholder="e.g. Maharashtra" value={newState} onChange={(e) => setNewState(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>City Name</label>
+              <Select
+                options={newStateIsoCode ? City.getCitiesOfState('IN', newStateIsoCode).map(c => ({ value: c.name, label: c.name })) : []}
+                placeholder="Search City..."
+                onChange={(option) => {
+                  setNewCityName(option?.value || '');
+                }}
+                value={newCityName ? { label: newCityName, value: newCityName } : null}
+                isDisabled={!newStateIsoCode}
+                styles={{ control: (base) => ({ ...base, borderRadius: 10, borderColor: '#E5E7EB', fontSize: 13 }) }}
+              />
             </div>
             <button type="submit" style={{ padding: '12px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: 'pointer', marginTop: 8, boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}>
               Add City
