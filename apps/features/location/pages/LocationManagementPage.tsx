@@ -633,7 +633,14 @@ export function LocationManagementPage() {
 
   const [isCreatingZone, setIsCreatingZone] = useState(false);
   const [newZoneName, setNewZoneName] = useState('');
-  const [newZoneCity, setNewZoneCity] = useState('Bangalore');
+  const [newZoneCity, setNewZoneCity] = useState('');
+
+  // Fallback to forcefully bypass visual HTML <select> desyncs
+  useEffect(() => {
+    if (cities.length > 0 && !cities.some(c => c.cityName === newZoneCity)) {
+      setNewZoneCity(cities[0].cityName);
+    }
+  }, [cities, newZoneCity]);
   const [newLat, setNewLat] = useState('12.9716');
   const [newLng, setNewLng] = useState('77.5946');
   const [newRadiusKm, setNewRadiusKm] = useState('5.0');
