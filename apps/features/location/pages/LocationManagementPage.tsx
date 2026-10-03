@@ -6,8 +6,12 @@ import {
   useGetZonesQuery,
   useCreateZoneMutation,
   useUpdateZoneTogglesMutation,
+  useUpdateZoneStatusMutation,
+  useDeleteZoneMutation,
   useGetCitiesQuery,
   useCreateCityMutation,
+  useUpdateCityStatusMutation,
+  useDeleteCityMutation,
 } from '../../../api/endpoints/locationApi';
 
 export interface CityRecord {
@@ -611,6 +615,10 @@ export function LocationManagementPage() {
   const { data: dbDeliveryZones = [] } = useGetZonesQuery();
   const [createZone] = useCreateZoneMutation();
   const [updateZoneToggles] = useUpdateZoneTogglesMutation();
+  const [updateZoneStatus] = useUpdateZoneStatusMutation();
+  const [deleteZone] = useDeleteZoneMutation();
+  const [updateCityStatus] = useUpdateCityStatusMutation();
+  const [deleteCity] = useDeleteCityMutation();
 
   const cities = dbCities as CityRecord[];
   const deliveryZones = dbDeliveryZones as DeliveryZoneRecord[];
@@ -1206,8 +1214,8 @@ export function LocationManagementPage() {
                       style={{
                         fontSize: 11,
                         fontWeight: 600,
-                        backgroundColor: '#DCFCE7',
-                        color: '#15803D',
+                        backgroundColor: dz.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
+                        color: dz.status === 'ACTIVE' ? '#15803D' : '#991B1B',
                         padding: '3px 8px',
                         borderRadius: 6,
                       }}
@@ -1216,7 +1224,7 @@ export function LocationManagementPage() {
                     </span>
                   </td>
 
-                  <td style={{ padding: '16px 20px' }}>
+                  <td style={{ padding: '16px 20px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <button
                       type="button"
                       onClick={() => setEditingZoneMap(dz)}
@@ -1233,6 +1241,8 @@ export function LocationManagementPage() {
                     >
                       Edit Pins ({dz.polygonCoordinates ? dz.polygonCoordinates.split('|').length : 0})
                     </button>
+                    <button onClick={() => updateZoneStatus({ id: dz.id, status: dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }).unwrap().then(() => showToast(`Zone status updated to ${dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}`))} style={{ padding: '6px 12px', background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{dz.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
+                    <button onClick={() => { if (confirm('Are you sure you want to permanently delete this zone? This action cannot be undone.')) { deleteZone(dz.id).unwrap().then(() => showToast('Zone deleted permanently.')); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
                   </td>
                 </tr>
               ))}
@@ -1521,7 +1531,7 @@ export function LocationManagementPage() {
               createCity({
                 cityName: addedCityName,
                 state: newState.trim(),
-                activeZonesCount: 1,
+                activeZonesCount: 0,
                 activeMerchantsCount: 0,
                 status: 'ACTIVE'
               }).unwrap().then(async () => {
@@ -1569,6 +1579,7 @@ export function LocationManagementPage() {
                   <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Zones</th>
                   <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Merchants</th>
                   <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1581,9 +1592,13 @@ export function LocationManagementPage() {
                     <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{c.activeZonesCount} Zones</td>
                     <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{c.activeMerchantsCount} Outlets</td>
                     <td style={{ padding: '16px 20px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: c.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2', color: c.status === 'ACTIVE' ? '#15803D' : '#991B1B', padding: '3px 8px', borderRadius: 6 }}>
                         {c.status}
                       </span>
+                    </td>
+                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                      <button onClick={() => updateCityStatus({ id: c.id, status: c.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }).unwrap().then(() => showToast(`City status updated to ${c.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}`))} style={{ padding: '6px 12px', marginRight: 8, background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
+                      <button onClick={() => { if (confirm('Are you sure you want to permanently delete this city? This action cannot be undone.')) { deleteCity(c.id).unwrap().then(() => showToast('City deleted permanently.')); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
                     </td>
                   </tr>
                 ))}

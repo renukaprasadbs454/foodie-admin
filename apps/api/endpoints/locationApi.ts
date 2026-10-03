@@ -65,6 +65,34 @@ export const locationApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ['City'],
         }),
+        updateCityStatus: builder.mutation<CityDto, { id: string; status: string }>({
+            query: ({ id, status }) => ({
+                url: `/api/bff/admin/location/cities/${id}/status?status=${status}`,
+                method: 'PATCH',
+            }),
+            invalidatesTags: ['City'],
+        }),
+        deleteCity: builder.mutation<void, string>({
+            query: (id) => ({
+                url: `/api/bff/admin/location/cities/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['City'],
+        }),
+        updateZoneStatus: builder.mutation<LocationZoneDto, { id: string; status: string }>({
+            query: ({ id, status }) => ({
+                url: `/api/bff/admin/location/zones/${id}/status?status=${status}`,
+                method: 'PATCH',
+            }),
+            invalidatesTags: ['LocationZone'],
+        }),
+        deleteZone: builder.mutation<void, string>({
+            query: (id) => ({
+                url: `/api/bff/admin/location/zones/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['LocationZone'],
+        }),
     }),
 });
 
@@ -74,4 +102,8 @@ export const {
     useUpdateZoneTogglesMutation,
     useGetCitiesQuery,
     useCreateCityMutation,
+    useUpdateCityStatusMutation,
+    useDeleteCityMutation,
+    useUpdateZoneStatusMutation,
+    useDeleteZoneMutation,
 } = locationApi;
