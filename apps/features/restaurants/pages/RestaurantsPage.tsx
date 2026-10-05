@@ -23,6 +23,7 @@ export interface StoreItem {
   status: 'APPROVED' | 'PENDING' | 'SUSPENDED';
   joinedDate: string;
   topPosition?: number | null;
+  documents?: { documentId: string; docType: string; documentUrl?: string; verifiedAt?: string | null }[];
 }
 
 const MOCK_STORES: StoreItem[] = [
@@ -138,6 +139,7 @@ export function RestaurantsPage() {
     status: (r.status as any) || 'PENDING',
     joinedDate: '',
     topPosition: (r as any).topPosition || null,
+    documents: r.documents || [],
   })) || [];
 
   const filteredStores = stores.filter((s) => {
@@ -421,6 +423,7 @@ export function RestaurantsPage() {
                 <th style={{ padding: '14px 20px' }}>Owner & Contact</th>
                 <th style={{ padding: '14px 20px' }}>Zone</th>
                 <th style={{ padding: '14px 20px' }}>Rating & Orders</th>
+                <th style={{ padding: '14px 20px' }}>Documents</th>
                 <th style={{ padding: '14px 20px' }}>Commission</th>
                 <th style={{ padding: '14px 20px' }}>Status</th>
                 <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
@@ -461,6 +464,19 @@ export function RestaurantsPage() {
                       <span>{store.rating}</span>
                     </div>
                     <div style={{ fontSize: 11, color: '#6B7280' }}>{store.ordersCount} orders</div>
+                  </td>
+                  <td style={{ padding: '14px 20px' }}>
+                    {store.documents && store.documents.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {store.documents.map(d => (
+                          <a key={d.documentId} href={d.documentUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#2196F3', textDecoration: 'none', fontWeight: 600 }}>
+                            📄 {d.docType}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 11, color: '#9CA3AF' }}>No docs</span>
+                    )}
                   </td>
                   <td style={{ padding: '14px 20px', fontWeight: 600, color: '#111827' }}>
                     {store.commissionRate}%
