@@ -1562,7 +1562,7 @@ export function LocationManagementPage() {
                   setNewCityName('');
                   setNewState('');
                   setNewStateIsoCode('');
-                  if (activeTab === 'Delivery Multi-Zones' && isCreatingZone) {
+                  if (isCreatingZone) {
                     setNewZoneCity(addedCityName);
                   }
                 })

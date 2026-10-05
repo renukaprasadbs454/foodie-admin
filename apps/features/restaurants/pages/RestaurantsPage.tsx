@@ -139,7 +139,7 @@ export function RestaurantsPage() {
     status: (r.status as any) || 'PENDING',
     joinedDate: '',
     topPosition: (r as any).topPosition || null,
-    documents: r.documents || [],
+    documents: (r.documents as any) || [],
   })) || [];
 
   const filteredStores = stores.filter((s) => {

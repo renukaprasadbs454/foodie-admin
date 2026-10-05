@@ -283,7 +283,7 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
                 <Text as="h3" variant="heading3" style={{ marginBottom: tokens.spacing.xs }}>Documents</Text>
                 <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
                   {data.documents.map((doc, docIdx) => (
-                    <div key={doc.id ? `doc-${doc.id}` : `doc-${doc.docType || 'doc'}-${docIdx}`} style={{ padding: tokens.spacing.sm, border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.sm, background: tokens.color.surface }}>
+                    <div key={doc.documentId ? `doc-${doc.documentId}` : `doc-${doc.docType || 'doc'}-${docIdx}`} style={{ padding: tokens.spacing.sm, border: `1px solid ${tokens.color.border}`, borderRadius: tokens.radius.sm, background: tokens.color.surface }}>
                       <Text as="p" variant="body">{doc.docType}</Text>
                       <Text as="p" variant="caption" color={doc.verifiedAt ? tokens.color.success : tokens.color.textSecondary}>
                         {doc.verifiedAt ? 'Verified' : 'Pending Verification'}

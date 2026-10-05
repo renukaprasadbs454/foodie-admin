@@ -1,0 +1,5 @@
+﻿
+> foodie-admin@0.1.0 typecheck
+> tsc -p apps/tsconfig.json --noEmit
+
+apps/features/location/pages/LocationManagementPage.tsx(1565,23): error TS2367: This comparison appears to be unintentional because the types '"CITIES"' and '"DELIVERY_ZONES"' have no overlap.
