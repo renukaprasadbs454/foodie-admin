@@ -635,14 +635,25 @@ export function LocationManagementPage() {
   const [newZoneName, setNewZoneName] = useState('');
   const [newZoneCity, setNewZoneCity] = useState('');
 
+  const [newLat, setNewLat] = useState('12.9716');
+  const [newLng, setNewLng] = useState('77.5946');
+
   // Fallback to forcefully bypass visual HTML <select> desyncs
   useEffect(() => {
     if (cities.length > 0 && !cities.some(c => c.cityName === newZoneCity)) {
-      setNewZoneCity(cities[0].cityName);
+      const targetCity = cities[0].cityName;
+      setNewZoneCity(targetCity);
+      // Automatically pull coordinates for visual auto-binder
+      fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(targetCity)},India&format=json&limit=1`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            setNewLat(parseFloat(data[0].lat).toFixed(4));
+            setNewLng(parseFloat(data[0].lon).toFixed(4));
+          }
+        }).catch(() => { });
     }
   }, [cities, newZoneCity]);
-  const [newLat, setNewLat] = useState('12.9716');
-  const [newLng, setNewLng] = useState('77.5946');
   const [newRadiusKm, setNewRadiusKm] = useState('5.0');
   const [newPolygon, setNewPolygon] = useState('12.9716,77.5946 | 12.9800,77.6000 | 12.9600,77.6100');
   const [newRestEnabled, setNewRestEnabled] = useState(true);
