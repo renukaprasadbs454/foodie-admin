@@ -23,7 +23,7 @@ export interface StoreItem {
   status: 'APPROVED' | 'PENDING' | 'SUSPENDED';
   joinedDate: string;
   topPosition?: number | null;
-  documents?: { documentId: string; docType: string; documentUrl?: string; verifiedAt?: string | null }[];
+  documents?: { documentId: string; docType: string; documentUrl?: string | null; verifiedAt?: string | null }[];
 }
 
 const MOCK_STORES: StoreItem[] = [
@@ -469,7 +469,7 @@ export function RestaurantsPage() {
                     {store.documents && store.documents.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {store.documents.map(d => (
-                          <a key={d.documentId} href={d.documentUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#2196F3', textDecoration: 'none', fontWeight: 600 }}>
+                          <a key={d.documentId} href={d.documentUrl || undefined} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#2196F3', textDecoration: 'none', fontWeight: 600 }}>
                             📄 {d.docType}
                           </a>
                         ))}

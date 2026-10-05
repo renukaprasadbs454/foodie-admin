@@ -34,9 +34,10 @@ export type RestaurantDetail = {
     businessType?: string | null;
   } | null;
   documents?: {
-    id: string;
+    documentId: string;
     docType: string;
     verifiedAt?: string | null;
+    documentUrl?: string | null;
   }[] | null;
 };
 

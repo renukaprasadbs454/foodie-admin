@@ -1,4 +1,5 @@
 import { baseApi } from '../baseApi';
+import { ENV } from '@/constants/env';
 import type {
   RestaurantDetail,
   RestaurantReview,
@@ -42,10 +43,26 @@ export const restaurantsApi = baseApi.injectEndpoints({
           ...(sort ? { sort } : {}),
         },
       }),
-      transformResponse: (response: any) => ({
-        items: response?.content || response?.items || response || [],
-        pagination: response?.pageable || response?.pagination || response || null,
-      }),
+      transformResponse: (response: any) => {
+        const items = response?.content || response?.items || response || [];
+
+        // Ensure documents use absolute backend URL in local development
+        const baseUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+        items.forEach((item: any) => {
+          if (item.documents && Array.isArray(item.documents)) {
+            item.documents.forEach((doc: any) => {
+              if (doc.documentUrl && doc.documentUrl.startsWith('/api')) {
+                doc.documentUrl = `${baseUrl}${doc.documentUrl}`;
+              }
+            });
+          }
+        });
+
+        return {
+          items,
+          pagination: response?.pageable || response?.pagination || response || null,
+        };
+      },
       providesTags: ['Admin', 'Restaurant', { type: 'Admin', id: 'LIST' }],
     }),
     getRestaurantReviews: builder.query<
