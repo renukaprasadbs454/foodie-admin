@@ -654,7 +654,7 @@ export function LocationManagementPage() {
         }).catch(() => { });
     }
   }, [cities, newZoneCity]);
-  const [newRadiusKm, setNewRadiusKm] = useState('5.0');
+  const [newRadiusKm, setNewRadiusKm] = useState('100.0');
   const [newPolygon, setNewPolygon] = useState('12.9716,77.5946 | 12.9800,77.6000 | 12.9600,77.6100');
   const [newRestEnabled, setNewRestEnabled] = useState(true);
   const [newDriverEnabled, setNewDriverEnabled] = useState(true);
