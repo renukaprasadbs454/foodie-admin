@@ -1898,17 +1898,6 @@ async function proxy(request: Request, pathSegments: string[]) {
         );
       }
 
-      if (targetPath.includes('admin/delivery-pricing')) {
-        return NextResponse.json(
-          {
-            success: true,
-            data: { minPricePerDelivery: 30, moneyPerKm: 10, updatedAt: new Date().toISOString() },
-            error: null,
-            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
-          },
-          { status: 200 }
-        );
-      }
 
       if (targetPath.includes('admin/delivery-partners')) {
         return NextResponse.json(
@@ -2051,17 +2040,6 @@ async function proxy(request: Request, pathSegments: string[]) {
 
 
     if (request.method === 'GET') {
-      if (targetPath.includes('admin/delivery-pricing')) {
-        return NextResponse.json(
-          {
-            success: true,
-            data: { minPricePerDelivery: 30, moneyPerKm: 10, updatedAt: new Date().toISOString() },
-            error: null,
-            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
-          },
-          { status: 200 }
-        );
-      }
 
       if (targetPath.includes('admin/delivery-partners')) {
         return NextResponse.json(
