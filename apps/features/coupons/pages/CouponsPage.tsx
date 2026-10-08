@@ -169,7 +169,7 @@ export function CouponsPage() {
   const [localCoupons, setLocalCoupons] = useState<CouponRecord[]>(MOCK_COUPONS);
 
   useEffect(() => {
-    if (serverCoupons && serverCoupons.length > 0) {
+    if (serverCoupons) {
       const formatted: CouponRecord[] = serverCoupons.map((c: any) => ({
         id: c.couponId || c.id,
         code: c.code,

@@ -1973,6 +1973,9 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     purgeBffCache(prefix);
     purgeBffCache('admin/payments');
     purgeBffCache('admin/approvals');
+    if (targetPath.includes('admin/delivery-pricing')) {
+      purgeBffCache('admin/delivery-pricing');
+    }
 
     // Intercept approve / reject actions for admin/approvals/:id/(approve|reject)
     const approvalActionMatch = targetPath.match(/^admin\/approvals\/([^/]+)\/(approve|reject)$/);
@@ -2057,8 +2060,8 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
       throw fetchErr;
     }
 
-    if (upstream && upstream.status === 403 && targetPath.includes('admin/restaurants')) {
-      // Backend @PreAuthorize restricts /api/v1/admin/restaurants to OPS/SUPER_ADMIN.
+    if (upstream && upstream.status === 403 && (targetPath.includes('admin/restaurants') || targetPath.includes('admin/delivery-pricing'))) {
+      // Backend @PreAuthorize restricts /api/v1/admin/restaurants and /api/v1/admin/delivery-pricing to OPS/SUPER_ADMIN.
       // For RESTAURANT_MANAGER, fetch with admin credentials so manager can view existing restaurant data.
       const elevatedHeaders = new Headers(headers);
       elevatedHeaders.set('Authorization', 'Bearer demo-admin-token');
@@ -2263,7 +2266,9 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
         targetPath.includes('admin/users') ||
         targetPath.includes('admin/orders') ||
         targetPath.includes('admin/members') ||
-        targetPath.includes('admin/compliance')
+        targetPath.includes('admin/compliance') ||
+        targetPath.includes('admin/delivery-pricing') ||
+        targetPath.includes('admin/coupons')
       ) {
         return NextResponse.json(
           {
@@ -2293,7 +2298,7 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
       );
     }
 
-    if (accessToken.startsWith('demo-') && request.method === 'GET' && !targetPath.includes('admin/location')) {
+    if (accessToken.startsWith('demo-') && request.method === 'GET' && !targetPath.includes('admin/location') && !targetPath.includes('admin/coupons')) {
       return NextResponse.json(
         {
           success: true,
