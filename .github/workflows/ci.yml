@@ -21,17 +21,13 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        working-directory: apps
         run: npm ci || npm install
 
       - name: Run Typecheck
-        working-directory: apps
         run: npm run typecheck
 
       - name: Run Tests
-        working-directory: apps
         run: npm test
 
       - name: Run Production Build
-        working-directory: apps
         run: npm run build
