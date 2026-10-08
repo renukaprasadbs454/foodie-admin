@@ -39,14 +39,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isAuditorPath = Boolean(pathname && pathname.startsWith('/compliance-auditor'));
-      const isFinancePath = Boolean(
-        pathname && (
-          pathname.startsWith('/finance-admin') ||
-          pathname.startsWith('/delivery-payouts') ||
-          pathname.startsWith('/payments') ||
-          pathname.startsWith('/approvals')
-        )
-      );
+      const isFinancePath = Boolean(pathname && pathname.startsWith('/finance-admin'));
       const defaultRoleForPath = isAuditorPath ? 'AUDITOR' : (isFinancePath ? 'FINANCE_ADMIN' : null);
       const savedRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role') || defaultRoleForPath;
       const savedUserId = localStorage.getItem('foodie_admin_user_id') || sessionStorage.getItem('foodie_admin_user_id') || '44444444-4444-4444-4444-444444444001';
@@ -71,28 +64,27 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const isAuditorPath = Boolean(pathname && pathname.startsWith('/compliance-auditor'));
-    const isFinancePath = Boolean(
-      pathname && (
-        pathname.startsWith('/finance-admin') ||
-        pathname.startsWith('/delivery-payouts') ||
-        pathname.startsWith('/payments') ||
-        pathname.startsWith('/approvals')
-      )
-    );
+    const isFinancePath = Boolean(pathname && pathname.startsWith('/finance-admin'));
     const storedRole = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null;
 
     if (meProfile) {
-      const finalRole = (isAuditorPath || storedRole === 'AUDITOR')
+      const finalRole = (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN')
+        ? 'SUPER_ADMIN'
+        : (isAuditorPath || storedRole === 'AUDITOR')
         ? 'AUDITOR'
         : (isFinancePath || storedRole === 'FINANCE_ADMIN' || (storedRole && storedRole.toUpperCase().includes('FINANCE')))
         ? 'FINANCE_ADMIN'
-        : ((storedRole && storedRole !== 'SUPER_ADMIN' ? storedRole : meProfile.role) || storedRole || role || 'SUPER_ADMIN');
+        : (meProfile.role || storedRole || role || 'SUPER_ADMIN');
+      const storedEmail = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null;
+      const storedPhone = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone')) : null;
       dispatch(
         setSession({
           userId: meProfile.adminUserId || userId || '44444444-4444-4444-4444-444444444001',
           role: finalRole as AdminRole,
           userType: 'ADMIN',
           fullName: finalRole === 'AUDITOR' ? 'Compliance Auditor' : (finalRole === 'FINANCE_ADMIN' ? 'Finance Admin' : (meProfile.fullName || 'Admin Operator')),
+          email: (meProfile as any).email || storedEmail || undefined,
+          phone: (meProfile as any).phone || storedPhone || undefined,
           permissions: meProfile.permissions || [],
         }),
       );
@@ -132,14 +124,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (hasHydrated && authStatus === 'unauthenticated' && !role && !userId) {
       const isAuditorPath = Boolean(pathname && pathname.startsWith('/compliance-auditor'));
-      const isFinancePath = Boolean(
-        pathname && (
-          pathname.startsWith('/finance-admin') ||
-          pathname.startsWith('/delivery-payouts') ||
-          pathname.startsWith('/payments') ||
-          pathname.startsWith('/approvals')
-        )
-      );
+      const isFinancePath = Boolean(pathname && pathname.startsWith('/finance-admin'));
       const savedRole = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null;
       if (!savedRole && !isAuditorPath && !isFinancePath) {
         router.replace('/login');
@@ -256,83 +241,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {/* Brand Header */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 6px 6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-                {activeRole === 'AUDITOR' ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#FFFFFF',
-                        boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
-                      }}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        <polyline points="9 12 11 14 15 10" />
-                      </svg>
-                    </div>
-                    <div style={{ fontSize: 17, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', letterSpacing: '-0.3px' }}>
-                      Compliance Auditor
-                    </div>
-                  </div>
-                ) : activeRole === 'FINANCE_ADMIN' || isFinanceContext ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#FFFFFF',
-                        boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
-                      }}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="4" width="20" height="16" rx="2" />
-                        <line x1="2" y1="10" x2="22" y2="10" />
-                      </svg>
-                    </div>
-                    <div style={{ fontSize: 19, fontWeight: 800, color: '#111827', letterSpacing: '-0.4px', whiteSpace: 'nowrap' }}>
-                      Foodie <span style={{ color: '#2196F3' }}>Finance</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#FFFFFF',
-                        boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
-                      }}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                      </svg>
-                    </div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#111827', letterSpacing: '-0.4px', whiteSpace: 'nowrap' }}>
-                      Foodie <span style={{ color: '#2196F3' }}>Admin</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+
 
             {/* Role Badge */}
             {activeRole ? (
@@ -524,81 +433,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 })}
               </ul>
             </nav>
-          </div>
-
-          {/* User Profile Footer */}
-          <div
-            style={{
-              borderTop: '1px solid #E5E7EB',
-              paddingTop: 16,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 4px' }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  backgroundColor: '#E3F2FD',
-                  color: '#2196F3',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  flexShrink: 0,
-                }}
-              >
-                {activeRole === 'AUDITOR' ? 'CA' : (activeRole === 'FINANCE_ADMIN' || isFinanceContext ? 'FA' : 'AD')}
-              </div>
-              <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                  {activeRole === 'AUDITOR' ? 'Compliance Auditor' : (activeRole === 'FINANCE_ADMIN' || isFinanceContext ? 'Finance Admin' : 'Admin')}
-                </div>
-                <div style={{ fontSize: 11, color: '#6B7280', marginTop: 1 }}>
-                  {activeRole === 'FINANCE_ADMIN' || isFinanceContext ? 'finance.admin' : 'admin@foodie.com'}
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => void onLogout()}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: 'none',
-                backgroundColor: 'transparent',
-                color: '#6B7280',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                width: '100%',
-                textAlign: 'left',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#FEE2E2';
-                e.currentTarget.style.color = '#EF4444';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#6B7280';
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              <span>Logout</span>
-            </button>
           </div>
         </aside>
 

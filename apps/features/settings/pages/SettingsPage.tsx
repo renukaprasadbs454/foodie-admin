@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SocialMediaStudio } from '@/features/social-media/components/SocialMediaStudio';
+import { useAppSelector } from '@/store/hooks';
 
 export type SettingsTab =
   | 'admin-profile'
@@ -114,6 +115,7 @@ const INITIAL_POLICY_PAGES: PolicyPageRecord[] = [
 
 export function SettingsPage() {
   const searchParams = useSearchParams();
+  const authState = useAppSelector((state) => state.auth);
   const initialTab = (searchParams?.get('tab') as SettingsTab) || 'admin-profile';
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
   const [saving, setSaving] = useState(false);
@@ -126,10 +128,18 @@ export function SettingsPage() {
     }
   }, [searchParams]);
 
-  // 1. Admin Profile State
-  const [profileName, setProfileName] = useState('Preethi Shree D');
-  const [profileEmail, setProfileEmail] = useState('preethishreed@gmail.com');
-  const [profilePhone, setProfilePhone] = useState('+91 98765 43210');
+  // 1. Admin Profile State — dynamically bound to logged in user
+  const [profileName, setProfileName] = useState(() => authState.fullName || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_fullname') || sessionStorage.getItem('foodie_admin_fullname')) : null) || 'Admin Operator');
+  const [profileEmail, setProfileEmail] = useState(() => authState.email || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null) || 'admin@foodie.local');
+  const [profilePhone, setProfilePhone] = useState(() => authState.phone || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone')) : null) || '+91 98765 43210');
+  const [assignedRole, setAssignedRole] = useState(() => authState.role || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null) || 'SUPER_ADMIN');
+
+  useEffect(() => {
+    if (authState.fullName) setProfileName(authState.fullName);
+    if (authState.email) setProfileEmail(authState.email);
+    if (authState.phone) setProfilePhone(authState.phone);
+    if (authState.role) setAssignedRole(authState.role);
+  }, [authState]);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -403,7 +413,7 @@ export function SettingsPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Assigned System Role</label>
-                  <input type="text" value="SUPER_ADMIN (Full Control)" readOnly style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', backgroundColor: '#F9FAFB', color: '#6B7280', fontWeight: 600, fontSize: 13, outline: 'none' }} />
+                  <input type="text" value={`${assignedRole} (Active Session)`} readOnly style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', backgroundColor: '#F9FAFB', color: '#6B7280', fontWeight: 600, fontSize: 13, outline: 'none' }} />
                 </div>
               </div>
 

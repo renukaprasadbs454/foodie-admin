@@ -5,66 +5,20 @@ import type { AdminRole } from 'foodie-shared-web';
 import type { AdminUser, UserAccountStatus } from '../types/usersTypes';
 import { formatRoleBadge, formatStatusBadge } from '../types/usersTypes';
 
-const INITIAL_USERS: AdminUser[] = [
-  {
-    id: 'USR-1001',
-    fullName: 'Alex Vance',
-    email: 'alex.vance@foodie.com',
-    phone: '+1 (555) 019-2831',
-    role: 'SUPER_ADMIN',
-    accountStatus: 'ACTIVE',
-    joinedDate: '2025-01-10',
-    lastActive: '2026-08-24 12:30',
-    department: 'Executive Operations',
-  },
-  {
-    id: 'USR-1002',
-    fullName: 'Priya Sharma',
-    email: 'priya.sharma@foodie.com',
-    phone: '+1 (555) 234-8901',
-    role: 'OPS',
-    accountStatus: 'ACTIVE',
-    joinedDate: '2025-03-15',
-    lastActive: '2026-08-24 11:45',
-    department: 'Logistics & Merchant Ops',
-  },
-  {
-    id: 'USR-1003',
-    fullName: 'David Miller',
-    email: 'david.m@foodie.com',
-    phone: '+1 (555) 456-1122',
-    role: 'FINANCE',
-    accountStatus: 'ACTIVE',
-    joinedDate: '2025-06-20',
-    lastActive: '2026-08-23 16:10',
-    department: 'Corporate Finance & Payouts',
-  },
-  {
-    id: 'USR-1004',
-    fullName: 'Rachel Green',
-    email: 'rachel.green@foodie.com',
-    phone: '+1 (555) 789-3344',
-    role: 'SUPPORT',
-    accountStatus: 'ACTIVE',
-    joinedDate: '2025-09-01',
-    lastActive: '2026-08-24 09:15',
-    department: 'Customer Escalations Desk',
-  },
-  {
-    id: 'USR-1005',
-    fullName: 'Michael Scott',
-    email: 'm.scott@foodie.com',
-    phone: '+1 (555) 998-7766',
-    role: 'OPS',
-    accountStatus: 'SUSPENDED',
-    joinedDate: '2026-02-14',
-    lastActive: '2026-07-30 14:00',
-    department: 'Regional Dispatch',
-  },
-];
+import {
+  useGetAdminUsersQuery,
+  useCreateAdminUserMutation,
+  useUpdateAdminUserRoleMutation,
+  useUpdateAdminUserStatusMutation,
+} from '@/api/endpoints/usersApi';
 
 export function UserManagementStudio() {
-  const [users, setUsers] = useState<AdminUser[]>(INITIAL_USERS);
+  const { data: rawUsers = [], isLoading, isError, refetch } = useGetAdminUsersQuery();
+  const [createAdminUser] = useCreateAdminUserMutation();
+  const [updateAdminUserRole] = useUpdateAdminUserRoleMutation();
+  const [updateAdminUserStatus] = useUpdateAdminUserStatusMutation();
+
+  const users: AdminUser[] = rawUsers;
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -100,54 +54,63 @@ export function UserManagementStudio() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFullName || !newEmail || !newPhone) return;
 
-    const newUser: AdminUser = {
-      id: `USR-${1000 + users.length + 1}`,
-      fullName: newFullName,
-      email: newEmail,
-      phone: newPhone,
-      role: newRole,
-      accountStatus: 'ACTIVE',
-      joinedDate: new Date().toISOString().split('T')[0],
-      lastActive: 'Just Provisioned',
-      department: newDept || 'Platform Administration',
-    };
+    try {
+      await createAdminUser({
+        fullName: newFullName,
+        email: newEmail,
+        phone: newPhone,
+        role: newRole,
+        department: newDept || 'Platform Administration',
+      }).unwrap();
 
-    setUsers((prev) => [newUser, ...prev]);
-    showToast(`Successfully provisioned admin user: ${newFullName} (${newRole})`);
+      showToast(`Successfully provisioned admin user: ${newFullName} (${newRole})`);
 
-    // Reset form
-    setNewFullName('');
-    setNewEmail('');
-    setNewPhone('');
-    setNewRole('OPS');
-    setNewDept('');
-    setIsCreateModalOpen(false);
+      // Reset form
+      setNewFullName('');
+      setNewEmail('');
+      setNewPhone('');
+      setNewRole('OPS');
+      setNewDept('');
+      setIsCreateModalOpen(false);
+      refetch();
+    } catch {
+      showToast(`Failed to provision admin user.`);
+    }
   };
 
-  const handleToggleStatus = (id: string, currentStatus: UserAccountStatus) => {
+  const handleToggleStatus = async (id: string, currentStatus: UserAccountStatus) => {
     const nextStatus: UserAccountStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, accountStatus: nextStatus } : u)));
-    showToast(`Updated user account ${id} status to ${nextStatus}`);
-    setSelectedUserForStatus(null);
+    try {
+      await updateAdminUserStatus({ userId: id, status: nextStatus }).unwrap();
+      showToast(`Updated user account ${id} status to ${nextStatus}`);
+      setSelectedUserForStatus(null);
+      refetch();
+    } catch {
+      showToast(`Failed to update user status for ${id}`);
+    }
   };
 
-  const handleUpdateRole = () => {
+  const handleUpdateRole = async () => {
     if (!selectedUserForRole) return;
-    setUsers((prev) =>
-      prev.map((u) => (u.id === selectedUserForRole.id ? { ...u, role: targetRole } : u))
-    );
-    showToast(`Updated ${selectedUserForRole.fullName}'s role to ${targetRole}`);
-    setSelectedUserForRole(null);
+    try {
+      await updateAdminUserRole({ userId: selectedUserForRole.id, role: targetRole }).unwrap();
+      showToast(`Updated ${selectedUserForRole.fullName}'s role to ${targetRole}`);
+      setSelectedUserForRole(null);
+      refetch();
+    } catch {
+      showToast(`Failed to update role for ${selectedUserForRole.fullName}`);
+    }
   };
 
   const totalUsers = users.length;
   const activeAdmins = users.filter((u) => u.role === 'SUPER_ADMIN').length;
   const opsTeam = users.filter((u) => u.role === 'OPS').length;
   const supportFinance = users.filter((u) => u.role === 'SUPPORT' || u.role === 'FINANCE').length;
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -298,13 +261,26 @@ export function UserManagementStudio() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: '#2196F3', fontWeight: 600 }}>
+                    Loading administrative user directory from backend...
+                  </td>
+                </tr>
+              ) : isError ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: '#EF4444', fontWeight: 600 }}>
+                    Failed to fetch user directory from backend.
+                  </td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: '#6B7280', fontWeight: 500 }}>
                     No administrative users match the filter criteria.
                   </td>
                 </tr>
               ) : (
+
                 filteredUsers.map((user) => {
                   const roleBadge = formatRoleBadge(user.role);
                   const statusBadge = formatStatusBadge(user.accountStatus);

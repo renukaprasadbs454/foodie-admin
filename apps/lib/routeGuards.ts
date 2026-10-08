@@ -234,7 +234,9 @@ export function filterNavForRole(role: string | null, pathname?: string): NavIte
     ];
   }
 
-  const isFinanceAdminPortal = Boolean(
+  const isSuperAdmin = Boolean(role && role.toUpperCase() === 'SUPER_ADMIN');
+
+  const isFinanceAdminPortal = !isSuperAdmin && Boolean(
     pathname && (
       pathname.startsWith('/finance-admin') ||
       ((role && role.toUpperCase().includes('FINANCE')) && (

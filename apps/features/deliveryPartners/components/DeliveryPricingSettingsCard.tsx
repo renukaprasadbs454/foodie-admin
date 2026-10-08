@@ -172,7 +172,15 @@ export function DeliveryPricingSettingsCard() {
   const [simDistances, setSimDistances] = useState<number[]>([2, 5, 8, 12]);
   const [customTestKm, setCustomTestKm] = useState<number>(10);
 
-  // Initialize from LocalStorage and API
+  // Saved baseline values loaded from backend database
+  const [savedMinPrice, setSavedMinPrice] = useState<number | null>(null);
+  const [savedMoneyPerKm, setSavedMoneyPerKm] = useState<number | null>(null);
+
+  // Form input string state (what admin types)
+  const [minPriceInput, setMinPriceInput] = useState<string>('');
+  const [moneyPerKmInput, setMoneyPerKmInput] = useState<string>('');
+
+  // Initialize from LocalStorage and Backend API
   useEffect(() => {
     try {
       const savedBasis = localStorage.getItem('foodie_pricing_basis');
@@ -205,13 +213,36 @@ export function DeliveryPricingSettingsCard() {
     }
 
     if (pricingConfig) {
+      const bMin = pricingConfig.minPricePerDelivery ?? 201.5;
+      const bKm = pricingConfig.moneyPerKm ?? 25.5;
+
+      setSavedMinPrice(bMin);
+      setSavedMoneyPerKm(bKm);
+
+      setMinPriceInput((prev) => (prev === '' ? String(bMin) : prev));
+      setMoneyPerKmInput((prev) => (prev === '' ? String(bKm) : prev));
+
       setUniversalConfig((prev) => ({
         ...prev,
-        minPrice: pricingConfig.minPricePerDelivery ?? prev.minPrice,
-        moneyPerKm: pricingConfig.moneyPerKm ?? prev.moneyPerKm,
+        minPrice: bMin,
+        moneyPerKm: bKm,
       }));
     }
   }, [pricingConfig]);
+
+  const parsedMinPrice = parseFloat(minPriceInput);
+  const parsedMoneyPerKm = parseFloat(moneyPerKmInput);
+
+  const isMinPriceValid = !isNaN(parsedMinPrice) && parsedMinPrice >= 0;
+  const isMoneyPerKmValid = !isNaN(parsedMoneyPerKm) && parsedMoneyPerKm >= 0;
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (savedMinPrice === null || savedMoneyPerKm === null) return false;
+    return (
+      (isMinPriceValid && parsedMinPrice !== savedMinPrice) ||
+      (isMoneyPerKmValid && parsedMoneyPerKm !== savedMoneyPerKm)
+    );
+  }, [savedMinPrice, savedMoneyPerKm, parsedMinPrice, parsedMoneyPerKm, isMinPriceValid, isMoneyPerKmValid]);
 
   // Current Active Configuration (Universal vs Selected Zone)
   const currentConfig: PayoutStructureConfig = useMemo(() => {
@@ -243,31 +274,39 @@ export function DeliveryPricingSettingsCard() {
   }, [zones, zoneSearchQuery]);
 
   // Update Active Config Values
-  const handleUpdateMinPrice = (val: number) => {
-    if (pricingBasis === 'UNIVERSAL') {
-      setUniversalConfig((prev) => ({ ...prev, minPrice: val }));
-    } else {
-      setZoneConfigs((prev) => ({
-        ...prev,
-        [selectedZoneId]: {
-          ...(prev[selectedZoneId] || universalConfig),
-          minPrice: val,
-        },
-      }));
+  const handleUpdateMinPrice = (valStr: string) => {
+    setMinPriceInput(valStr);
+    const num = parseFloat(valStr);
+    if (!isNaN(num) && num >= 0) {
+      if (pricingBasis === 'UNIVERSAL') {
+        setUniversalConfig((prev) => ({ ...prev, minPrice: num }));
+      } else {
+        setZoneConfigs((prev) => ({
+          ...prev,
+          [selectedZoneId]: {
+            ...(prev[selectedZoneId] || universalConfig),
+            minPrice: num,
+          },
+        }));
+      }
     }
   };
 
-  const handleUpdateMoneyPerKm = (val: number) => {
-    if (pricingBasis === 'UNIVERSAL') {
-      setUniversalConfig((prev) => ({ ...prev, moneyPerKm: val }));
-    } else {
-      setZoneConfigs((prev) => ({
-        ...prev,
-        [selectedZoneId]: {
-          ...(prev[selectedZoneId] || universalConfig),
-          moneyPerKm: val,
-        },
-      }));
+  const handleUpdateMoneyPerKm = (valStr: string) => {
+    setMoneyPerKmInput(valStr);
+    const num = parseFloat(valStr);
+    if (!isNaN(num) && num >= 0) {
+      if (pricingBasis === 'UNIVERSAL') {
+        setUniversalConfig((prev) => ({ ...prev, moneyPerKm: num }));
+      } else {
+        setZoneConfigs((prev) => ({
+          ...prev,
+          [selectedZoneId]: {
+            ...(prev[selectedZoneId] || universalConfig),
+            moneyPerKm: num,
+          },
+        }));
+      }
     }
   };
 
@@ -390,8 +429,15 @@ export function DeliveryPricingSettingsCard() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentConfig.minPrice < 0 || currentConfig.moneyPerKm < 0) {
-      setToastMsg({ text: 'Payout values cannot be negative', type: 'error' });
+    setToastMsg(null);
+
+    if (!isMinPriceValid) {
+      setToastMsg({ text: 'Minimum Price per Delivery must be a valid non-negative number.', type: 'error' });
+      return;
+    }
+
+    if (!isMoneyPerKmValid) {
+      setToastMsg({ text: 'Money per KM distance rate must be a valid non-negative number.', type: 'error' });
       return;
     }
 
@@ -407,11 +453,26 @@ export function DeliveryPricingSettingsCard() {
       setSavedItemsMap(allSavedMap);
 
       if (pricingBasis === 'UNIVERSAL') {
-        await updatePricing({
-          minPricePerDelivery: Number(universalConfig.minPrice),
-          moneyPerKm: Number(universalConfig.moneyPerKm),
+        const res = await updatePricing({
+          minPricePerDelivery: parsedMinPrice,
+          moneyPerKm: parsedMoneyPerKm,
         }).unwrap();
-        setToastMsg({ text: 'Universal global payout structure & incentives saved successfully!', type: 'success' });
+
+        const updatedMin = res?.minPricePerDelivery ?? parsedMinPrice;
+        const updatedKm = res?.moneyPerKm ?? parsedMoneyPerKm;
+
+        setSavedMinPrice(updatedMin);
+        setSavedMoneyPerKm(updatedKm);
+        setMinPriceInput(String(updatedMin));
+        setMoneyPerKmInput(String(updatedKm));
+
+        setUniversalConfig((prev) => ({
+          ...prev,
+          minPrice: updatedMin,
+          moneyPerKm: updatedKm,
+        }));
+
+        setToastMsg({ text: 'Universal global payout structure saved to database successfully!', type: 'success' });
       } else {
         setToastMsg({
           text: `Payout structure & incentives for "${activeZone.name}" (${activeZone.city}) saved successfully!`,
@@ -419,12 +480,12 @@ export function DeliveryPricingSettingsCard() {
         });
       }
       setTimeout(() => setToastMsg(null), 4000);
-    } catch (_err) {
+    } catch (err: any) {
+      const errorMsg = err?.data?.error?.message || err?.message || 'Failed to save payout settings to database. Please try again.';
       setToastMsg({
-        text: `Settings saved locally (${pricingBasis === 'UNIVERSAL' ? 'Universal Global' : activeZone.name})!`,
-        type: 'success',
+        text: errorMsg,
+        type: 'error',
       });
-      setTimeout(() => setToastMsg(null), 4000);
     }
   };
 
@@ -780,10 +841,10 @@ export function DeliveryPricingSettingsCard() {
                   type="number"
                   step="0.5"
                   min="0"
-                  value={currentConfig.minPrice}
+                  value={minPriceInput}
                   onFocus={() => setMinPriceFocused(true)}
                   onBlur={() => setMinPriceFocused(false)}
-                  onChange={(e) => handleUpdateMinPrice(Number(e.target.value))}
+                  onChange={(e) => handleUpdateMinPrice(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '12px 14px 12px 48px',
@@ -852,10 +913,10 @@ export function DeliveryPricingSettingsCard() {
                   type="number"
                   step="0.5"
                   min="0"
-                  value={currentConfig.moneyPerKm}
+                  value={moneyPerKmInput}
                   onFocus={() => setMoneyKmFocused(true)}
                   onBlur={() => setMoneyKmFocused(false)}
-                  onChange={(e) => handleUpdateMoneyPerKm(Number(e.target.value))}
+                  onChange={(e) => handleUpdateMoneyPerKm(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '12px 14px 12px 48px',
@@ -874,6 +935,68 @@ export function DeliveryPricingSettingsCard() {
                 Per-kilometer payout multiplier applied as distance increases.
               </p>
             </div>
+          </div>
+
+          {/* Dedicated Save Changes Section & Unsaved Indicator */}
+          <div
+            style={{
+              backgroundColor: hasUnsavedChanges ? '#FEFCE8' : '#F9FAFB',
+              border: hasUnsavedChanges ? '1.5px solid #FDE047' : '1px solid #E5E7EB',
+              borderRadius: '14px',
+              padding: '16px 20px',
+              marginBottom: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: hasUnsavedChanges ? '#854D0E' : '#374151', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {hasUnsavedChanges ? (
+                  <>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#EAB308', display: 'inline-block' }} />
+                    <span>Unsaved Payout Changes</span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ color: '#22C55E', fontWeight: 800 }}>✓</span>
+                    <span>Payout Settings Synced with Database</span>
+                  </>
+                )}
+              </div>
+              <div style={{ fontSize: '0.775rem', color: hasUnsavedChanges ? '#A16207' : '#6B7280', marginTop: '2px' }}>
+                {hasUnsavedChanges
+                  ? 'You have modified payout settings. Click Save Changes to update the backend database.'
+                  : 'Current values reflect active backend database rules.'}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!hasUnsavedChanges || isUpdating}
+              style={{
+                padding: '10px 24px',
+                borderRadius: '10px',
+                border: 'none',
+                background: hasUnsavedChanges
+                  ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)'
+                  : '#E5E7EB',
+                color: hasUnsavedChanges ? '#FFFFFF' : '#9CA3AF',
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                cursor: (hasUnsavedChanges && !isUpdating) ? 'pointer' : 'not-allowed',
+                boxShadow: hasUnsavedChanges ? '0 4px 14px rgba(33, 150, 243, 0.3)' : 'none',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              {isUpdating ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
 
           {/* Section: Rider Incentives & Performance Bonus Matrix */}

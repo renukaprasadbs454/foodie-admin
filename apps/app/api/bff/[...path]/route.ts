@@ -21,6 +21,127 @@ const globalAny = global as unknown as Record<string, unknown>;
 if (!globalAny.MOCK_BANNERS) {
   globalAny.MOCK_BANNERS = [];
 }
+if (!globalAny.GLOBAL_DELIVERY_PRICING) {
+  globalAny.GLOBAL_DELIVERY_PRICING = {
+    minPricePerDelivery: 201.5,
+    moneyPerKm: 25.5,
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'Admin Operator',
+  };
+}
+
+async function handleDeliveryPricing(request: Request) {
+  const method = request.method;
+  const cookieHeader = request.headers.get('cookie');
+  const accessToken = readAccessTokenFromCookieHeader(cookieHeader);
+
+  if (method === 'GET') {
+    try {
+      const primaryUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/delivery-pricing`;
+      const { response: upstream } = await safeFetch(primaryUrl, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        timeoutMs: 4000,
+      });
+
+      if (upstream && upstream.ok) {
+        const json = await upstream.json();
+        if (json?.data?.minPricePerDelivery != null) {
+          globalAny.GLOBAL_DELIVERY_PRICING = {
+            minPricePerDelivery: Number(json.data.minPricePerDelivery),
+            moneyPerKm: Number(json.data.moneyPerKm),
+            updatedAt: json.data.updatedAt || new Date().toISOString(),
+          };
+          return NextResponse.json(json, { status: 200 });
+        }
+      }
+    } catch {
+      // fallback
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: globalAny.GLOBAL_DELIVERY_PRICING,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  if (method === 'PUT' || method === 'POST' || method === 'PATCH') {
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'VALIDATION_FAILED', message: 'Request body must be valid JSON.' },
+      }, { status: 400 });
+    }
+
+    const minPrice = body?.minPricePerDelivery != null ? Number(body.minPricePerDelivery) : null;
+    const moneyPerKm = body?.moneyPerKm != null ? Number(body.moneyPerKm) : null;
+
+    if (minPrice === null || isNaN(minPrice) || minPrice < 0) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'INVALID_MIN_PRICE', message: 'Minimum price per delivery must be a non-negative number.' },
+      }, { status: 400 });
+    }
+
+    if (moneyPerKm === null || isNaN(moneyPerKm) || moneyPerKm < 0) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'INVALID_MONEY_PER_KM', message: 'Money per KM distance rate must be a non-negative number.' },
+      }, { status: 400 });
+    }
+
+    try {
+      const primaryUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/delivery-pricing`;
+      const { response: upstream } = await safeFetch(primaryUrl, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ minPricePerDelivery: minPrice, moneyPerKm: moneyPerKm }),
+        timeoutMs: 4000,
+      });
+
+      if (upstream && upstream.ok) {
+        const json = await upstream.json();
+        if (json?.data) {
+          globalAny.GLOBAL_DELIVERY_PRICING = json.data;
+          purgeBffCache('delivery-pricing');
+          return NextResponse.json(json, { status: 200 });
+        }
+      }
+    } catch {
+      // fallback
+    }
+
+    const updatedRecord = {
+      minPricePerDelivery: minPrice,
+      moneyPerKm: moneyPerKm,
+      updatedAt: new Date().toISOString(),
+      updatedBy: 'Admin Operator',
+    };
+    globalAny.GLOBAL_DELIVERY_PRICING = updatedRecord;
+    purgeBffCache('delivery-pricing');
+
+    return NextResponse.json({
+      success: true,
+      data: updatedRecord,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  return NextResponse.json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } }, { status: 405 });
+}
 
 type CacheEntry = {
   body: ArrayBuffer | Uint8Array;
@@ -1248,9 +1369,162 @@ async function proxy(request: Request, pathSegments: string[]) {
     }
   }
 
+const DEFAULT_ADMIN_USERS = [
+  {
+    id: 'USR-1001',
+    fullName: 'Admin Operator',
+    email: 'admin@foodie.local',
+    phone: '+91 98000 00001',
+    role: 'SUPER_ADMIN',
+    accountStatus: 'ACTIVE',
+    joinedDate: '2025-01-10',
+    lastActive: 'Just now',
+    department: 'Executive Operations',
+  },
+  {
+    id: 'USR-1002',
+    fullName: 'Operations Admin',
+    email: 'ops@foodie.local',
+    phone: '+91 98000 00002',
+    role: 'OPS',
+    accountStatus: 'ACTIVE',
+    joinedDate: '2025-03-15',
+    lastActive: '12 mins ago',
+    department: 'Logistics & Merchant Ops',
+  },
+  {
+    id: 'USR-1003',
+    fullName: 'Finance Admin',
+    email: 'finance@foodie.local',
+    phone: '+91 98000 00003',
+    role: 'FINANCE',
+    accountStatus: 'ACTIVE',
+    joinedDate: '2025-06-20',
+    lastActive: '1 hour ago',
+    department: 'Corporate Finance & Payouts',
+  },
+  {
+    id: 'USR-1004',
+    fullName: 'Support Agent',
+    email: 'support@foodie.local',
+    phone: '+91 98000 00004',
+    role: 'SUPPORT',
+    accountStatus: 'ACTIVE',
+    joinedDate: '2025-09-01',
+    lastActive: '25 mins ago',
+    department: 'Customer Escalations Desk',
+  },
+  {
+    id: 'USR-1005',
+    fullName: 'Compliance Auditor',
+    email: 'auditor@foodie.local',
+    phone: '+91 98000 00005',
+    role: 'AUDITOR',
+    accountStatus: 'ACTIVE',
+    joinedDate: '2026-01-15',
+    lastActive: '2 hours ago',
+    department: 'Compliance & Risk Audit',
+  },
+];
+
+async function handleAdminUsers(request: Request, targetPath: string, accessToken: string | null) {
+  if (!globalAny.ADMIN_USERS_STORE) {
+    globalAny.ADMIN_USERS_STORE = [...DEFAULT_ADMIN_USERS];
+  }
+  const usersStore = globalAny.ADMIN_USERS_STORE as any[];
+
+  if (request.method === 'GET' && targetPath === 'admin/users') {
+    return NextResponse.json({
+      success: true,
+      data: usersStore,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  if (request.method === 'POST' && targetPath === 'admin/users') {
+    let body: any = {};
+    try { body = await request.json(); } catch { body = {}; }
+    const newUser = {
+      id: `USR-${1000 + usersStore.length + 1}`,
+      fullName: body.fullName || 'New Admin User',
+      email: body.email || 'user@foodie.local',
+      phone: body.phone || '+91 98000 00000',
+      role: body.role || 'OPS',
+      accountStatus: 'ACTIVE',
+      joinedDate: new Date().toISOString().split('T')[0],
+      lastActive: 'Just Provisioned',
+      department: body.department || 'Platform Administration',
+    };
+    usersStore.unshift(newUser);
+    globalAny.ADMIN_USERS_STORE = usersStore;
+
+    const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+    safeFetch(`${backendUrl}/api/v1/admin/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken || 'demo-admin-token'}` },
+      body: JSON.stringify({ fullName: newUser.fullName, phoneNumber: newUser.phone, email: newUser.email, role: newUser.role }),
+      timeoutMs: 5000,
+    }).catch(() => null);
+
+    return NextResponse.json({
+      success: true,
+      data: newUser,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 201 });
+  }
+
+  const roleMatch = targetPath.match(/^admin\/users\/([^/]+)\/role$/);
+  if (request.method === 'PATCH' && roleMatch) {
+    const userId = roleMatch[1];
+    let body: any = {};
+    try { body = await request.json(); } catch { body = {}; }
+    const targetUser = usersStore.find((u) => u.id === userId || u.id.toLowerCase() === userId.toLowerCase());
+    if (targetUser) {
+      targetUser.role = body.role || targetUser.role;
+    }
+    return NextResponse.json({
+      success: true,
+      data: targetUser || null,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  const statusMatch = targetPath.match(/^admin\/users\/([^/]+)\/status$/);
+  if (request.method === 'PATCH' && statusMatch) {
+    const userId = statusMatch[1];
+    let body: any = {};
+    try { body = await request.json(); } catch { body = {}; }
+    const targetUser = usersStore.find((u) => u.id === userId || u.id.toLowerCase() === userId.toLowerCase());
+    if (targetUser) {
+      targetUser.accountStatus = body.status || (targetUser.accountStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE');
+    }
+    return NextResponse.json({
+      success: true,
+      data: targetUser || null,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: usersStore,
+    error: null,
+    meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+  }, { status: 200 });
+}
+
   if (targetPath.startsWith('admin/support-tickets')) {
     return handleAdminSupportTickets(request, targetPath, accessToken);
   }
+
+  if (targetPath.startsWith('admin/users') && targetPath !== 'admin/users/me') {
+    return handleAdminUsers(request, targetPath, accessToken);
+  }
+
 
   if (request.method === 'POST' && targetPath === 'admin/restaurants') {
     let reqBody: any = {};
@@ -1330,6 +1604,10 @@ async function proxy(request: Request, pathSegments: string[]) {
 
   const incomingUrl = new URL(request.url);
   const targetUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/${targetPath}${incomingUrl.search}`;
+
+  if (targetPath.includes('admin/delivery-pricing')) {
+    return handleDeliveryPricing(request);
+  }
 
   const headers = new Headers();
   headers.set('Accept', 'application/json');

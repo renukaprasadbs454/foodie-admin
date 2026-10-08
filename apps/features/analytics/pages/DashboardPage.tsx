@@ -11,6 +11,10 @@ import {
   useTheme,
 } from 'foodie-shared-web';
 import { useGetDashboardSummaryQuery } from '@/api/endpoints/analyticsApi';
+import {
+  useGetAdminRestaurantsQuery,
+  useGetRestaurantMenuQuery,
+} from '@/api/endpoints/restaurantsApi';
 import { selectAdminRole } from '@/features/auth/authSlice';
 import { useAppSelector } from '@/store/hooks';
 import { canAccessAnalyticsSummary } from '@/lib/routeGuards';
@@ -21,7 +25,7 @@ import { PermissionDenied } from '../components/PermissionDenied';
 
 import { SalesAnalyticsChart } from '../components/SalesAnalyticsChart';
 import { TopPerformersWidget } from '../components/TopPerformersWidget';
-import { RecentOrdersTableWidget } from '../components/RecentOrdersTableWidget';
+
 
 import {
   defaultDateRange,
@@ -79,7 +83,80 @@ export function DashboardPage() {
     refetchOnFocus: true,
   });
 
+  const storesQuery = useGetAdminRestaurantsQuery({ size: 20 }, { skip: !allowed });
+
+  const topStores = useMemo(() => {
+    if (!storesQuery.data?.items || !Array.isArray(storesQuery.data.items)) return [];
+    const items = [...storesQuery.data.items];
+
+    items.sort((a: any, b: any) => {
+      const rA = Number(a.avgRating ?? a.rating ?? 0);
+      const rB = Number(b.avgRating ?? b.rating ?? 0);
+      if (rB !== rA) return rB - rA;
+
+      if (a.topPosition != null && b.topPosition != null) return a.topPosition - b.topPosition;
+      if (a.topPosition != null) return -1;
+      if (b.topPosition != null) return 1;
+
+      const oA = Number(a.totalOrders ?? a.ordersCount ?? 0);
+      const oB = Number(b.totalOrders ?? b.ordersCount ?? 0);
+      return oB - oA;
+    });
+
+    return items.slice(0, 5).map((res: any, index: number) => {
+      const rawCategory = Array.isArray(res.cuisineTypes) && res.cuisineTypes.length > 0
+        ? res.cuisineTypes.slice(0, 2).map((c: string) => c.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())).join(' • ')
+        : (res.cuisineCategory || 'Multi-Cuisine');
+
+      const rawRating = Number(res.avgRating ?? res.rating ?? 0);
+      const ordersCount = Number(res.totalOrders ?? res.ordersCount ?? res.orderCount ?? 0);
+
+      return {
+        id: res.id || res.restaurantId || `res-${index}`,
+        name: res.name,
+        category: rawCategory,
+        rating: rawRating > 0 ? Number(rawRating.toFixed(1)) : 0,
+        ordersCount,
+        image: res.imageUrl,
+      };
+    });
+  }, [storesQuery.data]);
+
+  const firstStoreId = topStores[0]?.id;
+  const menuQuery = useGetRestaurantMenuQuery(firstStoreId ?? '', { skip: !firstStoreId });
+
+  const topItems = useMemo(() => {
+    const itemList: Array<{
+      id: string;
+      name: string;
+      restaurant: string;
+      price: number;
+      salesCount: number;
+    }> = [];
+
+    if (menuQuery.data?.categories) {
+      const storeName = topStores[0]?.name || 'Hotel Mayura';
+      for (const cat of menuQuery.data.categories) {
+        if (Array.isArray(cat.items)) {
+          for (const item of cat.items) {
+            const salesCount = Number(item.salesCount ?? item.orderCount ?? item.reviewCount ?? item.review_count ?? 0);
+            itemList.push({
+              id: item.menuItemId || item.id,
+              name: item.name,
+              restaurant: storeName,
+              price: Number(item.basePrice || item.price || 0),
+              salesCount,
+            });
+          }
+        }
+      }
+    }
+    return itemList.slice(0, 5);
+  }, [menuQuery.data, topStores]);
+
+
   const handledErrorRef = React.useRef<unknown>(null);
+
 
   useEffect(() => {
     trackAnalyticsEvent('admin_dashboard_viewed');
@@ -325,10 +402,12 @@ export function DashboardPage() {
       <SalesAnalyticsChart />
 
       {/* 4. Top Performing Restaurants & Popular Food Items */}
-      <TopPerformersWidget />
+      <TopPerformersWidget
+        restaurants={topStores}
+        items={topItems}
+        isLoading={storesQuery.isLoading || (Boolean(firstStoreId) && menuQuery.isLoading)}
+      />
 
-      {/* 5. Live Recent Orders Table Widget */}
-      <RecentOrdersTableWidget />
 
 
 

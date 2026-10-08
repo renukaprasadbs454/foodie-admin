@@ -14,91 +14,26 @@ import {
   useCreateCityMutation,
   useUpdateCityStatusMutation,
   useDeleteCityMutation,
+  useGetUnserviceableRequestsQuery,
+  useCreateUnserviceableRequestMutation,
+  useApproveUnserviceableRequestMutation,
+  useGetServiceAreasQuery,
+  useGetDeliveryChargesQuery,
+  useUpdateDeliveryChargesMutation,
+  useGetRadiusSettingsQuery,
+  useUpdateRadiusSettingsMutation,
+} from '../../../api/endpoints/locationApi';
+import type {
+  CityDto,
+  ServiceAreaDto,
+  LocationZoneDto,
+  UnserviceableRequestDto,
 } from '../../../api/endpoints/locationApi';
 
-export interface CityRecord {
-  id: string;
-  cityName: string;
-  state: string;
-  activeZonesCount: number;
-  activeMerchantsCount: number;
-  status: 'ACTIVE' | 'INACTIVE';
-}
-
-export interface ServiceAreaRecord {
-  id: string;
-  areaName: string;
-  cityName: string;
-  pincode: string;
-  coverageStatus: 'FULL_COVERAGE' | 'PARTIAL_COVERAGE' | 'UNAVAILABLE';
-  totalOutlets: number;
-}
-
-export interface DeliveryZoneRecord {
-  id: string;
-  zoneName: string;
-  cityName: string;
-  latitude: number;
-  longitude: number;
-  radiusKm: number;
-  polygonCoordinates: string;
-  activeDrivers: number;
-  surgeMultiplier: number;
-  status: 'ACTIVE' | 'HIGH_DEMAND' | 'PAUSED';
-  restaurantEnabled: boolean;
-  deliveryPartnerEnabled: boolean;
-  customerOrderingEnabled: boolean;
-}
-
-export interface UnserviceableRequestRecord {
-  id: string;
-  restaurantName: string;
-  contactPerson: string;
-  contactEmail: string;
-  contactPhone: string;
-  address: string;
-  cityName: string;
-  latitude: number;
-  longitude: number;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  createdAt: string;
-}
-
-const MOCK_SERVICE_AREAS: ServiceAreaRecord[] = [
-  { id: 'sa-201', areaName: 'Indiranagar & Domlur', cityName: 'Bangalore', pincode: '560038', coverageStatus: 'FULL_COVERAGE', totalOutlets: 120 },
-  { id: 'sa-202', areaName: 'Koramangala 4th Block', cityName: 'Bangalore', pincode: '560034', coverageStatus: 'FULL_COVERAGE', totalOutlets: 145 },
-  { id: 'sa-203', areaName: 'Bandra West & Khar', cityName: 'Mumbai', pincode: '400050', coverageStatus: 'FULL_COVERAGE', totalOutlets: 190 },
-  { id: 'sa-204', areaName: 'Connaught Place & Janpath', cityName: 'Delhi-NCR', pincode: '110001', coverageStatus: 'PARTIAL_COVERAGE', totalOutlets: 85 },
-];
-
-const MOCK_UNSERVICEABLE_REQUESTS: UnserviceableRequestRecord[] = [
-  {
-    id: 'req-501',
-    restaurantName: 'Truffles Bistro',
-    contactPerson: 'Rohan Sharma',
-    contactEmail: 'rohan@truffles.com',
-    contactPhone: '+91 98765 43210',
-    address: '100 Feet Road, Whitefield',
-    cityName: 'Bangalore',
-    latitude: 12.9698,
-    longitude: 77.7499,
-    status: 'PENDING',
-    createdAt: '2026-08-17 14:30',
-  },
-  {
-    id: 'req-502',
-    restaurantName: 'Coastal Spice House',
-    contactPerson: 'Ananya Rao',
-    contactEmail: 'ananya@coastalspice.com',
-    contactPhone: '+91 98123 45678',
-    address: 'Linking Road, Juhu',
-    cityName: 'Mumbai',
-    latitude: 19.1075,
-    longitude: 72.8263,
-    status: 'PENDING',
-    createdAt: '2026-08-15 11:15',
-  },
-];
+export type CityRecord = CityDto;
+export type ServiceAreaRecord = ServiceAreaDto;
+export type DeliveryZoneRecord = LocationZoneDto;
+export type UnserviceableRequestRecord = UnserviceableRequestDto;
 
 type LocationTab = 'CITIES' | 'SERVICE_AREAS' | 'DELIVERY_ZONES' | 'UNSERVICEABLE_REQUESTS' | 'DELIVERY_CHARGES' | 'RADIUS_SETTINGS';
 
@@ -612,9 +547,10 @@ export function LocationManagementPage() {
   const { tokens } = useTheme();
   const [activeTab, setActiveTab] = useState<LocationTab>('DELIVERY_ZONES');
 
-  const { data: dbCities = [], refetch: refetchCities } = useGetCitiesQuery();
+  // Real backend queries
+  const { data: dbCities = [], isLoading: isLoadingCities, isError: isErrorCities, refetch: refetchCities } = useGetCitiesQuery();
   const [createCity] = useCreateCityMutation();
-  const { data: dbDeliveryZones = [] } = useGetZonesQuery();
+  const { data: dbDeliveryZones = [], isLoading: isLoadingZones, isError: isErrorZones, refetch: refetchZones } = useGetZonesQuery();
   const [createZone] = useCreateZoneMutation();
   const [updateZoneToggles] = useUpdateZoneTogglesMutation();
   const [updateZoneStatus] = useUpdateZoneStatusMutation();
@@ -622,14 +558,28 @@ export function LocationManagementPage() {
   const [updateCityStatus] = useUpdateCityStatusMutation();
   const [deleteCity] = useDeleteCityMutation();
 
+  const { data: dbUnserviceableRequests = [], isLoading: isLoadingReqs, isError: isErrorReqs, refetch: refetchReqs } = useGetUnserviceableRequestsQuery();
+  const [createUnserviceableRequest] = useCreateUnserviceableRequestMutation();
+  const [approveUnserviceableRequest] = useApproveUnserviceableRequestMutation();
+
+  const { data: dbServiceAreas = [], isLoading: isLoadingAreas, isError: isErrorAreas, refetch: refetchAreas } = useGetServiceAreasQuery();
+
+  const { data: dbDeliveryCharges, isLoading: isLoadingCharges } = useGetDeliveryChargesQuery();
+  const [updateDeliveryCharges] = useUpdateDeliveryChargesMutation();
+
+  const { data: dbRadiusSettings, isLoading: isLoadingRadius } = useGetRadiusSettingsQuery();
+  const [updateRadiusSettings] = useUpdateRadiusSettingsMutation();
+
   const cities = dbCities as CityRecord[];
   const deliveryZones = dbDeliveryZones as DeliveryZoneRecord[];
+  const unserviceableRequests = dbUnserviceableRequests as UnserviceableRequestRecord[];
+  const serviceAreas = dbServiceAreas as ServiceAreaRecord[];
+
+  const pendingRequestsCount = unserviceableRequests.filter((r) => r.status === 'PENDING').length;
 
   const [newCityName, setNewCityName] = useState('');
   const [newState, setNewState] = useState('');
   const [newStateIsoCode, setNewStateIsoCode] = useState('');
-
-  const [serviceAreas, setServiceAreas] = useState<ServiceAreaRecord[]>(MOCK_SERVICE_AREAS);
 
   const [isCreatingZone, setIsCreatingZone] = useState(false);
   const [newZoneName, setNewZoneName] = useState('');
@@ -637,31 +587,13 @@ export function LocationManagementPage() {
 
   const [newLat, setNewLat] = useState('12.9716');
   const [newLng, setNewLng] = useState('77.5946');
-
-  // Fallback to forcefully bypass visual HTML <select> desyncs
-  useEffect(() => {
-    if (cities.length > 0 && !cities.some(c => c.cityName === newZoneCity)) {
-      const targetCity = cities[0].cityName;
-      setNewZoneCity(targetCity);
-      // Automatically pull coordinates for visual auto-binder
-      fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(targetCity)},India&format=json&limit=1`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.length > 0) {
-            setNewLat(parseFloat(data[0].lat).toFixed(4));
-            setNewLng(parseFloat(data[0].lon).toFixed(4));
-          }
-        }).catch(() => { });
-    }
-  }, [cities, newZoneCity]);
-  const [newRadiusKm, setNewRadiusKm] = useState('100.0');
+  const [newRadiusKm, setNewRadiusKm] = useState('10.0');
   const [newPolygon, setNewPolygon] = useState('12.9716,77.5946 | 12.9800,77.6000 | 12.9600,77.6100');
   const [newRestEnabled, setNewRestEnabled] = useState(true);
   const [newDriverEnabled, setNewDriverEnabled] = useState(true);
   const [newCustomerEnabled, setNewCustomerEnabled] = useState(true);
   const [editingZoneMap, setEditingZoneMap] = useState<DeliveryZoneRecord | null>(null);
 
-  const [unserviceableRequests, setUnserviceableRequests] = useState<UnserviceableRequestRecord[]>(MOCK_UNSERVICEABLE_REQUESTS);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [reqRestName, setReqRestName] = useState('');
   const [reqContactPerson, setReqContactPerson] = useState('');
@@ -672,6 +604,7 @@ export function LocationManagementPage() {
   const [reqLat, setReqLat] = useState('12.9698');
   const [reqLng, setReqLng] = useState('77.7499');
 
+  // Delivery Charges local form state
   const [baseCharge, setBaseCharge] = useState('35');
   const [baseDistanceKm, setBaseDistanceKm] = useState('3');
   const [additionalChargePerKm, setAdditionalChargePerKm] = useState('10');
@@ -679,6 +612,7 @@ export function LocationManagementPage() {
   const [nightSurcharge, setNightSurcharge] = useState('25');
   const [surgeMultiplier, setSurgeMultiplier] = useState('1.15');
 
+  // Radius Settings local form state
   const [maxDeliveryRadius, setMaxDeliveryRadius] = useState('15');
   const [customerSearchRadius, setCustomerSearchRadius] = useState('10');
   const [driverDispatchRadius, setDriverDispatchRadius] = useState('5');
@@ -689,6 +623,33 @@ export function LocationManagementPage() {
   useEffect(() => {
     trackAnalyticsEvent('admin_location_management_viewed', {});
   }, []);
+
+  useEffect(() => {
+    if (dbDeliveryCharges) {
+      setBaseCharge(String(dbDeliveryCharges.baseCharge));
+      setBaseDistanceKm(String(dbDeliveryCharges.baseDistanceKm));
+      setAdditionalChargePerKm(String(dbDeliveryCharges.additionalChargePerKm));
+      setFreeDeliveryMinOrder(String(dbDeliveryCharges.freeDeliveryMinOrder));
+      setNightSurcharge(String(dbDeliveryCharges.nightSurcharge));
+      setSurgeMultiplier(String(dbDeliveryCharges.surgeMultiplier));
+    }
+  }, [dbDeliveryCharges]);
+
+  useEffect(() => {
+    if (dbRadiusSettings) {
+      setMaxDeliveryRadius(String(dbRadiusSettings.maxDeliveryRadius));
+      setCustomerSearchRadius(String(dbRadiusSettings.customerSearchRadius));
+      setDriverDispatchRadius(String(dbRadiusSettings.driverDispatchRadius));
+      setDistanceCalculationMode(dbRadiusSettings.distanceCalculationMode);
+    }
+  }, [dbRadiusSettings]);
+
+  useEffect(() => {
+    if (cities.length > 0 && !cities.some(c => c.cityName === newZoneCity)) {
+      const targetCity = cities[0].cityName;
+      setNewZoneCity(targetCity);
+    }
+  }, [cities, newZoneCity]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -753,7 +714,7 @@ export function LocationManagementPage() {
     }
     createZone({
       zoneName: newZoneName.trim(),
-      cityName: newZoneCity,
+      cityName: newZoneCity || (cities[0]?.cityName ?? 'Bangalore'),
       latitude: parseFloat(newLat) || 12.9716,
       longitude: parseFloat(newLng) || 77.5946,
       radiusKm: parseFloat(newRadiusKm) || 5.0,
@@ -766,10 +727,10 @@ export function LocationManagementPage() {
       customerOrderingEnabled: newCustomerEnabled,
     }).unwrap().then(() => {
       setIsCreatingZone(false);
-      showToast(`Multi-Zone "${newZoneName.trim()}" created successfully!`);
+      showToast(`Multi-Zone "${newZoneName.trim()}" created successfully in database!`);
       setNewZoneName('');
     }).catch((err) => {
-      showToast(`Failed to create zone: ${err?.message || 'Server Error'}`);
+      showToast(`Failed to create zone: ${err?.data?.message || err?.message || 'Server Error'}`);
     });
   };
 
@@ -779,8 +740,7 @@ export function LocationManagementPage() {
       alert('Please enter restaurant name and address');
       return;
     }
-    const req: UnserviceableRequestRecord = {
-      id: `req-${Date.now().toString().slice(-4)}`,
+    createUnserviceableRequest({
       restaurantName: reqRestName.trim(),
       contactPerson: reqContactPerson.trim() || 'Restaurant Manager',
       contactEmail: reqEmail.trim() || 'contact@restaurant.com',
@@ -790,29 +750,52 @@ export function LocationManagementPage() {
       latitude: parseFloat(reqLat) || 12.9716,
       longitude: parseFloat(reqLng) || 77.5946,
       status: 'PENDING',
-      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-    };
-    setUnserviceableRequests((prev) => [req, ...prev]);
-    setShowRequestModal(false);
-    setReqRestName('');
-    setReqAddress('');
-    showToast(`Unserviceable restaurant request submitted for ${req.restaurantName}!`);
+    }).unwrap().then(() => {
+      setShowRequestModal(false);
+      setReqRestName('');
+      setReqAddress('');
+      showToast(`Unserviceable restaurant request submitted to backend database!`);
+    }).catch((err) => {
+      showToast(`Failed to submit request: ${err?.data?.message || err?.message || 'Server Error'}`);
+    });
   };
 
   const handleApproveRequestAndCreateZone = (req: UnserviceableRequestRecord) => {
-    setNewZoneName(`${req.restaurantName} Dedicated Zone`);
-    setNewZoneCity(req.cityName);
-    setNewLat(req.latitude.toString());
-    setNewLng(req.longitude.toString());
-    setNewRadiusKm('4.0');
-    setNewPolygon(`${req.latitude},${req.longitude} | ${req.latitude + 0.01},${req.longitude + 0.01} | ${req.latitude - 0.01},${req.longitude - 0.01}`);
-    setIsCreatingZone(true);
-    setActiveTab('DELIVERY_ZONES');
+    approveUnserviceableRequest(req.id).unwrap().then(() => {
+      showToast(`Approved request and created new active Multi-Zone for ${req.restaurantName}!`);
+    }).catch((err) => {
+      showToast(`Approval failed: ${err?.data?.message || err?.message || 'Server Error'}`);
+    });
+  };
 
-    setUnserviceableRequests((prev) =>
-      prev.map((r) => (r.id === req.id ? { ...r, status: 'APPROVED' } : r)),
-    );
-    showToast(`Pre-filled coordinates for ${req.restaurantName}. Complete zone creation below.`);
+  const handleSaveDeliveryCharges = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateDeliveryCharges({
+      baseCharge: parseFloat(baseCharge) || 35,
+      baseDistanceKm: parseFloat(baseDistanceKm) || 3,
+      additionalChargePerKm: parseFloat(additionalChargePerKm) || 10,
+      freeDeliveryMinOrder: parseFloat(freeDeliveryMinOrder) || 499,
+      nightSurcharge: parseFloat(nightSurcharge) || 25,
+      surgeMultiplier: parseFloat(surgeMultiplier) || 1.15,
+    }).unwrap().then(() => {
+      showToast('Delivery charge parameters persisted to database!');
+    }).catch((err) => {
+      showToast(`Failed to save delivery charges: ${err?.data?.message || err?.message || 'Server Error'}`);
+    });
+  };
+
+  const handleSaveRadiusSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateRadiusSettings({
+      maxDeliveryRadius: parseFloat(maxDeliveryRadius) || 15,
+      customerSearchRadius: parseFloat(customerSearchRadius) || 10,
+      driverDispatchRadius: parseFloat(driverDispatchRadius) || 5,
+      distanceCalculationMode,
+    }).unwrap().then(() => {
+      showToast('Radius settings persisted to backend database!');
+    }).catch((err) => {
+      showToast(`Failed to save radius settings: ${err?.data?.message || err?.message || 'Server Error'}`);
+    });
   };
 
   return (
@@ -903,7 +886,7 @@ export function LocationManagementPage() {
       >
         {[
           { id: 'DELIVERY_ZONES', label: `Delivery Multi-Zones (${deliveryZones.length})` },
-          { id: 'UNSERVICEABLE_REQUESTS', label: `Unserviceable Requests (${unserviceableRequests.filter((r) => r.status === 'PENDING').length} Pending)` },
+          { id: 'UNSERVICEABLE_REQUESTS', label: `Unserviceable Requests (${pendingRequestsCount} Pending)` },
           { id: 'CITIES', label: `Cities (${cities.length})` },
           { id: 'SERVICE_AREAS', label: `Service Areas (${serviceAreas.length})` },
           { id: 'DELIVERY_CHARGES', label: 'Delivery Charges' },
@@ -1128,147 +1111,162 @@ export function LocationManagementPage() {
       {/* TAB 1: DELIVERY MULTI-ZONES TABLE */}
       {activeTab === 'DELIVERY_ZONES' && (
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-            <thead>
-              <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Zone & Map Center</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>City</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coverage Radius</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>3-Way Service Switches</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Surge Multiplier</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deliveryZones.map((dz) => (
-                <tr key={dz.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                  <td style={{ padding: '16px 20px' }}>
-                    <div style={{ fontWeight: 600, color: '#111827' }}>{dz.zoneName}</div>
-                    <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
-                      Lat: {dz.latitude}, Lng: {dz.longitude}
-                    </div>
-                  </td>
-
-                  <td style={{ padding: '16px 20px', color: '#374151' }}>{dz.cityName}</td>
-
-                  <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>
-                    {dz.radiusKm} KM Circle
-                  </td>
-
-                  <td style={{ padding: '16px 20px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleZonePower(dz.id, 'RESTAURANT')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 10,
-                          padding: '4px 10px',
-                          borderRadius: 6,
-                          border: dz.restaurantEnabled ? '1px solid #BBF7D0' : '1px solid #E5E7EB',
-                          background: dz.restaurantEnabled ? '#F0FDF4' : '#F9FAFB',
-                          color: dz.restaurantEnabled ? '#15803D' : '#6B7280',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <span>Restaurant Service:</span>
-                        <span>{dz.restaurantEnabled ? 'ON' : 'OFF'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleToggleZonePower(dz.id, 'DRIVER')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 10,
-                          padding: '4px 10px',
-                          borderRadius: 6,
-                          border: dz.deliveryPartnerEnabled ? '1px solid #BBF7D0' : '1px solid #E5E7EB',
-                          background: dz.deliveryPartnerEnabled ? '#F0FDF4' : '#F9FAFB',
-                          color: dz.deliveryPartnerEnabled ? '#15803D' : '#6B7280',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <span>Driver Dispatch:</span>
-                        <span>{dz.deliveryPartnerEnabled ? 'ON' : 'OFF'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleToggleZonePower(dz.id, 'CUSTOMER')}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 10,
-                          padding: '4px 10px',
-                          borderRadius: 6,
-                          border: dz.customerOrderingEnabled ? '1px solid #BBF7D0' : '1px solid #E5E7EB',
-                          background: dz.customerOrderingEnabled ? '#F0FDF4' : '#F9FAFB',
-                          color: dz.customerOrderingEnabled ? '#15803D' : '#6B7280',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <span>Customer Ordering:</span>
-                        <span>{dz.customerOrderingEnabled ? 'ON' : 'OFF'}</span>
-                      </button>
-                    </div>
-                  </td>
-
-                  <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>
-                    {dz.surgeMultiplier}x
-                  </td>
-
-                  <td style={{ padding: '16px 20px' }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        backgroundColor: dz.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
-                        color: dz.status === 'ACTIVE' ? '#15803D' : '#991B1B',
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                      }}
-                    >
-                      {dz.status}
-                    </span>
-                  </td>
-
-                  <td style={{ padding: '16px 20px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => setEditingZoneMap(dz)}
-                      style={{
-                        padding: '6px 12px',
-                        background: '#FFFFFF',
-                        color: '#2196F3',
-                        border: '1px solid #2196F3',
-                        borderRadius: 8,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Edit Pins ({dz.polygonCoordinates ? dz.polygonCoordinates.split('|').length : 0})
-                    </button>
-                    <button onClick={() => updateZoneStatus({ id: dz.id, status: dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }).unwrap().then(() => showToast(`Zone status updated to ${dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}`))} style={{ padding: '6px 12px', background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{dz.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
-                    <button onClick={() => { if (confirm('Are you sure you want to permanently delete this zone? This action cannot be undone.')) { deleteZone(dz.id).unwrap().then(() => showToast('Zone deleted permanently.')); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
-                  </td>
+          {isLoadingZones ? (
+            <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
+              Loading delivery multi-zones from database...
+            </div>
+          ) : isErrorZones ? (
+            <div style={{ padding: 32, textAlign: 'center', color: '#DC2626' }}>
+              <p style={{ fontWeight: 600, margin: '0 0 8px 0' }}>Failed to load delivery zones.</p>
+              <button onClick={() => void refetchZones()} style={{ padding: '6px 14px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Retry</button>
+            </div>
+          ) : deliveryZones.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
+              No delivery multi-zones recorded in database yet. Click "+ Create Multi-Zone" to add one.
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <thead>
+                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Zone & Map Center</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>City</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coverage Radius</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>3-Way Service Switches</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Surge Multiplier</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {deliveryZones.map((dz) => (
+                  <tr key={dz.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>{dz.zoneName}</div>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                        Lat: {dz.latitude}, Lng: {dz.longitude}
+                      </div>
+                    </td>
+
+                    <td style={{ padding: '16px 20px', color: '#374151' }}>{dz.cityName}</td>
+
+                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>
+                      {dz.radiusKm} KM Circle
+                    </td>
+
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleZonePower(dz.id, 'RESTAURANT')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            border: dz.restaurantEnabled ? '1px solid #BBF7D0' : '1px solid #E5E7EB',
+                            background: dz.restaurantEnabled ? '#F0FDF4' : '#F9FAFB',
+                            color: dz.restaurantEnabled ? '#15803D' : '#6B7280',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span>Restaurant Service:</span>
+                          <span>{dz.restaurantEnabled ? 'ON' : 'OFF'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleZonePower(dz.id, 'DRIVER')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            border: dz.deliveryPartnerEnabled ? '1px solid #BBF7D0' : '1px solid #E5E7EB',
+                            background: dz.deliveryPartnerEnabled ? '#F0FDF4' : '#F9FAFB',
+                            color: dz.deliveryPartnerEnabled ? '#15803D' : '#6B7280',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span>Driver Dispatch:</span>
+                          <span>{dz.deliveryPartnerEnabled ? 'ON' : 'OFF'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleZonePower(dz.id, 'CUSTOMER')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            border: dz.customerOrderingEnabled ? '1px solid #BBF7D0' : '1px solid #E5E7EB',
+                            background: dz.customerOrderingEnabled ? '#F0FDF4' : '#F9FAFB',
+                            color: dz.customerOrderingEnabled ? '#15803D' : '#6B7280',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span>Customer Ordering:</span>
+                          <span>{dz.customerOrderingEnabled ? 'ON' : 'OFF'}</span>
+                        </button>
+                      </div>
+                    </td>
+
+                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>
+                      {dz.surgeMultiplier}x
+                    </td>
+
+                    <td style={{ padding: '16px 20px' }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          backgroundColor: dz.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
+                          color: dz.status === 'ACTIVE' ? '#15803D' : '#991B1B',
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        {dz.status}
+                      </span>
+                    </td>
+
+                    <td style={{ padding: '16px 20px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setEditingZoneMap(dz)}
+                        style={{
+                          padding: '6px 12px',
+                          background: '#FFFFFF',
+                          color: '#2196F3',
+                          border: '1px solid #2196F3',
+                          borderRadius: 8,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Edit Pins ({dz.polygonCoordinates ? dz.polygonCoordinates.split('|').length : 0})
+                      </button>
+                      <button onClick={() => updateZoneStatus({ id: dz.id, status: dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }).unwrap().then(() => showToast(`Zone status updated to ${dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}`))} style={{ padding: '6px 12px', background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{dz.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
+                      <button onClick={() => { if (confirm('Are you sure you want to permanently delete this zone? This action cannot be undone.')) { deleteZone(dz.id).unwrap().then(() => showToast('Zone deleted permanently.')); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
@@ -1329,75 +1327,90 @@ export function LocationManagementPage() {
           </div>
 
           <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-              <thead>
-                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Restaurant & Location</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Person</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Map Coordinates</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Submitted Date</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {unserviceableRequests.map((req) => (
-                  <tr key={req.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 600, color: '#111827' }}>{req.restaurantName}</div>
-                      <div style={{ fontSize: 11, color: '#6B7280' }}>{req.address}, {req.cityName}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 600, color: '#111827' }}>{req.contactPerson}</div>
-                      <div style={{ fontSize: 11, color: '#6B7280' }}>{req.contactPhone}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 500, color: '#374151' }}>
-                      Lat: {req.latitude}, Lng: {req.longitude}
-                    </td>
-                    <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>
-                      {req.createdAt}
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          backgroundColor: req.status === 'PENDING' ? '#FEF3C7' : '#DCFCE7',
-                          color: req.status === 'PENDING' ? '#B45309' : '#15803D',
-                          padding: '3px 8px',
-                          borderRadius: 6,
-                        }}
-                      >
-                        {req.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      {req.status === 'PENDING' ? (
-                        <button
-                          type="button"
-                          onClick={() => handleApproveRequestAndCreateZone(req)}
+            {isLoadingReqs ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
+                Loading unserviceable location requests from backend...
+              </div>
+            ) : isErrorReqs ? (
+              <div style={{ padding: 32, textAlign: 'center', color: '#DC2626' }}>
+                <p style={{ fontWeight: 600, margin: '0 0 8px 0' }}>Failed to load unserviceable requests.</p>
+                <button onClick={() => void refetchReqs()} style={{ padding: '6px 14px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Retry</button>
+              </div>
+            ) : unserviceableRequests.length === 0 ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
+                No unserviceable location requests found.
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Restaurant & Location</th>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Person</th>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Map Coordinates</th>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Submitted Date</th>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {unserviceableRequests.map((req) => (
+                    <tr key={req.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '16px 20px' }}>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>{req.restaurantName}</div>
+                        <div style={{ fontSize: 11, color: '#6B7280' }}>{req.address}, {req.cityName}</div>
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>{req.contactPerson}</div>
+                        <div style={{ fontSize: 11, color: '#6B7280' }}>{req.contactPhone}</div>
+                      </td>
+                      <td style={{ padding: '16px 20px', fontWeight: 500, color: '#374151' }}>
+                        Lat: {req.latitude}, Lng: {req.longitude}
+                      </td>
+                      <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>
+                        {req.createdAt ? String(req.createdAt).replace('T', ' ').slice(0, 16) : '-'}
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <span
                           style={{
-                            padding: '6px 12px',
-                            background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 8,
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: 600,
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
+                            backgroundColor: req.status === 'PENDING' ? '#FEF3C7' : '#DCFCE7',
+                            color: req.status === 'PENDING' ? '#B45309' : '#15803D',
+                            padding: '3px 8px',
+                            borderRadius: 6,
                           }}
                         >
-                          Approve & Create Zone
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>Resolved</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                          {req.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px' }}>
+                        {req.status === 'PENDING' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleApproveRequestAndCreateZone(req)}
+                            style={{
+                              padding: '6px 12px',
+                              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
+                            }}
+                          >
+                            Approve & Create Zone
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 500 }}>Resolved</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
@@ -1616,38 +1629,53 @@ export function LocationManagementPage() {
           </form>
 
           <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-              <thead>
-                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>City & State</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Zones</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Merchants</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cities.map((c) => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 600, color: '#111827' }}>{c.cityName}</div>
-                      <div style={{ fontSize: 11, color: '#6B7280' }}>{c.state}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{c.activeZonesCount} Zones</td>
-                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{c.activeMerchantsCount} Outlets</td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: c.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2', color: c.status === 'ACTIVE' ? '#15803D' : '#991B1B', padding: '3px 8px', borderRadius: 6 }}>
-                        {c.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                      <button onClick={() => updateCityStatus({ id: c.id, status: c.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }).unwrap().then(() => showToast(`City status updated to ${c.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}`))} style={{ padding: '6px 12px', marginRight: 8, background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
-                      <button onClick={() => { if (confirm('Are you sure you want to permanently delete this city? This action cannot be undone.')) { deleteCity(c.id).unwrap().then(() => showToast('City deleted permanently.')); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
-                    </td>
+            {isLoadingCities ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
+                Loading operating cities from database...
+              </div>
+            ) : isErrorCities ? (
+              <div style={{ padding: 32, textAlign: 'center', color: '#DC2626' }}>
+                <p style={{ fontWeight: 600, margin: '0 0 8px 0' }}>Failed to load operating cities.</p>
+                <button onClick={() => void refetchCities()} style={{ padding: '6px 14px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Retry</button>
+              </div>
+            ) : cities.length === 0 ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
+                No operating cities registered in database.
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>City & State</th>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Zones</th>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Merchants</th>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {cities.map((c) => (
+                    <tr key={c.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '16px 20px' }}>
+                        <div style={{ fontWeight: 600, color: '#111827' }}>{c.cityName}</div>
+                        <div style={{ fontSize: 11, color: '#6B7280' }}>{c.state}</div>
+                      </td>
+                      <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{c.activeZonesCount} Zones</td>
+                      <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{c.activeMerchantsCount} Outlets</td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: c.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2', color: c.status === 'ACTIVE' ? '#15803D' : '#991B1B', padding: '3px 8px', borderRadius: 6 }}>
+                          {c.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                        <button onClick={() => updateCityStatus({ id: c.id, status: c.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }).unwrap().then(() => showToast(`City status updated to ${c.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}`))} style={{ padding: '6px 12px', marginRight: 8, background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
+                        <button onClick={() => { if (confirm('Are you sure you want to permanently delete this city? This action cannot be undone.')) { deleteCity(c.id).unwrap().then(() => showToast('City deleted permanently.')); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
@@ -1655,72 +1683,88 @@ export function LocationManagementPage() {
       {/* TAB 4: SERVICE AREAS */}
       {activeTab === 'SERVICE_AREAS' && (
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-            <thead>
-              <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service Area & City</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pincode</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coverage Level</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Outlets</th>
-              </tr>
-            </thead>
-            <tbody>
-              {serviceAreas.map((sa) => (
-                <tr key={sa.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                  <td style={{ padding: '16px 20px' }}>
-                    <div style={{ fontWeight: 600, color: '#111827' }}>{sa.areaName}</div>
-                    <div style={{ fontSize: 11, color: '#6B7280' }}>{sa.cityName}</div>
-                  </td>
-                  <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{sa.pincode}</td>
-                  <td style={{ padding: '16px 20px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: 6 }}>
-                      {sa.coverageStatus.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{sa.totalOutlets} Outlets</td>
+          {isLoadingAreas ? (
+            <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
+              Loading service areas from database...
+            </div>
+          ) : isErrorAreas ? (
+            <div style={{ padding: 32, textAlign: 'center', color: '#DC2626' }}>
+              <p style={{ fontWeight: 600, margin: '0 0 8px 0' }}>Failed to load service areas.</p>
+              <button onClick={() => void refetchAreas()} style={{ padding: '6px 14px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Retry</button>
+            </div>
+          ) : serviceAreas.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
+              No service area records found.
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <thead>
+                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service Area & City</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pincode</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coverage Level</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Outlets</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {serviceAreas.map((sa) => (
+                  <tr key={sa.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>{sa.areaName}</div>
+                      <div style={{ fontSize: 11, color: '#6B7280' }}>{sa.cityName}</div>
+                    </td>
+                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{sa.pincode}</td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: 6 }}>
+                        {sa.coverageStatus ? sa.coverageStatus.replace('_', ' ') : 'FULL COVERAGE'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{sa.totalOutlets} Outlets</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
       {/* TAB 5: DELIVERY CHARGES */}
       {activeTab === 'DELIVERY_CHARGES' && (
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            showToast('Delivery charge rules updated!');
-          }}
+          onSubmit={handleSaveDeliveryCharges}
           style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}
         >
           <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Distance-Based Delivery Charge Matrix</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Base Delivery Fee (₹)</label>
-              <input type="number" value={baseCharge} onChange={(e) => setBaseCharge(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+          {isLoadingCharges ? (
+            <div style={{ padding: 24, color: '#6B7280', fontSize: 13 }}>Loading configuration from backend...</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Base Delivery Fee (₹)</label>
+                <input type="number" value={baseCharge} onChange={(e) => setBaseCharge(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Base Distance Coverage (KM)</label>
+                <input type="number" value={baseDistanceKm} onChange={(e) => setBaseDistanceKm(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Additional Fee per KM (₹)</label>
+                <input type="number" value={additionalChargePerKm} onChange={(e) => setAdditionalChargePerKm(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Free Delivery Order Threshold (₹)</label>
+                <input type="number" value={freeDeliveryMinOrder} onChange={(e) => setFreeDeliveryMinOrder(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Night Dispatch Surcharge (₹)</label>
+                <input type="number" value={nightSurcharge} onChange={(e) => setNightSurcharge(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Peak Surge Multiplier</label>
+                <input type="number" step="0.05" value={surgeMultiplier} onChange={(e) => setSurgeMultiplier(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Base Distance Coverage (KM)</label>
-              <input type="number" value={baseDistanceKm} onChange={(e) => setBaseDistanceKm(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Additional Fee per KM (₹)</label>
-              <input type="number" value={additionalChargePerKm} onChange={(e) => setAdditionalChargePerKm(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Free Delivery Order Threshold (₹)</label>
-              <input type="number" value={freeDeliveryMinOrder} onChange={(e) => setFreeDeliveryMinOrder(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Night Dispatch Surcharge (₹)</label>
-              <input type="number" value={nightSurcharge} onChange={(e) => setNightSurcharge(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Peak Surge Multiplier</label>
-              <input type="number" step="0.05" value={surgeMultiplier} onChange={(e) => setSurgeMultiplier(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
-            </div>
-          </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
             <button type="submit" style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}>
               Save Delivery Charges
@@ -1732,34 +1776,35 @@ export function LocationManagementPage() {
       {/* TAB 6: RADIUS SETTINGS */}
       {activeTab === 'RADIUS_SETTINGS' && (
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            showToast('Radius settings saved!');
-          }}
+          onSubmit={handleSaveRadiusSettings}
           style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}
         >
           <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Operational Radius & Dispatch Parameters</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Maximum Operating Delivery Radius (KM)</label>
-              <input type="number" value={maxDeliveryRadius} onChange={(e) => setMaxDeliveryRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+          {isLoadingRadius ? (
+            <div style={{ padding: 24, color: '#6B7280', fontSize: 13 }}>Loading configuration from backend...</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Maximum Operating Delivery Radius (KM)</label>
+                <input type="number" value={maxDeliveryRadius} onChange={(e) => setMaxDeliveryRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Customer Restaurant Discovery Radius (KM)</label>
+                <input type="number" value={customerSearchRadius} onChange={(e) => setCustomerSearchRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Driver Auto-Dispatch Broadcast Radius (KM)</label>
+                <input type="number" value={driverDispatchRadius} onChange={(e) => setDriverDispatchRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Distance Calculation Engine Mode</label>
+                <select value={distanceCalculationMode} onChange={(e) => setDistanceCalculationMode(e.target.value as 'GPS_ROAD' | 'HAVERSINE')} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}>
+                  <option value="GPS_ROAD">Google Maps GPS Road Navigation Distance</option>
+                  <option value="HAVERSINE">Straight Line Haversine Distance (Fast)</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Customer Restaurant Discovery Radius (KM)</label>
-              <input type="number" value={customerSearchRadius} onChange={(e) => setCustomerSearchRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Driver Auto-Dispatch Broadcast Radius (KM)</label>
-              <input type="number" value={driverDispatchRadius} onChange={(e) => setDriverDispatchRadius(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Distance Calculation Engine Mode</label>
-              <select value={distanceCalculationMode} onChange={(e) => setDistanceCalculationMode(e.target.value as 'GPS_ROAD' | 'HAVERSINE')} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}>
-                <option value="GPS_ROAD">Google Maps GPS Road Navigation Distance</option>
-                <option value="HAVERSINE">Straight Line Haversine Distance (Fast)</option>
-              </select>
-            </div>
-          </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
             <button type="submit" style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}>
               Save Radius Settings

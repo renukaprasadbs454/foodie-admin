@@ -9,6 +9,8 @@ import {
   useGetTicketMessagesQuery,
 } from '../../../api/endpoints/supportApi';
 
+import { useAppSelector } from '@/store/hooks';
+
 export interface ChatMessage {
   id: string;
   enquiryId: string;
@@ -46,6 +48,7 @@ const QUICK_TEMPLATES = [
 type ContactTab = 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'HISTORY';
 
 export function ContactUsPage() {
+  const authState = useAppSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState<ContactTab>('CUSTOMER');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'>('ALL');
@@ -73,15 +76,23 @@ export function ContactUsPage() {
     pollingInterval: 2000,
   });
 
-  // New Enquiry Modal State
+  // New Enquiry Modal State — prefilled with logged-in user contact info
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newCategory, setNewCategory] = useState<'CUSTOMER' | 'RESTAURANT' | 'DELIVERY'>('CUSTOMER');
-  const [newSenderName, setNewSenderName] = useState('');
-  const [newSenderEmail, setNewSenderEmail] = useState('');
-  const [newSenderPhone, setNewSenderPhone] = useState('');
+  const [newSenderName, setNewSenderName] = useState(() => authState.fullName || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_fullname') || sessionStorage.getItem('foodie_admin_fullname')) : null) || '');
+  const [newSenderEmail, setNewSenderEmail] = useState(() => authState.email || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null) || '');
+  const [newSenderPhone, setNewSenderPhone] = useState(() => authState.phone || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone')) : null) || '');
   const [newSubject, setNewSubject] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [newPriority, setNewPriority] = useState<'HIGH' | 'MEDIUM' | 'LOW'>('MEDIUM');
+
+  useEffect(() => {
+    if (isCreateModalOpen) {
+      if (authState.fullName && !newSenderName) setNewSenderName(authState.fullName);
+      if (authState.email && !newSenderEmail) setNewSenderEmail(authState.email);
+      if (authState.phone && !newSenderPhone) setNewSenderPhone(authState.phone);
+    }
+  }, [isCreateModalOpen, authState]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);

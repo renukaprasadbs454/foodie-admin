@@ -148,6 +148,10 @@ export const restaurantsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Admin', 'Restaurant', { type: 'Admin', id: 'LIST' }],
     }),
+    getRestaurantMenu: builder.query<any, string>({
+      query: (restaurantId) => `/api/bff/menu/restaurants/${restaurantId}`,
+      providesTags: (_result, _error, id) => [{ type: 'Restaurant', id: `MENU_${id}` }],
+    }),
   }),
 });
 
@@ -155,10 +159,12 @@ export const {
   useGetRestaurantQuery,
   useGetAdminRestaurantsQuery,
   useGetRestaurantReviewsQuery,
+  useGetRestaurantMenuQuery,
   useApproveRestaurantMutation,
   useSuspendRestaurantMutation,
   useDeleteRestaurantMutation,
   useUpdateAdminRestaurantPositionsMutation,
   useCreateAdminRestaurantMutation,
 } = restaurantsApi;
+
 

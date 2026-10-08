@@ -133,9 +133,10 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
         { id: 'm-enq-1', category: 'Customer', title: 'ENQ-901: Delayed Refund', subtitle: 'From: Ananya Sharma • Status: OPEN', url: '/support', icon: '' },
         { id: 'm-enq-2', category: 'Customer', title: 'ENQ-902: Promo Code Issue', subtitle: 'From: Vikram Mehta • Status: IN_PROGRESS', url: '/support', icon: '' },
         { id: 'm-enq-3', category: 'Restaurant', title: 'ENQ-903: Menu Price Update', subtitle: 'From: Rajesh Gupta • Status: OPEN', url: '/support', icon: '' },
-        { id: 'm-user-1', category: 'Customer', title: 'Alex Vance (Super Admin)', subtitle: 'alex.vance@foodie.com • Executive Operations', url: '/users', icon: '' },
-        { id: 'm-user-2', category: 'Customer', title: 'Priya Sharma (Ops Manager)', subtitle: 'priya.sharma@foodie.com • Logistics & Merchant Ops', url: '/users', icon: '' },
+        { id: 'm-user-1', category: 'Customer', title: 'Admin Operator (Super Admin)', subtitle: 'admin@foodie.local • Executive Operations', url: '/users', icon: '' },
+        { id: 'm-user-2', category: 'Customer', title: 'Operations Admin (Ops Manager)', subtitle: 'ops@foodie.local • Logistics & Merchant Ops', url: '/users', icon: '' },
       ];
+
 
       MOCK_ENTITIES.forEach((item) => {
         if (

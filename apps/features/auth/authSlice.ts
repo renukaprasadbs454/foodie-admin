@@ -10,6 +10,8 @@ export type AuthState = {
   userId: string | null;
   role: AdminRole | null;
   fullName?: string | null;
+  email?: string | null;
+  phone?: string | null;
   permissions?: string[];
   authStatus: AuthStatus;
 };
@@ -19,12 +21,17 @@ function getInitialAuthState(): AuthState {
     try {
       const savedRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role');
       const savedUserId = localStorage.getItem('foodie_admin_user_id') || sessionStorage.getItem('foodie_admin_user_id');
+      const savedEmail = localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email');
+      const savedPhone = localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone');
+      const savedFullName = localStorage.getItem('foodie_admin_fullname') || sessionStorage.getItem('foodie_admin_fullname');
       if (savedRole && savedUserId) {
         return {
           userType: 'ADMIN',
           userId: savedUserId,
           role: savedRole as AdminRole,
-          fullName: savedRole === 'AUDITOR' ? 'Compliance Auditor' : 'Admin Operator',
+          fullName: savedFullName || (savedRole === 'AUDITOR' ? 'Compliance Auditor' : 'Admin Operator'),
+          email: savedEmail || (savedRole === 'AUDITOR' ? 'auditor@foodie.local' : 'admin@foodie.local'),
+          phone: savedPhone || '+91 98765 43210',
           permissions: [],
           authStatus: 'authenticated',
         };
@@ -38,6 +45,8 @@ function getInitialAuthState(): AuthState {
     userId: null,
     role: null,
     fullName: null,
+    email: null,
+    phone: null,
     permissions: [],
     authStatus: 'unauthenticated',
   };
@@ -50,6 +59,8 @@ export type SetSessionPayload = {
   role: AdminRole;
   userType?: UserType;
   fullName?: string;
+  email?: string;
+  phone?: string;
   permissions?: string[];
 };
 
@@ -62,6 +73,8 @@ const authSlice = createSlice({
       state.userId = action.payload.userId;
       state.role = action.payload.role;
       state.fullName = action.payload.fullName ?? null;
+      state.email = action.payload.email ?? state.email ?? null;
+      state.phone = action.payload.phone ?? state.phone ?? null;
       state.permissions = action.payload.permissions ?? [];
       state.authStatus = 'authenticated';
       if (typeof window !== 'undefined') {
@@ -72,6 +85,18 @@ const authSlice = createSlice({
         if (action.payload.userId) {
           localStorage.setItem('foodie_admin_user_id', action.payload.userId);
           sessionStorage.setItem('foodie_admin_user_id', action.payload.userId);
+        }
+        if (action.payload.email) {
+          localStorage.setItem('foodie_admin_email', action.payload.email);
+          sessionStorage.setItem('foodie_admin_email', action.payload.email);
+        }
+        if (action.payload.phone) {
+          localStorage.setItem('foodie_admin_phone', action.payload.phone);
+          sessionStorage.setItem('foodie_admin_phone', action.payload.phone);
+        }
+        if (action.payload.fullName) {
+          localStorage.setItem('foodie_admin_fullname', action.payload.fullName);
+          sessionStorage.setItem('foodie_admin_fullname', action.payload.fullName);
         }
       }
     },
@@ -88,12 +113,20 @@ const authSlice = createSlice({
         sessionStorage.removeItem('foodie_admin_role');
         localStorage.removeItem('foodie_admin_user_id');
         sessionStorage.removeItem('foodie_admin_user_id');
+        localStorage.removeItem('foodie_admin_email');
+        sessionStorage.removeItem('foodie_admin_email');
+        localStorage.removeItem('foodie_admin_phone');
+        sessionStorage.removeItem('foodie_admin_phone');
+        localStorage.removeItem('foodie_admin_fullname');
+        sessionStorage.removeItem('foodie_admin_fullname');
       }
       return {
         userType: null,
         userId: null,
         role: null,
         fullName: null,
+        email: null,
+        phone: null,
         permissions: [],
         authStatus: 'unauthenticated' as const,
       };
@@ -110,5 +143,8 @@ export const selectIsAuthenticated = (state: { auth: AuthState }) =>
   state.auth.authStatus === 'authenticated';
 export const selectAdminRole = (state: { auth: AuthState }) => state.auth.role;
 export const selectUserId = (state: { auth: AuthState }) => state.auth.userId;
+export const selectAdminEmail = (state: { auth: AuthState }) => state.auth.email;
+export const selectAdminPhone = (state: { auth: AuthState }) => state.auth.phone;
+export const selectAdminFullName = (state: { auth: AuthState }) => state.auth.fullName;
 
 export default authSlice.reducer;

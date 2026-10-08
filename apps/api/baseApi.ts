@@ -25,6 +25,10 @@ export const baseApi = createBaseApi({
     'SupportMessage',
     'LocationZone',
     'City',
+    'UnserviceableRequest',
+    'ServiceArea',
+    'DeliveryCharges',
+    'RadiusSettings',
   ] as const,
   refreshPath: '/api/auth/refresh',
   onTokenReuseDetected: () => {

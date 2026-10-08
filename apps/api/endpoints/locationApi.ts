@@ -25,6 +25,45 @@ export interface CityDto {
     status: string;
 }
 
+export interface UnserviceableRequestDto {
+    id: string;
+    restaurantName: string;
+    contactPerson: string;
+    contactEmail: string;
+    contactPhone: string;
+    address: string;
+    cityName: string;
+    latitude: number;
+    longitude: number;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    createdAt: string;
+}
+
+export interface ServiceAreaDto {
+    id: string;
+    areaName: string;
+    cityName: string;
+    pincode: string;
+    coverageStatus: 'FULL_COVERAGE' | 'PARTIAL_COVERAGE' | 'UNAVAILABLE';
+    totalOutlets: number;
+}
+
+export interface DeliveryChargesDto {
+    baseCharge: number;
+    baseDistanceKm: number;
+    additionalChargePerKm: number;
+    freeDeliveryMinOrder: number;
+    nightSurcharge: number;
+    surgeMultiplier: number;
+}
+
+export interface RadiusSettingsDto {
+    maxDeliveryRadius: number;
+    customerSearchRadius: number;
+    driverDispatchRadius: number;
+    distanceCalculationMode: 'GPS_ROAD' | 'HAVERSINE';
+}
+
 export const locationApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
         getZones: builder.query<LocationZoneDto[], void>({
@@ -93,6 +132,75 @@ export const locationApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ['LocationZone', 'City'],
         }),
+        getUnserviceableRequests: builder.query<UnserviceableRequestDto[], void>({
+            query: () => `/api/bff/admin/location/unserviceable-requests`,
+            providesTags: ['UnserviceableRequest'],
+        }),
+        createUnserviceableRequest: builder.mutation<UnserviceableRequestDto, Partial<UnserviceableRequestDto>>({
+            query: (body) => ({
+                url: '/api/bff/admin/location/unserviceable-requests',
+                method: 'POST',
+                body,
+            }),
+            invalidatesTags: ['UnserviceableRequest'],
+        }),
+        updateUnserviceableRequestStatus: builder.mutation<UnserviceableRequestDto, { requestId: string; status: string }>({
+            query: ({ requestId, status }) => ({
+                url: `/api/bff/admin/location/unserviceable-requests/${requestId}/status?status=${status}`,
+                method: 'PUT',
+            }),
+            invalidatesTags: ['UnserviceableRequest'],
+        }),
+        approveUnserviceableRequest: builder.mutation<LocationZoneDto, string>({
+            query: (requestId) => ({
+                url: `/api/bff/admin/location/unserviceable-requests/${requestId}/approve`,
+                method: 'POST',
+            }),
+            invalidatesTags: ['UnserviceableRequest', 'LocationZone', 'City'],
+        }),
+        getServiceAreas: builder.query<ServiceAreaDto[], void>({
+            query: () => `/api/bff/admin/location/service-areas`,
+            providesTags: ['ServiceArea'],
+        }),
+        createServiceArea: builder.mutation<ServiceAreaDto, Partial<ServiceAreaDto>>({
+            query: (body) => ({
+                url: '/api/bff/admin/location/service-areas',
+                method: 'POST',
+                body,
+            }),
+            invalidatesTags: ['ServiceArea'],
+        }),
+        deleteServiceArea: builder.mutation<void, string>({
+            query: (id) => ({
+                url: `/api/bff/admin/location/service-areas/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['ServiceArea'],
+        }),
+        getDeliveryCharges: builder.query<DeliveryChargesDto, void>({
+            query: () => `/api/bff/admin/location/delivery-charges`,
+            providesTags: ['DeliveryCharges'],
+        }),
+        updateDeliveryCharges: builder.mutation<DeliveryChargesDto, DeliveryChargesDto>({
+            query: (body) => ({
+                url: '/api/bff/admin/location/delivery-charges',
+                method: 'PUT',
+                body,
+            }),
+            invalidatesTags: ['DeliveryCharges'],
+        }),
+        getRadiusSettings: builder.query<RadiusSettingsDto, void>({
+            query: () => `/api/bff/admin/location/radius-settings`,
+            providesTags: ['RadiusSettings'],
+        }),
+        updateRadiusSettings: builder.mutation<RadiusSettingsDto, RadiusSettingsDto>({
+            query: (body) => ({
+                url: '/api/bff/admin/location/radius-settings',
+                method: 'PUT',
+                body,
+            }),
+            invalidatesTags: ['RadiusSettings'],
+        }),
     }),
 });
 
@@ -106,4 +214,15 @@ export const {
     useDeleteCityMutation,
     useUpdateZoneStatusMutation,
     useDeleteZoneMutation,
+    useGetUnserviceableRequestsQuery,
+    useCreateUnserviceableRequestMutation,
+    useUpdateUnserviceableRequestStatusMutation,
+    useApproveUnserviceableRequestMutation,
+    useGetServiceAreasQuery,
+    useCreateServiceAreaMutation,
+    useDeleteServiceAreaMutation,
+    useGetDeliveryChargesQuery,
+    useUpdateDeliveryChargesMutation,
+    useGetRadiusSettingsQuery,
+    useUpdateRadiusSettingsMutation,
 } = locationApi;

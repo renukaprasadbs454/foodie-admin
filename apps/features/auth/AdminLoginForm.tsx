@@ -144,12 +144,15 @@ export function AdminLoginForm({
       } as any).unwrap();
 
       const backendRole = selectedRole || identity.role || 'SUPER_ADMIN';
+      const userEmail = email.trim() || 'admin@foodie.local';
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('foodie_admin_role', backendRole);
         sessionStorage.setItem('foodie_admin_role', backendRole);
         localStorage.setItem('foodie_admin_user_id', identity.userId || '44444444-4444-4444-4444-444444444001');
         sessionStorage.setItem('foodie_admin_user_id', identity.userId || '44444444-4444-4444-4444-444444444001');
+        localStorage.setItem('foodie_admin_email', userEmail);
+        sessionStorage.setItem('foodie_admin_email', userEmail);
       }
 
       dispatch(
@@ -158,6 +161,7 @@ export function AdminLoginForm({
           role: backendRole as any,
           userType: 'ADMIN',
           fullName: backendRole === 'AUDITOR' ? 'Compliance Auditor' : 'Admin Operator',
+          email: userEmail,
         }),
       );
 

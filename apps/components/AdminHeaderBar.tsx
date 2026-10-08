@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { GlobalSearchModal } from '@/components/GlobalSearchModal';
 
+import { useAppSelector } from '@/store/hooks';
+
 interface AdminHeaderBarProps {
   role?: string | null;
   userId?: string | null;
@@ -24,6 +26,12 @@ export function AdminHeaderBar({
   isCompact = false,
   onToggleCompact,
 }: AdminHeaderBarProps) {
+  const authState = useAppSelector((state) => state.auth);
+  const currentUserRole = role || authState.role || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null) || 'SUPER_ADMIN';
+  const currentUserEmail = authState.email || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null) || (userId && userId.includes('@') ? userId : null) || 'admin@foodie.local';
+  const currentUserName = authState.fullName || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_fullname') || sessionStorage.getItem('foodie_admin_fullname')) : null) || (currentUserRole === 'AUDITOR' ? 'Compliance Auditor' : (currentUserRole === 'FINANCE_ADMIN' ? 'Finance Admin' : 'Admin Operator'));
+  const currentUserPhone = authState.phone || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone')) : null) || '+91 98765 43210';
+
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -231,11 +239,11 @@ export function AdminHeaderBar({
               >
                 <div>
                   <strong>Phone Support:</strong>{' '}
-                  +91 98765 43210
+                  {currentUserPhone}
                 </div>
 
                 <div>
-                  <strong>Email:</strong> support@foodie.com
+                  <strong>Email:</strong> {currentUserEmail}
                 </div>
 
                 <div>
@@ -315,17 +323,17 @@ export function AdminHeaderBar({
 
             <div className="profile-user-info">
               <div className="profile-user-name">
-                Admin Console
+                {currentUserName}
               </div>
 
               <div className="profile-user-role">
-                {role || 'SUPER_ADMIN'}
+                {currentUserRole}
               </div>
             </div>
           </div>
 
           {/* ================================
-                USER ID
+                USER ID / CONTACT EMAIL
             ================================= */}
           <div className="profile-user-id">
             <span className="profile-id-icon">
@@ -333,7 +341,7 @@ export function AdminHeaderBar({
             </span>
 
             <span>
-              {userId || 'admin@foodie.com'}
+              {currentUserEmail}
             </span>
           </div>
 
@@ -366,6 +374,54 @@ export function AdminHeaderBar({
             </span>
             <span>Edit Profile</span>
           </Link>
+
+          {/* ================================
+                LOGOUT
+            ================================= */}
+          {onLogout && (
+            <button
+              type="button"
+              className="profile-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setIsProfileOpen(false);
+                onLogout();
+              }}
+              disabled={loggingOut}
+              style={{
+                width: '100%',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#EF4444',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 16px',
+                fontSize: '14px',
+                fontWeight: 600,
+                borderTop: '1px solid #F3F4F6',
+              }}
+            >
+              <span className="profile-menu-icon" style={{ color: '#EF4444', display: 'flex', alignItems: 'center' }}>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </span>
+              <span>{loggingOut ? 'Logging out...' : 'Logout'}</span>
+            </button>
+          )}
         </div>,
         document.body
       )
@@ -515,6 +571,8 @@ export function AdminHeaderBar({
           style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'flex-end',
+            marginLeft: 'auto',
             gap: 16,
             fontSize: 14,
             fontWeight: 600,
