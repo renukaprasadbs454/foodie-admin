@@ -18,6 +18,20 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
+export interface OrderItemRecord {
+  id: string;
+  orderCode?: string;
+  customerName: string;
+  customerPhone: string;
+  storeName: string;
+  module: string;
+  itemsSummary: string;
+  totalAmount: number;
+  paymentMethod: 'COD' | 'DIGITAL';
+  status: 'PENDING' | 'PREPARING' | 'READY_FOR_PICKUP' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELED';
+  createdAt: string;
+}
+
 export type OrderItem = {
   menuItemId?: string;
   variantId?: string | null;

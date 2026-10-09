@@ -441,7 +441,7 @@ export function AdminHeaderBar({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
+          flexWrap: 'nowrap',
           gap: 12,
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
           position: 'sticky',
@@ -457,7 +457,8 @@ export function AdminHeaderBar({
             display: 'flex',
             alignItems: 'center',
             gap: 12,
-            flexWrap: 'wrap',
+            flexWrap: 'nowrap',
+            flexShrink: 0,
           }}
         >
           {/* Sidebar Collapse / Expand Menu Toggle */}
@@ -573,14 +574,8 @@ export function AdminHeaderBar({
             alignItems: 'center',
             justifyContent: 'flex-end',
             marginLeft: 'auto',
-            gap: 16,
-            fontSize: 14,
-            fontWeight: 600,
-            overflowX: 'auto',
-            whiteSpace: 'nowrap',
-            padding: '4px 0',
-            maxWidth: '100%',
-            WebkitOverflowScrolling: 'touch',
+            gap: 12,
+            flexShrink: 0,
           }}
         >
           {/* Notification Bell */}
@@ -1093,7 +1088,7 @@ export function AdminHeaderBar({
         .profile-menu-panel button:disabled {
           opacity: 0.6;
           cursor: not-allowed;
-        } }
+        }
 
         /*
          * ========================================================
@@ -1108,19 +1103,6 @@ export function AdminHeaderBar({
 
           .hide-mobile-kbd {
             display: none !important;
-          }
-
-          .top-navbar-scroll {
-            order: 3;
-
-            width: 100%;
-
-            border-top: 1px solid
-              #e0f2fe;
-
-            padding-top: 8px !important;
-
-            margin-top: 4px;
           }
 
           /*

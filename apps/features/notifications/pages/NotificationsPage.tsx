@@ -1,65 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-
-export interface NotificationRecord {
-  id: string;
-  title: string;
-  body: string;
-  audience: 'ALL' | 'CUSTOMERS' | 'RESTAURANTS' | 'DELIVERY_PARTNERS';
-  sentTime: string;
-  recipientsCount: number;
-  deliveryRate: string;
-  openRate: string;
-  status: 'DELIVERED' | 'SCHEDULED' | 'FAILED';
-}
-
-const MOCK_NOTIFICATIONS_HISTORY: NotificationRecord[] = [
-  {
-    id: 'notif-101',
-    title: 'Welcome Bonus Voucher Credited!',
-    body: 'Flat ₹100 discount applied on your first order with code WELCOME100.',
-    audience: 'CUSTOMERS',
-    sentTime: '10 mins ago',
-    recipientsCount: 14800,
-    deliveryRate: '99.4%',
-    openRate: '42.8%',
-    status: 'DELIVERED',
-  },
-  {
-    id: 'notif-102',
-    title: 'Peak Rain Surge Bonus ACTIVE (+₹25)',
-    body: 'Earn ₹25 additional payout per completed delivery in Indiranagar zone.',
-    audience: 'DELIVERY_PARTNERS',
-    sentTime: '25 mins ago',
-    recipientsCount: 450,
-    deliveryRate: '98.8%',
-    openRate: '88.2%',
-    status: 'DELIVERED',
-  },
-  {
-    id: 'notif-103',
-    title: 'Diwali Feast & Culinary Gala 2025',
-    body: 'Join platform campaign and boost your store visibility by up to 60%.',
-    audience: 'RESTAURANTS',
-    sentTime: '2 hours ago',
-    recipientsCount: 180,
-    deliveryRate: '100%',
-    openRate: '76.4%',
-    status: 'DELIVERED',
-  },
-  {
-    id: 'notif-104',
-    title: 'Monsoon Hot Chai & Bakery Bonanza',
-    body: 'Get Flat 30% OFF on all bakery & cafes near you!',
-    audience: 'ALL',
-    sentTime: '1 day ago',
-    recipientsCount: 22500,
-    deliveryRate: '99.1%',
-    openRate: '38.5%',
-    status: 'DELIVERED',
-  },
-];
+import {
+  useSendBroadcastNotificationMutation,
+  useGetAdminNotificationHistoryQuery,
+  AdminNotificationHistoryRecord,
+} from '../../../api/endpoints/notificationsApi';
 
 type NotificationTab = 'SEND' | 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'HISTORY';
 
@@ -74,32 +20,66 @@ export function NotificationsPage() {
   const [scheduledTime, setScheduledTime] = useState('IMMEDIATE');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  const [history, setHistory] = useState<NotificationRecord[]>(MOCK_NOTIFICATIONS_HISTORY);
+  const [sendBroadcastNotification, { isLoading: isSending }] = useSendBroadcastNotificationMutation();
 
-  const handleSendNotification = (e: React.FormEvent) => {
+  const historyQueryAudience =
+    activeTab === 'CUSTOMER' ? 'CUSTOMER' :
+    activeTab === 'RESTAURANT' ? 'RESTAURANT' :
+    activeTab === 'DELIVERY' ? 'DELIVERY_PARTNER' : undefined;
+
+  const { data: historyData = [], isLoading: isHistoryLoading, isError: isHistoryError, error: historyError, refetch, isUninitialized } = useGetAdminNotificationHistoryQuery(
+    { audience: historyQueryAudience },
+    { skip: activeTab === 'SEND' }
+  );
+
+  const handleSafeRefetch = () => {
+    if (!isUninitialized && typeof refetch === 'function') {
+      try {
+        refetch();
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !body.trim()) {
       alert('Please enter Notification Title and Message Content');
       return;
     }
 
-    const newRecord: NotificationRecord = {
-      id: `notif-${Date.now().toString().slice(-4)}`,
-      title: title.trim(),
-      body: body.trim(),
-      audience,
-      sentTime: 'Just now',
-      recipientsCount: audience === 'ALL' ? 25000 : audience === 'CUSTOMERS' ? 18000 : audience === 'RESTAURANTS' ? 350 : 650,
-      deliveryRate: '99.5%',
-      openRate: '0.0%',
-      status: 'DELIVERED',
-    };
+    let scheduledAtIso: string | null = null;
+    if (scheduledTime === 'IN_1_HOUR') {
+      scheduledAtIso = new Date(Date.now() + 3600000).toISOString();
+    } else if (scheduledTime === 'TONIGHT_8PM') {
+      const tonight = new Date();
+      tonight.setHours(20, 0, 0, 0);
+      if (tonight.getTime() <= Date.now()) {
+        tonight.setDate(tonight.getDate() + 1);
+      }
+      scheduledAtIso = tonight.toISOString();
+    }
 
-    setHistory((prev) => [newRecord, ...prev]);
-    setTitle('');
-    setBody('');
-    setToastMsg(`Broadcast notification "${newRecord.title}" sent to ${audience}!`);
-    setTimeout(() => setToastMsg(null), 3500);
+    try {
+      const result = await sendBroadcastNotification({
+        title: title.trim(),
+        body: body.trim(),
+        targetAudience: audience,
+        actionUrl: deeplink.trim() || undefined,
+        scheduledAt: scheduledAtIso,
+      }).unwrap();
+
+      setTitle('');
+      setBody('');
+      setToastMsg(`Broadcast notification "${result.title || title}" successfully created & queued for ${result.targetAudience || audience}!`);
+      setTimeout(() => setToastMsg(null), 4000);
+      if (activeTab !== 'SEND') {
+        handleSafeRefetch();
+      }
+    } catch (err: any) {
+      alert(err?.data?.error?.message || err?.message || 'Failed to send broadcast notification');
+    }
   };
 
   return (
@@ -270,20 +250,21 @@ export function NotificationsPage() {
 
             <button
               type="submit"
+              disabled={isSending}
               style={{
                 padding: '12px 20px',
-                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                background: isSending ? '#9CA3AF' : 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 12,
                 fontSize: 14,
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: isSending ? 'not-allowed' : 'pointer',
                 marginTop: 8,
-                boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
+                boxShadow: isSending ? 'none' : '0 4px 14px rgba(33, 150, 243, 0.25)',
               }}
             >
-              Send Broadcast Notification Now
+              {isSending ? 'Sending Broadcast...' : 'Send Broadcast Notification Now'}
             </button>
           </form>
 
@@ -312,109 +293,98 @@ export function NotificationsPage() {
         </div>
       )}
 
-      {/* TAB 2: CUSTOMER NOTIFICATIONS */}
-      {activeTab === 'CUSTOMER' && (
+      {/* TAB 2, 3, 4: AUDIENCE-SPECIFIC NOTIFICATIONS */}
+      {(activeTab === 'CUSTOMER' || activeTab === 'RESTAURANT' || activeTab === 'DELIVERY') && (
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Customer Push Broadcast Alerts</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-            {[
-              { title: 'Welcome Bonus Voucher Credited!', time: '10 mins ago', desc: 'Flat ₹100 discount applied on your first order with code WELCOME100.', stats: '14,800 sent • 99.4% delivered' },
-              { title: 'Order #ORD-9821 Out For Delivery', time: '30 mins ago', desc: 'Ramesh Kumar has picked up your order from Royal Biryani House.', stats: 'Personalized Alert' },
-              { title: 'Monsoon Flash Sale LIVE', time: '2 hours ago', desc: 'Get Flat 30% OFF on all hot beverages & bakeries.', stats: '22,500 sent • 38.5% opened' },
-            ].map((card, idx) => (
-              <div key={idx} style={{ backgroundColor: '#F9FAFB', padding: 18, borderRadius: 16, border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{card.title}</div>
-                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4, lineHeight: 1.4 }}>{card.desc}</div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#2196F3', marginTop: 10 }}>{card.stats}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+            {activeTab === 'CUSTOMER' && 'Customer Push Broadcast Alerts'}
+            {activeTab === 'RESTAURANT' && 'Restaurant Partner Portal Alerts'}
+            {activeTab === 'DELIVERY' && 'Delivery Fleet Dispatch Alerts'}
+          </h2>
 
-      {/* TAB 3: RESTAURANT NOTIFICATIONS */}
-      {activeTab === 'RESTAURANT' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Restaurant Partner Portal Alerts</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-            {[
-              { title: 'New Express Order #ORD-9824', time: '5 mins ago', desc: 'Punjab Grill received a new order for 2x Paneer Tikka.', stats: 'Instant Portal Sound Alert' },
-              { title: 'Weekly Payout Deposited', time: '1 day ago', desc: '₹48,250 net earnings transferred to HDFC Bank A/C ****9812.', stats: '350 merchants notified' },
-              { title: 'FSSAI License Renewal Alert', time: '2 days ago', desc: 'Please update your FSSAI food safety certificate before expiry.', stats: 'Compliance Alert' },
-            ].map((card, idx) => (
-              <div key={idx} style={{ backgroundColor: '#F9FAFB', padding: 18, borderRadius: 16, border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{card.title}</div>
-                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4, lineHeight: 1.4 }}>{card.desc}</div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#2196F3', marginTop: 10 }}>{card.stats}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: DELIVERY PARTNER NOTIFICATIONS */}
-      {activeTab === 'DELIVERY' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>Delivery Fleet Dispatch Alerts</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-            {[
-              { title: 'Rain Surge Bonus ACTIVE (+₹25)', time: '15 mins ago', desc: 'Earn ₹25 extra per delivery in Indiranagar & Koramangala zones.', stats: '450 drivers active' },
-              { title: 'New Delivery Assignment Nearby', time: '45 mins ago', desc: 'Pickup assigned at Bella Italia Pizzeria (1.2 km away).', stats: 'Driver App Push' },
-              { title: 'Document Verification Complete', time: '1 day ago', desc: 'Driving License DL-9823 verified by Admin console.', stats: 'KYC Confirmation' },
-            ].map((card, idx) => (
-              <div key={idx} style={{ backgroundColor: '#F9FAFB', padding: 18, borderRadius: 16, border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{card.title}</div>
-                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4, lineHeight: 1.4 }}>{card.desc}</div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#2196F3', marginTop: 10 }}>{card.stats}</div>
-              </div>
-            ))}
-          </div>
+          {isHistoryLoading ? (
+            <div style={{ padding: 24, color: '#6B7280', fontSize: 14 }}>Loading audience notification alerts from backend...</div>
+          ) : historyData.length === 0 ? (
+            <div style={{ padding: 24, color: '#9CA3AF', fontSize: 14 }}>No notification history recorded for this audience yet.</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+              {historyData.map((card) => (
+                <div key={card.id} style={{ backgroundColor: '#F9FAFB', padding: 18, borderRadius: 16, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '3px 8px', borderRadius: 9999, textTransform: 'uppercase' }}>
+                      {card.audience}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: card.status === 'SCHEDULED' ? '#FEF3C7' : (card.status === 'FAILED' ? '#FEE2E2' : '#DCFCE7'), color: card.status === 'SCHEDULED' ? '#D97706' : (card.status === 'FAILED' ? '#DC2626' : '#15803D'), padding: '3px 8px', borderRadius: 9999 }}>
+                      {card.status}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{card.title}</div>
+                  <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.4 }}>{card.body}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, fontSize: 12, color: '#9CA3AF' }}>
+                    <span>{card.sentTime}</span>
+                    <span style={{ fontWeight: 600, color: '#374151' }}>{card.recipientsCount} recipients</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* TAB 5: NOTIFICATION HISTORY */}
       {activeTab === 'HISTORY' && (
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
-          <div style={{ padding: '18px 24px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}>
+          <div style={{ padding: '18px 24px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#F9FAFB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>Notification Dispatch History Logs</h2>
+            <button
+              type="button"
+              onClick={handleSafeRefetch}
+              style={{ fontSize: 12, fontWeight: 600, color: '#2196F3', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              Refresh Logs
+            </button>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB' }}>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Title & Message</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target Audience</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sent Time</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recipients</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Rate</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Open Rate</th>
-                <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((row) => (
-                <tr key={row.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                  <td style={{ padding: '16px 20px' }}>
-                    <div style={{ fontWeight: 600, color: '#111827' }}>{row.title}</div>
-                    <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{row.body}</div>
-                  </td>
-                  <td style={{ padding: '16px 20px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '3px 8px', borderRadius: 9999 }}>
-                      {row.audience}
-                    </span>
-                  </td>
-                  <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>{row.sentTime}</td>
-                  <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{row.recipientsCount.toLocaleString()}</td>
-                  <td style={{ padding: '16px 20px', color: '#22C55E', fontWeight: 600 }}>{row.deliveryRate}</td>
-                  <td style={{ padding: '16px 20px', color: '#2196F3', fontWeight: 600 }}>{row.openRate}</td>
-                  <td style={{ padding: '16px 20px' }}>
-                    <span style={{ backgroundColor: '#DCFCE7', color: '#15803D', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 9999 }}>
-                      {row.status}
-                    </span>
-                  </td>
+          {isHistoryLoading ? (
+            <div style={{ padding: 24, color: '#6B7280', fontSize: 14 }}>Loading dispatch history from backend database...</div>
+          ) : historyData.length === 0 ? (
+            <div style={{ padding: 24, color: '#9CA3AF', fontSize: 14 }}>No dispatch history logs available.</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB' }}>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Title & Message</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target Audience</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sent Time</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recipients</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Rate</th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {historyData.map((row) => (
+                  <tr key={row.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>{row.title}</div>
+                      <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{row.body}</div>
+                    </td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '3px 8px', borderRadius: 9999 }}>
+                        {row.audience}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>{row.sentTime}</td>
+                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{row.recipientsCount.toLocaleString()}</td>
+                    <td style={{ padding: '16px 20px', color: '#22C55E', fontWeight: 600 }}>{row.deliveryRate}</td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <span style={{ backgroundColor: row.status === 'SCHEDULED' ? '#FEF3C7' : '#DCFCE7', color: row.status === 'SCHEDULED' ? '#D97706' : '#15803D', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 9999 }}>
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>

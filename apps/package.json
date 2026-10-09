@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev",
     "dev:admin": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev",
-    "build": "next build && cp -r .next/static .next/standalone/apps/.next/",
+    "build": "next build && mkdir -p .next/standalone/apps/.next && cp -r .next/static .next/standalone/apps/.next/",
     "start": "next start",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "next lint",
@@ -14,10 +14,12 @@
   "dependencies": {
     "@reduxjs/toolkit": "^2.5.1",
     "@stomp/stompjs": "^7.3.0",
+    "country-state-city": "^3.2.1",
     "next": "15.5.22",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-redux": "^9.3.0",
+    "react-select": "^5.10.2",
     "recharts": "^2.15.4",
     "sockjs-client": "^1.6.1"
   },

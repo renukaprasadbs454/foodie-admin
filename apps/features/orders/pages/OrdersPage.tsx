@@ -2,87 +2,19 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
+import { trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_16_ORDER_LIST } from '@/constants/gaps';
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
 import { OrderOperationalPipeline } from '@/features/analytics/components/OrderOperationalPipeline';
+import {
+  useGetAdminOrdersQuery,
+  useOverrideOrderStatusMutation,
+} from '@/api/endpoints/ordersApi';
+import type { OrderItemRecord } from '@/features/orders/types';
+import { formatRelativeFromNow } from '@/shared/utils/date';
 
-export interface OrderItemRecord {
-  id: string;
-  customerName: string;
-  customerPhone: string;
-  storeName: string;
-  module: string;
-  itemsSummary: string;
-  totalAmount: number;
-  paymentMethod: 'COD' | 'DIGITAL';
-  status: 'PENDING' | 'PREPARING' | 'READY_FOR_PICKUP' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELED';
-  createdAt: string;
-}
-
-const MOCK_ORDERS: OrderItemRecord[] = [
-  {
-    id: 'a1b2c3d4-0001-4000-8000-111122223333',
-    customerName: 'Aarav Mehta',
-    customerPhone: '+91 98765 00001',
-    storeName: 'Royal Biryani House',
-    module: 'North Indian & Biryani',
-    itemsSummary: '2x Chicken Dum Biryani, 1x Butter Naan, 1x Raita',
-    totalAmount: 680,
-    paymentMethod: 'DIGITAL',
-    status: 'PREPARING',
-    createdAt: '10 mins ago',
-  },
-  {
-    id: 'e5f6a7b8-0005-4000-8000-555566667777',
-    customerName: 'Ananya Sharma',
-    customerPhone: '+91 98765 00005',
-    storeName: 'Punjab Grill & Spice',
-    module: 'North Indian & Tandoori',
-    itemsSummary: '1x Paneer Tikka Masala, 2x Garlic Naan, 1x Mango Lassi',
-    totalAmount: 620,
-    paymentMethod: 'DIGITAL',
-    status: 'READY_FOR_PICKUP',
-    createdAt: '15 mins ago',
-  },
-  {
-    id: 'b2c3d4e5-0002-4000-8000-222233334444',
-    customerName: 'Neha Kapoor',
-    customerPhone: '+91 98765 00002',
-    storeName: 'Bella Italia Pizzeria',
-    module: 'Italian Pizza',
-    itemsSummary: '1x Wood-Fired Pepperoni Pizza, 2x Garlic Bread',
-    totalAmount: 850,
-    paymentMethod: 'COD',
-    status: 'OUT_FOR_DELIVERY',
-    createdAt: '25 mins ago',
-  },
-  {
-    id: 'c3d4e5f6-0003-4000-8000-333344445555',
-    customerName: 'Rohan Gupta',
-    customerPhone: '+91 98765 00003',
-    storeName: 'Sweet Dreams Bakery',
-    module: 'Bakery & Desserts',
-    itemsSummary: '1x Chocolate Truffle Cake, 2x Cappuccino Coffee',
-    totalAmount: 540,
-    paymentMethod: 'DIGITAL',
-    status: 'PENDING',
-    createdAt: '5 mins ago',
-  },
-  {
-    id: 'd4e5f6a7-0004-4000-8000-444455556666',
-    customerName: 'Kavita Reddy',
-    customerPhone: '+91 98765 00004',
-    storeName: 'The Gourmet Burger Bistro',
-    module: 'Burgers & Fries',
-    itemsSummary: '1x Double Cheese Burger, 1x Peri Peri Fries, 1x Coke',
-    totalAmount: 510,
-    paymentMethod: 'DIGITAL',
-    status: 'DELIVERED',
-    createdAt: '1 hour ago',
-  },
-];
+export type { OrderItemRecord };
 
 function getOrderStatusStyle(status: OrderItemRecord['status']) {
   switch (status) {
@@ -98,7 +30,21 @@ function getOrderStatusStyle(status: OrderItemRecord['status']) {
       return { bg: '#DCFCE7', color: '#15803D', border: '#BBF7D0', shadow: 'none' };
     case 'CANCELED':
       return { bg: '#FEE2E2', color: '#B91C1C', border: '#FECACA', shadow: 'none' };
+    default:
+      return { bg: '#F3F4F6', color: '#4B5563', border: '#E5E7EB', shadow: 'none' };
   }
+}
+
+function formatDisplayDate(dateStr: string): string {
+  if (!dateStr) return 'Just now';
+  if (dateStr.includes('T')) {
+    try {
+      return formatRelativeFromNow(dateStr);
+    } catch {
+      return dateStr;
+    }
+  }
+  return dateStr;
 }
 
 export function OrdersPage() {
@@ -108,9 +54,21 @@ export function OrdersPage() {
   const initialStatus = searchParams.get('status') ?? 'ALL';
   const activeModule = useAppSelector(selectActiveModule);
 
-  const [orders, setOrders] = useState<OrderItemRecord[]>(MOCK_ORDERS);
   const [searchUuid, setSearchUuid] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
+
+  const {
+    data: orders = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useGetAdminOrdersQuery(undefined, {
+    pollingInterval: 3000,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+
+  const [overrideOrderStatus, { isLoading: isOverriding }] = useOverrideOrderStatusMutation();
 
   useEffect(() => {
     trackAnalyticsEvent('admin_orders_viewed', {
@@ -119,10 +77,16 @@ export function OrdersPage() {
   }, []);
 
   const filteredOrders = orders.filter((o) => {
-    const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter || (statusFilter === 'PROCESSING' && o.status === 'PREPARING');
+    const matchesStatus =
+      statusFilter === 'ALL' ||
+      o.status === statusFilter ||
+      (statusFilter === 'PROCESSING' && o.status === 'PREPARING') ||
+      (statusFilter === 'CANCELED' && (o.status as string) === 'CANCELLED');
+
     const matchesSearch =
       searchUuid === '' ||
       o.id.toLowerCase().includes(searchUuid.toLowerCase()) ||
+      (o.orderCode && o.orderCode.toLowerCase().includes(searchUuid.toLowerCase())) ||
       o.customerName.toLowerCase().includes(searchUuid.toLowerCase()) ||
       o.customerPhone.includes(searchUuid) ||
       o.storeName.toLowerCase().includes(searchUuid.toLowerCase()) ||
@@ -131,11 +95,26 @@ export function OrdersPage() {
 
     let matchesModule = true;
     if (activeModule === 'RESTAURANTS') {
-      matchesModule = o.module.includes('Indian') || o.module.includes('Italian') || o.module.includes('Pizza');
+      matchesModule =
+        o.module.includes('Indian') ||
+        o.module.includes('Italian') ||
+        o.module.includes('Pizza') ||
+        o.module.includes('Dining') ||
+        o.module.includes('General');
     } else if (activeModule === 'CAFES') {
-      matchesModule = o.module.includes('Bakery') || o.module.includes('Desserts') || o.module.includes('Cafe');
+      matchesModule =
+        o.module.includes('Bakery') ||
+        o.module.includes('Desserts') ||
+        o.module.includes('Cafe') ||
+        o.module.includes('Dining') ||
+        o.module.includes('General');
     } else if (activeModule === 'CLOUD_KITCHEN') {
-      matchesModule = o.module.includes('Burgers') || o.module.includes('Fries') || o.module.includes('Fast Food');
+      matchesModule =
+        o.module.includes('Burgers') ||
+        o.module.includes('Fries') ||
+        o.module.includes('Fast Food') ||
+        o.module.includes('Dining') ||
+        o.module.includes('General');
     }
 
     return matchesStatus && matchesSearch && matchesModule;
@@ -154,12 +133,12 @@ export function OrdersPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '6px 14px', borderRadius: 20 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3' }}>Live WebSocket Dispatch Feed</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3' }}>Live Dispatch Feed</span>
         </div>
       </div>
 
       {/* Live Order Operational Pipeline */}
-      <OrderOperationalPipeline totalOrders={324} />
+      <OrderOperationalPipeline totalOrders={orders.length} />
 
       {/* Orders Filter Toolbar */}
       <div
@@ -240,7 +219,47 @@ export function OrdersPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#6B7280' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: 14,
+                        height: 14,
+                        border: '2px solid #BFDBFE',
+                        borderTopColor: '#2196F3',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite',
+                      }}
+                    />
+                    <span>Loading real orders from database...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : isError ? (
+              <tr>
+                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#B91C1C' }}>
+                  <span>Failed to load orders from backend. </span>
+                  <button
+                    type="button"
+                    onClick={() => refetch()}
+                    style={{
+                      marginLeft: 8,
+                      color: '#2196F3',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Retry
+                  </button>
+                </td>
+              </tr>
+            ) : filteredOrders.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#6B7280' }}>
                   No orders found matching the selected filter.
@@ -249,13 +268,19 @@ export function OrdersPage() {
             ) : (
               filteredOrders.map((order) => {
                 const statusStyle = getOrderStatusStyle(order.status);
+                const displayCreatedAt = formatDisplayDate(order.createdAt);
                 return (
-                  <tr key={order.id} style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s ease' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9FAFB')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                  <tr
+                    key={order.id}
+                    style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s ease' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9FAFB')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ fontWeight: 600, color: '#2196F3', fontFamily: 'monospace', fontSize: 12 }}>
-                        #{order.id.slice(0, 8)}...
+                        #{order.orderCode || `${order.id.slice(0, 8)}...`}
                       </div>
-                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{order.createdAt}</div>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{displayCreatedAt}</div>
                     </td>
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ fontWeight: 600, color: '#111827' }}>{order.customerName}</div>
@@ -304,10 +329,19 @@ export function OrdersPage() {
                       {order.status === 'PREPARING' && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setOrders((prev) =>
-                              prev.map((o) => (o.id === order.id ? { ...o, status: 'READY_FOR_PICKUP' } : o)),
-                            );
+                          disabled={isOverriding}
+                          onClick={async () => {
+                            try {
+                              await overrideOrderStatus({
+                                orderId: order.id,
+                                body: {
+                                  targetStatus: 'READY_FOR_PICKUP',
+                                  reason: 'Marked ready by operator from dispatch center',
+                                },
+                              }).unwrap();
+                            } catch (err) {
+                              console.error('Failed to mark order ready:', err);
+                            }
                           }}
                           style={{
                             padding: '6px 12px',
@@ -317,8 +351,9 @@ export function OrdersPage() {
                             borderRadius: 8,
                             fontSize: 12,
                             fontWeight: 600,
-                            cursor: 'pointer',
+                            cursor: isOverriding ? 'not-allowed' : 'pointer',
                             marginRight: 8,
+                            opacity: isOverriding ? 0.7 : 1,
                           }}
                         >
                           Mark Ready

@@ -1277,6 +1277,143 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
   }, { status: 404 });
 }
 
+async function handleAdminNotifications(request: Request, targetPath: string, accessToken: string | null) {
+  const devToken = await getDevBackendToken();
+  const token = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : (devToken || 'demo-admin-token');
+  const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+  const incomingUrl = new URL(request.url);
+
+  const candidateUrls = (endpointPath: string) => [
+    `${backendUrl}${endpointPath}`,
+    `http://localhost:8082${endpointPath}`,
+    `http://localhost:8080${endpointPath}`,
+  ];
+
+  if (!globalAny.MOCK_NOTIFICATIONS) {
+    globalAny.MOCK_NOTIFICATIONS = [];
+  }
+  const mockList = globalAny.MOCK_NOTIFICATIONS as any[];
+
+  if (request.method === 'POST' && targetPath === 'admin/notifications/broadcast') {
+    let reqBody: any = {};
+    try {
+      reqBody = await request.json();
+    } catch {
+      reqBody = {};
+    }
+
+    const payload = {
+      title: reqBody.title || '',
+      body: reqBody.body || '',
+      targetAudience: reqBody.targetAudience || 'ALL',
+      actionUrl: reqBody.actionUrl || null,
+      scheduledAt: reqBody.scheduledAt || null,
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
+
+    const urls = candidateUrls('/api/v1/admin/notifications/broadcast');
+    let postRes: any = null;
+
+    for (const url of urls) {
+      const res = await safeFetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        timeoutMs: 4000,
+      });
+      if (res.response && (res.response.status === 200 || res.response.status === 201)) {
+        postRes = res;
+        break;
+      }
+    }
+
+    if (postRes && postRes.response) {
+      const json = await postRes.response.json().catch(() => null);
+      if (json) {
+        return NextResponse.json(json, { status: postRes.response.status });
+      }
+    }
+
+    const fallbackRecord = {
+      id: `broadcast-${Date.now()}`,
+      title: payload.title,
+      body: payload.body,
+      targetAudience: payload.targetAudience,
+      actionUrl: payload.actionUrl,
+      scheduledAt: payload.scheduledAt,
+      sentAt: payload.scheduledAt ? null : new Date().toISOString(),
+      recipientsCount: 1,
+      deliveryStatus: payload.scheduledAt ? 'SCHEDULED' : 'SENT',
+    };
+    mockList.unshift(fallbackRecord);
+
+    return NextResponse.json({
+      success: true,
+      data: fallbackRecord,
+      error: null,
+    }, { status: 200 });
+  }
+
+  if (request.method === 'GET' && targetPath === 'admin/notifications') {
+    const query = incomingUrl.search || '';
+    const headers = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
+
+    const urls = candidateUrls(`/api/v1/admin/notifications${query}`);
+    let getRes: any = null;
+
+    for (const url of urls) {
+      const res = await safeFetch(url, { method: 'GET', headers, timeoutMs: 4000 });
+      if (res.response && res.response.ok) {
+        getRes = res;
+        break;
+      }
+    }
+
+    if (getRes && getRes.response) {
+      const json = await getRes.response.json().catch(() => null);
+      if (json) {
+        return NextResponse.json(json, { status: 200 });
+      }
+    }
+
+    const rawFilter = incomingUrl.searchParams.get('audience') || '';
+    const normFilter = rawFilter.startsWith('REST') ? 'RESTAURANT' :
+                       rawFilter.startsWith('CUST') ? 'CUSTOMER' :
+                       rawFilter.startsWith('DELIV') || rawFilter.startsWith('DRIVER') ? 'DELIVERY_PARTNER' :
+                       rawFilter.toUpperCase();
+
+    const filteredMock = rawFilter
+      ? mockList.filter((item: any) => {
+          const itemAud = (item.targetAudience || item.audience || 'ALL').toUpperCase();
+          const normItemAud = itemAud.startsWith('REST') ? 'RESTAURANT' :
+                              itemAud.startsWith('CUST') ? 'CUSTOMER' :
+                              itemAud.startsWith('DELIV') || itemAud.startsWith('DRIVER') ? 'DELIVERY_PARTNER' : itemAud;
+          return normItemAud === normFilter || normItemAud === 'ALL';
+        })
+      : mockList;
+
+    return NextResponse.json({
+      success: true,
+      data: filteredMock,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  return NextResponse.json({
+    success: false,
+    error: { code: 'NOT_FOUND', message: `Unhandled notification path: ${targetPath}` },
+  }, { status: 404 });
+}
+
 async function getDevBackendToken(): Promise<string | null> {
   if (globalAny.__DEV_BACKEND_TOKEN && typeof globalAny.__DEV_BACKEND_TOKEN_EXP === 'number' && Date.now() < globalAny.__DEV_BACKEND_TOKEN_EXP) {
     return globalAny.__DEV_BACKEND_TOKEN as string;
@@ -1517,6 +1654,10 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
   }, { status: 200 });
 }
 
+  if (targetPath.startsWith('admin/notifications')) {
+    return handleAdminNotifications(request, targetPath, accessToken);
+  }
+
   if (targetPath.startsWith('admin/support-tickets')) {
     return handleAdminSupportTickets(request, targetPath, accessToken);
   }
@@ -1672,8 +1813,8 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
 
   if (isGet) {
     const cached = BFF_CACHE.get(cacheKey);
-    // Let location requests stay live while developing DB integrations
-    if (cached && Date.now() < cached.expiresAt && !targetPath.includes('admin/location')) {
+    // Let location and orders requests stay live while developing DB integrations / live polling
+    if (cached && Date.now() < cached.expiresAt && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders')) {
       return new NextResponse(cached.body as BodyInit, {
         status: cached.status,
         headers: {
@@ -2089,7 +2230,7 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
         responseHeaders['Expires'] = '0';
       }
 
-      if (isGet && upstream.ok && !targetPath.includes('admin/location')) {
+      if (isGet && upstream.ok && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders')) {
         // Cache successful GET responses from database for 20 seconds
         BFF_CACHE.set(cacheKey, {
           body,
