@@ -1599,28 +1599,28 @@ export function LocationManagementPage() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>State / Region</label>
               <Select
-                options={State.getStatesOfCountry('IN').map(s => ({ value: s.isoCode, label: s.name }))}
+                options={State.getStatesOfCountry('IN').map((s: { isoCode: string; name: string }) => ({ value: s.isoCode, label: s.name }))}
                 placeholder="Search State..."
-                onChange={(option) => {
+                onChange={(option: { value: string; label: string } | null) => {
                   setNewStateIsoCode(option?.value || '');
                   setNewState(option?.label || '');
                   setNewCityName('');
                 }}
                 value={newState ? { label: newState, value: newStateIsoCode } : null}
-                styles={{ control: (base) => ({ ...base, borderRadius: 10, borderColor: '#E5E7EB', fontSize: 13 }) }}
+                styles={{ control: (base: Record<string, unknown>) => ({ ...base, borderRadius: 10, borderColor: '#E5E7EB', fontSize: 13 }) }}
               />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>City Name</label>
               <Select
-                options={newStateIsoCode ? City.getCitiesOfState('IN', newStateIsoCode).map(c => ({ value: c.name, label: c.name })) : []}
+                options={newStateIsoCode ? City.getCitiesOfState('IN', newStateIsoCode).map((c: { name: string }) => ({ value: c.name, label: c.name })) : []}
                 placeholder="Search City..."
-                onChange={(option) => {
+                onChange={(option: { value: string; label: string } | null) => {
                   setNewCityName(option?.value || '');
                 }}
                 value={newCityName ? { label: newCityName, value: newCityName } : null}
                 isDisabled={!newStateIsoCode}
-                styles={{ control: (base) => ({ ...base, borderRadius: 10, borderColor: '#E5E7EB', fontSize: 13 }) }}
+                styles={{ control: (base: Record<string, unknown>) => ({ ...base, borderRadius: 10, borderColor: '#E5E7EB', fontSize: 13 }) }}
               />
             </div>
             <button type="submit" style={{ padding: '12px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: 'pointer', marginTop: 8, boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}>
