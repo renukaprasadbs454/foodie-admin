@@ -157,12 +157,22 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     setLoggingOut(false);
   };
 
-  const isAuditorContext =
+  const storedRole = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role'))
+    : null;
+
+  const isSuperAdmin = Boolean(
+    (role && role.toUpperCase() === 'SUPER_ADMIN') ||
+    (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN')
+  );
+
+  const isAuditorContext = !isSuperAdmin && (
     Boolean(pathname && pathname.startsWith('/compliance-auditor')) ||
     role === 'AUDITOR' ||
-    (typeof window !== 'undefined' && localStorage.getItem('foodie_admin_role') === 'AUDITOR');
+    storedRole === 'AUDITOR'
+  );
 
-  const isFinanceContext =
+  const isFinanceContext = !isSuperAdmin && (
     Boolean(pathname && (
       pathname.startsWith('/finance-admin') ||
       pathname.startsWith('/delivery-payouts') ||
@@ -170,15 +180,18 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       pathname.startsWith('/approvals')
     )) ||
     Boolean(role && role.toUpperCase().includes('FINANCE')) ||
-    (typeof window !== 'undefined' && (localStorage.getItem('foodie_admin_role') || '').toUpperCase().includes('FINANCE'));
+    (Boolean(storedRole) && storedRole!.toUpperCase().includes('FINANCE'))
+  );
 
-  const effectiveRole = isAuditorContext
-    ? 'AUDITOR'
-    : (isFinanceContext
-      ? 'FINANCE_ADMIN'
-      : (role || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') as AdminRole | null) : null)));
+  const effectiveRole = isSuperAdmin
+    ? 'SUPER_ADMIN'
+    : (isAuditorContext
+      ? 'AUDITOR'
+      : (isFinanceContext
+        ? 'FINANCE_ADMIN'
+        : (role || (storedRole as AdminRole | null) || 'SUPER_ADMIN')));
   const effectiveUserId = userId || (typeof window !== 'undefined' ? localStorage.getItem('foodie_admin_user_id') : null);
-  const activeRole = isAuditorContext ? 'AUDITOR' : (isFinanceContext ? 'FINANCE_ADMIN' : (effectiveRole || 'SUPER_ADMIN'));
+  const activeRole = effectiveRole;
   const activeUserId = effectiveUserId || '44444444-4444-4444-4444-444444444001';
 
   const nav = filterNavForRole(activeRole, pathname);
