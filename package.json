@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev apps",
     "dev:admin": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev apps",
-    "build": "next build apps",
+    "build": "next build apps && node scripts/prepare-hostinger.js",
     "start": "next start apps",
     "typecheck": "tsc -p apps/tsconfig.json --noEmit",
     "lint": "next lint apps",
