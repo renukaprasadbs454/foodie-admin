@@ -6,6 +6,7 @@ import dns from 'node:dns';
 dns.setDefaultResultOrder('ipv4first');
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   devIndicators: false,
   eslint: {
     ignoreDuringBuilds: true,
@@ -14,6 +15,5 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 };
-
 
 export default nextConfig;
