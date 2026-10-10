@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { trackAnalyticsEvent } from 'foodie-shared-web';
 import { GAP_API_20_GLOBAL_REVIEWS } from '@/constants/gaps';
 import { useGetSupportTicketsQuery, useUpdateTicketStatusMutation } from '@/api/endpoints/customersApi';
-import { useGetAdminReviewsQuery, useFlagReviewMutation } from '@/api/endpoints/reviewsApi';
+import { useGetAdminReviewsQuery, useFlagReviewMutation, useApproveReviewMutation } from '@/api/endpoints/reviewsApi';
 
 export interface CustomerReviewRecord {
   id: string;
@@ -50,11 +50,12 @@ export function ReviewsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Fetch live support tickets and restaurant reviews directly from backend
-  const { data: ticketsData } = useGetSupportTicketsQuery();
-  const { data: adminReviewsData } = useGetAdminReviewsQuery();
+  // Fetch live support tickets and restaurant reviews directly from backend with polling
+  const { data: ticketsData } = useGetSupportTicketsQuery(undefined, { pollingInterval: 10000 });
+  const { data: adminReviewsData } = useGetAdminReviewsQuery(undefined, { pollingInterval: 10000 });
   const [updateTicketStatus] = useUpdateTicketStatusMutation();
   const [flagReviewMutation] = useFlagReviewMutation();
+  const [approveReviewMutation] = useApproveReviewMutation();
 
   useEffect(() => {
     trackAnalyticsEvent('admin_reviews_viewed', {
@@ -114,11 +115,11 @@ export function ReviewsPage() {
           id: rev.id ? String(rev.id) : `rev-${idx + 1}`,
           customerName: rev.customerName || 'Customer',
           restaurantName: rev.restaurantName || 'Restaurant',
-          deliveryManName: rev.deliveryPartnerName || 'Delivery Partner',
+          deliveryManName: rev.deliveryPartnerName || 'Standard Fleet Partner',
           module: 'Food Quality',
           rating: typeof rev.restaurantRating === 'number' ? rev.restaurantRating : (typeof rev.rating === 'number' ? rev.rating : 5),
           deliveryRating: typeof rev.deliveryRating === 'number' ? rev.deliveryRating : 5,
-          comment: rev.comment || 'Customer submitted review.',
+          comment: (rev.comment && rev.comment.trim()) ? rev.comment.trim() : 'Rating given without comment',
           createdAt: rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
           status,
           isReported: Boolean(rev.isReported || rev.status === 'FLAGGED'),
@@ -132,11 +133,13 @@ export function ReviewsPage() {
 
   const handleModeration = async (id: string, newStatus: 'PUBLISHED' | 'HIDDEN' | 'FLAGGED') => {
     setReviews((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)),
+      prev.map((r) => (r.id === id ? { ...r, status: newStatus, isReported: newStatus === 'FLAGGED' } : r)),
     );
     try {
       if (newStatus === 'FLAGGED') {
         await flagReviewMutation({ id, reason: 'Flagged by Admin' }).unwrap();
+      } else if (newStatus === 'PUBLISHED') {
+        await approveReviewMutation({ id }).unwrap();
       }
       setToastMsg(`Review marked as ${newStatus}`);
       setTimeout(() => setToastMsg(null), 3000);
@@ -166,6 +169,7 @@ export function ReviewsPage() {
       const matchesSearch =
         r.customerName.toLowerCase().includes(q) ||
         r.restaurantName.toLowerCase().includes(q) ||
+        r.deliveryManName.toLowerCase().includes(q) ||
         r.comment.toLowerCase().includes(q);
 
       if (!matchesSearch) return false;
