@@ -30,6 +30,7 @@ import {
   useGetTransactionsQuery,
   useUpdateCommissionRulesMutation,
   useApprovePayoutsMutation,
+  useRejectPayoutMutation,
   useGetCancelledOrderRefundsQuery,
   useApproveCancelledOrderRefundMutation,
   useRejectCancelledOrderRefundMutation,
@@ -81,6 +82,7 @@ export function PaymentsPage() {
   const [disburseSettlement, { isLoading: isDisbursing }] = useDisburseRestaurantSettlementMutation();
   const [calculateSplitApi] = useCalculateSplitMutation();
   const [approvePayouts, { isLoading: isApproving }] = useApprovePayoutsMutation();
+  const [rejectPayout, { isLoading: isRejecting }] = useRejectPayoutMutation();
   const [approveCancelledRefund] = useApproveCancelledOrderRefundMutation();
   const [rejectCancelledRefund] = useRejectCancelledOrderRefundMutation();
 
@@ -179,6 +181,30 @@ export function PaymentsPage() {
       }
     } catch (err) {
       showToast(`Failed to approve ${type === 'DELIVERY' ? 'delivery partner' : 'restaurant'} payout.`);
+    }
+  };
+
+  const handleRejectSinglePayout = async (payoutId: string, type: 'DELIVERY' | 'RESTAURANT' = 'DELIVERY') => {
+    try {
+      await rejectPayout({ payoutId, reason: 'Rejected by admin' }).unwrap();
+      showToast(`Successfully rejected and refunded ${type === 'DELIVERY' ? 'delivery partner' : 'restaurant'} payout!`);
+      setSelectedDelivPayouts((prev) => {
+        const next = new Set(prev);
+        next.delete(payoutId);
+        return next;
+      });
+      setSelectedRestPayouts((prev) => {
+        const next = new Set(prev);
+        next.delete(payoutId);
+        return next;
+      });
+      if (type === 'DELIVERY') {
+        refetchDelivPayouts();
+      } else {
+        refetchRestPayouts();
+      }
+    } catch (err: any) {
+      showToast(err?.data?.message || err?.message || `Failed to reject ${type === 'DELIVERY' ? 'delivery partner' : 'restaurant'} payout.`);
     }
   };
 
@@ -1159,9 +1185,9 @@ export function PaymentsPage() {
                       <td style={{ padding: '14px 16px' }}>
                         <span
                           style={{
-                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : p.status === 'FAILED' ? '#FEE2E2' : '#FEF3C7',
-                            color: p.status === 'COMPLETED' ? '#15803D' : p.status === 'FAILED' ? '#B91C1C' : '#B45309',
-                            border: `1px solid ${p.status === 'COMPLETED' ? '#BBF7D0' : p.status === 'FAILED' ? '#FECACA' : '#FDE68A'}`,
+                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : (p.status === 'FAILED' || p.status === 'REJECTED') ? '#FEE2E2' : '#FEF3C7',
+                            color: p.status === 'COMPLETED' ? '#15803D' : (p.status === 'FAILED' || p.status === 'REJECTED') ? '#B91C1C' : '#B45309',
+                            border: `1px solid ${p.status === 'COMPLETED' ? '#BBF7D0' : (p.status === 'FAILED' || p.status === 'REJECTED') ? '#FECACA' : '#FDE68A'}`,
                             fontSize: 11,
                             fontWeight: 700,
                             padding: '4px 10px',
@@ -1176,24 +1202,46 @@ export function PaymentsPage() {
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                         {(p.status === 'REQUESTED' || p.status === 'FAILED') ? (
-                          <button
-                            type="button"
-                            disabled={isApproving}
-                            onClick={() => handleApproveSinglePayout(p.id, 'RESTAURANT')}
-                            style={{
-                              padding: '6px 12px',
-                              background: isApproving ? '#94A3B8' : 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: 8,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: isApproving ? 'not-allowed' : 'pointer',
-                              boxShadow: '0 2px 4px rgba(33, 150, 243, 0.2)',
-                            }}
-                          >
-                            Approve
-                          </button>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              disabled={isApproving || isRejecting}
+                              onClick={() => handleApproveSinglePayout(p.id, 'RESTAURANT')}
+                              style={{
+                                padding: '6px 12px',
+                                background: (isApproving || isRejecting) ? '#94A3B8' : 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: 8,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: (isApproving || isRejecting) ? 'not-allowed' : 'pointer',
+                                boxShadow: '0 2px 4px rgba(33, 150, 243, 0.2)',
+                              }}
+                            >
+                              Approve
+                            </button>
+                            {p.status === 'REQUESTED' && (
+                              <button
+                                type="button"
+                                disabled={isApproving || isRejecting}
+                                onClick={() => handleRejectSinglePayout(p.id, 'RESTAURANT')}
+                                style={{
+                                  padding: '6px 12px',
+                                  background: (isApproving || isRejecting) ? '#F3F4F6' : '#FEF2F2',
+                                  color: (isApproving || isRejecting) ? '#9CA3AF' : '#EF4444',
+                                  border: `1px solid ${(isApproving || isRejecting) ? '#E5E7EB' : '#FECACA'}`,
+                                  borderRadius: 8,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: (isApproving || isRejecting) ? 'not-allowed' : 'pointer',
+                                  boxShadow: '0 1px 2px rgba(239, 68, 68, 0.1)',
+                                }}
+                              >
+                                Reject
+                              </button>
+                            )}
+                          </div>
                         ) : (
                           <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 600 }}>{p.status}</span>
                         )}
@@ -1323,9 +1371,9 @@ export function PaymentsPage() {
                       <td style={{ padding: '14px 16px' }}>
                         <span
                           style={{
-                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : p.status === 'FAILED' ? '#FEE2E2' : '#FEF3C7',
-                            color: p.status === 'COMPLETED' ? '#15803D' : p.status === 'FAILED' ? '#B91C1C' : '#B45309',
-                            border: `1px solid ${p.status === 'COMPLETED' ? '#BBF7D0' : p.status === 'FAILED' ? '#FECACA' : '#FDE68A'}`,
+                            backgroundColor: p.status === 'COMPLETED' ? '#DCFCE7' : (p.status === 'FAILED' || p.status === 'REJECTED') ? '#FEE2E2' : '#FEF3C7',
+                            color: p.status === 'COMPLETED' ? '#15803D' : (p.status === 'FAILED' || p.status === 'REJECTED') ? '#B91C1C' : '#B45309',
+                            border: `1px solid ${p.status === 'COMPLETED' ? '#BBF7D0' : (p.status === 'FAILED' || p.status === 'REJECTED') ? '#FECACA' : '#FDE68A'}`,
                             fontSize: 11,
                             fontWeight: 700,
                             padding: '4px 10px',
@@ -1340,24 +1388,46 @@ export function PaymentsPage() {
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                         {(p.status === 'REQUESTED' || p.status === 'FAILED') ? (
-                          <button
-                            type="button"
-                            disabled={isApproving}
-                            onClick={() => handleApproveSinglePayout(p.id, 'DELIVERY')}
-                            style={{
-                              padding: '6px 12px',
-                              background: isApproving ? '#94A3B8' : 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: 8,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: isApproving ? 'not-allowed' : 'pointer',
-                              boxShadow: '0 2px 4px rgba(33, 150, 243, 0.2)',
-                            }}
-                          >
-                            Approve
-                          </button>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              disabled={isApproving || isRejecting}
+                              onClick={() => handleApproveSinglePayout(p.id, 'DELIVERY')}
+                              style={{
+                                padding: '6px 12px',
+                                background: (isApproving || isRejecting) ? '#94A3B8' : 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: 8,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: (isApproving || isRejecting) ? 'not-allowed' : 'pointer',
+                                boxShadow: '0 2px 4px rgba(33, 150, 243, 0.2)',
+                              }}
+                            >
+                              Approve
+                            </button>
+                            {p.status === 'REQUESTED' && (
+                              <button
+                                type="button"
+                                disabled={isApproving || isRejecting}
+                                onClick={() => handleRejectSinglePayout(p.id, 'DELIVERY')}
+                                style={{
+                                  padding: '6px 12px',
+                                  background: (isApproving || isRejecting) ? '#F3F4F6' : '#FEF2F2',
+                                  color: (isApproving || isRejecting) ? '#9CA3AF' : '#EF4444',
+                                  border: `1px solid ${(isApproving || isRejecting) ? '#E5E7EB' : '#FECACA'}`,
+                                  borderRadius: 8,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  cursor: (isApproving || isRejecting) ? 'not-allowed' : 'pointer',
+                                  boxShadow: '0 1px 2px rgba(239, 68, 68, 0.1)',
+                                }}
+                              >
+                                Reject
+                              </button>
+                            )}
+                          </div>
                         ) : (
                           <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 600 }}>{p.status}</span>
                         )}
