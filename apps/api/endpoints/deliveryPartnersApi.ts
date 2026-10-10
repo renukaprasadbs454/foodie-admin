@@ -7,6 +7,11 @@ import type {
 export interface DeliveryPricingConfig {
   minPricePerDelivery: number;
   moneyPerKm: number;
+  pricingBasis?: 'UNIVERSAL' | 'ZONE';
+  universalConfig?: any;
+  zoneConfigs?: Record<string, any>;
+  zones?: any[];
+  configData?: string;
   updatedAt?: string;
   updatedBy?: string;
 }
@@ -14,6 +19,11 @@ export interface DeliveryPricingConfig {
 export interface UpdateDeliveryPricingRequest {
   minPricePerDelivery: number;
   moneyPerKm: number;
+  pricingBasis?: string;
+  universalConfig?: any;
+  zoneConfigs?: Record<string, any>;
+  zones?: any[];
+  configData?: string;
 }
 
 export interface GetAdminDeliveryPartnersParams {

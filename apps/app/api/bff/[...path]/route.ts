@@ -53,11 +53,7 @@ async function handleDeliveryPricing(request: Request) {
       if (upstream && upstream.ok) {
         const json = await upstream.json();
         if (json?.data?.minPricePerDelivery != null) {
-          globalAny.GLOBAL_DELIVERY_PRICING = {
-            minPricePerDelivery: Number(json.data.minPricePerDelivery),
-            moneyPerKm: Number(json.data.moneyPerKm),
-            updatedAt: json.data.updatedAt || new Date().toISOString(),
-          };
+          globalAny.GLOBAL_DELIVERY_PRICING = json.data;
           return NextResponse.json(json, { status: 200 });
         }
       }
@@ -101,6 +97,16 @@ async function handleDeliveryPricing(request: Request) {
       }, { status: 400 });
     }
 
+    const upstreamPayload = {
+      minPricePerDelivery: minPrice,
+      moneyPerKm: moneyPerKm,
+      pricingBasis: body?.pricingBasis || 'UNIVERSAL',
+      universalConfig: body?.universalConfig,
+      zoneConfigs: body?.zoneConfigs,
+      zones: body?.zones,
+      configData: body?.configData,
+    };
+
     try {
       const primaryUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/delivery-pricing`;
       const { response: upstream } = await safeFetch(primaryUrl, {
@@ -110,7 +116,7 @@ async function handleDeliveryPricing(request: Request) {
           Accept: 'application/json',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
-        body: JSON.stringify({ minPricePerDelivery: minPrice, moneyPerKm: moneyPerKm }),
+        body: JSON.stringify(upstreamPayload),
         timeoutMs: 4000,
       });
 
@@ -127,8 +133,7 @@ async function handleDeliveryPricing(request: Request) {
     }
 
     const updatedRecord = {
-      minPricePerDelivery: minPrice,
-      moneyPerKm: moneyPerKm,
+      ...upstreamPayload,
       updatedAt: new Date().toISOString(),
       updatedBy: 'Admin Operator',
     };

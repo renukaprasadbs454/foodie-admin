@@ -222,11 +222,42 @@ export function DeliveryPricingSettingsCard() {
       setMinPriceInput((prev) => (prev === '' ? String(bMin) : prev));
       setMoneyPerKmInput((prev) => (prev === '' ? String(bKm) : prev));
 
-      setUniversalConfig((prev) => ({
-        ...prev,
-        minPrice: bMin,
-        moneyPerKm: bKm,
-      }));
+      if (pricingConfig.pricingBasis === 'ZONE' || pricingConfig.pricingBasis === 'UNIVERSAL') {
+        setPricingBasis(pricingConfig.pricingBasis);
+      }
+
+      if (pricingConfig.universalConfig) {
+        const uIncentives = Array.isArray(pricingConfig.universalConfig.incentives)
+          ? pricingConfig.universalConfig.incentives
+          : [];
+        const mergedIncentives = DEFAULT_INCENTIVES.map((defItem) => {
+          const match = uIncentives.find((i: IncentiveItem) => i.id === defItem.id);
+          return match ? { ...defItem, ...match } : defItem;
+        });
+        const customIncentives = uIncentives.filter(
+          (i: IncentiveItem) => !DEFAULT_INCENTIVES.some((d) => d.id === i.id)
+        );
+
+        setUniversalConfig({
+          minPrice: pricingConfig.universalConfig.minPrice ?? bMin,
+          moneyPerKm: pricingConfig.universalConfig.moneyPerKm ?? bKm,
+          incentives: [...mergedIncentives, ...customIncentives],
+        });
+      } else {
+        setUniversalConfig((prev) => ({
+          ...prev,
+          minPrice: bMin,
+          moneyPerKm: bKm,
+        }));
+      }
+
+      if (pricingConfig.zoneConfigs) {
+        setZoneConfigs(pricingConfig.zoneConfigs);
+      }
+
+      if (pricingConfig.zones && Array.isArray(pricingConfig.zones) && pricingConfig.zones.length > 0) {
+        setZones(pricingConfig.zones);
+      }
     }
   }, [pricingConfig]);
 
@@ -310,7 +341,7 @@ export function DeliveryPricingSettingsCard() {
     }
   };
 
-  const handleIncentiveChange = (
+  const handleIncentiveChange = async (
     id: string,
     field: 'value' | 'active' | 'description' | 'title',
     val: number | boolean | string
@@ -319,22 +350,56 @@ export function DeliveryPricingSettingsCard() {
     const updateList = (list: IncentiveItem[]) =>
       list.map((item) => (item.id === id ? { ...item, [field]: val } : item));
 
+    let updatedUniversal = universalConfig;
+    let updatedZoneConfigs = zoneConfigs;
+
     if (pricingBasis === 'UNIVERSAL') {
-      setUniversalConfig((prev) => ({
-        ...prev,
-        incentives: updateList(prev.incentives),
-      }));
+      updatedUniversal = {
+        ...universalConfig,
+        incentives: updateList(universalConfig.incentives),
+      };
+      setUniversalConfig(updatedUniversal);
     } else {
-      setZoneConfigs((prev) => {
-        const existing = prev[selectedZoneId] || universalConfig;
-        return {
-          ...prev,
-          [selectedZoneId]: {
-            ...existing,
-            incentives: updateList(existing.incentives),
-          },
-        };
-      });
+      const existing = zoneConfigs[selectedZoneId] || universalConfig;
+      updatedZoneConfigs = {
+        ...zoneConfigs,
+        [selectedZoneId]: {
+          ...existing,
+          incentives: updateList(existing.incentives),
+        },
+      };
+      setZoneConfigs(updatedZoneConfigs);
+    }
+
+    if (field === 'active') {
+      try {
+        const minP = isMinPriceValid ? parsedMinPrice : (savedMinPrice ?? 201.5);
+        const mKm = isMoneyPerKmValid ? parsedMoneyPerKm : (savedMoneyPerKm ?? 25.5);
+        await updatePricing({
+          minPricePerDelivery: minP,
+          moneyPerKm: mKm,
+          pricingBasis,
+          universalConfig: updatedUniversal,
+          zoneConfigs: updatedZoneConfigs,
+          zones,
+        }).unwrap();
+        setSavedItemsMap((prev) => ({ ...prev, [id]: true }));
+        try {
+          localStorage.setItem('foodie_universal_pricing_config', JSON.stringify(updatedUniversal));
+          localStorage.setItem('foodie_zone_pricing_configs', JSON.stringify(updatedZoneConfigs));
+        } catch (_e) {}
+        setToastMsg({
+          text: `Incentive "${id}" turned ${val ? 'ON' : 'OFF'} and synced!`,
+          type: 'success',
+        });
+        setTimeout(() => setToastMsg(null), 2500);
+      } catch (err: any) {
+        setToastMsg({
+          text: `Failed to sync toggle: ${err?.data?.error?.message || err?.message || 'Error'}`,
+          type: 'error',
+        });
+        setTimeout(() => setToastMsg(null), 3000);
+      }
     }
   };
 
@@ -452,26 +517,36 @@ export function DeliveryPricingSettingsCard() {
       currentConfig.incentives.forEach((item) => (allSavedMap[item.id] = true));
       setSavedItemsMap(allSavedMap);
 
+      const updatedUniversalConfig = {
+        ...universalConfig,
+        minPrice: parsedMinPrice,
+        moneyPerKm: parsedMoneyPerKm,
+      };
+
+      const res = await updatePricing({
+        minPricePerDelivery: parsedMinPrice,
+        moneyPerKm: parsedMoneyPerKm,
+        pricingBasis,
+        universalConfig: updatedUniversalConfig,
+        zoneConfigs,
+        zones,
+      }).unwrap();
+
+      const updatedMin = res?.minPricePerDelivery ?? parsedMinPrice;
+      const updatedKm = res?.moneyPerKm ?? parsedMoneyPerKm;
+
+      setSavedMinPrice(updatedMin);
+      setSavedMoneyPerKm(updatedKm);
+      setMinPriceInput(String(updatedMin));
+      setMoneyPerKmInput(String(updatedKm));
+
+      setUniversalConfig((prev) => ({
+        ...prev,
+        minPrice: updatedMin,
+        moneyPerKm: updatedKm,
+      }));
+
       if (pricingBasis === 'UNIVERSAL') {
-        const res = await updatePricing({
-          minPricePerDelivery: parsedMinPrice,
-          moneyPerKm: parsedMoneyPerKm,
-        }).unwrap();
-
-        const updatedMin = res?.minPricePerDelivery ?? parsedMinPrice;
-        const updatedKm = res?.moneyPerKm ?? parsedMoneyPerKm;
-
-        setSavedMinPrice(updatedMin);
-        setSavedMoneyPerKm(updatedKm);
-        setMinPriceInput(String(updatedMin));
-        setMoneyPerKmInput(String(updatedKm));
-
-        setUniversalConfig((prev) => ({
-          ...prev,
-          minPrice: updatedMin,
-          moneyPerKm: updatedKm,
-        }));
-
         setToastMsg({ text: 'Universal global payout structure saved to database successfully!', type: 'success' });
       } else {
         setToastMsg({
