@@ -608,14 +608,23 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
         }
 
         let normalizedStatus: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' = 'OPEN';
-        if (unresolvedIds.has(t.id)) {
-          normalizedStatus = 'OPEN';
-        } else if (resolvedIds.has(t.id) || (resolvedIds.has('ENQ-903') && t.id === 'ENQ-2093BD86') || (resolvedIds.has('ENQ-904') && t.id === 'ENQ-74B1721D') || t.status === 'RESOLVED' || t.status === 'CLOSED') {
+        if (t.status === 'RESOLVED' || t.status === 'CLOSED') {
           normalizedStatus = 'RESOLVED';
-        } else if (t.status === 'AGENT_ACTIVE' || t.status === 'ASSIGNED' || t.status === 'IN_PROGRESS' || mappedMessages.some(m => m.sender === 'admin')) {
+          resolvedIds.add(t.id);
+          unresolvedIds.delete(t.id);
+        } else if (t.status === 'IN_PROGRESS' || t.status === 'AGENT_ACTIVE' || t.status === 'ASSIGNED') {
           normalizedStatus = 'IN_PROGRESS';
-        } else {
+          resolvedIds.delete(t.id);
+          unresolvedIds.delete(t.id);
+        } else if (t.status === 'OPEN' || t.status === 'WAITING_FOR_AGENT') {
+          resolvedIds.delete(t.id);
+          normalizedStatus = mappedMessages.some(m => m.sender === 'admin') ? 'IN_PROGRESS' : 'OPEN';
+        } else if (unresolvedIds.has(t.id)) {
           normalizedStatus = 'OPEN';
+        } else if (resolvedIds.has(t.id) || (resolvedIds.has('ENQ-903') && t.id === 'ENQ-2093BD86') || (resolvedIds.has('ENQ-904') && t.id === 'ENQ-74B1721D')) {
+          normalizedStatus = 'RESOLVED';
+        } else {
+          normalizedStatus = mappedMessages.some(m => m.sender === 'admin') ? 'IN_PROGRESS' : 'OPEN';
         }
 
         const lastAdminMsg = [...mappedMessages].reverse().find((m) => m.sender === 'admin');
@@ -738,14 +747,9 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
 
       if (rawList.length > 0) {
 
-        if (rawId.startsWith('ENQ-DELIV-') || rawId.startsWith('ENQ-REST-')) {
-          const partnerKey = rawId.replace(/^(ENQ-DELIV-|ENQ-REST-)/, '').toLowerCase();
-          const isMayura = partnerKey.includes('mayura');
-          const senderDisplayName = partnerKey === 'karishma'
-            ? 'karishma (Delivery Fleet)'
-            : isMayura
-              ? 'Hotel Mayura'
-              : partnerKey;
+        if (rawId === 'ENQ-DELIV-KARISHMA') {
+          const partnerKey = 'karishma';
+          const senderDisplayName = 'karishma (Delivery Fleet)';
 
           for (let i = 0; i < rawList.length; i++) {
             const m = rawList[i];
@@ -835,12 +839,13 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
           }
         } else {
           messages = rawList.map((m: any) => {
-            const isAgent = m.senderType === 'AGENT' || String(m.senderName || '').toLowerCase().includes('admin');
+            const isAgent = m.senderType === 'AGENT' || m.senderType === 'ADMIN' || String(m.senderName || '').toLowerCase().includes('admin');
+            const isSystem = m.senderType === 'SYSTEM' || String(m.senderName || '').toLowerCase().includes('system');
             return {
               id: m.id,
               enquiryId: rawId,
               sender: isAgent ? 'admin' : 'customer',
-              senderName: m.senderName || (isAgent ? 'Admin Support' : 'Customer'),
+              senderName: m.senderName || (isAgent ? 'Admin Support' : isSystem ? 'Foodie System' : 'Customer'),
               message: m.content || m.message || '',
               timestamp: formatSupportTime(m.createdAt),
             };
@@ -943,6 +948,12 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
     }
     partnerRepliesMap.get(rawId)!.push(newMsg);
 
+    // Replying sets status back to active
+    resolvedIds.delete(rawId);
+    resolvedIds.delete(ticketId);
+    unresolvedIds.add(rawId);
+    unresolvedIds.add(ticketId);
+
     // Update in localStore
     for (const idToUpdate of [rawId, ticketId]) {
       const localIndex = localStore.findIndex((t) => t.id === idToUpdate);
@@ -1002,17 +1013,17 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
 
     if (rawId === ticketId) {
       try {
-        if (newStatus === 'RESOLVED') {
-          const statusRes = await safeFetch(`${backendUrl}/api/v1/admin/support-tickets/${ticketId}/status`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status: 'RESOLVED' }),
-            timeoutMs: 8000,
-          });
+        const statusRes = await safeFetch(`${backendUrl}/api/v1/admin/support-tickets/${ticketId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: newStatus }),
+          timeoutMs: 8000,
+        });
 
+        if (newStatus === 'RESOLVED') {
           // Also trigger resolve on /api/v1/support/conversations/:id/resolve for immediate sync
           await safeFetch(`${backendUrl}/api/v1/support/conversations/${ticketId}/resolve`, {
             method: 'PUT',
@@ -1021,25 +1032,11 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
             },
             timeoutMs: 8000,
           }).catch(() => null);
+        }
 
-          if (statusRes.response && statusRes.response.ok) {
-            const statusJson = await statusRes.response.json().catch(() => null);
-            backendResult = statusJson?.data;
-          }
-        } else {
-          const escalateRes = await safeFetch(`${backendUrl}/api/v1/support/conversations/${ticketId}/escalate`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            timeoutMs: 8000,
-          });
-
-          if (escalateRes.response && escalateRes.response.ok) {
-            const escalateJson = await escalateRes.response.json().catch(() => null);
-            backendResult = escalateJson?.data;
-          }
+        if (statusRes.response && statusRes.response.ok) {
+          const statusJson = await statusRes.response.json().catch(() => null);
+          backendResult = statusJson?.data;
         }
       } catch {
         backendResult = null;

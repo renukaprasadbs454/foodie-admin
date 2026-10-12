@@ -71,7 +71,13 @@ export const adminSupportApi = baseApi.injectEndpoints({
           body: { status },
         };
       },
-      invalidatesTags: ['SupportConversation'],
+      invalidatesTags: (_result, _error, arg) => {
+        const id = typeof arg === 'string' ? arg : arg.id;
+        return [
+          { type: 'SupportMessage', id },
+          'SupportConversation',
+        ];
+      },
     }),
     createTicket: builder.mutation<EnquiryRecord, {
       category: 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'GENERAL';

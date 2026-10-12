@@ -1205,42 +1205,49 @@ export function ContactUsPage() {
                 gap: 10,
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 6px 0' }}>
-                <span
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    color: '#6B7280',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    padding: '3px 12px',
-                    borderRadius: 9999,
-                    border: '1px solid #E5E7EB',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  Conversation History ({(selectedEnquiry.messages && selectedEnquiry.messages.length) || 1}{' '}
-                  {((selectedEnquiry.messages && selectedEnquiry.messages.length) || 1) === 1 ? 'Message' : 'Messages'})
-                </span>
-              </div>
-
-              {(((activeTicketMessages && activeTicketMessages.length > 0 ? activeTicketMessages : selectedEnquiry.messages) && (activeTicketMessages || selectedEnquiry.messages)!.length > 0)
-                ? (activeTicketMessages || selectedEnquiry.messages)!.filter(
+              {(() => {
+                const rawList = (activeTicketMessages && activeTicketMessages.length > 0)
+                  ? activeTicketMessages
+                  : (selectedEnquiry.messages && selectedEnquiry.messages.length > 0)
+                  ? selectedEnquiry.messages
+                  : [
+                      {
+                        id: `msg-orig-${selectedEnquiry.id}`,
+                        enquiryId: selectedEnquiry.id,
+                        sender: 'customer' as const,
+                        senderName: selectedEnquiry.restaurantName || selectedEnquiry.senderName,
+                        message: selectedEnquiry.message,
+                        timestamp: selectedEnquiry.timestamp,
+                      },
+                    ];
+                const displayMessages = rawList.filter(
                   (m) =>
                     !m.message.includes('Message delivered to Admin Support') &&
                     !m.message.includes('Message sent to Admin Support')
-                )
-                : [
-                  {
-                    id: `msg-orig-${selectedEnquiry.id}`,
-                    enquiryId: selectedEnquiry.id,
-                    sender: 'customer' as const,
-                    senderName: selectedEnquiry.senderName,
-                    message: selectedEnquiry.message,
-                    timestamp: selectedEnquiry.timestamp,
-                  },
-                ]
-              ).map((msg) => {
+                );
+
+                return (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 6px 0' }}>
+                      <span
+                        style={{
+                          backgroundColor: '#FFFFFF',
+                          color: '#6B7280',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          padding: '3px 12px',
+                          borderRadius: 9999,
+                          border: '1px solid #E5E7EB',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
+                        Conversation History ({displayMessages.length}{' '}
+                        {displayMessages.length === 1 ? 'Message' : 'Messages'})
+                      </span>
+                    </div>
+
+                    {displayMessages.map((msg) => {
                 const isAdmin = msg.sender === 'admin';
                 return (
                   <div
@@ -1294,7 +1301,10 @@ export function ContactUsPage() {
                   </div>
                 );
               })}
-            </div>
+            </>
+          );
+        })()}
+      </div>
 
             {/* Quick Response Templates */}
             <div
