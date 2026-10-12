@@ -23,6 +23,8 @@ export interface ChatMessage {
 export interface EnquiryRecord {
   id: string;
   category: 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'GENERAL';
+  restaurantId?: string;
+  restaurantName?: string;
   senderName: string;
   senderEmail: string;
   senderPhone: string;
@@ -33,6 +35,7 @@ export interface EnquiryRecord {
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   replyMessage?: string;
   messages?: ChatMessage[];
+  unreadCount?: number;
   resolvedAt?: string;
   orderId?: string;
 }
@@ -105,8 +108,10 @@ export function ContactUsPage() {
         const firstUserMsg = t.messages?.find((m: any) => m.senderType !== 'AGENT' && m.senderType !== 'AI');
         return {
           id: t.id,
-          category: t.category || 'CUSTOMER',
-          senderName: t.senderName || firstUserMsg?.senderName || 'User',
+          category: t.category || (t.restaurantId ? 'RESTAURANT' : 'CUSTOMER'),
+          restaurantId: t.restaurantId,
+          restaurantName: t.restaurantName || (t.category === 'RESTAURANT' ? (t.senderName || firstUserMsg?.senderName) : undefined),
+          senderName: t.restaurantName || t.senderName || firstUserMsg?.senderName || 'User',
           senderEmail: t.senderEmail || t.customerId || 'N/A',
           senderPhone: t.senderPhone || 'N/A',
           subject: t.subject || 'Support Ticket',
@@ -125,6 +130,7 @@ export function ContactUsPage() {
               timestamp: m.timestamp || (m.createdAt ? new Date(m.createdAt).toLocaleTimeString() : 'Just now')
             }))
             : [],
+          unreadCount: t.unreadCount || (Array.isArray(t.messages) ? t.messages.filter((m: any) => m.sender !== 'admin' && m.senderType !== 'AGENT').length : 0),
           replyMessage: t.replyMessage
         };
       });
@@ -249,6 +255,7 @@ export function ContactUsPage() {
       !q ||
       item.id.toLowerCase().includes(q) ||
       item.senderName.toLowerCase().includes(q) ||
+      (item.restaurantName && item.restaurantName.toLowerCase().includes(q)) ||
       item.senderEmail.toLowerCase().includes(q) ||
       item.senderPhone.toLowerCase().includes(q) ||
       item.subject.toLowerCase().includes(q) ||
@@ -618,10 +625,22 @@ export function ContactUsPage() {
                 color: '#6B7280',
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>No active enquiries matching your filters</div>
-              <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-                All support tickets in this view have been resolved or reset search filters.
-              </div>
+              {activeTab === 'RESTAURANT' ? (
+                <>
+                  <div style={{ fontSize: 36, marginBottom: 8 }}>🍽️</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>No Restaurant Enquiries Yet</div>
+                  <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4, maxWidth: 460, margin: '6px auto 0' }}>
+                    Live support chats initiated by restaurant partners from their app will appear here in real time.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>No active enquiries matching your filters</div>
+                  <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                    All support tickets in this view have been resolved or reset search filters.
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             getFilteredEnquiries(activeTab as any).map((item) => (
@@ -631,7 +650,7 @@ export function ContactUsPage() {
                   backgroundColor: '#FFFFFF',
                   borderRadius: 20,
                   border: '1px solid #E5E7EB',
-                  borderLeft: '4px solid #2196F3',
+                  borderLeft: item.category === 'RESTAURANT' ? '4px solid #16A34A' : '4px solid #2196F3',
                   padding: '24px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -643,12 +662,24 @@ export function ContactUsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '3px 8px', borderRadius: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: item.category === 'RESTAURANT' ? '#DCFCE7' : '#E3F2FD', color: item.category === 'RESTAURANT' ? '#15803D' : '#2196F3', padding: '3px 8px', borderRadius: 6 }}>
                         {item.id}
                       </span>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>
-                        {item.senderName} - {item.orderId ? `Order #${item.orderId}` : 'No Order ID'}
+                      <span style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>
+                        {item.category === 'RESTAURANT' ? `🍽️ ${item.restaurantName || item.senderName}` : item.senderName} - {item.orderId ? `Order #${item.orderId}` : (item.category === 'RESTAURANT' ? 'Restaurant Account' : 'Support Query')}
                       </span>
+
+                      {item.category === 'RESTAURANT' && (
+                        <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: 6, border: '1px solid #86EFAC' }}>
+                          RESTAURANT PARTNER
+                        </span>
+                      )}
+
+                      {(item.unreadCount ?? 0) > 0 && (
+                        <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: '#FEF3C7', color: '#B45309', padding: '3px 8px', borderRadius: 6, border: '1px solid #FDE68A' }}>
+                          ⚡ {item.unreadCount} Messages
+                        </span>
+                      )}
 
                       <span
                         style={{
@@ -1030,7 +1061,7 @@ export function ContactUsPage() {
             {/* Header */}
             <div
               style={{
-                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                background: selectedEnquiry.category === 'RESTAURANT' ? 'linear-gradient(135deg, #15803D 0%, #22C55E 100%)' : 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                 padding: '16px 20px',
                 display: 'flex',
                 alignItems: 'center',
@@ -1044,31 +1075,45 @@ export function ContactUsPage() {
                     width: 40,
                     height: 40,
                     borderRadius: '50%',
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.25)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#FFFFFF',
                     fontWeight: 700,
-                    fontSize: 14,
+                    fontSize: selectedEnquiry.category === 'RESTAURANT' ? 18 : 14,
                   }}
                 >
-                  {selectedEnquiry.senderName
-                    ? selectedEnquiry.senderName.trim().split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase()
-                    : 'CU'}
+                  {selectedEnquiry.category === 'RESTAURANT'
+                    ? '🍽️'
+                    : (selectedEnquiry.senderName ? selectedEnquiry.senderName.trim().split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase() : 'CU')}
                 </div>
 
                 <div>
-                  <h3
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: '#FFFFFF',
-                      margin: 0,
-                    }}
-                  >
-                    Reply to {selectedEnquiry.senderName} ({selectedEnquiry.orderId ? `#${selectedEnquiry.orderId}` : selectedEnquiry.id})
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h3
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: '#FFFFFF',
+                        margin: 0,
+                      }}
+                    >
+                      {selectedEnquiry.category === 'RESTAURANT' ? (selectedEnquiry.restaurantName || selectedEnquiry.senderName) : selectedEnquiry.senderName}
+                    </h3>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                        color: '#FFFFFF',
+                        padding: '2px 8px',
+                        borderRadius: 9999,
+                      }}
+                    >
+                      {selectedEnquiry.status}
+                    </span>
+                  </div>
                   <div
                     style={{
                       fontSize: 12,
@@ -1076,7 +1121,7 @@ export function ContactUsPage() {
                       marginTop: 2,
                     }}
                   >
-                    Active Support Enquiry
+                    {selectedEnquiry.category === 'RESTAURANT' ? 'Restaurant Partner Support' : 'Customer Support'} • Ticket #{selectedEnquiry.id}
                   </div>
                 </div>
               </div>
@@ -1356,19 +1401,61 @@ export function ContactUsPage() {
                     alignItems: 'center',
                     gap: 6,
                     padding: '10px 18px',
-                    background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                    background: selectedEnquiry.category === 'RESTAURANT' ? 'linear-gradient(135deg, #15803D 0%, #22C55E 100%)' : 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 12,
                     fontWeight: 600,
                     fontSize: 13,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
+                    boxShadow: selectedEnquiry.category === 'RESTAURANT' ? '0 4px 14px rgba(22, 163, 74, 0.25)' : '0 4px 14px rgba(33, 150, 243, 0.25)',
                     flexShrink: 0,
                   }}
                 >
-                  Send
+                  Send Reply
                 </button>
+              </div>
+
+              {/* Status Update Quick Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid #F3F4F6' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>Status:</span>
+                  {selectedEnquiry.status !== 'RESOLVED' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await resolveMutation({ id: selectedEnquiry.id, status: 'IN_PROGRESS' });
+                          setSelectedEnquiry((prev) => (prev ? { ...prev, status: 'IN_PROGRESS' } : null));
+                          showToast(`Enquiry #${selectedEnquiry.id} set to In Progress`);
+                        }}
+                        style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid #FCD34D', backgroundColor: '#FEF3C7', color: '#92400E', cursor: 'pointer' }}
+                      >
+                        Set In Progress
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await handleMarkAsResolved(selectedEnquiry.id);
+                        }}
+                        style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid #86EFAC', backgroundColor: '#DCFCE7', color: '#166534', cursor: 'pointer' }}
+                      >
+                        Mark as Resolved
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await handleReopenTicket(selectedEnquiry.id);
+                        setSelectedEnquiry((prev) => (prev ? { ...prev, status: 'OPEN' } : null));
+                      }}
+                      style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid #93C5FD', backgroundColor: '#EFF6FF', color: '#1E40AF', cursor: 'pointer' }}
+                    >
+                      Reopen Enquiry
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </form>

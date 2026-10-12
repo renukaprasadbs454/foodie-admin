@@ -408,6 +408,8 @@ async function handleRegisterRestaurant(body: any) {
 interface SupportEnquiryRecord {
   id: string;
   category: 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'GENERAL';
+  restaurantId?: string;
+  restaurantName?: string;
   senderName: string;
   senderEmail: string;
   senderPhone: string;
@@ -424,7 +426,9 @@ interface SupportEnquiryRecord {
     senderName: string;
     message: string;
     timestamp: string;
+    readStatus?: boolean;
   }>;
+  unreadCount?: number;
   resolvedAt?: string;
   orderId?: string;
 }
@@ -491,7 +495,7 @@ function determinePartnerCategory(m: any, defaultCat: string): 'RESTAURANT' | 'D
 
 function resolveBackendTicketId(id: string): string {
   if (id === 'ENQ-903') return 'ENQ-2093BD86';
-  if (id === 'ENQ-904' || id.startsWith('ENQ-DELIV-') || id.startsWith('ENQ-REST-')) return 'ENQ-74B1721D';
+  if (id === 'ENQ-904' || id === 'ENQ-DELIV-RAMESH' || id === 'ENQ-REST-MAYURA') return 'ENQ-74B1721D';
   return id;
 }
 
@@ -569,198 +573,7 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
           messages = [];
         }
 
-        // Special handling for shared backend conversations (ENQ-74B1721D) or tickets with multiple partner messages:
-        // Properly partition and categorize as RESTAURANT vs DELIVERY (and exclude automated AI bots)
-        if (t.category === 'DELIVERY' || t.category === 'RESTAURANT' || t.id === 'ENQ-74B1721D') {
-          const partnerSendersMap = new Map<string, {
-            partnerKey: string;
-            originalSenderName: string;
-            category: 'RESTAURANT' | 'DELIVERY' | 'CUSTOMER';
-            customerMessages: any[];
-          }>();
-
-          for (const m of messages) {
-            const isAgent = m.senderType === 'AGENT' || String(m.senderName || '').toLowerCase().includes('admin');
-            const isSystem = m.senderType === 'SYSTEM' || String(m.senderName || '').toLowerCase().includes('system');
-            const isAi = m.senderType === 'AI' || String(m.senderName || '').toLowerCase().includes('ai') || String(m.senderName || '').toLowerCase().includes('bot');
-
-            // Strictly human partners (not Admin, not System, not automated AI bot)
-            if (!isAgent && !isSystem && !isAi && m.senderName) {
-              const pKey = getDeliveryPartnerKey(m.senderName);
-              const partnerCat = determinePartnerCategory(m, t.category);
-              if (!partnerSendersMap.has(pKey)) {
-                partnerSendersMap.set(pKey, {
-                  partnerKey: pKey,
-                  originalSenderName: m.senderName,
-                  category: partnerCat,
-                  customerMessages: [],
-                });
-              }
-              partnerSendersMap.get(pKey)!.customerMessages.push(m);
-            }
-          }
-
-          if (partnerSendersMap.size > 1) {
-            const partnerCards: SupportEnquiryRecord[] = [];
-
-            for (const [pKey, info] of partnerSendersMap.entries()) {
-              const isRamesh = pKey.includes('ramesh');
-              const isKarishma = pKey.includes('karishma');
-              const isMayura = pKey.includes('mayura') || pKey.includes('hotel');
-              const isRoyalBiryani = pKey.includes('biryani') || pKey.includes('rajesh');
-
-              let cardId = '';
-              if (info.category === 'RESTAURANT') {
-                cardId = isRoyalBiryani ? 'ENQ-2093BD86' : `ENQ-REST-${pKey.toUpperCase()}`;
-              } else {
-                cardId = isRamesh ? 'ENQ-74B1721D' : `ENQ-DELIV-${pKey.toUpperCase()}`;
-              }
-
-              const senderName = isRamesh
-                ? 'Ramesh Kumar (Rider #DRV-402)'
-                : isKarishma
-                  ? 'karishma (Delivery Fleet)'
-                  : isMayura
-                    ? 'Hotel Mayura'
-                    : isRoyalBiryani
-                      ? 'Rajesh Gupta (Royal Biryani)'
-                      : info.originalSenderName;
-
-              const senderEmail = isRamesh
-                ? 'ramesh.rider@gmail.com'
-                : isKarishma
-                  ? 'karishma.rider@foodie.local'
-                  : isMayura
-                    ? 'hotelmayura@restaurant.foodie.local'
-                    : isRoyalBiryani
-                      ? 'contact@royalbiryani.in'
-                      : `${pKey}@foodie.local`;
-
-              const senderPhone = isRamesh
-                ? '+91 97400 33211'
-                : isKarishma
-                  ? '+91 98450 77123'
-                  : isMayura
-                    ? '+91 98888 55443'
-                    : '+91 98000 00000';
-
-              const lastCustMsg = info.customerMessages[info.customerMessages.length - 1];
-              const firstCustMsg = info.customerMessages[0];
-              const cardSubject = isRamesh
-                ? 'Rain Surge Payout Incentive Not Credited'
-                : isKarishma
-                  ? 'Payment & Login Issue'
-                  : isMayura
-                    ? 'Payment Settlement Issue'
-                    : (lastCustMsg?.content || lastCustMsg?.message || `${info.category === 'RESTAURANT' ? 'Restaurant' : 'Delivery'} Partner Support`);
-
-              // Filter messages belonging to this partner
-              const partnerMessagesList: any[] = [];
-              for (let i = 0; i < messages.length; i++) {
-                const m = messages[i];
-                const isAgent = m.senderType === 'AGENT' || String(m.senderName || '').toLowerCase().includes('admin');
-                const isSystem = m.senderType === 'SYSTEM' || String(m.senderName || '').toLowerCase().includes('system');
-                const isAi = m.senderType === 'AI' || String(m.senderName || '').toLowerCase().includes('ai') || String(m.senderName || '').toLowerCase().includes('bot');
-
-                if (!isAgent && !isSystem && !isAi && m.senderName) {
-                  if (getDeliveryPartnerKey(m.senderName) === pKey) {
-                    partnerMessagesList.push({
-                      id: m.id,
-                      enquiryId: cardId,
-                      sender: 'customer' as const,
-                      senderName,
-                      message: m.content || m.message || '',
-                      timestamp: formatSupportTime(m.createdAt),
-                    });
-                  }
-                } else if (isSystem) {
-                  const prevCust = messages.slice(0, i).reverse().find(
-                    (prev) => prev.senderType !== 'AGENT' && !String(prev.senderName || '').toLowerCase().includes('admin') && !String(prev.senderName || '').toLowerCase().includes('system') && !String(prev.senderName || '').toLowerCase().includes('ai')
-                  );
-                  if (prevCust && getDeliveryPartnerKey(prevCust.senderName) === pKey) {
-                    partnerMessagesList.push({
-                      id: m.id,
-                      enquiryId: cardId,
-                      sender: 'customer' as const,
-                      senderName: 'Foodie System',
-                      message: m.content || m.message || '',
-                      timestamp: formatSupportTime(m.createdAt),
-                    });
-                  }
-                } else if (isAi) {
-                  const prevCust = messages.slice(0, i).reverse().find(
-                    (prev) => prev.senderType !== 'AGENT' && !String(prev.senderName || '').toLowerCase().includes('admin') && !String(prev.senderName || '').toLowerCase().includes('system') && !String(prev.senderName || '').toLowerCase().includes('ai')
-                  );
-                  if (prevCust && getDeliveryPartnerKey(prevCust.senderName) === pKey) {
-                    partnerMessagesList.push({
-                      id: m.id,
-                      enquiryId: cardId,
-                      sender: 'admin' as const,
-                      senderName: 'Foodie AI Support',
-                      message: m.content || m.message || '',
-                      timestamp: formatSupportTime(m.createdAt),
-                    });
-                  }
-                } else if (isAgent) {
-                  const text = String(m.content || m.message || '').toLowerCase();
-                  const belongsToPartner =
-                    (isRamesh && (text.includes('ramesh') || text.includes('surge') || text.includes('bonus') || (!text.includes('karishma') && !text.includes('mayura') && !text.includes('biryani')))) ||
-                    (isKarishma && (text.includes('karishma') || text.includes('login') || text.includes('fleet'))) ||
-                    (isMayura && (text.includes('mayura') || text.includes('settlement') || text.includes('restaurant'))) ||
-                    (isRoyalBiryani && (text.includes('rajesh') || text.includes('biryani') || text.includes('gst') || text.includes('statement')));
-
-                  if (belongsToPartner) {
-                    partnerMessagesList.push({
-                      id: m.id,
-                      enquiryId: cardId,
-                      sender: 'admin' as const,
-                      senderName: 'Admin Support',
-                      message: m.content || m.message || '',
-                      timestamp: formatSupportTime(m.createdAt),
-                    });
-                  }
-                }
-              }
-
-              // Append any admin replies specifically dispatched to this card
-              const customReplies = partnerRepliesMap.get(cardId) || [];
-              for (const r of customReplies) {
-                if (!partnerMessagesList.some((existing) => existing.id === r.id)) {
-                  partnerMessagesList.push(r);
-                }
-              }
-
-              const hasAdminReply = partnerMessagesList.some((m) => m.sender === 'admin' && m.senderName !== 'Foodie AI Support');
-              const isExplicitlyReopened = unresolvedIds.has(cardId);
-              const isResolved = !isExplicitlyReopened && (
-                resolvedIds.has(cardId) ||
-                (isRoyalBiryani && (resolvedIds.has('ENQ-903') || t.status === 'RESOLVED')) ||
-                (isRamesh && (resolvedIds.has('ENQ-904') || t.status === 'RESOLVED'))
-              );
-
-              const lastAdminMsg = [...partnerMessagesList].reverse().find((m) => m.sender === 'admin');
-
-              partnerCards.push({
-                id: cardId,
-                category: info.category, // Correct category: RESTAURANT or DELIVERY
-                senderName,
-                senderEmail,
-                senderPhone,
-                subject: cardSubject,
-                message: lastCustMsg?.content || lastCustMsg?.message || firstCustMsg?.content || firstCustMsg?.message || cardSubject,
-                timestamp: formatSupportTime(lastCustMsg?.createdAt || t.createdAt),
-                status: isResolved ? 'RESOLVED' : hasAdminReply ? 'IN_PROGRESS' : 'OPEN',
-                priority: 'HIGH',
-                orderId: isRamesh ? 'ORD-9821' : undefined,
-                messages: partnerMessagesList,
-                replyMessage: lastAdminMsg?.message,
-                resolvedAt: isResolved ? (t.resolvedAt ? `${formatSupportTime(t.resolvedAt)} by Admin` : 'Just now by Admin') : undefined,
-              });
-            }
-
-            return partnerCards;
-          }
-        }
+        // Standard mapping for tickets
 
         // Standard mapping for other tickets
         const mappedMessages = messages.map((m) => {
@@ -780,9 +593,15 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
         let senderEmail = 'customer@foodie.local';
         let senderPhone = '+91 98000 00000';
 
-        if (t.category === 'RESTAURANT' || t.id === 'ENQ-2093BD86') {
-          senderName = customerMsg?.senderName || t.senderName || 'Restaurant User';
-          senderEmail = t.customerId || 'restaurant@foodie.local';
+        const subjectTagMatch = (t.subject || '').match(/^\[(.*?)\]\s*(.*)$/);
+        const taggedRestaurantName = subjectTagMatch ? subjectTagMatch[1].trim() : null;
+        const displaySubject = subjectTagMatch ? subjectTagMatch[2].trim() : (t.subject || 'Support Enquiry');
+
+        let restDisplayName = 'Restaurant Partner';
+        if (t.category === 'RESTAURANT' || t.restaurantId || (t.id && t.id.startsWith('ENQ-REST-')) || t.id === 'ENQ-2093BD86') {
+          restDisplayName = taggedRestaurantName || t.restaurantName || customerMsg?.senderName || t.senderName || (t.id === 'ENQ-869CA402' ? 'Shivam Cafe' : 'Restaurant Partner');
+          senderName = restDisplayName;
+          senderEmail = `${restDisplayName.toLowerCase().replace(/[^a-z0-9]/g, '')}@foodie.partner`;
         } else if (t.category === 'DELIVERY' || t.id === 'ENQ-74B1721D') {
           senderName = customerMsg?.senderName || t.senderName || 'Delivery Rider';
           senderEmail = t.customerId || 'rider@foodie.local';
@@ -801,20 +620,42 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
 
         const lastAdminMsg = [...mappedMessages].reverse().find((m) => m.sender === 'admin');
         const firstCustMsg = mappedMessages.find((m) => m.sender !== 'admin');
+        const unreadCount = mappedMessages.filter((m) => m.sender === 'customer').length;
+
+        // Don't show any default/mock dummy restaurant chats in admin
+        const isDummyRestaurant = (t.category === 'RESTAURANT' || (t.id && t.id.startsWith('ENQ-REST-')) || t.id === 'ENQ-2093BD86') && (
+          t.id === 'ENQ-REST-HOTELMAYURA' ||
+          t.id === 'ENQ-2093BD86' ||
+          t.id === 'ENQ-REST-SPICE' ||
+          t.id === 'ENQ-REST-PMKM' ||
+          t.id === 'ENQ-903' ||
+          t.customerId === 'hotelmayura@restaurant.foodie.local' ||
+          t.customerId === 'pmkm@foodie.local' ||
+          t.customerId === 'r0ck@foodie.local' ||
+          senderName === 'Hotel Mayura' ||
+          senderName === 'Rajesh Gupta (Royal Biryani)'
+        );
+
+        if (isDummyRestaurant) {
+          return [];
+        }
 
         return [{
           id: t.id,
-          category: (t.category || 'CUSTOMER') as any,
+          category: (t.category || (t.restaurantId ? 'RESTAURANT' : 'CUSTOMER')) as any,
+          restaurantId: t.restaurantId || (t.category === 'RESTAURANT' ? t.customerId : undefined),
+          restaurantName: (t.category === 'RESTAURANT' ? restDisplayName : t.restaurantName),
           senderName,
           senderEmail,
           senderPhone,
-          subject: t.subject || 'Support Enquiry',
-          message: firstCustMsg?.message || t.subject || 'Enquiry regarding order or service',
+          subject: displaySubject || 'Support Enquiry',
+          message: firstCustMsg?.message || displaySubject || 'Enquiry regarding order or service',
           timestamp: formatSupportTime(t.lastMessageAt || t.createdAt),
           status: normalizedStatus,
           priority: t.category === 'DELIVERY' ? 'HIGH' : 'MEDIUM',
           orderId: t.orderId || undefined,
           messages: mappedMessages,
+          unreadCount,
           replyMessage: lastAdminMsg?.message,
           resolvedAt: normalizedStatus === 'RESOLVED' ? (t.resolvedAt ? `${formatSupportTime(t.resolvedAt)} by Admin` : 'Just now by Admin') : undefined,
         }];
@@ -846,7 +687,7 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
 
     const mergedList = [
       ...enrichedBackendTickets,
-      ...localStore.filter((loc) => !existingIds.has(loc.id)),
+      ...localStore.filter((loc) => !existingIds.has(loc.id) && loc.category !== 'RESTAURANT'),
     ].filter((t) => t.category !== 'GENERAL' && t.id !== 'ENQ-905');
 
     return NextResponse.json({
@@ -868,7 +709,7 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
     const ticketId = resolveBackendTicketId(rawId);
     let messages: any[] = [];
     try {
-      const ticketsToFetch = (rawId.startsWith('ENQ-REST-') || rawId.startsWith('ENQ-DELIV-'))
+      const ticketsToFetch = (rawId === 'ENQ-REST-MAYURA' || rawId === 'ENQ-DELIV-RAMESH')
         ? ['ENQ-74B1721D', 'ENQ-2093BD86']
         : [ticketId];
 
@@ -1004,6 +845,13 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
               timestamp: formatSupportTime(m.createdAt),
             };
           });
+
+          const storedReplies = partnerRepliesMap.get(rawId) || [];
+          for (const r of storedReplies) {
+            if (!messages.some((existing) => existing.id === r.id || (existing.message === r.message && existing.sender === r.sender))) {
+              messages.push(r);
+            }
+          }
         }
       }
     } catch {
@@ -1046,7 +894,7 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
 
     let backendResult: any = null;
     try {
-      const replyRes = await safeFetch(`${backendUrl}/api/v1/admin/support-tickets/${ticketId}/reply`, {
+      let replyRes = await safeFetch(`${backendUrl}/api/v1/admin/support-tickets/${ticketId}/reply`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1055,6 +903,22 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
         body: JSON.stringify({ message: messageText, senderName }),
         timeoutMs: 8000,
       });
+
+      if (!replyRes.response || !replyRes.response.ok) {
+        replyRes = await safeFetch(`${backendUrl}/api/v1/support/conversations/${ticketId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: messageText,
+            senderName,
+            senderType: 'AGENT',
+          }),
+          timeoutMs: 8000,
+        });
+      }
 
       if (replyRes.response && replyRes.response.ok) {
         const replyJson = await replyRes.response.json().catch(() => null);
@@ -1138,19 +1002,44 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
 
     if (rawId === ticketId) {
       try {
-        const statusRes = await safeFetch(`${backendUrl}/api/v1/admin/support-tickets/${ticketId}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ status: newStatus }),
-          timeoutMs: 8000,
-        });
+        if (newStatus === 'RESOLVED') {
+          const statusRes = await safeFetch(`${backendUrl}/api/v1/admin/support-tickets/${ticketId}/status`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: 'RESOLVED' }),
+            timeoutMs: 8000,
+          });
 
-        if (statusRes.response && statusRes.response.ok) {
-          const statusJson = await statusRes.response.json().catch(() => null);
-          backendResult = statusJson?.data;
+          // Also trigger resolve on /api/v1/support/conversations/:id/resolve for immediate sync
+          await safeFetch(`${backendUrl}/api/v1/support/conversations/${ticketId}/resolve`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            timeoutMs: 8000,
+          }).catch(() => null);
+
+          if (statusRes.response && statusRes.response.ok) {
+            const statusJson = await statusRes.response.json().catch(() => null);
+            backendResult = statusJson?.data;
+          }
+        } else {
+          const escalateRes = await safeFetch(`${backendUrl}/api/v1/support/conversations/${ticketId}/escalate`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            timeoutMs: 8000,
+          });
+
+          if (escalateRes.response && escalateRes.response.ok) {
+            const escalateJson = await escalateRes.response.json().catch(() => null);
+            backendResult = escalateJson?.data;
+          }
         }
       } catch {
         backendResult = null;
