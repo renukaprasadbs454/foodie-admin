@@ -1,8 +1,14 @@
 'use client';
 
-import React from 'react';
-import { AuditLogPage } from '@/features/audit-log/pages/AuditLogPage';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function ComplianceAuditLogRoutePage() {
-  return <AuditLogPage />;
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/compliance-auditor/dashboard');
+  }, [router]);
+
+  return null;
 }

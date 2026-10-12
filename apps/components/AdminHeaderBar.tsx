@@ -645,58 +645,32 @@ export function AdminHeaderBar({
                   type="button"
                   onClick={() => setIsProfileOpen((prev) => !prev)}
                   style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: '50%',
+                    backgroundColor: '#E3F2FD',
+                    color: '#2196F3',
+                    border: isProfileOpen
+                      ? '2px solid #2196F3'
+                      : '1px solid #BFDBFE',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 10,
-                    backgroundColor: '#F5F7FA',
-                    border: '1px solid #E5E7EB',
+                    justifyContent: 'center',
                     cursor: 'pointer',
-                    padding: '5px 12px',
-                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: 700,
                     transition: 'all 0.15s ease',
+                    boxShadow: isProfileOpen
+                      ? '0 0 0 3px rgba(33, 150, 243, 0.2)'
+                      : 'none',
+                    flexShrink: 0,
                   }}
                   aria-expanded={isProfileOpen}
                   aria-haspopup="true"
                   aria-label="User Profile Menu"
+                  title="Compliance Auditor"
                 >
-                  <div
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: '50%',
-                      backgroundColor: '#E3F2FD',
-                      color: '#2196F3',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}
-                  >
-                    CA
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: '#111827',
-                    }}
-                  >
-                    Compliance Auditor
-                  </span>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#6B7280"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
+                  CA
                 </button>
               ) : (
                 <button

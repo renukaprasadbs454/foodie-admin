@@ -229,7 +229,6 @@ export function filterNavForRole(role: string | null, pathname?: string): NavIte
     return [
       { href: '/compliance-auditor/dashboard', label: 'Home', icon: 'home' },
       { href: '/compliance-auditor/reviews', label: 'Reviews & Complaints', icon: 'star' },
-      { href: '/compliance-auditor/audit-log', label: 'Audit Log', icon: 'file-text' },
       { href: '/compliance-auditor/terms', label: 'Terms & Conditions', icon: 'file-lines' },
     ];
   }

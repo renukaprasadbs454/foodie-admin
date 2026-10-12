@@ -24,15 +24,14 @@ describe('Compliance Auditor Dashboard & Navigation Suite', () => {
     expect(isRouteAllowedForRole('/users', 'AUDITOR')).toBe(false);
   });
 
-  it('generates the 4 Compliance Auditor sidebar items matching design specifications', () => {
+  it('generates the 3 Compliance Auditor sidebar items matching design specifications', () => {
     const navItems = filterNavForRole('AUDITOR');
-    expect(navItems).toHaveLength(4);
+    expect(navItems).toHaveLength(3);
 
     const labels = navItems.map((item) => item.label);
     expect(labels).toEqual([
       'Home',
       'Reviews & Complaints',
-      'Audit Log',
       'Terms & Conditions',
     ]);
   });

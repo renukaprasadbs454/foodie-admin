@@ -268,14 +268,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                 }}
-                title={`Active Role: ${activeRole}`}
+                title={`Active Role: ${activeRole === 'AUDITOR' || activeRole === 'COMPLIANCE_AUDITOR' ? 'COMPLIANCE AUDITOR' : activeRole}`}
               >
                 <div>
                   <div style={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
                     Active Role
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap' }}>
-                    {activeRole === 'AUDITOR' ? 'ADMIN' : (activeRole === 'FINANCE_ADMIN' ? 'FINANCE ADMIN' : activeRole)}
+                    {activeRole === 'AUDITOR' || activeRole === 'COMPLIANCE_AUDITOR' ? 'COMPLIANCE AUDITOR' : (activeRole === 'FINANCE_ADMIN' ? 'FINANCE ADMIN' : activeRole)}
                   </div>
                 </div>
                 <span
