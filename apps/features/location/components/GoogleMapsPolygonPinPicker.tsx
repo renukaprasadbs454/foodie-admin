@@ -128,13 +128,34 @@ export function GoogleMapsPolygonPinPicker({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mapReady]);
 
-    // ── Sync center + radius ─────────────────────────────────────────────────────
+    // ── Sync center + radius: destroy & recreate circle to guarantee correct position ──
     React.useEffect(() => {
-        if (!mapRef.current || !circleRef.current) return;
+        if (!mapRef.current) return;
+        const google = (window as any).google;
+        if (!google?.maps) return;
+
         const center = { lat: centerLat, lng: centerLng };
-        mapRef.current.setCenter(center);
-        circleRef.current.setCenter(center);
-        circleRef.current.setRadius((radiusKm || 5) * 1000);
+
+        // Pan map smoothly to new city center
+        mapRef.current.panTo(center);
+
+        // Destroy old circle and create a fresh one at the correct location.
+        // Calling .setCenter() on an existing Circle is unreliable when the Maps JS API
+        // is in billing-degraded mode — destroy/recreate is always accurate.
+        if (circleRef.current) {
+            circleRef.current.setMap(null);
+            circleRef.current = null;
+        }
+        circleRef.current = new google.maps.Circle({
+            map: mapRef.current,
+            center,
+            radius: (radiusKm || 5) * 1000,
+            strokeColor: '#2196F3',
+            strokeOpacity: 0.9,
+            strokeWeight: 2.5,
+            fillColor: '#2196F3',
+            fillOpacity: 0.08,
+        });
     }, [centerLat, centerLng, radiusKm]);
 
     // ── Sync map type ────────────────────────────────────────────────────────────

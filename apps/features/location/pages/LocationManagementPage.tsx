@@ -143,8 +143,12 @@ export function LocationManagementPage() {
     if (cities.length > 0 && !cities.some(c => c.cityName === newZoneCity)) {
       const targetCity = cities[0].cityName;
       setNewZoneCity(targetCity);
+      // Also geocode the city so the map centers on the real coordinates,
+      // not the hardcoded Bangalore default.
+      void handleCityMapUpdate(targetCity);
     }
-  }, [cities, newZoneCity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cities]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -153,10 +157,47 @@ export function LocationManagementPage() {
 
   const handleCityMapUpdate = async (selectedCity: string) => {
     const predefined: Record<string, { lat: string, lng: string }> = {
+      // Bangalore / Bengaluru
       'Bangalore': { lat: '12.9716', lng: '77.5946' },
+      'Bengaluru': { lat: '12.9716', lng: '77.5946' },
+      'Bengaluru Urban': { lat: '12.9716', lng: '77.5946' },
+      // Mumbai
       'Mumbai': { lat: '19.0760', lng: '72.8777' },
+      'Bombay': { lat: '19.0760', lng: '72.8777' },
+      // Delhi
+      'Delhi': { lat: '28.6139', lng: '77.2090' },
       'Delhi-NCR': { lat: '28.6139', lng: '77.2090' },
+      'New Delhi': { lat: '28.6139', lng: '77.2090' },
+      // Hyderabad
       'Hyderabad': { lat: '17.3850', lng: '78.4867' },
+      // Chennai
+      'Chennai': { lat: '13.0827', lng: '80.2707' },
+      'Madras': { lat: '13.0827', lng: '80.2707' },
+      // Other major cities
+      'Pune': { lat: '18.5204', lng: '73.8567' },
+      'Ahmedabad': { lat: '23.0225', lng: '72.5714' },
+      'Kolkata': { lat: '22.5726', lng: '88.3639' },
+      'Calcutta': { lat: '22.5726', lng: '88.3639' },
+      'Jaipur': { lat: '26.9124', lng: '75.7873' },
+      'Surat': { lat: '21.1702', lng: '72.8311' },
+      'Lucknow': { lat: '26.8467', lng: '80.9462' },
+      'Kanpur': { lat: '26.4499', lng: '80.3319' },
+      'Nagpur': { lat: '21.1458', lng: '79.0882' },
+      'Indore': { lat: '22.7196', lng: '75.8577' },
+      'Bhopal': { lat: '23.2599', lng: '77.4126' },
+      'Patna': { lat: '25.5941', lng: '85.1376' },
+      'Vadodara': { lat: '22.3072', lng: '73.1812' },
+      'Coimbatore': { lat: '11.0168', lng: '76.9558' },
+      'Kochi': { lat: '9.9312', lng: '76.2673' },
+      'Cochin': { lat: '9.9312', lng: '76.2673' },
+      'Mysuru': { lat: '12.2958', lng: '76.6394' },
+      'Mysore': { lat: '12.2958', lng: '76.6394' },
+      'Tumkur': { lat: '13.3409', lng: '77.1010' },
+      'Tumakuru': { lat: '13.3409', lng: '77.1010' },
+      'Mangalore': { lat: '12.9141', lng: '74.8560' },
+      'Mangaluru': { lat: '12.9141', lng: '74.8560' },
+      'Hubli': { lat: '15.3647', lng: '75.1240' },
+      'Hubballi': { lat: '15.3647', lng: '75.1240' },
     };
 
     if (predefined[selectedCity]) {
