@@ -34,8 +34,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   // Sidebar collapsed state - declared at top level to satisfy Rules of Hooks
   const [isCompact, setIsCompact] = React.useState(false);
   const [hasHydrated, setHasHydrated] = React.useState(false);
+  const [activeZoneName, setActiveZoneName] = React.useState<string>('Bangalore Zone');
 
-  // Rehydrate Redux session from local/session storage on initial client mount
+  // Rehydrate Redux session and active zone from local/session storage on initial client mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isAuditorPath = Boolean(pathname && pathname.startsWith('/compliance-auditor'));
@@ -43,6 +44,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       const defaultRoleForPath = isAuditorPath ? 'AUDITOR' : (isFinancePath ? 'FINANCE_ADMIN' : null);
       const savedRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role') || defaultRoleForPath;
       const savedUserId = localStorage.getItem('foodie_admin_user_id') || sessionStorage.getItem('foodie_admin_user_id') || '44444444-4444-4444-4444-444444444001';
+      const savedZoneName = localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name');
+      if (savedZoneName) {
+        setActiveZoneName(decodeURIComponent(savedZoneName));
+      }
       if (savedRole && savedUserId) {
         dispatch(
           setSession({
@@ -152,6 +157,14 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const onLogout = async () => {
     setLoggingOut(true);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('foodie_active_zone_id');
+      localStorage.removeItem('foodie_active_zone_name');
+      sessionStorage.removeItem('foodie_active_zone_id');
+      sessionStorage.removeItem('foodie_active_zone_name');
+      document.cookie = 'foodie_active_zone_id=; path=/; max-age=0; SameSite=Lax';
+      document.cookie = 'foodie_active_zone_name=; path=/; max-age=0; SameSite=Lax';
+    }
     await logoutAdmin(dispatch);
     router.replace('/login');
     setLoggingOut(false);
@@ -165,6 +178,16 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     (role && role.toUpperCase() === 'SUPER_ADMIN') ||
     (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN')
   );
+
+  // Require Super Admin to have an active operating zone selected
+  useEffect(() => {
+    if (hasHydrated && isSuperAdmin && typeof window !== 'undefined') {
+      const zoneId = localStorage.getItem('foodie_active_zone_id') || sessionStorage.getItem('foodie_active_zone_id');
+      if (!zoneId && pathname !== '/zone-select' && pathname !== '/login') {
+        router.replace('/zone-select');
+      }
+    }
+  }, [hasHydrated, isSuperAdmin, pathname, router]);
 
   const isAuditorContext = !isSuperAdmin && (
     Boolean(pathname && pathname.startsWith('/compliance-auditor')) ||
@@ -290,6 +313,49 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 />
               </div>
             ) : null}
+
+            {/* Active Operating Zone Badge for Super Admin */}
+            {activeRole === 'SUPER_ADMIN' && (
+              <div
+                style={{
+                  backgroundColor: '#EFF6FF',
+                  border: '1px solid #BFDBFE',
+                  borderRadius: 12,
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+                title={`Active Zone: ${activeZoneName}`}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: '#1D4ED8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+                    Active Zone
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1E3A8A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {activeZoneName}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    backgroundColor: '#DBEAFE',
+                    color: '#2563EB',
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </span>
+              </div>
+            )}
 
             {/* Navigation Links */}
             <nav aria-label="Admin Navigation" style={{ flex: 1, overflowY: 'auto' }}>

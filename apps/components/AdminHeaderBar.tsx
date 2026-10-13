@@ -6,6 +6,11 @@ import { createPortal } from 'react-dom';
 import { GlobalSearchModal } from '@/components/GlobalSearchModal';
 
 import { useAppSelector } from '@/store/hooks';
+import {
+  useGetAvailableZonesQuery,
+  useSelectOperatingZoneMutation,
+  type OperatingZone,
+} from '@/api/endpoints/zoneApi';
 
 interface AdminHeaderBarProps {
   role?: string | null;
@@ -35,6 +40,47 @@ export function AdminHeaderBar({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
+  // Active Operating Zone State
+  const [activeZoneId, setActiveZoneId] = useState<string>('dz-bangalore');
+  const [activeZoneName, setActiveZoneName] = useState<string>('Bangalore Zone');
+  const [isZoneDropdownOpen, setIsZoneDropdownOpen] = useState(false);
+  const zoneDropdownRef = React.useRef<HTMLDivElement>(null);
+  const zoneMenuRef = React.useRef<HTMLDivElement>(null);
+
+  const { data: availableZones = [] } = useGetAvailableZonesQuery(undefined, {
+    skip: currentUserRole !== 'SUPER_ADMIN',
+  });
+  const [selectZone, { isLoading: isSwitchingZone }] = useSelectOperatingZoneMutation();
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedId = localStorage.getItem('foodie_active_zone_id') || sessionStorage.getItem('foodie_active_zone_id');
+      const storedName = localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name');
+      if (storedId) setActiveZoneId(storedId);
+      if (storedName) setActiveZoneName(decodeURIComponent(storedName));
+    }
+  }, []);
+
+  const handleSwitchZone = async (targetZone: OperatingZone) => {
+    try {
+      await selectZone({ zoneId: targetZone.id }).unwrap();
+      setActiveZoneId(targetZone.id);
+      setActiveZoneName(targetZone.zoneName);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('foodie_active_zone_id', targetZone.id);
+        sessionStorage.setItem('foodie_active_zone_id', targetZone.id);
+        localStorage.setItem('foodie_active_zone_name', targetZone.zoneName);
+        sessionStorage.setItem('foodie_active_zone_name', targetZone.zoneName);
+        document.cookie = `foodie_active_zone_id=${encodeURIComponent(targetZone.id)}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `foodie_active_zone_name=${encodeURIComponent(targetZone.zoneName)}; path=/; max-age=86400; SameSite=Lax`;
+      }
+      setIsZoneDropdownOpen(false);
+      window.location.reload();
+    } catch {
+      setIsZoneDropdownOpen(false);
+    }
+  };
+
   const profileDropdownRef = React.useRef<HTMLDivElement>(null);
   const profileMenuRef = React.useRef<HTMLDivElement>(null);
 
@@ -57,6 +103,12 @@ export function AdminHeaderBar({
 
       if (!clickedProfileButton && !clickedProfileMenu) {
         setIsProfileOpen(false);
+      }
+
+      const clickedZoneButton = zoneDropdownRef.current?.contains(target);
+      const clickedZoneMenu = zoneMenuRef.current?.contains(target);
+      if (!clickedZoneButton && !clickedZoneMenu) {
+        setIsZoneDropdownOpen(false);
       }
     }
 
@@ -385,6 +437,12 @@ export function AdminHeaderBar({
               role="menuitem"
               onClick={() => {
                 setIsProfileOpen(false);
+                if (typeof window !== 'undefined') {
+                  localStorage.removeItem('foodie_active_zone_id');
+                  localStorage.removeItem('foodie_active_zone_name');
+                  sessionStorage.removeItem('foodie_active_zone_id');
+                  sessionStorage.removeItem('foodie_active_zone_name');
+                }
                 onLogout();
               }}
               disabled={loggingOut}
@@ -578,6 +636,149 @@ export function AdminHeaderBar({
             flexShrink: 0,
           }}
         >
+          {/* Active Zone Indicator & Switcher for SUPER_ADMIN */}
+          {currentUserRole === 'SUPER_ADMIN' && (
+            <div ref={zoneDropdownRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setIsZoneDropdownOpen((prev) => !prev)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  height: 38,
+                  padding: '0 12px',
+                  borderRadius: 10,
+                  backgroundColor: '#E3F2FD',
+                  border: '1px solid #BFDBFE',
+                  color: '#1D4ED8',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Click to switch operating zone"
+                aria-expanded={isZoneDropdownOpen}
+                aria-haspopup="true"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#2196F3"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ color: '#6B7280', fontWeight: 500 }}>Active Zone:</span>
+                  <span style={{ color: '#111827', fontWeight: 700 }}>{activeZoneName}</span>
+                </span>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{
+                    transform: isZoneDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.15s ease',
+                    marginLeft: 2,
+                  }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {isZoneDropdownOpen && (
+                <div
+                  ref={zoneMenuRef}
+                  style={{
+                    position: 'absolute',
+                    top: 44,
+                    right: 0,
+                    width: 260,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 12,
+                    border: '1px solid #E5E7EB',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+                    zIndex: 99999,
+                    padding: '8px 0',
+                    animation: 'profilePanelOpen 0.15s ease-out',
+                  }}
+                >
+                  <div style={{ padding: '8px 14px', borderBottom: '1px solid #F3F4F6' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6B7280' }}>
+                      Switch Operating Zone
+                    </div>
+                    <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+                      Revalidates backend access
+                    </div>
+                  </div>
+                  <div style={{ padding: '4px 6px', maxHeight: 240, overflowY: 'auto' }}>
+                    {availableZones.length === 0 ? (
+                      <div style={{ padding: '12px', fontSize: 12, color: '#6B7280', textAlign: 'center' }}>
+                        No other zones configured
+                      </div>
+                    ) : (
+                      availableZones.map((zone) => {
+                        const isSelected = zone.id === activeZoneId;
+                        return (
+                          <button
+                            key={zone.id}
+                            type="button"
+                            disabled={isSwitchingZone}
+                            onClick={() => handleSwitchZone(zone)}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              border: 'none',
+                              backgroundColor: isSelected ? '#EFF6FF' : 'transparent',
+                              cursor: isSwitchingZone ? 'wait' : 'pointer',
+                              textAlign: 'left',
+                              transition: 'background-color 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) e.currentTarget.style.backgroundColor = '#F9FAFB';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: isSelected ? 700 : 500, color: isSelected ? '#1D4ED8' : '#111827' }}>
+                                {zone.zoneName}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#6B7280' }}>
+                                {zone.cityName || 'Regional Zone'}
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#2563EB', backgroundColor: '#DBEAFE', padding: '2px 6px', borderRadius: 4 }}>
+                                Active
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Notification Bell */}
           <Link
             href="/notifications"

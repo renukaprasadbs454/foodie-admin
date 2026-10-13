@@ -11,6 +11,10 @@ import {
   useUpdateAdminUserRoleMutation,
   useUpdateAdminUserStatusMutation,
 } from '@/api/endpoints/usersApi';
+import {
+  useGetZoneLoginHistoryQuery,
+  useGetAvailableZonesQuery,
+} from '@/api/endpoints/zoneApi';
 
 export function UserManagementStudio() {
   const { data: rawUsers = [], isLoading, isError, refetch } = useGetAdminUsersQuery();
@@ -23,6 +27,48 @@ export function UserManagementStudio() {
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Tab Navigation
+  const [activeTab, setActiveTab] = useState<'STAFF' | 'ZONE_HISTORY'>('STAFF');
+
+  // Zone Login History State
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyZoneFilter, setHistoryZoneFilter] = useState('ALL');
+  const [historyPage, setHistoryPage] = useState(0);
+  const historyPageSize = 10;
+
+  const {
+    data: historyData,
+    isLoading: isHistoryLoading,
+    isFetching: isHistoryFetching,
+    refetch: refetchHistory,
+  } = useGetZoneLoginHistoryQuery({
+    zoneId: historyZoneFilter,
+    search: historySearch,
+    page: historyPage,
+    size: historyPageSize,
+  });
+
+  const { data: availableZones = [] } = useGetAvailableZonesQuery();
+
+  const formatLoginTimestamp = (isoString?: string) => {
+    if (!isoString) return '—';
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return isoString;
+      return d.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return isoString;
+    }
+  };
 
   // Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -146,30 +192,98 @@ export function UserManagementStudio() {
           </p>
         </div>
 
+        {activeTab === 'STAFF' && (
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+              color: '#FFFFFF',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            + Provision New Admin User
+          </button>
+        )}
+      </div>
+
+      {/* Navigation Tabs */}
+      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #E5E7EB', paddingBottom: 2 }}>
         <button
           type="button"
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() => setActiveTab('STAFF')}
           style={{
-            background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: 12,
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
+            padding: '10px 18px',
+            fontSize: 14,
+            fontWeight: 600,
+            borderRadius: '10px 10px 0 0',
+            border: 'none',
+            borderBottom: activeTab === 'STAFF' ? '2.5px solid #2196F3' : '2.5px solid transparent',
+            backgroundColor: activeTab === 'STAFF' ? '#EFF6FF' : 'transparent',
+            color: activeTab === 'STAFF' ? '#1D4ED8' : '#6B7280',
+            cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
         >
-          + Provision New Admin User
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          Admin Staff Accounts ({totalUsers})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('ZONE_HISTORY')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 18px',
+            fontSize: 14,
+            fontWeight: 600,
+            borderRadius: '10px 10px 0 0',
+            border: 'none',
+            borderBottom: activeTab === 'ZONE_HISTORY' ? '2.5px solid #2196F3' : '2.5px solid transparent',
+            backgroundColor: activeTab === 'ZONE_HISTORY' ? '#EFF6FF' : 'transparent',
+            color: activeTab === 'ZONE_HISTORY' ? '#1D4ED8' : '#6B7280',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="M12 8v4" />
+            <path d="M12 16h.01" />
+          </svg>
+          Super Admin Zone Login History
+          {historyData?.pagination?.totalElements != null && (
+            <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: '#DBEAFE', color: '#1D4ED8', padding: '2px 8px', borderRadius: 12 }}>
+              {historyData.pagination.totalElements}
+            </span>
+          )}
         </button>
       </div>
 
-      {/* Executive Stats Cards */}
+      {/* STAFF TAB CONTENT */}
+      {activeTab === 'STAFF' && (
+        <>
+          {/* Executive Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
         <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: 20, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Staff Members</div>
@@ -404,6 +518,422 @@ export function UserManagementStudio() {
           </table>
         </div>
       </div>
+        </>
+      )}
+
+      {/* ZONE LOGIN HISTORY TAB CONTENT */}
+      {activeTab === 'ZONE_HISTORY' && (
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', padding: 24, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
+          {/* Summary Audit Banner */}
+          <div
+            style={{
+              backgroundColor: '#F0F9FF',
+              border: '1px solid #BAE6FD',
+              borderRadius: 14,
+              padding: '14px 18px',
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: '#E0F2FE',
+                  color: '#0284C7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="M12 8v4" />
+                  <path d="M12 16h.01" />
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0369A1' }}>
+                  Verified Zone Login & Access Audit History
+                </div>
+                <div style={{ fontSize: 12, color: '#0284C7', marginTop: 2 }}>
+                  Real-time database records tracking authenticated Super Admin logins and server-validated operating zone selections.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => refetchHistory()}
+              disabled={isHistoryFetching}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                borderRadius: 8,
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #BAE6FD',
+                color: '#0284C7',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: isHistoryFetching ? 'wait' : 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  animation: isHistoryFetching ? 'spin 1s linear infinite' : 'none',
+                }}
+              >
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+              {isHistoryFetching ? 'Refreshing...' : 'Refresh Records'}
+            </button>
+          </div>
+
+          {/* Filter Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Search by admin name, email, or zone..."
+                value={historySearch}
+                onChange={(e) => {
+                  setHistorySearch(e.target.value);
+                  setHistoryPage(0);
+                }}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: '1px solid #E5E7EB',
+                  fontSize: 13,
+                  minWidth: 260,
+                  flex: 1,
+                  color: '#111827',
+                  backgroundColor: '#FFFFFF',
+                }}
+              />
+
+              <select
+                value={historyZoneFilter}
+                onChange={(e) => {
+                  setHistoryZoneFilter(e.target.value);
+                  setHistoryPage(0);
+                }}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: '1px solid #E5E7EB',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#111827',
+                  backgroundColor: '#FFFFFF',
+                }}
+              >
+                <option value="ALL">Zone: All Zones</option>
+                {availableZones.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.zoneName}
+                  </option>
+                ))}
+              </select>
+
+              {(historySearch || historyZoneFilter !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHistorySearch('');
+                    setHistoryZoneFilter('ALL');
+                    setHistoryPage(0);
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #E5E7EB',
+                    backgroundColor: '#F9FAFB',
+                    color: '#6B7280',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+
+            <div style={{ fontSize: 13, color: '#6B7280', fontWeight: 500 }}>
+              Total Verified Records: <strong style={{ color: '#111827' }}>{historyData?.pagination?.totalElements ?? 0}</strong>
+            </div>
+          </div>
+
+          {/* Login History Table */}
+          <div style={{ overflowX: 'auto', border: '1px solid #E5E7EB', borderRadius: 16 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', textAlign: 'left' }}>
+                  <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Admin / Login Name
+                  </th>
+                  <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Admin Email
+                  </th>
+                  <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Role
+                  </th>
+                  <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Selected Zone
+                  </th>
+                  <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Login Date & Time
+                  </th>
+                  <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Session Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {isHistoryLoading ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#6B7280' }}>
+                      <div style={{ display: 'inline-block', width: 28, height: 28, border: '3px solid #E5E7EB', borderTopColor: '#2196F3', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: 12 }} />
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>Loading zone login records from database...</div>
+                    </td>
+                  </tr>
+                ) : !historyData?.items || historyData.items.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#6B7280' }}>
+                      <div style={{ fontSize: 24, marginBottom: 8 }}>📍</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>No Zone Login Records Found</div>
+                      <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                        No zone login activity matches the active filter or search criteria.
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  historyData.items.map((record) => (
+                    <tr
+                      key={record.id}
+                      style={{
+                        borderBottom: '1px solid #F3F4F6',
+                        transition: 'background-color 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#F9FAFB';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      {/* Admin / Login Name */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: '50%',
+                              backgroundColor: '#E3F2FD',
+                              color: '#2196F3',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {record.adminName ? record.adminName.slice(0, 2).toUpperCase() : 'SA'}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, color: '#111827' }}>
+                              {record.adminName || 'Super Admin'}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace' }}>
+                              {record.adminUserId ? record.adminUserId.slice(0, 8) + '...' : ''}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Email */}
+                      <td style={{ padding: '14px 16px', color: '#374151', fontWeight: 500 }}>
+                        {record.adminEmail}
+                      </td>
+
+                      {/* Role */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '4px 10px',
+                            borderRadius: 8,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            backgroundColor: '#E3F2FD',
+                            color: '#1D4ED8',
+                            border: '1px solid #BFDBFE',
+                            letterSpacing: '0.03em',
+                          }}
+                        >
+                          {record.role || 'SUPER_ADMIN'}
+                        </span>
+                      </td>
+
+                      {/* Selected Zone */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '4px 10px',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            backgroundColor: '#EFF6FF',
+                            color: '#1E40AF',
+                            border: '1px solid #DBEAFE',
+                          }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                          {record.zoneName || record.zoneId}
+                        </span>
+                      </td>
+
+                      {/* Login Date & Time */}
+                      <td style={{ padding: '14px 16px', color: '#4B5563', fontSize: 12, fontWeight: 500 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                          </svg>
+                          <span>{formatLoginTimestamp(record.loginTime)}</span>
+                        </div>
+                      </td>
+
+                      {/* Session Status */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            backgroundColor: record.sessionStatus === 'ACTIVE' ? '#DCFCE7' : '#F3F4F6',
+                            color: record.sessionStatus === 'ACTIVE' ? '#166534' : '#4B5563',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: '50%',
+                              backgroundColor: record.sessionStatus === 'ACTIVE' ? '#22C55E' : '#9CA3AF',
+                            }}
+                          />
+                          {record.sessionStatus || 'ACTIVE'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: 18,
+              paddingTop: 14,
+              borderTop: '1px solid #F3F4F6',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            <div style={{ fontSize: 13, color: '#6B7280' }}>
+              Page <strong style={{ color: '#111827' }}>{(historyData?.pagination?.page ?? 0) + 1}</strong> of{' '}
+              <strong style={{ color: '#111827' }}>{Math.max(1, historyData?.pagination?.totalPages ?? 1)}</strong>{' '}
+              ({historyData?.pagination?.totalElements ?? 0} total records)
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                disabled={historyPage <= 0 || isHistoryFetching}
+                onClick={() => setHistoryPage((p) => Math.max(0, p - 1))}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: 8,
+                  border: '1px solid #E5E7EB',
+                  backgroundColor: historyPage <= 0 ? '#F9FAFB' : '#FFFFFF',
+                  color: historyPage <= 0 ? '#9CA3AF' : '#111827',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: historyPage <= 0 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                disabled={
+                  historyPage + 1 >= (historyData?.pagination?.totalPages || 1) || isHistoryFetching
+                }
+                onClick={() => setHistoryPage((p) => p + 1)}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: 8,
+                  border: '1px solid #E5E7EB',
+                  backgroundColor:
+                    historyPage + 1 >= (historyData?.pagination?.totalPages || 1)
+                      ? '#F9FAFB'
+                      : '#FFFFFF',
+                  color:
+                    historyPage + 1 >= (historyData?.pagination?.totalPages || 1)
+                      ? '#9CA3AF'
+                      : '#111827',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor:
+                    historyPage + 1 >= (historyData?.pagination?.totalPages || 1)
+                      ? 'not-allowed'
+                      : 'pointer',
+                }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PROVISION USER MODAL */}
       {isCreateModalOpen ? (
