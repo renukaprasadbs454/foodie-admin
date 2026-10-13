@@ -2440,6 +2440,61 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
         },
       }, { status: 200 });
     }
+
+    const refundStatusMatch = targetPath.match(/^(?:orders\/)?([^/]+)\/refund-status$/);
+    if (refundStatusMatch) {
+      const orderKey = decodeURIComponent(refundStatusMatch[1]);
+      const statusObj = getRefundApprovalStatus(orderKey);
+      const corsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+      };
+
+      if (statusObj && (statusObj.status === 'APPROVED' || statusObj.status === 'REFUNDED')) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            orderId: orderKey,
+            status: statusObj.status,
+            refundApprovalState: statusObj.status === 'REFUNDED' ? 'DONE' : 'IN_PROCESS',
+            refundReference: statusObj.refundReference || `REF-${Math.abs(orderKey.split("").reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0))}`,
+            reviewedAt: statusObj.reviewedAt,
+            reviewedBy: statusObj.reviewedBy || "Finance Admin",
+          },
+          error: null,
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+        }, { headers: corsHeaders });
+      } else if (statusObj && statusObj.status === 'REJECTED') {
+        return NextResponse.json({
+          success: true,
+          data: {
+            orderId: orderKey,
+            status: 'REJECTED',
+            refundApprovalState: 'FAILED',
+            refundReference: null,
+            reviewedAt: statusObj.reviewedAt,
+            reviewedBy: statusObj.reviewedBy || "Finance Admin",
+          },
+          error: null,
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+        }, { headers: corsHeaders });
+      } else {
+        return NextResponse.json({
+          success: true,
+          data: {
+            orderId: orderKey,
+            status: 'PENDING_APPROVAL',
+            refundApprovalState: 'PENDING_ADMIN',
+            refundReference: null,
+            reviewedAt: null,
+            reviewedBy: null,
+          },
+          error: null,
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+        }, { headers: corsHeaders });
+      }
+    }
   } else {
     // Write mutation: purge cache for this resource prefix so changes are immediately live
     const prefix = targetPath.split('/')[0] || '';
@@ -2933,4 +2988,15 @@ export async function PATCH(request: Request, ctx: Ctx) {
 export async function DELETE(request: Request, ctx: Ctx) {
   const { path } = await ctx.params;
   return proxy(request, path);
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "*",
+    },
+  });
 }

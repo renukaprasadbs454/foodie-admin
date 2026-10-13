@@ -337,16 +337,53 @@ export function setRefundApprovalStatus(
   refundReference?: string,
   reviewedBy: string = 'Finance Admin'
 ) {
-  LIVE_REFUND_REVIEW_STATUS.set(id, {
+  const info = {
     status,
     refundReference,
     reviewedAt: new Date().toISOString(),
     reviewedBy,
-  });
+  };
+  LIVE_REFUND_REVIEW_STATUS.set(id, info);
+
+  try {
+    const fsMod = require("fs");
+    let store: Record<string, any> = {};
+    if (fsMod.existsSync("/tmp/foodie_refund_approvals.json")) {
+      try {
+        store = JSON.parse(fsMod.readFileSync("/tmp/foodie_refund_approvals.json", "utf8"));
+      } catch {}
+    }
+    const cleanId = id.replace(/^CR-REF-/, "").replace(/^[#\s]+/, "");
+    store[id] = { id, orderId: cleanId, ...info };
+    store[cleanId] = { id, orderId: cleanId, ...info };
+    store[`CR-REF-${cleanId}`] = { id, orderId: cleanId, ...info };
+    fsMod.writeFileSync("/tmp/foodie_refund_approvals.json", JSON.stringify(store, null, 2), "utf8");
+  } catch (err) {
+    console.error("Failed to write /tmp/foodie_refund_approvals.json:", err);
+  }
 }
 
 export function getRefundApprovalStatus(id: string) {
-  return LIVE_REFUND_REVIEW_STATUS.get(id);
+  let inMemory = LIVE_REFUND_REVIEW_STATUS.get(id);
+  if (!inMemory) {
+    const cleanId = id.replace(/^CR-REF-/, "").replace(/^[#\s]+/, "");
+    inMemory = LIVE_REFUND_REVIEW_STATUS.get(cleanId) || LIVE_REFUND_REVIEW_STATUS.get(`CR-REF-${cleanId}`);
+  }
+  if (inMemory) return inMemory;
+
+  try {
+    const fsMod = require("fs");
+    if (fsMod.existsSync("/tmp/foodie_refund_approvals.json")) {
+      const store = JSON.parse(fsMod.readFileSync("/tmp/foodie_refund_approvals.json", "utf8"));
+      const cleanId = id.replace(/^CR-REF-/, "").replace(/^[#\s]+/, "");
+      const found = store[id] || store[cleanId] || store[`CR-REF-${cleanId}`];
+      if (found) {
+        LIVE_REFUND_REVIEW_STATUS.set(id, found);
+        return found;
+      }
+    }
+  } catch {}
+  return undefined;
 }
 
 export async function fetchLiveCancelledRefunds(
