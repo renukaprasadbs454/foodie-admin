@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState } from 'react';
 import { trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
@@ -29,6 +29,7 @@ import type {
   LocationZoneDto,
   UnserviceableRequestDto,
 } from '../../../api/endpoints/locationApi';
+import { GoogleMapsPolygonPinPicker } from '../components/GoogleMapsPolygonPinPicker';
 
 export type CityRecord = CityDto;
 export type ServiceAreaRecord = ServiceAreaDto;
@@ -36,512 +37,6 @@ export type DeliveryZoneRecord = LocationZoneDto;
 export type UnserviceableRequestRecord = UnserviceableRequestDto;
 
 type LocationTab = 'CITIES' | 'SERVICE_AREAS' | 'DELIVERY_ZONES' | 'UNSERVICEABLE_REQUESTS' | 'DELIVERY_CHARGES' | 'RADIUS_SETTINGS';
-
-interface GoogleMapsPolygonPinPickerProps {
-  centerLat: number;
-  centerLng: number;
-  radiusKm: number;
-  polygonString: string;
-  onChangePolygon: (newPolygonStr: string) => void;
-  title?: string;
-}
-
-export function GoogleMapsPolygonPinPicker({
-  centerLat,
-  centerLng,
-  radiusKm,
-  polygonString,
-  onChangePolygon,
-  title = 'Google Maps Interactive Polygon Pin Picker',
-}: GoogleMapsPolygonPinPickerProps) {
-  const [mapTheme, setMapTheme] = useState<'VECTOR' | 'SATELLITE' | 'HYBRID'>('VECTOR');
-  const [manualLat, setManualLat] = useState('');
-  const [manualLng, setManualLng] = useState('');
-  const [hoveredPinIndex, setHoveredPinIndex] = useState<number | null>(null);
-
-  const parsePins = (str: string) => {
-    if (!str || !str.trim()) return [];
-    const parts = str.split('|').map((p) => p.trim()).filter(Boolean);
-    const pins: { id: string; lat: number; lng: number }[] = [];
-    parts.forEach((pt, idx) => {
-      const coords = pt.split(',').map((c) => parseFloat(c.trim()));
-      if (coords.length >= 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
-        pins.push({ id: `pin-${idx}-${coords[0]}-${coords[1]}`, lat: coords[0], lng: coords[1] });
-      }
-    });
-    return pins;
-  };
-
-  const currentPins = parsePins(polygonString);
-
-  const stringifyPins = (pins: { lat: number; lng: number }[]) => {
-    return pins.map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join(' | ');
-  };
-
-  const handleAddPin = (lat: number, lng: number) => {
-    const updated = [...currentPins, { id: `pin-${Date.now()}-${lat}-${lng}`, lat, lng }];
-    onChangePolygon(stringifyPins(updated));
-  };
-
-  const handleRemovePin = (index: number) => {
-    const updated = currentPins.filter((_, i) => i !== index);
-    onChangePolygon(stringifyPins(updated));
-  };
-
-  const handleClearAll = () => {
-    onChangePolygon('');
-  };
-
-  const handleAutoPreset = (preset: 'CENTER' | '4POINT' | '6POINT') => {
-    const offset = (radiusKm || 5.0) / 111.0;
-    if (preset === 'CENTER') {
-      onChangePolygon(`${centerLat.toFixed(4)},${centerLng.toFixed(4)}`);
-    } else if (preset === '4POINT') {
-      const p1 = `${(centerLat + offset).toFixed(4)},${centerLng.toFixed(4)}`;
-      const p2 = `${centerLat.toFixed(4)},${(centerLng + offset).toFixed(4)}`;
-      const p3 = `${(centerLat - offset).toFixed(4)},${centerLng.toFixed(4)}`;
-      const p4 = `${centerLat.toFixed(4)},${(centerLng - offset).toFixed(4)}`;
-      onChangePolygon(`${p1} | ${p2} | ${p3} | ${p4}`);
-    } else if (preset === '6POINT') {
-      const points: string[] = [];
-      for (let i = 0; i < 6; i++) {
-        const angle = (i * 60 * Math.PI) / 180;
-        const pLat = centerLat + offset * Math.sin(angle);
-        const pLng = centerLng + offset * Math.cos(angle);
-        points.push(`${pLat.toFixed(4)},${pLng.toFixed(4)}`);
-      }
-      onChangePolygon(points.join(' | '));
-    }
-  };
-
-  const handleManualAdd = () => {
-    const lat = parseFloat(manualLat);
-    const lng = parseFloat(manualLng);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      handleAddPin(lat, lng);
-      setManualLat('');
-      setManualLng('');
-    }
-  };
-
-  const getSvgCoords = (pLat: number, pLng: number) => {
-    const latSpan = ((radiusKm || 5.0) / 111.0) * 2.8;
-    const lngSpan = latSpan / Math.max(0.1, Math.cos((centerLat * Math.PI) / 180));
-    const xPct = 50 + ((pLng - centerLng) / lngSpan) * 100;
-    const yPct = 50 - ((pLat - centerLat) / latSpan) * 100;
-    return {
-      x: Math.max(8, Math.min(92, xPct)),
-      y: Math.max(8, Math.min(92, yPct)),
-    };
-  };
-
-  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-    const normX = (clickX / rect.width - 0.5) * 2;
-    const normY = (0.5 - clickY / rect.height) * 2;
-
-    const latSpan = ((radiusKm || 5.0) / 111.0) * 1.4;
-    const lngSpan = latSpan / Math.max(0.1, Math.cos((centerLat * Math.PI) / 180));
-
-    const clickedLat = parseFloat((centerLat + normY * latSpan).toFixed(4));
-    const clickedLng = parseFloat((centerLng + normX * lngSpan).toFixed(4));
-
-    handleAddPin(clickedLat, clickedLng);
-  };
-
-  const svgPolygonPoints = currentPins.map((p) => {
-    const coords = getSvgCoords(p.lat, p.lng);
-    return `${coords.x},${coords.y}`;
-  }).join(' ');
-
-  return (
-    <div
-      style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 24,
-        border: '1px solid #E5E7EB',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-      }}
-    >
-      {/* Header Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>
-            {title}
-          </div>
-          <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
-            Click anywhere on the interactive map canvas below to drop pins and dynamically construct the polygon boundary.
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ display: 'flex', backgroundColor: '#F3F4F6', borderRadius: 8, padding: 3, border: '1px solid #E5E7EB' }}>
-            {(['VECTOR', 'SATELLITE', 'HYBRID'] as const).map((thm) => (
-              <button
-                key={thm}
-                type="button"
-                onClick={() => setMapTheme(thm)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: mapTheme === thm ? '#2196F3' : 'transparent',
-                  color: mapTheme === thm ? '#FFFFFF' : '#6B7280',
-                  boxShadow: mapTheme === thm ? '0 1px 3px rgba(33, 150, 243, 0.3)' : 'none',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {thm === 'VECTOR' ? 'Vector' : thm === 'SATELLITE' ? 'Satellite' : 'Hybrid'}
-              </button>
-            ))}
-          </div>
-
-          <span
-            style={{
-              padding: '6px 12px',
-              borderRadius: 20,
-              fontSize: 12,
-              fontWeight: 600,
-              backgroundColor: '#E3F2FD',
-              color: '#2196F3',
-            }}
-          >
-            {currentPins.length} Pins Placed
-          </span>
-        </div>
-      </div>
-
-      {/* Interactive Google Maps Grid Canvas */}
-      <div
-        onClick={handleMapClick}
-        style={{
-          position: 'relative',
-          height: 320,
-          borderRadius: 14,
-          border: '1px solid #E5E7EB',
-          overflow: 'hidden',
-          cursor: 'crosshair',
-          backgroundColor: mapTheme === 'SATELLITE' ? '#0F172A' : mapTheme === 'HYBRID' ? '#1E293B' : '#F8FAFC',
-          backgroundImage:
-            mapTheme === 'VECTOR'
-              ? 'radial-gradient(#E2E8F0 1.5px, transparent 1.5px)'
-              : 'radial-gradient(rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px)',
-          backgroundSize: '24px 24px',
-        }}
-      >
-        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 5, background: 'rgba(17, 24, 39, 0.75)', color: '#FFFFFF', padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, backdropFilter: 'blur(4px)' }}>
-          Center: {centerLat.toFixed(4)}, {centerLng.toFixed(4)} (Scale: {radiusKm} KM Circle)
-        </div>
-
-        <div style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 5, backgroundColor: 'rgba(255, 255, 255, 0.95)', color: '#111827', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-          Click Canvas to Drop Pin
-        </div>
-
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            width: 16,
-            height: 16,
-            marginLeft: -8,
-            marginTop: -8,
-            border: '2px dashed #2196F3',
-            borderRadius: '50%',
-            pointerEvents: 'none',
-            zIndex: 4,
-          }}
-        />
-
-        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }}>
-          <circle cx="50%" cy="50%" r="35%" fill="none" stroke="#2196F3" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.6" />
-        </svg>
-
-        {currentPins.length >= 2 && (
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }}>
-            <polygon
-              points={svgPolygonPoints}
-              fill="rgba(33, 150, 243, 0.15)"
-              stroke="#2196F3"
-              strokeWidth="2"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-        )}
-
-        {currentPins.map((pin, idx) => {
-          const coords = getSvgCoords(pin.lat, pin.lng);
-          const isHovered = hoveredPinIndex === idx;
-
-          return (
-            <div
-              key={pin.id || idx}
-              style={{
-                position: 'absolute',
-                left: `${coords.x}%`,
-                top: `${coords.y}%`,
-                transform: 'translate(-50%, -100%)',
-                zIndex: isHovered ? 20 : 10,
-                cursor: 'pointer',
-                transition: 'transform 0.15s ease',
-              }}
-              title={`Pin #${idx + 1}: ${pin.lat}, ${pin.lng}`}
-              onMouseEnter={() => setHoveredPinIndex(idx)}
-              onMouseLeave={() => setHoveredPinIndex(null)}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRemovePin(idx);
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                }}
-              >
-                <div
-                  style={{
-                    background: '#111827',
-                    color: '#FFFFFF',
-                    padding: '2px 6px',
-                    borderRadius: 4,
-                    fontSize: 10,
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                    marginBottom: 2,
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
-                  }}
-                >
-                  Pin #{idx + 1}
-                </div>
-
-                <div
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50% 50% 50% 0',
-                    background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                    transform: 'rotate(-45deg)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '2px solid #FFFFFF',
-                    boxShadow: '0 2px 6px rgba(33, 150, 243, 0.4)',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      backgroundColor: '#FFFFFF',
-                      transform: 'rotate(45deg)',
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Map Pin Action Presets Toolbar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 10,
-          backgroundColor: '#F9FAFB',
-          padding: 12,
-          borderRadius: 12,
-          border: '1px solid #E5E7EB',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Quick Pin Presets:</span>
-
-          <button
-            type="button"
-            onClick={() => handleAutoPreset('CENTER')}
-            style={{
-              padding: '6px 12px',
-              backgroundColor: '#FFFFFF',
-              color: '#374151',
-              border: '1px solid #E5E7EB',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
-            Drop Pin at Center
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleAutoPreset('4POINT')}
-            style={{
-              padding: '6px 12px',
-              background: '#2196F3',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Auto 4-Point Square Pins
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleAutoPreset('6POINT')}
-            style={{
-              padding: '6px 12px',
-              background: '#2196F3',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Auto 6-Point Hexagon Pins
-          </button>
-
-          {currentPins.length > 0 && (
-            <button
-              type="button"
-              onClick={handleClearAll}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#FFFFFF',
-                color: '#DC2626',
-                border: '1px solid #FECACA',
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Clear All ({currentPins.length})
-            </button>
-          )}
-        </div>
-
-        {/* Manual Lat/Lng Add Form */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <input
-            type="number"
-            step="0.0001"
-            placeholder="Lat (12.97)"
-            value={manualLat}
-            onChange={(e) => setManualLat(e.target.value)}
-            style={{ width: 100, padding: '6px 8px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, backgroundColor: '#FFFFFF', color: '#111827' }}
-          />
-          <input
-            type="number"
-            step="0.0001"
-            placeholder="Lng (77.59)"
-            value={manualLng}
-            onChange={(e) => setManualLng(e.target.value)}
-            style={{ width: 100, padding: '6px 8px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12, backgroundColor: '#FFFFFF', color: '#111827' }}
-          />
-          <button
-            type="button"
-            onClick={handleManualAdd}
-            style={{
-              padding: '6px 12px',
-              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            + Add Pin
-          </button>
-        </div>
-      </div>
-
-      {/* Pins Cards List */}
-      {currentPins.length > 0 ? (
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-            Coordinates List ({currentPins.length} points):
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-            {currentPins.map((pin, idx) => (
-              <div
-                key={pin.id || idx}
-                onMouseEnter={() => setHoveredPinIndex(idx)}
-                onMouseLeave={() => setHoveredPinIndex(null)}
-                style={{
-                  backgroundColor: hoveredPinIndex === idx ? '#F3F4F6' : '#FFFFFF',
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: hoveredPinIndex === idx ? '1px solid #9CA3AF' : '1px solid #E5E7EB',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontSize: 12,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600, color: '#111827' }}>
-                    Pin #{idx + 1}
-                  </div>
-                  <div style={{ color: '#6B7280', fontSize: 11, fontFamily: 'monospace', marginTop: 2 }}>
-                    {pin.lat.toFixed(4)}, {pin.lng.toFixed(4)}
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleRemovePin(idx)}
-                  title="Remove this pin"
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: '#6B7280',
-                    border: 'none',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: '4px 8px',
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div style={{ textAlign: 'center', padding: 16, backgroundColor: '#F9FAFB', borderRadius: 10, border: '1px dashed #E5E7EB', fontSize: 12, color: '#6B7280' }}>
-          No polygon pins dropped yet. Click anywhere on the map above or click "Auto 4-Point Square Pins" to place boundary markers.
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function LocationManagementPage() {
   const { tokens } = useTheme();
@@ -1277,7 +772,7 @@ export function LocationManagementPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
-                  Boundary Pins — {editingZoneMap.zoneName}
+                  Boundary Pins â€” {editingZoneMap.zoneName}
                 </h3>
                 <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
                   City: {editingZoneMap.cityName} | Center Lat: {editingZoneMap.latitude}, Lng: {editingZoneMap.longitude}
@@ -1300,7 +795,7 @@ export function LocationManagementPage() {
               onChangePolygon={(str) => {
                 setEditingZoneMap((prev) => (prev ? { ...prev, polygonCoordinates: str } : null));
               }}
-              title={`Pin Picker — ${editingZoneMap.zoneName}`}
+              title={`Pin Picker â€” ${editingZoneMap.zoneName}`}
             />
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
@@ -1740,7 +1235,7 @@ export function LocationManagementPage() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Base Delivery Fee (₹)</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Base Delivery Fee (â‚¹)</label>
                 <input type="number" value={baseCharge} onChange={(e) => setBaseCharge(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
               </div>
               <div>
@@ -1748,15 +1243,15 @@ export function LocationManagementPage() {
                 <input type="number" value={baseDistanceKm} onChange={(e) => setBaseDistanceKm(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Additional Fee per KM (₹)</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Additional Fee per KM (â‚¹)</label>
                 <input type="number" value={additionalChargePerKm} onChange={(e) => setAdditionalChargePerKm(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Free Delivery Order Threshold (₹)</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Free Delivery Order Threshold (â‚¹)</label>
                 <input type="number" value={freeDeliveryMinOrder} onChange={(e) => setFreeDeliveryMinOrder(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Night Dispatch Surcharge (₹)</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Night Dispatch Surcharge (â‚¹)</label>
                 <input type="number" value={nightSurcharge} onChange={(e) => setNightSurcharge(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }} />
               </div>
               <div>
