@@ -58,5 +58,7 @@ export async function POST(request: Request) {
   })) {
     response.headers.append('Set-Cookie', header);
   }
+  response.cookies.delete('foodie_active_zone_id');
+  response.cookies.delete('foodie_active_zone_name');
   return response;
 }

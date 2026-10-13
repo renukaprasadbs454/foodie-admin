@@ -2,13 +2,10 @@
 
 import React, { useState } from 'react';
 import {
-  Button,
-  Text,
-  TextInput,
+  type AdminRole,
   Toast,
   trackAnalyticsEvent,
   useConnectivity,
-  useTheme,
 } from 'foodie-shared-web';
 import { useLoginMutation } from '@/api/endpoints/authApi';
 import { useAppDispatch } from '@/store/hooks';
@@ -42,7 +39,6 @@ export function AdminLoginForm({
   initialEmail = '',
   initialPassword = '',
 }: AdminLoginFormProps) {
-  const { tokens } = useTheme();
   const { isConnected } = useConnectivity();
   const dispatch = useAppDispatch();
   const [login, { isLoading }] = useLoginMutation();
@@ -52,6 +48,7 @@ export function AdminLoginForm({
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState<string | undefined>();
   const [passwordError, setPasswordError] = useState<string | undefined>();
+  const [inlineError, setInlineError] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     variant: 'error' | 'info';
@@ -61,37 +58,30 @@ export function AdminLoginForm({
     {
       role: 'SUPER_ADMIN',
       label: 'Super Admin',
-      defaultEmail: 'admin@foodie.local',
     },
     {
       role: 'AUDITOR',
       label: 'Compliance Auditor',
-      defaultEmail: 'auditor@foodie.local',
     },
     {
       role: 'FINANCE_ADMIN',
       label: 'Finance Admin',
-      defaultEmail: 'finance@foodie.local',
     },
     {
       role: 'OPERATIONS_ADMIN',
       label: 'Operations Admin',
-      defaultEmail: 'ops@foodie.local',
     },
     {
       role: 'RESTAURANT_MANAGER',
       label: 'Restaurant Manager',
-      defaultEmail: 'manager@foodie.local',
     },
     {
       role: 'SUPPORT_AGENT',
       label: 'Support Agent',
-      defaultEmail: 'support@foodie.local',
     },
     {
       role: 'DARKSTORE_ADMIN',
       label: 'Darkstore Admin',
-      defaultEmail: 'darkstore@foodie.local',
     },
   ];
 
@@ -99,22 +89,21 @@ export function AdminLoginForm({
     setSelectedRole(roleKey);
     setEmailError(undefined);
     setPasswordError(undefined);
-    const matched = ROLE_OPTIONS.find((r) => r.role === roleKey);
-    if (matched) {
-      setEmail(matched.defaultEmail);
-      setPassword('ChangeMe@123');
-    }
+    setInlineError(null);
   };
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setEmailError(undefined);
     setPasswordError(undefined);
+    setInlineError(null);
     setToast(null);
 
     if (!isConnected) {
+      const offlineMsg = 'You are offline. Connect to internet to attempt sign-in.';
+      setInlineError(offlineMsg);
       setToast({
-        message: 'You are offline. Connect to internet to attempt sign-in.',
+        message: offlineMsg,
         variant: 'error',
       });
       return;
@@ -140,11 +129,10 @@ export function AdminLoginForm({
         email: email.trim(),
         password,
         deviceInfo: 'Admin Panel',
-        role: selectedRole as any,
-      } as any).unwrap();
+      }).unwrap();
 
-      const backendRole = selectedRole || identity.role || 'SUPER_ADMIN';
-      const userEmail = email.trim() || 'admin@foodie.local';
+      const backendRole: AdminRole = (selectedRole || identity.role || 'SUPER_ADMIN') as AdminRole;
+      const userEmail = email.trim();
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('foodie_admin_role', backendRole);
@@ -158,20 +146,29 @@ export function AdminLoginForm({
       dispatch(
         setSession({
           userId: identity.userId || '44444444-4444-4444-4444-444444444001',
-          role: backendRole as any,
+          role: backendRole,
           userType: 'ADMIN',
-          fullName: backendRole === 'AUDITOR' ? 'Compliance Auditor' : 'Admin Operator',
+          fullName: backendRole === 'AUDITOR' ? 'Compliance Auditor' : (backendRole === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin Operator'),
           email: userEmail,
         }),
       );
 
       trackAnalyticsEvent('admin_auth_succeeded', { role: backendRole });
-      const redirectPath = getHomeRouteForRole(backendRole);
-      window.location.href = redirectPath;
-    } catch (err: any) {
+      if (backendRole === 'SUPER_ADMIN') {
+        window.location.href = '/zone-select';
+      } else {
+        const redirectPath = getHomeRouteForRole(backendRole);
+        window.location.href = redirectPath;
+      }
+    } catch (err: unknown) {
       trackAnalyticsEvent('admin_auth_failed');
-      const errorCode = err?.data?.error?.code || err?.error;
-      const message = err?.data?.error?.message || loginErrorMessage(errorCode);
+      const errPayload = err as {
+        data?: { error?: { code?: string; message?: string } };
+        error?: string;
+      };
+      const errorCode = errPayload?.data?.error?.code || errPayload?.error;
+      const message = errPayload?.data?.error?.message || loginErrorMessage(errorCode);
+      setInlineError(message);
       setToast({
         message,
         variant: 'error',
@@ -188,64 +185,58 @@ export function AdminLoginForm({
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        gap: 20,
+        gap: 22,
       }}
       noValidate
     >
+      {/* Heading & Subtitle */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <Text as="h1" variant="heading1" style={{ fontSize: 24, fontWeight: 800, color: '#0369A1' }}>
-          Sign In to Admin Panel
-        </Text>
-        <Text variant="body" style={{ color: '#0284C7', fontSize: 13, lineHeight: 1.5 }}>
-          Select an admin role and enter your credentials to sign in.
-        </Text>
+        <h1
+          style={{
+            fontSize: 'clamp(26px, 4vw, 30px)',
+            fontWeight: 800,
+            color: '#111827',
+            letterSpacing: '-0.025em',
+            margin: 0,
+            lineHeight: 1.25,
+          }}
+        >
+          Sign In to Foodie Admin
+        </h1>
+        <p
+          style={{
+            color: '#6B7280',
+            fontSize: 14,
+            margin: 0,
+            lineHeight: 1.5,
+          }}
+        >
+          Authorized administrators can sign in to access portal operations.
+        </p>
       </div>
 
-      {/* Role Selection Dropdown */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          backgroundColor: '#F0F9FF',
-          padding: 16,
-          borderRadius: 14,
-          border: '1.5px solid #0284C7',
-          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.1)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <label
-            htmlFor="admin-role-select"
+      {/* Admin Role Selector Box */}
+      <div className="foodie-role-container">
+        <label htmlFor="admin-role-select" className="foodie-role-label">
+          <span>SELECT ADMIN ROLE</span>
+          <span
             style={{
-              fontSize: 12,
-              fontWeight: 800,
-              color: '#0369A1',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
+              fontSize: 11,
+              color: '#0284C7',
+              fontWeight: 600,
+              textTransform: 'none',
+              letterSpacing: 'normal',
             }}
           >
-            Select Admin Role:
-          </label>
-        </div>
+            Role-Based Access
+          </span>
+        </label>
 
         <select
           id="admin-role-select"
           value={selectedRole}
           onChange={(e) => handleRoleSelect(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '12px 14px',
-            borderRadius: 10,
-            border: '1.5px solid #BAE6FD',
-            backgroundColor: '#FFFFFF',
-            fontSize: 14,
-            fontWeight: 800,
-            color: '#0369A1',
-            cursor: 'pointer',
-            outline: 'none',
-            boxShadow: '0 2px 4px rgba(2, 132, 199, 0.05)',
-          }}
+          className="foodie-role-select"
         >
           {ROLE_OPTIONS.map((item) => (
             <option key={item.role} value={item.role}>
@@ -255,73 +246,241 @@ export function AdminLoginForm({
         </select>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <TextInput
-          label="Admin Email"
-          name="email"
-          type="email"
-          autoComplete="username"
-          placeholder=""
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          errorText={emailError}
-          aria-label="Email"
-          disabled={isLoading}
-        />
+      {/* Inline Error Banner */}
+      {inlineError && (
+        <div
+          role="alert"
+          style={{
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FCA5A5',
+            borderRadius: 12,
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            color: '#EF4444',
+            fontSize: 13,
+            fontWeight: 500,
+            lineHeight: 1.4,
+          }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#EF4444"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>{inlineError}</span>
+        </div>
+      )}
 
-        <div style={{ position: 'relative' }}>
-          <TextInput
-            label="Password"
-            name="password"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="current-password"
-            placeholder=""
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            errorText={passwordError}
-            aria-label="Password"
-            disabled={isLoading}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
+      {/* Email & Password Input Fields */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        {/* Email Field */}
+        <div>
+          <label
+            htmlFor="admin-email-input"
             style={{
-              position: 'absolute',
-              right: 12,
-              top: 36,
-              background: 'none',
-              border: 'none',
-              color: '#0284C7',
-              fontSize: 12,
+              display: 'block',
+              fontSize: 14,
               fontWeight: 600,
-              cursor: 'pointer',
+              color: '#111827',
+              marginBottom: 6,
             }}
           >
-            {showPassword ? 'Hide' : 'Show'}
-          </button>
+            Admin Email
+          </label>
+          <input
+            id="admin-email-input"
+            name="email"
+            type="email"
+            autoComplete="username"
+            placeholder="Enter your admin email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (emailError) setEmailError(undefined);
+            }}
+            disabled={isLoading}
+            aria-label="Email"
+            aria-invalid={Boolean(emailError)}
+            className={`foodie-input ${emailError ? 'has-error' : ''}`}
+          />
+          {emailError && (
+            <span
+              role="alert"
+              style={{
+                display: 'block',
+                fontSize: 12,
+                color: '#EF4444',
+                fontWeight: 500,
+                marginTop: 6,
+              }}
+            >
+              {emailError}
+            </span>
+          )}
+        </div>
+
+        {/* Password Field */}
+        <div>
+          <label
+            htmlFor="admin-password-input"
+            style={{
+              display: 'block',
+              fontSize: 14,
+              fontWeight: 600,
+              color: '#111827',
+              marginBottom: 6,
+            }}
+          >
+            Password
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              id="admin-password-input"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (passwordError) setPasswordError(undefined);
+              }}
+              disabled={isLoading}
+              aria-label="Password"
+              aria-invalid={Boolean(passwordError)}
+              className={`foodie-input ${passwordError ? 'has-error' : ''}`}
+              style={{ paddingRight: 46 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="foodie-password-toggle"
+            >
+              {showPassword ? (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
+          {passwordError && (
+            <span
+              role="alert"
+              style={{
+                display: 'block',
+                fontSize: 12,
+                color: '#EF4444',
+                fontWeight: 500,
+                marginTop: 6,
+              }}
+            >
+              {passwordError}
+            </span>
+          )}
         </div>
       </div>
 
-      <Button
+      {/* Prominent Primary Sign-In Button */}
+      <button
         type="submit"
-        label={isLoading ? 'Authenticating...' : `Sign in as ${currentRoleInfo.label}`}
-        aria-label="Sign in"
-        loading={isLoading}
         disabled={isLoading}
-        style={{
-          marginTop: 4,
-          padding: '12px 20px',
-          backgroundColor: '#0284C7',
-          backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
-          color: '#FFFFFF',
-          borderRadius: 10,
-          fontWeight: 800,
-          fontSize: 14,
-          boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)',
-          cursor: isLoading ? 'not-allowed' : 'pointer',
-        }}
-      />
+        aria-label="Sign in"
+        className="foodie-btn-primary"
+      >
+        {isLoading ? (
+          <>
+            <svg
+              className="foodie-spin"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#FFFFFF"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+            <span>Authenticating...</span>
+          </>
+        ) : (
+          <span>Sign In as {currentRoleInfo.label}</span>
+        )}
+      </button>
 
+      {/* Footer Security Notice */}
+      <div
+        style={{
+          marginTop: -2,
+          textAlign: 'center',
+          fontSize: 12,
+          color: '#6B7280',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+        }}
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#6B7280"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+        <span>Protected by enterprise role-based access control (RBAC)</span>
+      </div>
+
+      {/* Toast Notification */}
       <Toast
         open={Boolean(toast)}
         message={toast?.message ?? ''}

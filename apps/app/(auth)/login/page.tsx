@@ -4,62 +4,110 @@ import React from 'react';
 import { AdminLoginForm } from '@/features/auth/AdminLoginForm';
 
 /**
- * Foodie Admin Console — Email & Password Login Page (Sky Blue Theme).
+ * Foodie Admin Console — Premium Blue & White SaaS Authentication Portal.
  */
 export default function LoginPage() {
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        width: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#082F49',
-        backgroundImage: 'radial-gradient(circle at 50% 20%, #075985 0%, #0C4A6E 40%, #082F49 100%)',
-        padding: '32px 16px',
-        boxSizing: 'border-box',
-        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 440,
-          backgroundColor: '#FFFFFF',
-          borderRadius: 20,
-          boxShadow: '0 25px 50px -12px rgba(2, 132, 199, 0.4), 0 0 0 1px rgba(56, 189, 248, 0.2)',
-          overflow: 'hidden',
-          border: '1px solid #BAE6FD',
-        }}
-      >
-        {/* Brand Header Banner */}
-        <div
-          style={{
-            backgroundColor: '#075985',
-            backgroundImage: 'linear-gradient(135deg, #075985 0%, #0284C7 100%)',
-            padding: '28px 32px',
-            color: '#FFFFFF',
-            borderBottom: '4px solid #38BDF8',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <main className="foodie-login-page">
+      <div className="foodie-login-card">
+        {/* Foodie Branding Header Banner */}
+        <header className="foodie-login-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {/* Foodie Brand Icon Badge */}
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                backgroundColor: 'rgba(255, 255, 255, 0.22)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                flexShrink: 0,
+              }}
+              aria-hidden="true"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth="2.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                <line x1="6" y1="1" x2="6" y2="4" />
+                <line x1="10" y1="1" x2="10" y2="4" />
+                <line x1="14" y1="1" x2="14" y2="4" />
+              </svg>
+            </div>
+
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px' }}>
-                Foodie <span style={{ color: '#38BDF8' }}>Admin</span>
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 800,
+                  letterSpacing: '-0.025em',
+                  color: '#FFFFFF',
+                  lineHeight: 1.2,
+                }}
+              >
+                Foodie <span style={{ opacity: 0.95, fontWeight: 700 }}>Admin</span>
               </div>
-              <div style={{ fontSize: 11, color: '#BAE6FD', fontWeight: 600 }}>
-                Hyperlocal Operations Portal
+              <div
+                style={{
+                  fontSize: 12,
+                  color: '#E3F2FD',
+                  fontWeight: 600,
+                  letterSpacing: '0.015em',
+                  marginTop: 2,
+                }}
+              >
+                Admin Operations Portal
               </div>
             </div>
           </div>
-        </div>
+
+          {/* Secure Environment Indicator Pill */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 10px',
+              borderRadius: 9999,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.35)',
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#FFFFFF',
+              letterSpacing: '0.04em',
+            }}
+          >
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                backgroundColor: '#22C55E',
+                boxShadow: '0 0 6px #22C55E',
+                display: 'inline-block',
+              }}
+              aria-hidden="true"
+            />
+            <span>SECURE</span>
+          </div>
+        </header>
 
         {/* Form Body Container */}
-        <div style={{ padding: '32px 32px 36px 32px' }}>
+        <div className="foodie-login-body">
           <AdminLoginForm />
         </div>
       </div>
