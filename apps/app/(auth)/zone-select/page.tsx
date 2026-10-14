@@ -22,21 +22,74 @@ export default function ZoneSelectPage() {
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Restrict to Bangalore Zone and Tumkur Zone
+  const approvedZones = React.useMemo(() => {
+    const list: OperatingZone[] = [];
+    const bgl = zones.find(
+      (z) =>
+        (z.id === 'dz-bangalore' || z.zoneName.toLowerCase() === 'bangalore zone') &&
+        z.zoneName.toLowerCase() !== 'bengaluru zone'
+    );
+    const tmk = zones.find(
+      (z) =>
+        (z.id === 'dz-tumkur' || z.zoneName.toLowerCase() === 'tumkur zone') &&
+        z.zoneName.toLowerCase() !== 'tumkur zone 1'
+    );
+
+    list.push(
+      bgl
+        ? { ...bgl, id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: 'Bangalore' }
+        : {
+            id: 'dz-bangalore',
+            zoneName: 'Bangalore Zone',
+            cityName: 'Bangalore',
+            latitude: 12.9716,
+            longitude: 77.5946,
+            radiusKm: 25.0,
+            status: 'ACTIVE',
+            restaurantEnabled: true,
+            deliveryPartnerEnabled: true,
+            customerOrderingEnabled: true,
+            activeDrivers: 45,
+          }
+    );
+
+    list.push(
+      tmk
+        ? { ...tmk, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: 'Tumkur' }
+        : {
+            id: 'dz-tumkur',
+            zoneName: 'Tumkur Zone',
+            cityName: 'Tumkur',
+            latitude: 13.3379,
+            longitude: 77.1173,
+            radiusKm: 20.0,
+            status: 'ACTIVE',
+            restaurantEnabled: true,
+            deliveryPartnerEnabled: true,
+            customerOrderingEnabled: true,
+            activeDrivers: 22,
+          }
+    );
+
+    return list;
+  }, [zones]);
+
   // Auto-select first active zone if only one or if previously selected in storage
   useEffect(() => {
-    if (zones.length > 0 && !selectedZoneId) {
+    if (approvedZones.length > 0 && !selectedZoneId) {
       const stored =
         typeof window !== 'undefined'
           ? localStorage.getItem('foodie_active_zone_id') ||
             sessionStorage.getItem('foodie_active_zone_id')
           : null;
-      if (stored && zones.some((z) => z.id === stored)) {
+      if (stored && approvedZones.some((z) => z.id === stored)) {
         setSelectedZoneId(stored);
       } else {
-        setSelectedZoneId(zones[0].id);
+        setSelectedZoneId(approvedZones[0].id);
       }
     }
-  }, [zones, selectedZoneId]);
+  }, [approvedZones, selectedZoneId]);
 
   const handleContinue = async () => {
     if (!selectedZoneId) {
@@ -46,7 +99,7 @@ export default function ZoneSelectPage() {
 
     setSubmitError(null);
     try {
-      const selected = zones.find((z) => z.id === selectedZoneId);
+      const selected = approvedZones.find((z) => z.id === selectedZoneId);
       const res = await selectZone({ zoneId: selectedZoneId }).unwrap();
 
       const zoneName = res.zoneName || selected?.zoneName || 'Operating Zone';
@@ -271,7 +324,7 @@ export default function ZoneSelectPage() {
           )}
 
           {/* Empty Zones State */}
-          {!isLoading && !isError && zones.length === 0 && (
+          {!isLoading && !isError && approvedZones.length === 0 && (
             <div
               style={{
                 padding: '32px 20px',
@@ -291,9 +344,9 @@ export default function ZoneSelectPage() {
           )}
 
           {/* Zones List */}
-          {!isLoading && !isError && zones.length > 0 && (
+          {!isLoading && !isError && approvedZones.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {zones.map((zone: OperatingZone) => {
+              {approvedZones.map((zone: OperatingZone) => {
                 const isSelected = selectedZoneId === zone.id;
                 return (
                   <div
