@@ -529,6 +529,8 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
   const unresolvedIds = globalAny.SUPPORT_UNRESOLVED_IDS as Set<string>;
   const partnerRepliesMap = globalAny.PARTNER_REPLIES_MAP as Map<string, any[]>;
   const token = accessToken || 'demo-admin-token';
+  const incomingActiveZone = request.headers.get('x-active-zone-id') ||
+    request.headers.get('cookie')?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
 
   // 1. GET /api/bff/admin/support-tickets
   if (request.method === 'GET' && targetPath === 'admin/support-tickets') {
@@ -539,6 +541,7 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
+          ...(incomingActiveZone ? { 'X-Active-Zone-Id': decodeURIComponent(incomingActiveZone) } : {}),
         },
         timeoutMs: 10000,
       });
@@ -702,9 +705,25 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
       ...localStore.filter((loc) => !existingIds.has(loc.id) && loc.category !== 'RESTAURANT'),
     ].filter((t) => t.category !== 'GENERAL' && t.id !== 'ENQ-905');
 
+    let scopedTickets = mergedList;
+    if (incomingActiveZone) {
+      const lowerZone = decodeURIComponent(incomingActiveZone).toLowerCase();
+      if (lowerZone.includes('tumkur')) {
+        scopedTickets = mergedList.filter((t) => {
+          const text = `${t.restaurantName || ''} ${t.message || ''} ${t.subject || ''} ${t.senderName || ''}`.toLowerCase();
+          return !text.includes('bangalore') && !text.includes('indiranagar') && !text.includes('koramangala');
+        });
+      } else if (lowerZone.includes('bangalore') || lowerZone.includes('bengaluru')) {
+        scopedTickets = mergedList.filter((t) => {
+          const text = `${t.restaurantName || ''} ${t.message || ''} ${t.subject || ''} ${t.senderName || ''}`.toLowerCase();
+          return !text.includes('tumkur') && !text.includes('kyatsandra') && !text.includes('siddaganga');
+        });
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: mergedList,
+      data: scopedTickets,
       error: null,
       meta: {
         timestamp: new Date().toISOString(),
@@ -1179,6 +1198,8 @@ async function handleAdminNotifications(request: Request, targetPath: string, ac
   const token = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : (devToken || 'demo-admin-token');
   const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
   const incomingUrl = new URL(request.url);
+  const incomingActiveZone = request.headers.get('x-active-zone-id') ||
+    request.headers.get('cookie')?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
 
   const candidateUrls = (endpointPath: string) => [
     `${backendUrl}${endpointPath}`,
@@ -1207,10 +1228,11 @@ async function handleAdminNotifications(request: Request, targetPath: string, ac
       scheduledAt: reqBody.scheduledAt || null,
     };
 
-    const headers = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'Authorization': `Bearer ${token}`,
+      ...(incomingActiveZone ? { 'X-Active-Zone-Id': decodeURIComponent(incomingActiveZone) } : {}),
     };
 
     const urls = candidateUrls('/api/v1/admin/notifications/broadcast');
@@ -1246,6 +1268,7 @@ async function handleAdminNotifications(request: Request, targetPath: string, ac
       sentAt: payload.scheduledAt ? null : new Date().toISOString(),
       recipientsCount: 1,
       deliveryStatus: payload.scheduledAt ? 'SCHEDULED' : 'SENT',
+      zoneId: incomingActiveZone ? decodeURIComponent(incomingActiveZone) : null,
     };
     mockList.unshift(fallbackRecord);
 
@@ -1258,9 +1281,10 @@ async function handleAdminNotifications(request: Request, targetPath: string, ac
 
   if (request.method === 'GET' && targetPath === 'admin/notifications') {
     const query = incomingUrl.search || '';
-    const headers = {
+    const headers: Record<string, string> = {
       'Accept': 'application/json',
       'Authorization': `Bearer ${token}`,
+      ...(incomingActiveZone ? { 'X-Active-Zone-Id': decodeURIComponent(incomingActiveZone) } : {}),
     };
 
     const urls = candidateUrls(`/api/v1/admin/notifications${query}`);
@@ -1287,15 +1311,19 @@ async function handleAdminNotifications(request: Request, targetPath: string, ac
                        rawFilter.startsWith('DELIV') || rawFilter.startsWith('DRIVER') ? 'DELIVERY_PARTNER' :
                        rawFilter.toUpperCase();
 
+    const zoneFilteredMock = incomingActiveZone
+      ? mockList.filter((item: any) => !item.zoneId || item.zoneId === decodeURIComponent(incomingActiveZone) || item.zoneId === 'ALL')
+      : mockList;
+
     const filteredMock = rawFilter
-      ? mockList.filter((item: any) => {
+      ? zoneFilteredMock.filter((item: any) => {
           const itemAud = (item.targetAudience || item.audience || 'ALL').toUpperCase();
           const normItemAud = itemAud.startsWith('REST') ? 'RESTAURANT' :
                               itemAud.startsWith('CUST') ? 'CUSTOMER' :
                               itemAud.startsWith('DELIV') || itemAud.startsWith('DRIVER') ? 'DELIVERY_PARTNER' : itemAud;
           return normItemAud === normFilter || normItemAud === 'ALL';
         })
-      : mockList;
+      : zoneFilteredMock;
 
     return NextResponse.json({
       success: true,

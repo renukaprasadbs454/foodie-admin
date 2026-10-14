@@ -92,6 +92,19 @@ export function createBaseApi<TagTypes extends string = string>(
     credentials: 'include',
     prepareHeaders: (headers) => {
       headers.set('Accept', 'application/json');
+      if (typeof window !== 'undefined') {
+        try {
+          const activeZone =
+            localStorage.getItem('foodie_active_zone_id') ||
+            sessionStorage.getItem('foodie_active_zone_id') ||
+            document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1];
+          if (activeZone) {
+            headers.set('X-Active-Zone-Id', decodeURIComponent(activeZone));
+          }
+        } catch {
+          // Ignore storage/cookie read errors
+        }
+      }
       return headers;
     },
   });
