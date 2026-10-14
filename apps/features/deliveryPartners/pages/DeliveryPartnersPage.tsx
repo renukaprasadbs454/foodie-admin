@@ -10,7 +10,12 @@ import {
   useApproveDeliveryPartnerKycMutation,
   useRejectDeliveryPartnerKycMutation,
 } from '@/api/endpoints/deliveryPartnersApi';
-import type { AdminDeliveryPartner, DeliveryDocument, DeliverymanRecord } from '../types';
+import {
+  isDeliveryPartnerKycEligible,
+  type AdminDeliveryPartner,
+  type DeliveryDocument,
+  type DeliverymanRecord,
+} from '../types';
 export type { DeliverymanRecord };
 
 function resolveDocumentUrl(doc?: DeliveryDocument | any): string {
@@ -122,21 +127,22 @@ export function DeliveryPartnersPage() {
   const [approveKyc, { isLoading: isApproving }] = useApproveDeliveryPartnerKycMutation();
   const [rejectKyc, { isLoading: isRejecting }] = useRejectDeliveryPartnerKycMutation();
 
-  const partners: AdminDeliveryPartner[] =
+  const rawPartners: AdminDeliveryPartner[] =
     (partnersData as any)?.items ??
     (partnersData as any)?.data?.items ??
     (Array.isArray(partnersData) ? partnersData : []);
 
-  const allPartners: AdminDeliveryPartner[] =
+  const rawAllPartners: AdminDeliveryPartner[] =
     (allPartnersData as any)?.items ??
     (allPartnersData as any)?.data?.items ??
-    (Array.isArray(allPartnersData) ? allPartnersData : partners);
+    (Array.isArray(allPartnersData) ? allPartnersData : rawPartners);
+
+  // Enforce KYC visibility rule: must have zone selected & all 3 documents uploaded
+  const partners: AdminDeliveryPartner[] = rawPartners.filter(isDeliveryPartnerKycEligible);
+  const allPartners: AdminDeliveryPartner[] = rawAllPartners.filter(isDeliveryPartnerKycEligible);
 
   // Dynamic Dashboard Counts
-  const totalFleetCount =
-    (allPartnersData as any)?.pagination?.totalElements ??
-    (allPartnersData as any)?.data?.pagination?.totalElements ??
-    allPartners.length;
+  const totalFleetCount = allPartners.length;
   const currentlyOnlineCount = allPartners.filter((p) => p.isOnline).length;
   const pendingKycCount = allPartners.filter((p) => p.kycStatus === 'PENDING').length;
   const verifiedCount = allPartners.filter((p) => p.kycStatus === 'VERIFIED').length;

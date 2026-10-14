@@ -79,3 +79,39 @@ const UUID_RE =
 export function isPartnerUuid(value: string): boolean {
   return UUID_RE.test(value.trim());
 }
+
+/**
+ * Validates that a delivery partner has selected a delivery zone
+ * and successfully uploaded all required KYC documents (Identity, License, Vehicle RC).
+ */
+export function isDeliveryPartnerKycEligible(partner?: AdminDeliveryPartner | null): boolean {
+  if (!partner) return false;
+
+  // 1. Must have selected a delivery zone
+  const hasZone = Boolean(
+    partner.zone &&
+      typeof partner.zone === 'string' &&
+      partner.zone.trim() !== '' &&
+      partner.zone.toLowerCase() !== 'unassigned' &&
+      partner.zone.toLowerCase() !== 'null'
+  );
+  if (!hasZone) return false;
+
+  // 2. Must have uploaded all 3 required documents (Identity, License, Vehicle RC)
+  const docs = partner.documents || (partner as any).docs || [];
+  if (!Array.isArray(docs) || docs.length < 3) return false;
+
+  const hasDoc = (checker: (type: string) => boolean) =>
+    docs.some((d: any) => {
+      const type = (d.docType || d.type || '').toUpperCase();
+      const hasFile = Boolean(d.fileKey || d.s3Key || d.fileUrl || d.downloadUrl);
+      return hasFile && checker(type);
+    });
+
+  const hasIdentity = hasDoc((t) => t === 'IDENTITY' || t.includes('AADHAAR') || t.includes('PAN') || t.includes('PASSPORT'));
+  const hasLicense = hasDoc((t) => t === 'LICENSE' || t === 'DRIVING_LICENSE' || t === 'DRIVING_LICENCE' || t.includes('LICENSE') || t.includes('LICENCE'));
+  const hasVehicleRc = hasDoc((t) => t === 'VEHICLE_RC' || t.includes('RC') || t.includes('VEHICLE'));
+
+  return hasIdentity && hasLicense && hasVehicleRc;
+}
+

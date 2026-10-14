@@ -1,7 +1,8 @@
 import { baseApi } from '../baseApi';
-import type {
-  AdminDeliveryPartnersResponse,
-  DeliveryPartnerProfile,
+import {
+  isDeliveryPartnerKycEligible,
+  type AdminDeliveryPartnersResponse,
+  type DeliveryPartnerProfile,
 } from '../../features/deliveryPartners/types';
 
 export interface DeliveryPricingConfig {
@@ -52,6 +53,26 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
           sort: params?.sort ?? 'createdAt,desc',
         },
       }),
+      transformResponse: (response: any): AdminDeliveryPartnersResponse => {
+        const raw = response?.data || response;
+        if (Array.isArray(raw)) {
+          const eligible = raw.filter(isDeliveryPartnerKycEligible);
+          return {
+            items: eligible,
+            pagination: { page: 0, size: eligible.length, totalElements: eligible.length, totalPages: 1 },
+          };
+        }
+        const items = (raw?.items || []).filter(isDeliveryPartnerKycEligible);
+        return {
+          items,
+          pagination: {
+            page: raw?.pagination?.page ?? 0,
+            size: raw?.pagination?.size ?? 50,
+            totalElements: items.length,
+            totalPages: Math.max(1, Math.ceil(items.length / (raw?.pagination?.size || 50))),
+          },
+        };
+      },
       providesTags: (result) => {
         const list = Array.isArray(result)
           ? result

@@ -8,7 +8,7 @@ import {
   useApproveDeliveryPartnerKycMutation,
   useRejectDeliveryPartnerKycMutation,
 } from '@/api/endpoints/deliveryPartnersApi';
-import type { AdminDeliveryPartner } from '../types';
+import { isDeliveryPartnerKycEligible, type AdminDeliveryPartner } from '../types';
 
 interface DeliveryPartnerDetailsPageProps {
   partnerId?: string;
@@ -30,7 +30,7 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
   const [rejectKyc, { isLoading: isRejecting }] = useRejectDeliveryPartnerKycMutation();
 
   const partner: AdminDeliveryPartner | undefined = partnersData?.items?.find(
-    (p: AdminDeliveryPartner) => p.id === partnerId
+    (p: AdminDeliveryPartner) => p.id === partnerId && isDeliveryPartnerKycEligible(p)
   );
 
   const handleApprove = async () => {
@@ -78,7 +78,7 @@ export function DeliveryPartnerDetailsPage({ partnerId }: DeliveryPartnerDetails
         >
           ← Back to Delivery Partners
         </button>
-        <div style={{ color: tokens.color.textSecondary }}>Delivery partner not found.</div>
+        <div style={{ color: tokens.color.textSecondary }}>Delivery partner not found or has not completed KYC onboarding.</div>
       </div>
     );
   }
