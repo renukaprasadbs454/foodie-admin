@@ -1316,6 +1316,57 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
   const token = accessToken || 'demo-admin-token';
   const urlObj = new URL(request.url);
 
+  // Helper to restrict operating zones strictly to Bangalore Zone and Tumkur Zone
+  const filterApprovedZones = (rawZones: any[]) => {
+    const defaultBangalore = {
+      id: 'dz-bangalore',
+      zoneName: 'Bangalore Zone',
+      cityName: 'Bangalore',
+      latitude: 12.9716,
+      longitude: 77.5946,
+      radiusKm: 25.0,
+      status: 'ACTIVE',
+      restaurantEnabled: true,
+      deliveryPartnerEnabled: true,
+      customerOrderingEnabled: true,
+      activeDrivers: 45,
+    };
+    const defaultTumkur = {
+      id: 'dz-tumkur',
+      zoneName: 'Tumkur Zone',
+      cityName: 'Tumkur',
+      latitude: 13.3379,
+      longitude: 77.1173,
+      radiusKm: 20.0,
+      status: 'ACTIVE',
+      restaurantEnabled: true,
+      deliveryPartnerEnabled: true,
+      customerOrderingEnabled: true,
+      activeDrivers: 22,
+    };
+
+    if (!Array.isArray(rawZones) || rawZones.length === 0) {
+      return [defaultBangalore, defaultTumkur];
+    }
+
+    const bgl = rawZones.find((z: any) => {
+      const name = String(z.zoneName || '').trim().toLowerCase();
+      const id = String(z.id || '').trim().toLowerCase();
+      return (id === 'dz-bangalore' || name === 'bangalore zone') && name !== 'bengaluru zone';
+    });
+
+    const tmk = rawZones.find((z: any) => {
+      const name = String(z.zoneName || '').trim().toLowerCase();
+      const id = String(z.id || '').trim().toLowerCase();
+      return (id === 'dz-tumkur' || name === 'tumkur zone') && name !== 'tumkur zone 1';
+    });
+
+    return [
+      bgl ? { ...bgl, id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: 'Bangalore' } : defaultBangalore,
+      tmk ? { ...tmk, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: 'Tumkur' } : defaultTumkur,
+    ];
+  };
+
   // 1. GET admin/zones/available
   if (targetPath === 'admin/zones/available' && request.method === 'GET') {
     try {
@@ -1330,41 +1381,21 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
 
       if (upstream && upstream.ok) {
         const json = await upstream.json();
-        return NextResponse.json(json, { status: upstream.status });
+        const rawItems = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+        const filtered = filterApprovedZones(rawItems);
+        return NextResponse.json({
+          success: true,
+          data: filtered,
+          error: null,
+          meta: json?.meta || { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+        }, { status: upstream.status });
       }
     } catch {}
 
     // Canonical active operating zones fallback from database
     return NextResponse.json({
       success: true,
-      data: [
-        {
-          id: 'dz-bangalore',
-          zoneName: 'Bangalore Zone',
-          cityName: 'Bangalore',
-          latitude: 12.9716,
-          longitude: 77.5946,
-          radiusKm: 25.0,
-          status: 'ACTIVE',
-          restaurantEnabled: true,
-          deliveryPartnerEnabled: true,
-          customerOrderingEnabled: true,
-          activeDrivers: 45,
-        },
-        {
-          id: 'dz-tumkur',
-          zoneName: 'Tumkur Zone',
-          cityName: 'Tumkur',
-          latitude: 13.3379,
-          longitude: 77.1173,
-          radiusKm: 20.0,
-          status: 'ACTIVE',
-          restaurantEnabled: true,
-          deliveryPartnerEnabled: true,
-          customerOrderingEnabled: true,
-          activeDrivers: 22,
-        },
-      ],
+      data: filterApprovedZones([]),
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
     });
@@ -1377,13 +1408,32 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
       body = await request.json();
     } catch {}
 
-    const selectedZoneId = typeof body?.zoneId === 'string' ? body.zoneId.trim() : '';
-    if (!selectedZoneId) {
+    const rawZoneId = typeof body?.zoneId === 'string' ? body.zoneId.trim() : '';
+    if (!rawZoneId) {
       return NextResponse.json({
         success: false,
         error: { code: 'VALIDATION_FAILED', message: 'zoneId is required' },
       }, { status: 400 });
     }
+
+    const cleanLower = rawZoneId.toLowerCase();
+    const isBangalore = cleanLower === 'dz-bangalore' || cleanLower === 'bangalore zone' || cleanLower === 'bengaluru zone';
+    const isTumkur = cleanLower === 'dz-tumkur' || cleanLower === 'tumkur zone' || cleanLower === 'tumkur zone 1';
+
+    if (!isBangalore && !isTumkur) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: {
+          code: 'FORBIDDEN',
+          message: `Invalid operating zone: '${rawZoneId}'. Only Bangalore Zone and Tumkur Zone are approved operating zones.`,
+        },
+        meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+      }, { status: 403 });
+    }
+
+    const selectedZoneId = isBangalore ? 'dz-bangalore' : 'dz-tumkur';
+    const selectedZoneName = isBangalore ? 'Bangalore Zone' : 'Tumkur Zone';
 
     try {
       const { response: upstream } = await safeFetch(`${backendUrl}/api/v1/admin/zones/select`, {
@@ -1398,15 +1448,23 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
       });
 
       if (upstream && upstream.ok) {
+        purgeBffCache();
         const json = await upstream.json();
         const data = json.data;
-        const res = NextResponse.json(json, { status: upstream.status });
-        res.cookies.set('foodie_active_zone_id', data?.zoneId || selectedZoneId, {
+        const res = NextResponse.json({
+          ...json,
+          data: {
+            ...data,
+            zoneId: selectedZoneId,
+            zoneName: selectedZoneName,
+          },
+        }, { status: upstream.status });
+        res.cookies.set('foodie_active_zone_id', selectedZoneId, {
           path: '/',
           sameSite: 'lax',
           maxAge: 86400,
         });
-        res.cookies.set('foodie_active_zone_name', encodeURIComponent(data?.zoneName || selectedZoneId), {
+        res.cookies.set('foodie_active_zone_name', encodeURIComponent(selectedZoneName), {
           path: '/',
           sameSite: 'lax',
           maxAge: 86400,
@@ -1416,7 +1474,6 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
     } catch {}
 
     // Fallback if backend offline in dev
-    const zoneName = selectedZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone';
     const record = {
       id: crypto.randomUUID(),
       adminUserId: '44444444-4444-4444-4444-444444444001',
@@ -1424,20 +1481,21 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
       adminEmail: 'admin@foodie.local',
       role: 'SUPER_ADMIN',
       zoneId: selectedZoneId,
-      zoneName,
+      zoneName: selectedZoneName,
       loginTime: new Date().toISOString(),
       sessionStatus: 'ACTIVE',
       ipAddress: '127.0.0.1',
       userAgent: 'Foodie Admin Console',
     };
     (globalAny.ADMIN_ZONE_LOGIN_HISTORY as any[]).unshift(record);
+    purgeBffCache();
 
     const fallbackResp = NextResponse.json({
       success: true,
       data: {
         sessionRecordId: record.id,
         zoneId: selectedZoneId,
-        zoneName,
+        zoneName: selectedZoneName,
         cityName: selectedZoneId === 'dz-tumkur' ? 'Tumkur' : 'Bangalore',
         adminName: 'Super Admin',
         adminEmail: 'admin@foodie.local',
@@ -1454,7 +1512,7 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
       sameSite: 'lax',
       maxAge: 86400,
     });
-    fallbackResp.cookies.set('foodie_active_zone_name', encodeURIComponent(zoneName), {
+    fallbackResp.cookies.set('foodie_active_zone_name', encodeURIComponent(selectedZoneName), {
       path: '/',
       sameSite: 'lax',
       maxAge: 86400,
@@ -1525,6 +1583,8 @@ async function handleAdminReviews(request: Request, targetPath: string, accessTo
   const moderationMap = globalAny.ADMIN_REVIEW_MODERATION_MAP as Map<string, string>;
   const token = accessToken || 'demo-admin-token';
   const urlObj = new URL(request.url);
+  const incomingActiveZone = request.headers.get('x-active-zone-id') ||
+    request.headers.get('cookie')?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
 
   // 1. POST /api/bff/admin/reviews/:id/flag
   const flagMatch = targetPath.match(/^admin\/reviews\/([^/]+)\/flag$/);
@@ -1584,13 +1644,20 @@ async function handleAdminReviews(request: Request, targetPath: string, accessTo
   if (targetPath === 'admin/reviews/stats' && request.method === 'GET') {
     let totalReviews = 0;
     try {
-      const restRes = await safeFetch(`${backendUrl}/api/v1/restaurants`, { timeoutMs: 8000 });
+      const restHeaders: Record<string, string> = { Accept: 'application/json' };
+      if (token) restHeaders.Authorization = `Bearer ${token}`;
+      if (incomingActiveZone) restHeaders['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+
+      const restRes = await safeFetch(`${backendUrl}/api/v1/admin/restaurants?size=100`, {
+        headers: restHeaders,
+        timeoutMs: 8000,
+      });
       if (restRes.response && restRes.response.ok) {
         const restJson = await restRes.response.json().catch(() => null);
         const restaurants = Array.isArray(restJson?.data) ? restJson.data : [];
         const reviewFetches = await Promise.allSettled(
           restaurants.map((r: any) =>
-            safeFetch(`${backendUrl}/api/v1/restaurants/${r.restaurantId}/reviews?size=100`, { timeoutMs: 4000 })
+            safeFetch(`${backendUrl}/api/v1/restaurants/${r.restaurantId || r.id}/reviews?size=100`, { timeoutMs: 4000 })
           )
         );
         for (const rf of reviewFetches) {
@@ -1619,12 +1686,15 @@ async function handleAdminReviews(request: Request, targetPath: string, accessTo
   if (targetPath === 'admin/reviews' && request.method === 'GET') {
     // Try primary backend endpoint first
     try {
+      const reviewReqHeaders: Record<string, string> = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      };
+      if (incomingActiveZone) reviewReqHeaders['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+
       const primaryRes = await safeFetch(`${backendUrl}/api/v1/admin/reviews${urlObj.search}`, {
         method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: reviewReqHeaders,
         timeoutMs: 4000,
       });
       if (primaryRes.response && primaryRes.response.ok) {
@@ -1635,10 +1705,17 @@ async function handleAdminReviews(request: Request, targetPath: string, accessTo
       }
     } catch {}
 
-    // Live Aggregation across all restaurants in database
+    // Live Aggregation across restaurants in active zone
     const allReviews: any[] = [];
     try {
-      const restRes = await safeFetch(`${backendUrl}/api/v1/restaurants`, { timeoutMs: 8000 });
+      const restHeaders: Record<string, string> = { Accept: 'application/json' };
+      if (token) restHeaders.Authorization = `Bearer ${token}`;
+      if (incomingActiveZone) restHeaders['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+
+      const restRes = await safeFetch(`${backendUrl}/api/v1/admin/restaurants?size=100`, {
+        headers: restHeaders,
+        timeoutMs: 8000,
+      });
       if (restRes.response && restRes.response.ok) {
         const restJson = await restRes.response.json().catch(() => null);
         const restaurants = Array.isArray(restJson?.data) ? restJson.data : [];
@@ -1646,7 +1723,7 @@ async function handleAdminReviews(request: Request, targetPath: string, accessTo
         const reviewResults = await Promise.allSettled(
           restaurants.map(async (r: any) => {
             const revRes = await safeFetch(
-              `${backendUrl}/api/v1/restaurants/${r.restaurantId}/reviews?size=100`,
+              `${backendUrl}/api/v1/restaurants/${r.restaurantId || r.id}/reviews?size=100`,
               { timeoutMs: 5000 }
             );
             if (revRes.response && revRes.response.ok) {
@@ -2141,7 +2218,7 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
   }
 
   const isGet = request.method === 'GET' || request.method === 'HEAD';
-  const cacheKey = `${targetPath}:${incomingUrl.search}:${accessToken}`;
+  const cacheKey = `${targetPath}:${incomingUrl.search}:${accessToken}:${incomingActiveZone || ''}`;
 
   if (isGet) {
     const cached = BFF_CACHE.get(cacheKey);
@@ -2159,12 +2236,16 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     if (targetPath === 'admin/payments/transactions') {
       const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
       const settlementsUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/settlements`;
+      const settlementsHeaders: Record<string, string> = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${upstreamToken}`,
+      };
+      if (incomingActiveZone) {
+        settlementsHeaders['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+      }
       const { response: stlRes } = await safeFetch(settlementsUrl, {
         method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${upstreamToken}`,
-        },
+        headers: settlementsHeaders,
         timeoutMs: 8000,
       });
 
@@ -2212,10 +2293,13 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
       const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
       const settlementsUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/settlements`;
       const payoutsUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/payouts`;
-      const authHeaders = {
+      const authHeaders: Record<string, string> = {
         Accept: 'application/json',
         Authorization: `Bearer ${upstreamToken}`,
       };
+      if (incomingActiveZone) {
+        authHeaders['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+      }
 
       const [stlUp, payUp] = await Promise.all([
         safeFetch(settlementsUrl, { method: 'GET', headers: authHeaders, timeoutMs: 8000 }),
@@ -2271,10 +2355,13 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
       const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
       const settlementsUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/settlements`;
       const payoutsUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/payouts`;
-      const authHeaders = {
+      const authHeaders: Record<string, string> = {
         Accept: 'application/json',
         Authorization: `Bearer ${upstreamToken}`,
       };
+      if (incomingActiveZone) {
+        authHeaders['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+      }
 
       const [stlUp, payUp] = await Promise.all([
         safeFetch(settlementsUrl, { method: 'GET', headers: authHeaders, timeoutMs: 8000 }),

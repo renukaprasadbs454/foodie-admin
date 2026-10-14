@@ -56,9 +56,56 @@ export const zoneApi = baseApi.injectEndpoints({
     getAvailableZones: builder.query<OperatingZone[], void>({
       query: () => '/api/bff/admin/zones/available',
       transformResponse: (response: any) => {
-        if (Array.isArray(response)) return response;
-        if (Array.isArray(response?.data)) return response.data;
-        return [];
+        const raw = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+        const defaultBangalore: OperatingZone = {
+          id: 'dz-bangalore',
+          zoneName: 'Bangalore Zone',
+          cityName: 'Bangalore',
+          latitude: 12.9716,
+          longitude: 77.5946,
+          radiusKm: 25.0,
+          status: 'ACTIVE',
+          restaurantEnabled: true,
+          deliveryPartnerEnabled: true,
+          customerOrderingEnabled: true,
+          activeDrivers: 45,
+        };
+
+        const defaultTumkur: OperatingZone = {
+          id: 'dz-tumkur',
+          zoneName: 'Tumkur Zone',
+          cityName: 'Tumkur',
+          latitude: 13.3379,
+          longitude: 77.1173,
+          radiusKm: 20.0,
+          status: 'ACTIVE',
+          restaurantEnabled: true,
+          deliveryPartnerEnabled: true,
+          customerOrderingEnabled: true,
+          activeDrivers: 22,
+        };
+
+        const bgl = raw.find((z: any) => {
+          const name = String(z.zoneName || '').trim().toLowerCase();
+          const id = String(z.id || '').trim().toLowerCase();
+          return (id === 'dz-bangalore' || name === 'bangalore zone') && name !== 'bengaluru zone';
+        });
+
+        const tmk = raw.find((z: any) => {
+          const name = String(z.zoneName || '').trim().toLowerCase();
+          const id = String(z.id || '').trim().toLowerCase();
+          return (id === 'dz-tumkur' || name === 'tumkur zone') && name !== 'tumkur zone 1';
+        });
+
+        return [
+          bgl ? { ...bgl, id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: 'Bangalore' } : defaultBangalore,
+          tmk ? { ...tmk, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: 'Tumkur' } : defaultTumkur,
+        ];
       },
       providesTags: ['LocationZone'],
     }),
@@ -68,7 +115,7 @@ export const zoneApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['LocationZone', 'Restaurant', 'Delivery', 'Order', 'Admin'],
+      invalidatesTags: ['LocationZone', 'Restaurant', 'Delivery', 'Order', 'Admin', 'Analytics'],
     }),
     getZoneLoginHistory: builder.query<
       ZoneHistoryResponse,

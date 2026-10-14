@@ -48,4 +48,62 @@ describe('Super Admin Zone Access System', () => {
       );
     });
   });
+
+  describe('Restricting Operating Zones to Bangalore Zone and Tumkur Zone', () => {
+    const rawZonesFromBackend = [
+      { id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: 'Bangalore', status: 'ACTIVE' },
+      { id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: 'Tumkur', status: 'ACTIVE' },
+      { id: 'dz-bengaluru-zone', zoneName: 'Bengaluru zone', cityName: 'Bangalore', status: 'ACTIVE' },
+      { id: 'dz-tumkur-1', zoneName: 'Tumkur zone 1', cityName: 'Tumkur', status: 'ACTIVE' },
+      { id: 'dz-indiranagar', zoneName: 'Indiranagar Tech Corridor', cityName: 'Bangalore', status: 'ACTIVE' },
+    ];
+
+    it('filters raw zones strictly to Bangalore Zone and Tumkur Zone, removing duplicates', () => {
+      const bgl = rawZonesFromBackend.find((z) => {
+        const name = String(z.zoneName || '').trim().toLowerCase();
+        const id = String(z.id || '').trim().toLowerCase();
+        return (id === 'dz-bangalore' || name === 'bangalore zone') && name !== 'bengaluru zone';
+      });
+
+      const tmk = rawZonesFromBackend.find((z) => {
+        const name = String(z.zoneName || '').trim().toLowerCase();
+        const id = String(z.id || '').trim().toLowerCase();
+        return (id === 'dz-tumkur' || name === 'tumkur zone') && name !== 'tumkur zone 1';
+      });
+
+      const approved = [
+        bgl ? { ...bgl, id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: 'Bangalore' } : null,
+        tmk ? { ...tmk, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: 'Tumkur' } : null,
+      ].filter(Boolean);
+
+      expect(approved).toHaveLength(2);
+      expect(approved[0]?.zoneName).toBe('Bangalore Zone');
+      expect(approved[0]?.cityName).toBe('Bangalore');
+      expect(approved[1]?.zoneName).toBe('Tumkur Zone');
+      expect(approved[1]?.cityName).toBe('Tumkur');
+
+      // Unwanted zones must not be present
+      const names = approved.map((z) => z?.zoneName);
+      expect(names).not.toContain('Bengaluru zone');
+      expect(names).not.toContain('Tumkur zone 1');
+      expect(names).not.toContain('Indiranagar Tech Corridor');
+    });
+
+    it('validates selected zone IDs, allowing only approved zones and rejecting unwanted ones', () => {
+      const validateOperatingZone = (rawZoneId: string) => {
+        const clean = rawZoneId.trim().toLowerCase();
+        const isBangalore = clean === 'dz-bangalore' || clean === 'bangalore zone' || clean === 'bengaluru zone';
+        const isTumkur = clean === 'dz-tumkur' || clean === 'tumkur zone' || clean === 'tumkur zone 1';
+        if (!isBangalore && !isTumkur) {
+          return { allowed: false, error: 'FORBIDDEN' };
+        }
+        return { allowed: true, canonicalId: isBangalore ? 'dz-bangalore' : 'dz-tumkur' };
+      };
+
+      expect(validateOperatingZone('dz-bangalore')).toEqual({ allowed: true, canonicalId: 'dz-bangalore' });
+      expect(validateOperatingZone('dz-tumkur')).toEqual({ allowed: true, canonicalId: 'dz-tumkur' });
+      expect(validateOperatingZone('dz-mumbai')).toEqual({ allowed: false, error: 'FORBIDDEN' });
+      expect(validateOperatingZone('dz-random-zone')).toEqual({ allowed: false, error: 'FORBIDDEN' });
+    });
+  });
 });

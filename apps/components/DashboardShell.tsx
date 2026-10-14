@@ -21,7 +21,11 @@ import {
 } from '@/lib/routeGuards';
 import { AdminHeaderBar } from '@/components/AdminHeaderBar';
 import { AiAssistantWidget } from '@/components/AiAssistantWidget';
-
+import {
+  useGetAvailableZonesQuery,
+  useSelectOperatingZoneMutation,
+  type OperatingZone,
+} from '@/api/endpoints/zoneApi';
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const dispatch = useAppDispatch();
@@ -34,7 +38,108 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   // Sidebar collapsed state - declared at top level to satisfy Rules of Hooks
   const [isCompact, setIsCompact] = React.useState(false);
   const [hasHydrated, setHasHydrated] = React.useState(false);
+  const [activeZoneId, setActiveZoneId] = React.useState<string>('dz-bangalore');
   const [activeZoneName, setActiveZoneName] = React.useState<string>('Bangalore Zone');
+  const [isZoneDropdownOpen, setIsZoneDropdownOpen] = React.useState(false);
+  const zoneDropdownRef = React.useRef<HTMLDivElement>(null);
+  const zoneMenuRef = React.useRef<HTMLDivElement>(null);
+
+  const { data: availableZones = [] } = useGetAvailableZonesQuery(undefined, {
+    skip: role !== 'SUPER_ADMIN',
+  });
+  const [selectZone, { isLoading: isSwitchingZone }] = useSelectOperatingZoneMutation();
+
+  // Restrict strictly to Bangalore Zone and Tumkur Zone
+  const approvedZones = React.useMemo(() => {
+    const list: OperatingZone[] = [];
+    const bgl = availableZones.find((z) => {
+      const name = String(z.zoneName || '').trim().toLowerCase();
+      const id = String(z.id || '').trim().toLowerCase();
+      return (id === 'dz-bangalore' || name === 'bangalore zone') && name !== 'bengaluru zone';
+    });
+    const tmk = availableZones.find((z) => {
+      const name = String(z.zoneName || '').trim().toLowerCase();
+      const id = String(z.id || '').trim().toLowerCase();
+      return (id === 'dz-tumkur' || name === 'tumkur zone') && name !== 'tumkur zone 1';
+    });
+
+    list.push(
+      bgl
+        ? { ...bgl, id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: 'Bangalore' }
+        : {
+            id: 'dz-bangalore',
+            zoneName: 'Bangalore Zone',
+            cityName: 'Bangalore',
+            latitude: 12.9716,
+            longitude: 77.5946,
+            radiusKm: 25.0,
+            status: 'ACTIVE',
+            restaurantEnabled: true,
+            deliveryPartnerEnabled: true,
+            customerOrderingEnabled: true,
+            activeDrivers: 45,
+          }
+    );
+
+    list.push(
+      tmk
+        ? { ...tmk, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: 'Tumkur' }
+        : {
+            id: 'dz-tumkur',
+            zoneName: 'Tumkur Zone',
+            cityName: 'Tumkur',
+            latitude: 13.3379,
+            longitude: 77.1173,
+            radiusKm: 20.0,
+            status: 'ACTIVE',
+            restaurantEnabled: true,
+            deliveryPartnerEnabled: true,
+            customerOrderingEnabled: true,
+            activeDrivers: 22,
+          }
+    );
+
+    return list;
+  }, [availableZones]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      const clickedZone = zoneDropdownRef.current?.contains(target);
+      const clickedMenu = zoneMenuRef.current?.contains(target);
+      if (!clickedZone && !clickedMenu) {
+        setIsZoneDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSwitchZone = async (targetZone: OperatingZone) => {
+    try {
+      await selectZone({ zoneId: targetZone.id }).unwrap();
+      setActiveZoneId(targetZone.id);
+      setActiveZoneName(targetZone.zoneName);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('foodie_active_zone_id', targetZone.id);
+        sessionStorage.setItem('foodie_active_zone_id', targetZone.id);
+        localStorage.setItem('foodie_active_zone_name', targetZone.zoneName);
+        sessionStorage.setItem('foodie_active_zone_name', targetZone.zoneName);
+        document.cookie = `foodie_active_zone_id=${encodeURIComponent(targetZone.id)}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `foodie_active_zone_name=${encodeURIComponent(targetZone.zoneName)}; path=/; max-age=86400; SameSite=Lax`;
+        window.dispatchEvent(
+          new CustomEvent('foodie_zone_changed', {
+            detail: { zoneId: targetZone.id, zoneName: targetZone.zoneName },
+          })
+        );
+      }
+      setIsZoneDropdownOpen(false);
+      window.location.reload();
+    } catch (err) {
+      console.error('Failed to switch operating zone:', err);
+      setIsZoneDropdownOpen(false);
+    }
+  };
 
   // Rehydrate Redux session and active zone from local/session storage on initial client mount
   useEffect(() => {
@@ -44,9 +149,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       const defaultRoleForPath = isAuditorPath ? 'AUDITOR' : (isFinancePath ? 'FINANCE_ADMIN' : null);
       const savedRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role') || defaultRoleForPath;
       const savedUserId = localStorage.getItem('foodie_admin_user_id') || sessionStorage.getItem('foodie_admin_user_id') || '44444444-4444-4444-4444-444444444001';
-      const savedZoneName = localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name');
-      if (savedZoneName) {
-        setActiveZoneName(decodeURIComponent(savedZoneName));
+      const savedZoneId = localStorage.getItem('foodie_active_zone_id') || sessionStorage.getItem('foodie_active_zone_id');
+      if (savedZoneId && savedZoneId.toLowerCase().includes('tumkur')) {
+        setActiveZoneId('dz-tumkur');
+        setActiveZoneName('Tumkur Zone');
+      } else {
+        setActiveZoneId('dz-bangalore');
+        setActiveZoneName('Bangalore Zone');
       }
       if (savedRole && savedUserId) {
         dispatch(
@@ -314,46 +423,155 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               </div>
             ) : null}
 
-            {/* Active Operating Zone Badge for Super Admin */}
+            {/* Active Operating Zone Selector for Super Admin in Sidebar */}
             {activeRole === 'SUPER_ADMIN' && (
-              <div
-                style={{
-                  backgroundColor: '#EFF6FF',
-                  border: '1px solid #BFDBFE',
-                  borderRadius: 12,
-                  padding: '8px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-                title={`Active Zone: ${activeZoneName}`}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 10, color: '#1D4ED8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
-                    Active Zone
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1E3A8A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {activeZoneName}
-                  </div>
-                </div>
-                <span
+              <div ref={zoneDropdownRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  disabled={isSwitchingZone}
+                  onClick={() => setIsZoneDropdownOpen((prev) => !prev)}
                   style={{
-                    display: 'inline-flex',
+                    width: '100%',
+                    backgroundColor: '#EFF6FF',
+                    border: isZoneDropdownOpen ? '1.5px solid #2563EB' : '1px solid #BFDBFE',
+                    borderRadius: 12,
+                    padding: isCompact ? '8px 4px' : '8px 12px',
+                    display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 22,
-                    height: 22,
-                    borderRadius: '50%',
-                    backgroundColor: '#DBEAFE',
-                    color: '#2563EB',
-                    flexShrink: 0,
+                    justifyContent: isCompact ? 'center' : 'space-between',
+                    cursor: isSwitchingZone ? 'wait' : 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isZoneDropdownOpen ? '0 0 0 3px rgba(37, 99, 235, 0.12)' : 'none',
                   }}
+                  title={`Active Zone: ${activeZoneName} (Click to switch)`}
+                  aria-expanded={isZoneDropdownOpen}
+                  aria-haspopup="true"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                </span>
+                  {!isCompact && (
+                    <div style={{ minWidth: 0, flex: 1, marginRight: 6 }}>
+                      <div style={{ fontSize: 10, color: '#1D4ED8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+                        Active Zone
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#1E3A8A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {activeZoneName}
+                      </div>
+                    </div>
+                  )}
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      backgroundColor: '#DBEAFE',
+                      color: '#2563EB',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </span>
+                  {!isCompact && (
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#2563EB"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        transform: isZoneDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.15s ease',
+                        marginLeft: 4,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  )}
+                </button>
+
+                {isZoneDropdownOpen && (
+                  <div
+                    ref={zoneMenuRef}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      marginTop: 6,
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 12,
+                      border: '1px solid #E5E7EB',
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+                      zIndex: 99999,
+                      padding: '8px 0',
+                      minWidth: isCompact ? 220 : 'auto',
+                    }}
+                  >
+                    <div style={{ padding: '6px 14px 8px', borderBottom: '1px solid #F3F4F6' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6B7280' }}>
+                        Switch Operating Zone
+                      </div>
+                      <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>
+                        Revalidates backend access
+                      </div>
+                    </div>
+                    <div style={{ padding: '4px 6px' }}>
+                      {approvedZones.map((zone) => {
+                        const isSelected = zone.id === activeZoneId;
+                        return (
+                          <button
+                            key={zone.id}
+                            type="button"
+                            disabled={isSwitchingZone}
+                            onClick={() => handleSwitchZone(zone)}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              border: 'none',
+                              backgroundColor: isSelected ? '#EFF6FF' : 'transparent',
+                              cursor: isSwitchingZone ? 'wait' : 'pointer',
+                              textAlign: 'left',
+                              transition: 'background-color 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) e.currentTarget.style.backgroundColor = '#F9FAFB';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: 12, fontWeight: isSelected ? 700 : 500, color: isSelected ? '#1D4ED8' : '#111827' }}>
+                                {zone.zoneName}
+                              </div>
+                              <div style={{ fontSize: 10, color: '#6B7280' }}>
+                                {zone.cityName || 'Regional Zone'}
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#2563EB', backgroundColor: '#DBEAFE', padding: '2px 5px', borderRadius: 4 }}>
+                                Active
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
