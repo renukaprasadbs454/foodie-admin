@@ -15,6 +15,25 @@ export async function logoutAdmin(dispatch: AppDispatch): Promise<void> {
   } catch {
     // Still clear local session.
   }
+
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('foodie_admin_role');
+    localStorage.removeItem('foodie_admin_user_id');
+    localStorage.removeItem('foodie_admin_email');
+    localStorage.removeItem('foodie_admin_token');
+    localStorage.removeItem('foodie_active_zone_id');
+    localStorage.removeItem('foodie_active_zone_name');
+    sessionStorage.removeItem('foodie_admin_role');
+    sessionStorage.removeItem('foodie_admin_user_id');
+    sessionStorage.removeItem('foodie_admin_email');
+    sessionStorage.removeItem('foodie_admin_token');
+    sessionStorage.removeItem('foodie_active_zone_id');
+    sessionStorage.removeItem('foodie_active_zone_name');
+    document.cookie = 'foodie_active_zone_id=; path=/; max-age=0; SameSite=Lax';
+    document.cookie = 'foodie_active_zone_name=; path=/; max-age=0; SameSite=Lax';
+    document.cookie = 'foodie_access_token=; path=/; max-age=0; SameSite=Lax';
+    document.cookie = 'foodie_refresh_token=; path=/; max-age=0; SameSite=Lax';
+  }
   dispatch(clearSession());
   dispatch(baseApi.util.resetApiState());
   trackAnalyticsEvent('session_logged_out');

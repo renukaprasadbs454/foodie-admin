@@ -556,6 +556,63 @@ export default function ZoneSelectPage() {
                 </>
               )}
             </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  localStorage.removeItem('foodie_admin_role');
+                  localStorage.removeItem('foodie_admin_user_id');
+                  localStorage.removeItem('foodie_admin_email');
+                  localStorage.removeItem('foodie_admin_token');
+                  localStorage.removeItem('foodie_active_zone_id');
+                  localStorage.removeItem('foodie_active_zone_name');
+                  sessionStorage.removeItem('foodie_admin_role');
+                  sessionStorage.removeItem('foodie_admin_user_id');
+                  sessionStorage.removeItem('foodie_admin_email');
+                  sessionStorage.removeItem('foodie_admin_token');
+                  sessionStorage.removeItem('foodie_active_zone_id');
+                  sessionStorage.removeItem('foodie_active_zone_name');
+                  document.cookie = 'foodie_active_zone_id=; path=/; max-age=0; SameSite=Lax';
+                  document.cookie = 'foodie_active_zone_name=; path=/; max-age=0; SameSite=Lax';
+                  document.cookie = 'foodie_access_token=; path=/; max-age=0; SameSite=Lax';
+                  document.cookie = 'foodie_refresh_token=; path=/; max-age=0; SameSite=Lax';
+                  window.location.href = '/login';
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '12px 20px',
+                marginTop: '10px',
+                borderRadius: 10,
+                backgroundColor: 'transparent',
+                color: '#6B7280',
+                border: '1px solid #E5E7EB',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              <span>Back to Login / Switch Account</span>
+            </button>
           </div>
         </div>
       </div>

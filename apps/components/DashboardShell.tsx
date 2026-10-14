@@ -275,7 +275,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       document.cookie = 'foodie_active_zone_name=; path=/; max-age=0; SameSite=Lax';
     }
     await logoutAdmin(dispatch);
-    router.replace('/login');
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    } else {
+      router.replace('/login');
+    }
     setLoggingOut(false);
   };
 
