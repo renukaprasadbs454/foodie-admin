@@ -28,22 +28,35 @@ function ConnectivityBridge({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+import { usePathname } from 'next/navigation';
+
 function BootstrapGate({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isAuthPage = pathname === '/login';
   const dispatch = useAppDispatch();
-  const [ready, setReady] = React.useState(false);
+  const [ready, setReady] = React.useState(isAuthPage);
 
   useEffect(() => {
+    if (isAuthPage) {
+      setReady(true);
+      return;
+    }
     let mounted = true;
     void (async () => {
-      await runBootstrap(dispatch);
-      if (mounted) setReady(true);
+      try {
+        await runBootstrap(dispatch);
+      } catch (err) {
+        console.error('runBootstrap error:', err);
+      } finally {
+        if (mounted) setReady(true);
+      }
     })();
     return () => {
       mounted = false;
     };
-  }, [dispatch]);
+  }, [dispatch, isAuthPage]);
 
-  if (!ready) {
+  if (!ready && !isAuthPage) {
     return (
       <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
         Loading…

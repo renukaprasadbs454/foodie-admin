@@ -163,7 +163,7 @@ export async function POST(request: Request) {
     }
 
     // If upstream returns 401 or non-OK, check if this is a known admin role
-    if (demo && (password === 'ChangeMe@123' || password === 'admin' || password === 'password')) {
+    if (demo && (password === 'ChangeMe@123' || password === 'Admin@12345' || password === 'admin' || password === 'password')) {
       let realToken = `demo-admin-${demo.tokenKey}-token`;
       let realRefresh = `demo-refresh-${demo.tokenKey}-token`;
 
@@ -239,7 +239,7 @@ export async function POST(request: Request) {
     }
     return response;
   } catch {
-    if (demo && (password === 'ChangeMe@123' || password === 'admin' || password === 'password')) {
+    if (demo && (password === 'ChangeMe@123' || password === 'Admin@12345' || password === 'admin' || password === 'password')) {
       const response = NextResponse.json(
         {
           success: true,

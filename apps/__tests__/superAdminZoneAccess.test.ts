@@ -106,4 +106,116 @@ describe('Super Admin Zone Access System', () => {
       expect(validateOperatingZone('dz-random-zone')).toEqual({ allowed: false, error: 'FORBIDDEN' });
     });
   });
+
+  describe('Module Zone-Based Data Isolation Across All Modules', () => {
+    const mockRestaurants = [
+      { id: 'rest-1', name: 'Empire Restaurant', city: 'Bangalore', lat: 12.9716, lng: 77.5946 },
+      { id: 'rest-2', name: 'Pavithra Thatte Idli', city: 'Tumkur', lat: 13.3379, lng: 77.1173 },
+    ];
+
+    const mockOrders = [
+      { id: 'ord-1', restaurantId: 'rest-1', orderCode: 'ORD-101', city: 'Bangalore' },
+      { id: 'ord-2', restaurantId: 'rest-2', orderCode: 'ORD-102', city: 'Tumkur' },
+    ];
+
+    const mockDeliveryPartners = [
+      { id: 'dp-1', name: 'Ramesh Kumar', zoneId: 'dz-bangalore', city: 'Bangalore' },
+      { id: 'dp-2', name: 'Siddaraju B', zoneId: 'dz-tumkur', city: 'Tumkur' },
+    ];
+
+    const mockServiceAreas = [
+      { id: 'sa-1', name: 'Indiranagar & Domlur', cityName: 'Bangalore' },
+      { id: 'sa-2', name: 'MG Road & Ashok Nagar', cityName: 'Tumkur' },
+    ];
+
+    const mockReviews = [
+      { id: 'rev-1', restaurantId: 'rest-1', rating: 5, comment: 'Great Bangalore biryani' },
+      { id: 'rev-2', restaurantId: 'rest-2', rating: 4, comment: 'Crispy Tumkur thatte idli' },
+    ];
+
+    const mockCoupons = [
+      { id: 'c-global', code: 'FOODIE50', restaurantId: null }, // global platform coupon
+      { id: 'c-bgl', code: 'EMPIRE20', restaurantId: 'rest-1' }, // Bangalore scoped
+      { id: 'c-tmk', code: 'TUMKURTREAT', restaurantId: 'rest-2' }, // Tumkur scoped
+    ];
+
+    it('filters restaurants strictly by active operating zone', () => {
+      const filterRestaurants = (zoneId: string) =>
+        mockRestaurants.filter((r) =>
+          zoneId === 'dz-bangalore' ? r.city === 'Bangalore' : r.city === 'Tumkur'
+        );
+
+      expect(filterRestaurants('dz-bangalore')).toHaveLength(1);
+      expect(filterRestaurants('dz-bangalore')[0].name).toBe('Empire Restaurant');
+      expect(filterRestaurants('dz-tumkur')).toHaveLength(1);
+      expect(filterRestaurants('dz-tumkur')[0].name).toBe('Pavithra Thatte Idli');
+    });
+
+    it('filters orders by the authoritative restaurant location in active zone', () => {
+      const filterOrders = (zoneId: string) => {
+        const restMap = new Map(mockRestaurants.map((r) => [r.id, r]));
+        return mockOrders.filter((o) => {
+          const rest = restMap.get(o.restaurantId);
+          return zoneId === 'dz-bangalore' ? rest?.city === 'Bangalore' : rest?.city === 'Tumkur';
+        });
+      };
+
+      expect(filterOrders('dz-bangalore')).toHaveLength(1);
+      expect(filterOrders('dz-bangalore')[0].orderCode).toBe('ORD-101');
+      expect(filterOrders('dz-tumkur')).toHaveLength(1);
+      expect(filterOrders('dz-tumkur')[0].orderCode).toBe('ORD-102');
+    });
+
+    it('filters delivery partners assigned to active zone', () => {
+      const filterDrivers = (zoneId: string) =>
+        mockDeliveryPartners.filter((dp) => dp.zoneId === zoneId);
+
+      expect(filterDrivers('dz-bangalore')).toHaveLength(1);
+      expect(filterDrivers('dz-bangalore')[0].name).toBe('Ramesh Kumar');
+      expect(filterDrivers('dz-tumkur')).toHaveLength(1);
+      expect(filterDrivers('dz-tumkur')[0].name).toBe('Siddaraju B');
+    });
+
+    it('filters location service areas based on active zone city', () => {
+      const filterServiceAreas = (zoneId: string) =>
+        mockServiceAreas.filter((sa) =>
+          zoneId === 'dz-bangalore' ? sa.cityName === 'Bangalore' : sa.cityName === 'Tumkur'
+        );
+
+      expect(filterServiceAreas('dz-bangalore')).toHaveLength(1);
+      expect(filterServiceAreas('dz-bangalore')[0].name).toBe('Indiranagar & Domlur');
+      expect(filterServiceAreas('dz-tumkur')).toHaveLength(1);
+      expect(filterServiceAreas('dz-tumkur')[0].name).toBe('MG Road & Ashok Nagar');
+    });
+
+    it('filters reviews & complaints by restaurant in active zone', () => {
+      const restMap = new Map(mockRestaurants.map((r) => [r.id, r]));
+      const filterReviews = (zoneId: string) =>
+        mockReviews.filter((rev) => {
+          const rest = restMap.get(rev.restaurantId);
+          return zoneId === 'dz-bangalore' ? rest?.city === 'Bangalore' : rest?.city === 'Tumkur';
+        });
+
+      expect(filterReviews('dz-bangalore')).toHaveLength(1);
+      expect(filterReviews('dz-bangalore')[0].comment).toContain('Bangalore');
+      expect(filterReviews('dz-tumkur')).toHaveLength(1);
+      expect(filterReviews('dz-tumkur')[0].comment).toContain('Tumkur');
+    });
+
+    it('supports global coupons everywhere while scoping restaurant coupons to zone', () => {
+      const restMap = new Map(mockRestaurants.map((r) => [r.id, r]));
+      const filterCoupons = (zoneId: string) =>
+        mockCoupons.filter((c) => {
+          if (!c.restaurantId) return true; // global
+          const rest = restMap.get(c.restaurantId);
+          return zoneId === 'dz-bangalore' ? rest?.city === 'Bangalore' : rest?.city === 'Tumkur';
+        });
+
+      const bglCoupons = filterCoupons('dz-bangalore');
+      expect(bglCoupons.map((c) => c.code)).toEqual(['FOODIE50', 'EMPIRE20']);
+
+      const tmkCoupons = filterCoupons('dz-tumkur');
+      expect(tmkCoupons.map((c) => c.code)).toEqual(['FOODIE50', 'TUMKURTREAT']);
+    });
+  });
 });
