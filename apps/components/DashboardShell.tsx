@@ -92,16 +92,24 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     const isAuditorPath = Boolean(pathname && pathname.startsWith('/compliance-auditor'));
     const isFinancePath = Boolean(pathname && pathname.startsWith('/finance-admin'));
+    const assignedZone = typeof window !== 'undefined'
+      ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
+      : null;
+    const hasAssignedZone = Boolean(assignedZone && assignedZone !== 'ALL');
     const storedRole = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null;
 
     if (meProfile) {
-      const finalRole = (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN')
+      const isSuperAdminCandidate = !hasAssignedZone && (
+        (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN') ||
+        (meProfile.role && meProfile.role.toUpperCase() === 'SUPER_ADMIN')
+      );
+      const finalRole = isSuperAdminCandidate
         ? 'SUPER_ADMIN'
-        : (isAuditorPath || storedRole === 'AUDITOR')
+        : (isAuditorPath || storedRole === 'AUDITOR' || meProfile.role === 'AUDITOR')
         ? 'AUDITOR'
-        : (isFinancePath || storedRole === 'FINANCE_ADMIN' || (storedRole && storedRole.toUpperCase().includes('FINANCE')))
+        : (isFinancePath || storedRole === 'FINANCE_ADMIN' || (storedRole && storedRole.toUpperCase().includes('FINANCE')) || meProfile.role === 'FINANCE_ADMIN')
         ? 'FINANCE_ADMIN'
-        : (meProfile.role || storedRole || role || 'SUPER_ADMIN');
+        : (hasAssignedZone ? (meProfile.role && meProfile.role !== 'SUPER_ADMIN' ? meProfile.role : 'OPS') : (meProfile.role || storedRole || role || 'SUPER_ADMIN'));
       const storedEmail = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null;
       const storedPhone = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone')) : null;
       dispatch(
@@ -203,12 +211,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role'))
     : null;
 
-  const isSuperAdmin = Boolean(
+  const assignedZone = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
+    : null;
+  const hasAssignedZone = Boolean(assignedZone && assignedZone !== 'ALL');
+
+  const isSuperAdmin = !hasAssignedZone && Boolean(
     (role && role.toUpperCase() === 'SUPER_ADMIN') ||
     (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN')
   );
-
-
 
   const isAuditorContext = !isSuperAdmin && (
     Boolean(pathname && pathname.startsWith('/compliance-auditor')) ||
@@ -233,7 +244,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       ? 'AUDITOR'
       : (isFinanceContext
         ? 'FINANCE_ADMIN'
-        : (role || (storedRole as AdminRole | null) || 'SUPER_ADMIN')));
+        : (hasAssignedZone ? 'OPS' : (role || (storedRole as AdminRole | null) || 'SUPER_ADMIN'))));
   const effectiveUserId = userId || (typeof window !== 'undefined' ? localStorage.getItem('foodie_admin_user_id') : null);
   const activeRole = effectiveRole;
   const activeUserId = effectiveUserId || '44444444-4444-4444-4444-444444444001';

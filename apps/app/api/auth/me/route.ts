@@ -51,13 +51,19 @@ export async function GET(request: Request) {
       }
     }
 
-    if (!assignedZoneId) {
-      const cookieHeader = request.headers.get('cookie') || '';
-      const zoneCookie = cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] ||
-        cookieHeader.match(/foodie_active_zone_id=([^;]+)/)?.[1];
-      if (zoneCookie) {
-        assignedZoneId = decodeURIComponent(zoneCookie);
-      }
+    const cookieHeader = request.headers.get('cookie') || '';
+    const userRoleCookie = cookieHeader.match(/foodie_user_role=([^;]+)/)?.[1];
+    const assignedZoneCookie = cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
+    const zoneNameCookie = cookieHeader.match(/foodie_active_zone_name=([^;]+)/)?.[1];
+
+    if (assignedZoneCookie) {
+      assignedZoneId = decodeURIComponent(assignedZoneCookie);
+    }
+    if (zoneNameCookie) {
+      assignedZoneName = decodeURIComponent(zoneNameCookie);
+    }
+    if (userRoleCookie) {
+      role = decodeURIComponent(userRoleCookie);
     }
 
     if (accessToken.includes('auditor') || accessToken.includes('audit')) {
@@ -84,6 +90,18 @@ export async function GET(request: Request) {
       role = 'DARKSTORE_ADMIN';
       fullName = 'Darkstore Admin';
       email = 'darkstore@foodie.local';
+    }
+
+    if (assignedZoneId && assignedZoneId !== 'ALL') {
+      if (role === 'SUPER_ADMIN') {
+        role = 'OPS';
+      }
+      if (!assignedZoneName) {
+        assignedZoneName = assignedZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone';
+      }
+      if (fullName === 'Admin Operator' || fullName === 'Super Admin') {
+        fullName = `${assignedZoneName} Admin`;
+      }
     }
 
     return NextResponse.json({

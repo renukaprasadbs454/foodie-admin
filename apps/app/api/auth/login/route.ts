@@ -14,14 +14,16 @@ type LoginBody = {
   expectedZoneId?: string;
 };
 
-const DEMO_ACCOUNTS: Record<string, { role: string; userId: string; tokenKey: string }> = {
-  'admin@foodie.local': { role: 'SUPER_ADMIN', userId: '33333333-3333-3333-3333-333333333001', tokenKey: 'super_admin' },
-  'superadmin@foodie.local': { role: 'SUPER_ADMIN', userId: '33333333-3333-3333-3333-333333333001', tokenKey: 'super_admin' },
+const DEMO_ACCOUNTS: Record<string, { role: string; userId: string; tokenKey: string; assignedZoneId?: string | null; assignedZoneName?: string | null }> = {
+  'admin@foodie.local': { role: 'SUPER_ADMIN', userId: '33333333-3333-3333-3333-333333333001', tokenKey: 'super_admin', assignedZoneId: null, assignedZoneName: null },
+  'superadmin@foodie.local': { role: 'SUPER_ADMIN', userId: '33333333-3333-3333-3333-333333333001', tokenKey: 'super_admin', assignedZoneId: null, assignedZoneName: null },
+  'blr.admin@foodie.local': { role: 'OPS', userId: 'USR-1006', tokenKey: 'ops', assignedZoneId: 'dz-bangalore', assignedZoneName: 'Bangalore Zone' },
+  'tmk.admin@foodie.local': { role: 'OPS', userId: 'USR-1007', tokenKey: 'ops', assignedZoneId: 'dz-tumkur', assignedZoneName: 'Tumkur Zone' },
+  'ops@foodie.local': { role: 'OPS', userId: '33333333-3333-3333-3333-333333333006', tokenKey: 'operations', assignedZoneId: 'dz-bangalore', assignedZoneName: 'Bangalore Zone' },
+  'opsadmin@foodie.local': { role: 'OPS', userId: '33333333-3333-3333-3333-333333333006', tokenKey: 'operations', assignedZoneId: 'dz-bangalore', assignedZoneName: 'Bangalore Zone' },
+  'finance@foodie.local': { role: 'FINANCE_ADMIN', userId: '33333333-3333-3333-3333-333333333005', tokenKey: 'finance', assignedZoneId: 'dz-tumkur', assignedZoneName: 'Tumkur Zone' },
+  'financeadmin@foodie.local': { role: 'FINANCE_ADMIN', userId: '33333333-3333-3333-3333-333333333005', tokenKey: 'finance', assignedZoneId: 'dz-tumkur', assignedZoneName: 'Tumkur Zone' },
   'auditor@foodie.local': { role: 'AUDITOR', userId: '33333333-3333-3333-3333-333333333009', tokenKey: 'auditor' },
-  'finance@foodie.local': { role: 'FINANCE_ADMIN', userId: '33333333-3333-3333-3333-333333333005', tokenKey: 'finance' },
-  'financeadmin@foodie.local': { role: 'FINANCE_ADMIN', userId: '33333333-3333-3333-3333-333333333005', tokenKey: 'finance' },
-  'ops@foodie.local': { role: 'OPERATIONS_ADMIN', userId: '33333333-3333-3333-3333-333333333006', tokenKey: 'operations' },
-  'opsadmin@foodie.local': { role: 'OPERATIONS_ADMIN', userId: '33333333-3333-3333-3333-333333333006', tokenKey: 'operations' },
   'manager@foodie.local': { role: 'RESTAURANT_MANAGER', userId: '33333333-3333-3333-3333-333333333007', tokenKey: 'restaurant' },
   'support@foodie.local': { role: 'SUPPORT_AGENT', userId: '33333333-3333-3333-3333-333333333008', tokenKey: 'support' },
   'supportagent@foodie.local': { role: 'SUPPORT_AGENT', userId: '33333333-3333-3333-3333-333333333008', tokenKey: 'support' },
@@ -356,6 +358,9 @@ export async function POST(request: Request) {
         }
       } catch {}
 
+      const assignedZoneId = demo.assignedZoneId || null;
+      const assignedZoneName = demo.assignedZoneName || null;
+
       const response = NextResponse.json(
         {
           success: true,
@@ -363,8 +368,8 @@ export async function POST(request: Request) {
             userId: demo.userId,
             userType: 'ADMIN',
             role: demo.role,
-            assignedZoneId: null,
-            assignedZoneName: null,
+            assignedZoneId,
+            assignedZoneName,
           },
           error: null,
           meta: {
@@ -387,6 +392,33 @@ export async function POST(request: Request) {
       )) {
         response.headers.append('Set-Cookie', header);
       }
+
+      response.cookies.set('foodie_user_role', demo.role, {
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 86400,
+      });
+
+      if (assignedZoneId) {
+        response.cookies.set('foodie_user_assigned_zone', assignedZoneId, {
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 86400,
+        });
+        response.cookies.set('foodie_active_zone_id', assignedZoneId, {
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 86400,
+        });
+        response.cookies.set('foodie_active_zone_name', assignedZoneName || assignedZoneId, {
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 86400,
+        });
+      } else {
+        response.cookies.delete('foodie_user_assigned_zone');
+      }
+
       return response;
     }
 
@@ -415,6 +447,9 @@ export async function POST(request: Request) {
     return response;
   } catch {
     if (demo && (password === 'ChangeMe@123' || password === 'Admin@12345' || password === 'admin' || password === 'password')) {
+      const assignedZoneId = demo.assignedZoneId || null;
+      const assignedZoneName = demo.assignedZoneName || null;
+
       const response = NextResponse.json(
         {
           success: true,
@@ -422,8 +457,8 @@ export async function POST(request: Request) {
             userId: demo.userId,
             userType: 'ADMIN',
             role: demo.role,
-            assignedZoneId: null,
-            assignedZoneName: null,
+            assignedZoneId,
+            assignedZoneName,
           },
           error: null,
           meta: {
@@ -446,6 +481,33 @@ export async function POST(request: Request) {
       )) {
         response.headers.append('Set-Cookie', header);
       }
+
+      response.cookies.set('foodie_user_role', demo.role, {
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 86400,
+      });
+
+      if (assignedZoneId) {
+        response.cookies.set('foodie_user_assigned_zone', assignedZoneId, {
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 86400,
+        });
+        response.cookies.set('foodie_active_zone_id', assignedZoneId, {
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 86400,
+        });
+        response.cookies.set('foodie_active_zone_name', assignedZoneName || assignedZoneId, {
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 86400,
+        });
+      } else {
+        response.cookies.delete('foodie_user_assigned_zone');
+      }
+
       return response;
     }
 

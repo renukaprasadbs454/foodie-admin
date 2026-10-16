@@ -131,13 +131,25 @@ export function AdminLoginForm({
         expectedZoneId: currentRoleInfo.zoneId || undefined,
       }).unwrap();
 
-      const backendRole: AdminRole = (identity.role || currentRoleInfo.role || 'SUPER_ADMIN') as AdminRole;
+      // Determine zone assignment from response identity or email mapping
       const userEmail = email.trim();
-      const finalZoneId = identity.assignedZoneId || currentRoleInfo.zoneId;
+      const lowerEmail = userEmail.toLowerCase();
+      let finalZoneId = identity.assignedZoneId || (currentRoleInfo.zoneId && currentRoleInfo.role !== 'SUPER_ADMIN' ? currentRoleInfo.zoneId : null);
+      if (!finalZoneId && (lowerEmail === 'ops@foodie.local' || lowerEmail === 'blr.admin@foodie.local')) {
+        finalZoneId = 'dz-bangalore';
+      } else if (!finalZoneId && (lowerEmail === 'finance@foodie.local' || lowerEmail === 'tmk.admin@foodie.local')) {
+        finalZoneId = 'dz-tumkur';
+      }
+
       const finalZoneName =
         identity.assignedZoneName ||
-        currentRoleInfo.zoneName ||
-        (finalZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone');
+        (finalZoneId ? currentRoleInfo.zoneName : null) ||
+        (finalZoneId === 'dz-tumkur' ? 'Tumkur Zone' : (finalZoneId === 'dz-bangalore' ? 'Bangalore Zone' : null));
+
+      let backendRole: AdminRole = (identity.role || (finalZoneId ? 'OPS' : (currentRoleInfo.role || 'SUPER_ADMIN'))) as AdminRole;
+      if (finalZoneId && backendRole === 'SUPER_ADMIN') {
+        backendRole = 'OPS';
+      }
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('foodie_admin_role', backendRole);
@@ -152,18 +164,18 @@ export function AdminLoginForm({
           sessionStorage.setItem('foodie_active_zone_id', finalZoneId);
           localStorage.setItem('foodie_user_assigned_zone', finalZoneId);
           sessionStorage.setItem('foodie_user_assigned_zone', finalZoneId);
-          localStorage.setItem('foodie_active_zone_name', finalZoneName);
-          sessionStorage.setItem('foodie_active_zone_name', finalZoneName);
+          localStorage.setItem('foodie_active_zone_name', finalZoneName || finalZoneId);
+          sessionStorage.setItem('foodie_active_zone_name', finalZoneName || finalZoneId);
           document.cookie = `foodie_active_zone_id=${encodeURIComponent(finalZoneId)}; path=/; max-age=86400; SameSite=Lax`;
-          document.cookie = `foodie_active_zone_name=${encodeURIComponent(finalZoneName)}; path=/; max-age=86400; SameSite=Lax`;
+          document.cookie = `foodie_active_zone_name=${encodeURIComponent(finalZoneName || finalZoneId)}; path=/; max-age=86400; SameSite=Lax`;
           document.cookie = `foodie_user_assigned_zone=${encodeURIComponent(finalZoneId)}; path=/; max-age=86400; SameSite=Lax`;
         } else {
           localStorage.removeItem('foodie_user_assigned_zone');
           sessionStorage.removeItem('foodie_user_assigned_zone');
           document.cookie = 'foodie_user_assigned_zone=; path=/; max-age=0; SameSite=Lax';
           if (backendRole === 'SUPER_ADMIN') {
-            const defaultZoneId = 'dz-bangalore';
-            const defaultZoneName = 'Bangalore Zone';
+            const defaultZoneId = 'ALL';
+            const defaultZoneName = 'All Zones (Global View)';
             localStorage.setItem('foodie_active_zone_id', defaultZoneId);
             sessionStorage.setItem('foodie_active_zone_id', defaultZoneId);
             localStorage.setItem('foodie_active_zone_name', defaultZoneName);
@@ -181,11 +193,13 @@ export function AdminLoginForm({
           userType: 'ADMIN',
           fullName:
             identity.fullName ||
-            (backendRole === 'AUDITOR'
+            (finalZoneId
+              ? `${finalZoneName} Admin`
+              : (backendRole === 'AUDITOR'
               ? 'Compliance Auditor'
               : backendRole === 'SUPER_ADMIN'
               ? 'Super Admin'
-              : currentRoleInfo.label || 'Admin Operator'),
+              : currentRoleInfo.label || 'Admin Operator')),
           email: userEmail,
         }),
       );

@@ -25,21 +25,37 @@ export function AdminHeaderBar({
   onToggleCompact,
 }: AdminHeaderBarProps) {
   const authState = useAppSelector((state) => state.auth);
-  const currentUserRole = role || authState.role || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null) || 'SUPER_ADMIN';
-  const currentUserEmail = authState.email || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null) || (userId && userId.includes('@') ? userId : null) || 'admin@foodie.local';
-  const currentUserName = authState.fullName || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_fullname') || sessionStorage.getItem('foodie_admin_fullname')) : null) || (currentUserRole === 'AUDITOR' ? 'Compliance Auditor' : (currentUserRole === 'FINANCE_ADMIN' ? 'Finance Admin' : 'Admin Operator'));
-  const currentUserPhone = authState.phone || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone')) : null) || '+91 98765 43210';
-
-  const isSuperAdmin = Boolean(currentUserRole && currentUserRole.toUpperCase() === 'SUPER_ADMIN');
   const assignedZone = typeof window !== 'undefined'
     ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
     : null;
+  const hasAssignedZone = Boolean(assignedZone && assignedZone !== 'ALL');
+
+  const storedRole = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role'))
+    : null;
+
+  const isSuperAdmin = !hasAssignedZone && Boolean(
+    (role && role.toUpperCase() === 'SUPER_ADMIN') ||
+    (authState.role && authState.role.toUpperCase() === 'SUPER_ADMIN') ||
+    (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN')
+  );
+
+  const currentUserRole = isSuperAdmin
+    ? 'SUPER_ADMIN'
+    : hasAssignedZone
+    ? (role || authState.role || storedRole || 'OPS')
+    : (role || authState.role || storedRole || 'SUPER_ADMIN');
+
   const activeZoneId = typeof window !== 'undefined'
     ? (assignedZone || localStorage.getItem('foodie_active_zone_id') || sessionStorage.getItem('foodie_active_zone_id') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1] : null) || 'dz-bangalore')
     : 'dz-bangalore';
   const activeZoneName = typeof window !== 'undefined'
     ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name') || (typeof document !== 'undefined' ? decodeURIComponent(document.cookie.match(/foodie_active_zone_name=([^;]+)/)?.[1] || '') : null) || (activeZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone'))
     : (activeZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone');
+
+  const currentUserEmail = authState.email || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null) || (userId && userId.includes('@') ? userId : null) || (isSuperAdmin ? 'admin@foodie.local' : 'ops@foodie.local');
+  const currentUserName = authState.fullName || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_fullname') || sessionStorage.getItem('foodie_admin_fullname')) : null) || (hasAssignedZone ? `${activeZoneName} Admin` : (isSuperAdmin ? 'Super Admin' : 'Admin Operator'));
+  const currentUserPhone = authState.phone || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone')) : null) || '+91 98765 43210';
 
 
 
