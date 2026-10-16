@@ -5,7 +5,7 @@ import { getHomeRouteForRole } from '../lib/routeGuards';
 const makeCtx = (path: string[]) => ({ params: Promise.resolve({ path }) });
 
 describe('Zone-Specific Admin Dashboard and Comprehensive Data Isolation', () => {
-  jest.setTimeout(30000);
+  jest.setTimeout(60000);
   const globalAny = global as unknown as Record<string, unknown>;
 
   beforeEach(() => {

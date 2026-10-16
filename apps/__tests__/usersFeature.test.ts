@@ -18,11 +18,11 @@ describe('Users Feature & Sidebar Integration', () => {
     expect(usersNavItem?.category).toBe('BUSINESS MANAGERS');
   });
 
-  it('includes /users for all admin roles in filterNavForRole', () => {
+  it('includes /users only for SUPER_ADMIN in filterNavForRole', () => {
     expect(filterNavForRole('SUPER_ADMIN').map((i) => i.href)).toContain('/users');
-    expect(filterNavForRole('OPS').map((i) => i.href)).toContain('/users');
-    expect(filterNavForRole('FINANCE').map((i) => i.href)).toContain('/users');
-    expect(filterNavForRole('SUPPORT').map((i) => i.href)).toContain('/users');
+    expect(filterNavForRole('OPS').map((i) => i.href)).not.toContain('/users');
+    expect(filterNavForRole('FINANCE').map((i) => i.href)).not.toContain('/users');
+    expect(filterNavForRole('SUPPORT').map((i) => i.href)).not.toContain('/users');
   });
 
   it('formats role badges correctly for administrative roles', () => {

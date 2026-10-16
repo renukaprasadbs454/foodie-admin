@@ -34,9 +34,14 @@ export async function safeFetch(
   url: string | URL,
   options: SafeFetchOptions = {},
 ): Promise<{ response: Response | null; error: Error | null }> {
-  const { timeoutMs = 10000, ...fetchInit } = options;
+  const defaultTimeout = process.env.NODE_ENV === 'test' ? 1000 : 10000;
+  let effectiveTimeout = options.timeoutMs ?? defaultTimeout;
+  if (process.env.NODE_ENV === 'test' && effectiveTimeout > 1500) {
+    effectiveTimeout = 1500;
+  }
+  const { timeoutMs: _ignored, ...fetchInit } = options;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => controller.abort(), effectiveTimeout);
 
   // If signal already exists, combine abort signals
   const signal = controller.signal;

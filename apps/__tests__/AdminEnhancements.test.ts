@@ -52,7 +52,6 @@ describe('6amMart Admin Panel Navigation & Role Configuration', () => {
       '/dashboard',
       '/analytics',
       '/support',
-      '/users',
       '/customers',
       '/orders',
       '/notifications',
