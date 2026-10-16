@@ -36,6 +36,9 @@ if (!globalAny.ADMIN_REVIEW_MODERATION_MAP) {
 if (!globalAny.ADMIN_ZONE_LOGIN_HISTORY) {
   globalAny.ADMIN_ZONE_LOGIN_HISTORY = [];
 }
+if (!globalAny.ADMIN_DYNAMIC_ZONES) {
+  globalAny.ADMIN_DYNAMIC_ZONES = [];
+}
 
 async function handleDeliveryPricing(request: Request) {
   const method = request.method;
@@ -1422,6 +1425,29 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
       }
     }
 
+    if (globalAny.ADMIN_DYNAMIC_ZONES) {
+      for (const dz of (globalAny.ADMIN_DYNAMIC_ZONES as any[])) {
+        if (dz && dz.id) {
+          const idLower = String(dz.id).toLowerCase();
+          if (!zoneMap.has(idLower)) {
+            zoneMap.set(idLower, {
+              id: dz.id,
+              zoneName: dz.zoneName || dz.id,
+              cityName: dz.cityName || 'Karnataka',
+              latitude: dz.latitude || 12.9716,
+              longitude: dz.longitude || 77.5946,
+              radiusKm: dz.radiusKm || 10.0,
+              status: dz.status || 'ACTIVE',
+              restaurantEnabled: dz.restaurantEnabled ?? true,
+              deliveryPartnerEnabled: dz.deliveryPartnerEnabled ?? true,
+              customerOrderingEnabled: dz.customerOrderingEnabled ?? true,
+              activeDrivers: dz.activeDrivers ?? 10,
+            });
+          }
+        }
+      }
+    }
+
     if (globalAny.ADMIN_USERS_STORE) {
       for (const u of (globalAny.ADMIN_USERS_STORE as any[])) {
         if (u.assignedZoneId) {
@@ -1683,6 +1709,363 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
     success: false,
     error: { code: 'NOT_FOUND', message: `Unhandled zone path: ${targetPath}` },
   }, { status: 404 });
+}
+
+async function handleAdminLocationZones(request: Request, targetPath: string, accessToken: string | null) {
+  const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+  const token = accessToken || 'demo-admin-token';
+  const urlObj = new URL(request.url);
+
+  // Extract user identity and zone assignment from cookies / session
+  const cookieHeader = request.headers.get('cookie') || '';
+  const userAssignedZoneCookie = cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
+  const userRoleCookie = cookieHeader.match(/foodie_user_role=([^;]+)/)?.[1];
+  let userAssignedZoneId = userAssignedZoneCookie ? decodeURIComponent(userAssignedZoneCookie) : null;
+  let userRole = userRoleCookie ? decodeURIComponent(userRoleCookie) : null;
+
+  if (globalAny.ADMIN_USERS_STORE && token) {
+    const store = globalAny.ADMIN_USERS_STORE as any[];
+    const found = store.find((u) => token.includes(u.id));
+    if (found) {
+      if (found.assignedZoneId) userAssignedZoneId = found.assignedZoneId;
+      if (found.role) userRole = found.role;
+    }
+  }
+
+  const isSuperAdmin = userRole === 'SUPER_ADMIN' || (!userAssignedZoneId && (token.includes('super_admin') || token.includes('USR-1001')));
+
+  if (!globalAny.ADMIN_DYNAMIC_ZONES) {
+    globalAny.ADMIN_DYNAMIC_ZONES = [];
+  }
+  const dynamicZonesStore = globalAny.ADMIN_DYNAMIC_ZONES as any[];
+
+  // 1. GET admin/location/zones
+  if (targetPath === 'admin/location/zones' && request.method === 'GET') {
+    const defaultBangalore = {
+      id: 'dz-bangalore',
+      zoneName: 'Bangalore Zone',
+      cityName: 'Bangalore',
+      latitude: 12.9716,
+      longitude: 77.5946,
+      radiusKm: 25.0,
+      polygonCoordinates: '12.9716,77.5946 | 13.0000,77.6200 | 12.9500,77.5800',
+      activeDrivers: 45,
+      surgeMultiplier: 1.0,
+      status: 'ACTIVE',
+      restaurantEnabled: true,
+      deliveryPartnerEnabled: true,
+      customerOrderingEnabled: true,
+    };
+    const defaultTumkur = {
+      id: 'dz-tumkur',
+      zoneName: 'Tumkur Zone',
+      cityName: 'Tumkur',
+      latitude: 13.3379,
+      longitude: 77.1173,
+      radiusKm: 20.0,
+      polygonCoordinates: '13.3379,77.1173 | 13.3500,77.1300 | 13.3200,77.1000',
+      activeDrivers: 22,
+      surgeMultiplier: 1.0,
+      status: 'ACTIVE',
+      restaurantEnabled: true,
+      deliveryPartnerEnabled: true,
+      customerOrderingEnabled: true,
+    };
+
+    const zoneMap = new Map<string, any>();
+    zoneMap.set('dz-bangalore', defaultBangalore);
+    zoneMap.set('dz-tumkur', defaultTumkur);
+
+    try {
+      const [locUp, availUp] = await Promise.all([
+        safeFetch(`${backendUrl}/api/v1/admin/location/zones`, {
+          method: 'GET',
+          headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+          timeoutMs: 4000,
+        }),
+        safeFetch(`${backendUrl}/api/v1/admin/zones/available`, {
+          method: 'GET',
+          headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+          timeoutMs: 4000,
+        }),
+      ]);
+
+      const rawItems: any[] = [];
+      if (locUp.response && locUp.response.ok) {
+        const json = await locUp.response.json().catch(() => null);
+        const list = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+        rawItems.push(...list);
+      }
+      if (availUp.response && availUp.response.ok) {
+        const json = await availUp.response.json().catch(() => null);
+        const list = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+        rawItems.push(...list);
+      }
+
+      for (const z of rawItems) {
+        if (!z || !z.id) continue;
+        const idLower = String(z.id).toLowerCase();
+        if (idLower === 'dz-bangalore') {
+          zoneMap.set('dz-bangalore', { ...defaultBangalore, ...z, id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: z.cityName || 'Bangalore' });
+        } else if (idLower === 'dz-tumkur') {
+          zoneMap.set('dz-tumkur', { ...defaultTumkur, ...z, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: z.cityName || 'Tumkur' });
+        } else if (z.status === 'ACTIVE' || !z.status) {
+          if (!zoneMap.has(idLower)) {
+            zoneMap.set(idLower, {
+              id: z.id,
+              zoneName: z.zoneName || z.id,
+              cityName: z.cityName || 'Karnataka',
+              latitude: z.latitude || 12.9716,
+              longitude: z.longitude || 77.5946,
+              radiusKm: z.radiusKm || 15.0,
+              polygonCoordinates: z.polygonCoordinates || '',
+              status: z.status || 'ACTIVE',
+              restaurantEnabled: z.restaurantEnabled ?? true,
+              deliveryPartnerEnabled: z.deliveryPartnerEnabled ?? true,
+              customerOrderingEnabled: z.customerOrderingEnabled ?? true,
+              activeDrivers: z.activeDrivers ?? 10,
+              surgeMultiplier: z.surgeMultiplier ?? 1.0,
+            });
+          }
+        }
+      }
+    } catch {}
+
+    // Include dynamic zones in memory
+    for (const dz of dynamicZonesStore) {
+      if (!dz || !dz.id) continue;
+      const idLower = String(dz.id).toLowerCase();
+      zoneMap.set(idLower, {
+        id: dz.id,
+        zoneName: dz.zoneName || dz.id,
+        cityName: dz.cityName || 'Karnataka',
+        latitude: dz.latitude || 12.9716,
+        longitude: dz.longitude || 77.5946,
+        radiusKm: dz.radiusKm || 10.0,
+        polygonCoordinates: dz.polygonCoordinates || '',
+        status: dz.status || 'ACTIVE',
+        restaurantEnabled: dz.restaurantEnabled ?? true,
+        deliveryPartnerEnabled: dz.deliveryPartnerEnabled ?? true,
+        customerOrderingEnabled: dz.customerOrderingEnabled ?? true,
+        activeDrivers: dz.activeDrivers ?? 10,
+        surgeMultiplier: dz.surgeMultiplier ?? 1.0,
+      });
+    }
+
+    // Include assigned zones from users store
+    if (globalAny.ADMIN_USERS_STORE) {
+      for (const u of (globalAny.ADMIN_USERS_STORE as any[])) {
+        if (u.assignedZoneId) {
+          const zIdLower = u.assignedZoneId.trim().toLowerCase();
+          if (!zoneMap.has(zIdLower)) {
+            zoneMap.set(zIdLower, {
+              id: u.assignedZoneId.trim(),
+              zoneName: u.assignedZoneName || u.assignedZoneId.trim(),
+              cityName: 'Karnataka',
+              latitude: 12.9716,
+              longitude: 77.5946,
+              radiusKm: 15.0,
+              polygonCoordinates: '',
+              status: 'ACTIVE',
+              restaurantEnabled: true,
+              deliveryPartnerEnabled: true,
+              customerOrderingEnabled: true,
+              activeDrivers: 10,
+              surgeMultiplier: 1.0,
+            });
+          }
+        }
+      }
+    }
+
+    let allZones = Array.from(zoneMap.values()).sort((a, b) => {
+      if (a.id.toLowerCase() === 'dz-bangalore') return -1;
+      if (b.id.toLowerCase() === 'dz-bangalore') return 1;
+      if (a.id.toLowerCase() === 'dz-tumkur') return -1;
+      if (b.id.toLowerCase() === 'dz-tumkur') return 1;
+      return (a.zoneName || a.id).localeCompare(b.zoneName || b.id);
+    });
+
+    if (!isSuperAdmin && userAssignedZoneId) {
+      allZones = allZones.filter((z) => z.id.toLowerCase() === userAssignedZoneId!.toLowerCase());
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: allZones,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
+  }
+
+  // 2. POST admin/location/zones (Create new multi-zone)
+  if (targetPath === 'admin/location/zones' && request.method === 'POST') {
+    if (!isSuperAdmin) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: { code: 'FORBIDDEN', message: 'Creating new multi-zones is restricted to Super Administrators.' },
+      }, { status: 403 });
+    }
+
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {}
+
+    const zoneName = (body.zoneName || '').trim();
+    if (!zoneName) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: { code: 'VALIDATION_FAILED', message: 'zoneName is required' },
+      }, { status: 400 });
+    }
+
+    const zoneSlug = zoneName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const zoneId = body.id || `dz-${zoneSlug}`;
+
+    const newZone = {
+      id: zoneId,
+      zoneName,
+      cityName: body.cityName || 'Bangalore',
+      latitude: typeof body.latitude === 'number' ? body.latitude : (parseFloat(body.latitude) || 12.9716),
+      longitude: typeof body.longitude === 'number' ? body.longitude : (parseFloat(body.longitude) || 77.5946),
+      radiusKm: typeof body.radiusKm === 'number' ? body.radiusKm : (parseFloat(body.radiusKm) || 5.0),
+      polygonCoordinates: body.polygonCoordinates || '',
+      activeDrivers: body.activeDrivers || 0,
+      surgeMultiplier: typeof body.surgeMultiplier === 'number' ? body.surgeMultiplier : 1.0,
+      status: body.status || 'ACTIVE',
+      restaurantEnabled: body.restaurantEnabled !== undefined ? Boolean(body.restaurantEnabled) : true,
+      deliveryPartnerEnabled: body.deliveryPartnerEnabled !== undefined ? Boolean(body.deliveryPartnerEnabled) : true,
+      customerOrderingEnabled: body.customerOrderingEnabled !== undefined ? Boolean(body.customerOrderingEnabled) : true,
+    };
+
+    const existingIdx = dynamicZonesStore.findIndex((z) => z.id.toLowerCase() === zoneId.toLowerCase());
+    if (existingIdx >= 0) {
+      dynamicZonesStore[existingIdx] = newZone;
+    } else {
+      dynamicZonesStore.push(newZone);
+    }
+
+    try {
+      await safeFetch(`${backendUrl}/api/v1/admin/location/zones`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newZone),
+        timeoutMs: 4000,
+      });
+    } catch (e) {
+      console.warn('Upstream zone sync warning:', e);
+    }
+
+    purgeBffCache('admin/location');
+    purgeBffCache('admin/zones');
+
+    return NextResponse.json({
+      success: true,
+      data: newZone,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, { status: 200 });
+  }
+
+  // 3. PATCH admin/location/zones/:id/toggles
+  const togglesMatch = targetPath.match(/^admin\/location\/zones\/([^/]+)\/toggles$/);
+  if (togglesMatch && (request.method === 'PATCH' || request.method === 'POST')) {
+    const zoneId = togglesMatch[1];
+    const qParams = urlObj.searchParams;
+    const restEnabled = qParams.get('restaurantEnabled');
+    const driverEnabled = qParams.get('deliveryPartnerEnabled');
+    const custEnabled = qParams.get('customerOrderingEnabled');
+
+    let zone = dynamicZonesStore.find((z) => z.id.toLowerCase() === zoneId.toLowerCase());
+    if (!zone) {
+      zone = {
+        id: zoneId,
+        zoneName: zoneId === 'dz-tumkur' ? 'Tumkur Zone' : (zoneId === 'dz-bangalore' ? 'Bangalore Zone' : zoneId),
+        cityName: zoneId === 'dz-tumkur' ? 'Tumkur' : 'Bangalore',
+        latitude: zoneId === 'dz-tumkur' ? 13.3379 : 12.9716,
+        longitude: zoneId === 'dz-tumkur' ? 77.1173 : 77.5946,
+        radiusKm: 20.0,
+        polygonCoordinates: '',
+        status: 'ACTIVE',
+        restaurantEnabled: true,
+        deliveryPartnerEnabled: true,
+        customerOrderingEnabled: true,
+      };
+      dynamicZonesStore.push(zone);
+    }
+
+    if (restEnabled !== null) zone.restaurantEnabled = restEnabled === 'true';
+    if (driverEnabled !== null) zone.deliveryPartnerEnabled = driverEnabled === 'true';
+    if (custEnabled !== null) zone.customerOrderingEnabled = custEnabled === 'true';
+
+    try {
+      await safeFetch(`${backendUrl}/api/v1/${targetPath}${urlObj.search}`, {
+        method: request.method,
+        headers: { Authorization: `Bearer ${token}` },
+        timeoutMs: 3000,
+      });
+    } catch {}
+
+    purgeBffCache('admin/location');
+    return NextResponse.json({ success: true, data: zone, error: null }, { status: 200 });
+  }
+
+  // 4. PATCH admin/location/zones/:id/status
+  const statusMatch = targetPath.match(/^admin\/location\/zones\/([^/]+)\/status$/);
+  if (statusMatch && request.method === 'PATCH') {
+    const zoneId = statusMatch[1];
+    const newStatus = urlObj.searchParams.get('status') || 'ACTIVE';
+    let zone = dynamicZonesStore.find((z) => z.id.toLowerCase() === zoneId.toLowerCase());
+    if (zone) {
+      zone.status = newStatus;
+    }
+    try {
+      await safeFetch(`${backendUrl}/api/v1/${targetPath}${urlObj.search}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+        timeoutMs: 3000,
+      });
+    } catch {}
+    purgeBffCache('admin/location');
+    return NextResponse.json({ success: true, data: zone || { id: zoneId, status: newStatus }, error: null }, { status: 200 });
+  }
+
+  // 5. DELETE admin/location/zones/:id
+  const deleteMatch = targetPath.match(/^admin\/location\/zones\/([^/]+)$/);
+  if (deleteMatch && request.method === 'DELETE') {
+    if (!isSuperAdmin) {
+      return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Deleting zones is reserved for Super Admins.' } }, { status: 403 });
+    }
+    const zoneId = deleteMatch[1];
+    const idx = dynamicZonesStore.findIndex((z) => z.id.toLowerCase() === zoneId.toLowerCase());
+    if (idx >= 0) {
+      dynamicZonesStore.splice(idx, 1);
+    }
+    try {
+      await safeFetch(`${backendUrl}/api/v1/${targetPath}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+        timeoutMs: 3000,
+      });
+    } catch {}
+    purgeBffCache('admin/location');
+    return NextResponse.json({ success: true, data: true, error: null }, { status: 200 });
+  }
+
+  return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: `Unhandled location route: ${targetPath}` } }, { status: 404 });
 }
 
 async function handleAdminReviews(request: Request, targetPath: string, accessToken: string | null) {
@@ -2527,6 +2910,10 @@ async function handleAdminRoles() {
 
   if (targetPath.startsWith('admin/notifications')) {
     return handleAdminNotifications(request, targetPath, accessToken);
+  }
+
+  if (targetPath.startsWith('admin/location/zones')) {
+    return handleAdminLocationZones(request, targetPath, accessToken);
   }
 
   if (targetPath.startsWith('admin/zones')) {

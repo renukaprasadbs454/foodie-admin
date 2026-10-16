@@ -101,6 +101,20 @@ export async function GET() {
     }
   }
 
+  // Collect from dynamic zones created by Super Admin
+  const dynamicZones = (globalAny.ADMIN_DYNAMIC_ZONES as any[]) || [];
+  for (const dz of dynamicZones) {
+    if (dz.id) {
+      const cleanId = dz.id.trim().toLowerCase();
+      if (!zonesMap.has(cleanId)) {
+        zonesMap.set(cleanId, {
+          id: dz.id.trim(),
+          zoneName: dz.zoneName || dz.id.trim(),
+        });
+      }
+    }
+  }
+
   // Collect from location history if available
   const loginHistory = (globalAny.ADMIN_ZONE_LOGIN_HISTORY as any[]) || [];
   for (const h of loginHistory) {
