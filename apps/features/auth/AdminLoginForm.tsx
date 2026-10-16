@@ -237,6 +237,7 @@ export function AdminLoginForm({
         gap: 22,
       }}
       noValidate
+      suppressHydrationWarning
     >
       {/* Heading & Subtitle */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -286,6 +287,7 @@ export function AdminLoginForm({
           value={selectedRoleKey}
           onChange={(e) => handleRoleSelect(e.target.value)}
           className="foodie-role-select"
+          suppressHydrationWarning
         >
           {roleOptions.map((item) => (
             <option key={item.key || item.role} value={item.key || item.role}>
@@ -364,6 +366,7 @@ export function AdminLoginForm({
             aria-label="Email"
             aria-invalid={Boolean(emailError)}
             className={`foodie-input ${emailError ? 'has-error' : ''}`}
+            suppressHydrationWarning
           />
           {emailError && (
             <span
@@ -412,12 +415,14 @@ export function AdminLoginForm({
               aria-invalid={Boolean(passwordError)}
               className={`foodie-input ${passwordError ? 'has-error' : ''}`}
               style={{ paddingRight: 46 }}
+              suppressHydrationWarning
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               className="foodie-password-toggle"
+              suppressHydrationWarning
             >
               {showPassword ? (
                 <svg
@@ -475,6 +480,7 @@ export function AdminLoginForm({
         disabled={isLoading}
         aria-label="Sign in"
         className="foodie-btn-primary"
+        suppressHydrationWarning
       >
         {isLoading ? (
           <>

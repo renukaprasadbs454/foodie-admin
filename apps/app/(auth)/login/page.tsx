@@ -107,7 +107,7 @@ export default function LoginPage() {
         </header>
 
         {/* Form Body Container */}
-        <div className="foodie-login-body">
+        <div className="foodie-login-body" suppressHydrationWarning>
           <AdminLoginForm />
         </div>
       </div>
