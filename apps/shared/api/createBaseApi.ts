@@ -94,12 +94,20 @@ export function createBaseApi<TagTypes extends string = string>(
       headers.set('Accept', 'application/json');
       if (typeof window !== 'undefined') {
         try {
+          const assignedZone =
+            localStorage.getItem('foodie_user_assigned_zone') ||
+            sessionStorage.getItem('foodie_user_assigned_zone') ||
+            document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
           const activeZone =
+            assignedZone ||
             localStorage.getItem('foodie_active_zone_id') ||
             sessionStorage.getItem('foodie_active_zone_id') ||
             document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1];
           if (activeZone) {
             headers.set('X-Active-Zone-Id', decodeURIComponent(activeZone));
+          }
+          if (assignedZone) {
+            headers.set('X-Assigned-Zone-Id', decodeURIComponent(assignedZone));
           }
         } catch {
           // Ignore storage/cookie read errors

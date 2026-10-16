@@ -16,6 +16,8 @@ import {
   useGetZoneLoginHistoryQuery,
   useGetAvailableZonesQuery,
 } from '@/api/endpoints/zoneApi';
+import { useAppSelector } from '@/store/hooks';
+import { selectAdminRole } from '@/features/auth/authSlice';
 
 const DEFAULT_ZONE_ADMIN_PASSWORDS: Record<string, string> = {
   'blr.admin@foodie.local': 'BlrSecure@2026',
@@ -24,7 +26,11 @@ const DEFAULT_ZONE_ADMIN_PASSWORDS: Record<string, string> = {
 };
 
 export function UserManagementStudio() {
-  const { data: rawUsers = [], isLoading, isError, refetch } = useGetAdminUsersQuery();
+  const role = useAppSelector(selectAdminRole);
+  const storedRole = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null;
+  const isSuperAdmin = (role && role.toUpperCase() === 'SUPER_ADMIN') || (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN');
+
+  const { data: rawUsers = [], isLoading, isError, refetch } = useGetAdminUsersQuery(undefined, { skip: !isSuperAdmin });
   const [createAdminUser] = useCreateAdminUserMutation();
   const [updateAdminUserRole] = useUpdateAdminUserRoleMutation();
   const [updateAdminUserStatus] = useUpdateAdminUserStatusMutation();
@@ -294,6 +300,43 @@ export function UserManagementStudio() {
   const opsTeam = users.filter((u) => u.role === 'OPS').length;
   const supportFinance = users.filter((u) => u.role === 'SUPPORT' || u.role === 'FINANCE').length;
 
+
+  if (!isSuperAdmin) {
+    return (
+      <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ maxWidth: 520, width: '100%', backgroundColor: '#FFFFFF', borderRadius: 20, padding: 36, border: '1px solid #E5E7EB', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.05)', textAlign: 'center' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: '#FEE2E2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: '0 0 8px' }}>
+            Super Admin Access Only
+          </h2>
+          <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6, margin: '0 0 24px' }}>
+            Managing administrative credentials, provisioning new accounts, and modifying role-based access privileges is restricted strictly to Super Administrators.
+          </p>
+          <a
+            href="/dashboard"
+            style={{
+              display: 'inline-block',
+              padding: '10px 24px',
+              backgroundColor: '#14532D',
+              color: '#FFFFFF',
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 600,
+              textDecoration: 'none',
+              boxShadow: '0 2px 8px rgba(20, 83, 45, 0.25)',
+            }}
+          >
+            Return to Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>

@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { GlobalSearchModal } from '@/components/GlobalSearchModal';
 
 import { useAppSelector } from '@/store/hooks';
+import { useGetAvailableZonesQuery } from '@/api/endpoints/zoneApi';
 
 
 interface AdminHeaderBarProps {
@@ -32,6 +33,39 @@ export function AdminHeaderBar({
   const currentUserEmail = authState.email || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null) || (userId && userId.includes('@') ? userId : null) || 'admin@foodie.local';
   const currentUserName = authState.fullName || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_fullname') || sessionStorage.getItem('foodie_admin_fullname')) : null) || (currentUserRole === 'AUDITOR' ? 'Compliance Auditor' : (currentUserRole === 'FINANCE_ADMIN' ? 'Finance Admin' : 'Admin Operator'));
   const currentUserPhone = authState.phone || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone')) : null) || '+91 98765 43210';
+
+  const isSuperAdmin = Boolean(currentUserRole && currentUserRole.toUpperCase() === 'SUPER_ADMIN');
+  const assignedZone = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
+    : null;
+  const activeZoneId = typeof window !== 'undefined'
+    ? (assignedZone || localStorage.getItem('foodie_active_zone_id') || sessionStorage.getItem('foodie_active_zone_id') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1] : null) || 'dz-bangalore')
+    : 'dz-bangalore';
+  const activeZoneName = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name') || (typeof document !== 'undefined' ? decodeURIComponent(document.cookie.match(/foodie_active_zone_name=([^;]+)/)?.[1] || '') : null) || (activeZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone'))
+    : (activeZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone');
+
+  const { data: availableZones = [] } = useGetAvailableZonesQuery(undefined, { skip: !isSuperAdmin });
+
+  const handleZoneChange = (newZoneId: string) => {
+    let newZoneName = 'All Zones (Global Access)';
+    if (newZoneId === 'dz-bangalore') newZoneName = 'Bangalore Zone';
+    else if (newZoneId === 'dz-tumkur') newZoneName = 'Tumkur Zone';
+    else {
+      const match = (availableZones as any[]).find((z: any) => z.id === newZoneId);
+      if (match) newZoneName = match.name || match.zoneName || newZoneId;
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('foodie_active_zone_id', newZoneId);
+      sessionStorage.setItem('foodie_active_zone_id', newZoneId);
+      localStorage.setItem('foodie_active_zone_name', newZoneName);
+      sessionStorage.setItem('foodie_active_zone_name', newZoneName);
+      document.cookie = `foodie_active_zone_id=${encodeURIComponent(newZoneId)}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `foodie_active_zone_name=${encodeURIComponent(newZoneName)}; path=/; max-age=86400; SameSite=Lax`;
+      window.location.reload();
+    }
+  };
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -585,7 +619,85 @@ export function AdminHeaderBar({
             flexShrink: 0,
           }}
         >
-
+          {/* Super Admin Interactive Zone Switcher */}
+          {isSuperAdmin ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: '#F0FDF4',
+                border: '1px solid #BBF7D0',
+                borderRadius: 12,
+                padding: '5px 12px',
+              }}
+              title="Super Admin Operational Zone Filter"
+            >
+              <span style={{ fontSize: 13 }}>📍</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                Zone:
+              </span>
+              <select
+                value={activeZoneId}
+                onChange={(e) => handleZoneChange(e.target.value)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: '#14532D',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  paddingRight: 4,
+                }}
+              >
+                <option value="ALL">All Zones (Global View)</option>
+                <option value="dz-bangalore">Bangalore Zone</option>
+                <option value="dz-tumkur">Tumkur Zone</option>
+                {availableZones
+                  .filter((z: any) => z.id !== 'dz-bangalore' && z.id !== 'dz-tumkur' && z.id !== 'ALL')
+                  .map((z: any) => (
+                    <option key={z.id} value={z.id}>
+                      {z.name || z.zoneName || z.id}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          ) : assignedZone || (activeZoneId && activeZoneId !== 'ALL') ? (
+            /* Locked Zone Territory Badge for Zone Admin */
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 12,
+                padding: '6px 12px',
+              }}
+              title={`Assigned Operating Territory: ${activeZoneName} (All panel data filtered strictly to this zone)`}
+            >
+              <span style={{ fontSize: 13 }}>📍</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Zone Territory
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', whiteSpace: 'nowrap' }}>
+                  {activeZoneName}
+                </span>
+              </div>
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  backgroundColor: '#22C55E',
+                  marginLeft: 4,
+                }}
+                className="pulse-live"
+              />
+            </div>
+          ) : null}
 
           {/* Notification Bell */}
           <Link

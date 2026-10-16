@@ -73,6 +73,36 @@ export function LocationManagementPage() {
   const unserviceableRequests = dbUnserviceableRequests as UnserviceableRequestRecord[];
   const serviceAreas = dbServiceAreas as ServiceAreaRecord[];
 
+  const userAssignedZone = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
+    : null;
+  const userStoredRole = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role'))
+    : null;
+  const userActiveZoneName = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name') || (typeof document !== 'undefined' ? decodeURIComponent(document.cookie.match(/foodie_active_zone_name=([^;]+)/)?.[1] || '') : null) || 'Assigned Zone')
+    : 'Assigned Zone';
+
+  const isSuperAdmin = Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
+
+  const visibleDeliveryZones = React.useMemo(() => {
+    if (isSuperAdmin || !userAssignedZone) return deliveryZones;
+    const target = decodeURIComponent(userAssignedZone).trim().toLowerCase();
+    return deliveryZones.filter((dz) => {
+      const zId = (dz.id || '').trim().toLowerCase();
+      const zName = (dz.zoneName || '').trim().toLowerCase();
+      const zCity = (dz.cityName || '').trim().toLowerCase();
+      return (
+        zId === target ||
+        target.includes(zId) ||
+        zId.includes(target) ||
+        zName.includes(target) ||
+        target.includes(zName) ||
+        (zCity && (zCity.includes(target) || target.includes(zCity)))
+      );
+    });
+  }, [deliveryZones, isSuperAdmin, userAssignedZone]);
+
   const pendingRequestsCount = unserviceableRequests.filter((r) => r.status === 'PENDING').length;
 
   const [newCityName, setNewCityName] = useState('');
@@ -449,24 +479,26 @@ export function LocationManagementPage() {
           >
             + Request Unserviceable Location
           </button>
-          <button
-            type="button"
-            onClick={() => setIsCreatingZone(true)}
-            style={{
-              padding: '10px 18px',
-              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            + Create Multi-Zone
-          </button>
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsCreatingZone(true)}
+              style={{
+                padding: '10px 18px',
+                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              + Create Multi-Zone
+            </button>
+          )}
         </div>
       </div>
 
@@ -483,7 +515,7 @@ export function LocationManagementPage() {
         }}
       >
         {[
-          { id: 'DELIVERY_ZONES', label: `Delivery Multi-Zones (${deliveryZones.length})` },
+          { id: 'DELIVERY_ZONES', label: isSuperAdmin ? `Delivery Multi-Zones (${deliveryZones.length})` : `My Operating Zone (${visibleDeliveryZones.length})` },
           { id: 'UNSERVICEABLE_REQUESTS', label: `Unserviceable Requests (${pendingRequestsCount} Pending)` },
           { id: 'CITIES', label: `Cities (${cities.length})` },
           { id: 'SERVICE_AREAS', label: `Service Areas (${serviceAreas.length})` },
@@ -936,11 +968,56 @@ export function LocationManagementPage() {
               <p style={{ fontWeight: 600, margin: '0 0 8px 0' }}>Failed to load delivery zones.</p>
               <button onClick={() => void refetchZones()} style={{ padding: '6px 14px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Retry</button>
             </div>
-          ) : deliveryZones.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
-              No delivery multi-zones recorded in database yet. Click "+ Create Multi-Zone" to add one.
-            </div>
           ) : (
+            <>
+              {!isSuperAdmin && (
+                <div
+                  style={{
+                    backgroundColor: '#F0FDF4',
+                    border: '1px solid #BBF7D0',
+                    borderRadius: 14,
+                    padding: '14px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    margin: '16px 16px 0',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#22C55E', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#14532D' }}>
+                        Assigned Operating Zone: {userActiveZoneName}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#166534', marginTop: 2 }}>
+                        Displaying and configuring operational switches and map boundaries exclusively for your assigned territory. Zone creation and deletion are reserved for Super Administrators.
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      backgroundColor: '#DCFCE7',
+                      color: '#15803D',
+                      padding: '4px 10px',
+                      borderRadius: 8,
+                      border: '1px solid #86EFAC',
+                      flexShrink: 0,
+                    }}
+                  >
+                    Territory Bound
+                  </span>
+                </div>
+              )}
+
+              {visibleDeliveryZones.length === 0 ? (
+                <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
+                  {isSuperAdmin
+                    ? 'No delivery multi-zones recorded in database yet. Click "+ Create Multi-Zone" to add one.'
+                    : `No zone configurations found matching your assigned territory (${userActiveZoneName}).`}
+                </div>
+              ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
                 <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
@@ -954,7 +1031,7 @@ export function LocationManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {deliveryZones.map((dz) => (
+                {visibleDeliveryZones.map((dz) => (
                   <tr key={dz.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                     <td style={{ padding: '16px 20px' }}>
                       <div style={{ fontWeight: 600, color: '#111827' }}>{dz.zoneName}</div>
@@ -1076,14 +1153,18 @@ export function LocationManagementPage() {
                         Edit Pins ({dz.polygonCoordinates ? dz.polygonCoordinates.split('|').length : 0})
                       </button>
                       <button onClick={() => updateZoneStatus({ id: dz.id, status: dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }).unwrap().then(() => showToast(`Zone status updated to ${dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}`))} style={{ padding: '6px 12px', background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{dz.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
-                      <button onClick={() => { if (confirm('Are you sure you want to permanently delete this zone? This action cannot be undone.')) { deleteZone(dz.id).unwrap().then(() => showToast('Zone deleted permanently.')); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                      {isSuperAdmin && (
+                        <button onClick={() => { if (confirm('Are you sure you want to permanently delete this zone? This action cannot be undone.')) { deleteZone(dz.id).unwrap().then(() => showToast('Zone deleted permanently.')); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-        </div>
+        </>
+      )}
+    </div>
       )}
 
       {/* Existing Zone Map Pins Edit Modal */}

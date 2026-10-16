@@ -28,6 +28,8 @@ export interface CouponRecord {
   approvalStatus?: string;
   expiryDate: string;
   status: 'ACTIVE' | 'DEACTIVATED';
+  zoneId?: string;
+  zoneName?: string;
 }
 
 export interface FirstOrderOfferRecord {
@@ -65,6 +67,8 @@ const MOCK_COUPONS: CouponRecord[] = [
     module: 'All Food Delivery',
     expiryDate: '2026-12-31',
     status: 'ACTIVE',
+    zoneId: 'dz-bangalore',
+    zoneName: 'Bangalore Zone',
   },
   {
     id: 'c222',
@@ -77,6 +81,8 @@ const MOCK_COUPONS: CouponRecord[] = [
     module: 'Fine Dining & Pizzerias',
     expiryDate: '2026-10-15',
     status: 'ACTIVE',
+    zoneId: 'dz-tumkur',
+    zoneName: 'Tumkur Zone',
   },
   {
     id: 'c333',
@@ -89,6 +95,22 @@ const MOCK_COUPONS: CouponRecord[] = [
     module: 'Cafes & Bakery',
     expiryDate: '2026-09-30',
     status: 'DEACTIVATED',
+    zoneId: 'dz-bangalore',
+    zoneName: 'Bangalore Zone',
+  },
+  {
+    id: 'c444',
+    code: 'TUMKUR30',
+    title: '30% OFF Tumkur Regional Delights',
+    discountType: 'PERCENT',
+    discountValue: 30,
+    minPurchase: 250,
+    maxDiscount: 120,
+    module: 'All Food Delivery',
+    expiryDate: '2026-12-31',
+    status: 'ACTIVE',
+    zoneId: 'dz-tumkur',
+    zoneName: 'Tumkur Zone',
   },
 ];
 
@@ -168,6 +190,18 @@ export function CouponsPage() {
 
   const [localCoupons, setLocalCoupons] = useState<CouponRecord[]>(MOCK_COUPONS);
 
+  const userStoredRole = typeof window !== 'undefined' ? localStorage.getItem('foodie_admin_role') : null;
+  const isSuperAdmin = Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
+  const userAssignedZone = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
+    : null;
+  const activeZoneId = typeof window !== 'undefined'
+    ? (userAssignedZone || localStorage.getItem('foodie_active_zone_id') || sessionStorage.getItem('foodie_active_zone_id'))
+    : null;
+  const activeZoneName = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name') || 'Assigned Zone')
+    : 'Assigned Zone';
+
   useEffect(() => {
     if (serverCoupons && serverCoupons.length > 0) {
       const formatted: CouponRecord[] = serverCoupons.map((c: any) => ({
@@ -182,12 +216,23 @@ export function CouponsPage() {
         approvalStatus: c.approvalStatus,
         expiryDate: c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : '1/1/2100',
         status: c.isActive || c.status === 'ACTIVE' ? 'ACTIVE' : 'DEACTIVATED',
+        zoneId: c.zoneId || c.assignedZoneId,
+        zoneName: c.zoneName,
       }));
       setLocalCoupons(formatted);
     }
   }, [serverCoupons]);
 
-  const coupons: CouponRecord[] = localCoupons;
+  const coupons: CouponRecord[] = React.useMemo(() => {
+    if (isSuperAdmin && (!activeZoneId || activeZoneId === 'ALL')) return localCoupons;
+    if (!activeZoneId) return localCoupons;
+    const cleanZone = decodeURIComponent(activeZoneId).trim().toLowerCase();
+    return localCoupons.filter((c: any) => {
+      if (!c.zoneId) return true;
+      const z = c.zoneId.trim().toLowerCase();
+      return z === cleanZone || cleanZone.includes(z) || z.includes(cleanZone);
+    });
+  }, [localCoupons, isSuperAdmin, activeZoneId]);
 
   const [firstOrderOffers, setFirstOrderOffers] = useState<FirstOrderOfferRecord[]>(MOCK_FIRST_ORDER_OFFERS);
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>(MOCK_CAMPAIGNS);
@@ -414,6 +459,46 @@ export function CouponsPage() {
           }}
         />
       </div>
+
+      {/* Territory Scoped Banner for Zone Admin */}
+      {!isSuperAdmin && (
+        <div
+          style={{
+            backgroundColor: '#F0FDF4',
+            border: '1px solid #BBF7D0',
+            borderRadius: 14,
+            padding: '12px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#22C55E' }} />
+            <div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#14532D' }}>
+                Coupons & Offers Territory: {activeZoneName}
+              </span>
+              <span style={{ fontSize: 12, color: '#166534', marginLeft: 8 }}>
+                (Showing platform-wide coupons and regional offers for your zone)
+              </span>
+            </div>
+          </div>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              backgroundColor: '#DCFCE7',
+              color: '#15803D',
+              padding: '4px 10px',
+              borderRadius: 8,
+              border: '1px solid #86EFAC',
+            }}
+          >
+            Zone Scoped
+          </span>
+        </div>
+      )}
 
       {/* Feature Navigation Tabs */}
       <div
