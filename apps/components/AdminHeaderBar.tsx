@@ -4,11 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { GlobalSearchModal } from '@/components/GlobalSearchModal';
-
 import { useAppSelector } from '@/store/hooks';
-import { useGetAvailableZonesQuery } from '@/api/endpoints/zoneApi';
-
-
 interface AdminHeaderBarProps {
   role?: string | null;
   userId?: string | null;
@@ -45,27 +41,7 @@ export function AdminHeaderBar({
     ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name') || (typeof document !== 'undefined' ? decodeURIComponent(document.cookie.match(/foodie_active_zone_name=([^;]+)/)?.[1] || '') : null) || (activeZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone'))
     : (activeZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone');
 
-  const { data: availableZones = [] } = useGetAvailableZonesQuery(undefined, { skip: !isSuperAdmin });
 
-  const handleZoneChange = (newZoneId: string) => {
-    let newZoneName = 'All Zones (Global Access)';
-    if (newZoneId === 'dz-bangalore') newZoneName = 'Bangalore Zone';
-    else if (newZoneId === 'dz-tumkur') newZoneName = 'Tumkur Zone';
-    else {
-      const match = (availableZones as any[]).find((z: any) => z.id === newZoneId);
-      if (match) newZoneName = match.name || match.zoneName || newZoneId;
-    }
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('foodie_active_zone_id', newZoneId);
-      sessionStorage.setItem('foodie_active_zone_id', newZoneId);
-      localStorage.setItem('foodie_active_zone_name', newZoneName);
-      sessionStorage.setItem('foodie_active_zone_name', newZoneName);
-      document.cookie = `foodie_active_zone_id=${encodeURIComponent(newZoneId)}; path=/; max-age=86400; SameSite=Lax`;
-      document.cookie = `foodie_active_zone_name=${encodeURIComponent(newZoneName)}; path=/; max-age=86400; SameSite=Lax`;
-      window.location.reload();
-    }
-  };
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -629,39 +605,19 @@ export function AdminHeaderBar({
                 backgroundColor: '#F0FDF4',
                 border: '1px solid #BBF7D0',
                 borderRadius: 12,
-                padding: '5px 12px',
+                padding: '6px 12px',
               }}
-              title="Super Admin Operational Zone Filter"
+              title="Super Administrator: Global Access across all zones validated by credentials"
             >
-              <span style={{ fontSize: 13 }}>📍</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                Zone:
-              </span>
-              <select
-                value={activeZoneId}
-                onChange={(e) => handleZoneChange(e.target.value)}
-                style={{
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: '#14532D',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  paddingRight: 4,
-                }}
-              >
-                <option value="ALL">All Zones (Global View)</option>
-                <option value="dz-bangalore">Bangalore Zone</option>
-                <option value="dz-tumkur">Tumkur Zone</option>
-                {availableZones
-                  .filter((z: any) => z.id !== 'dz-bangalore' && z.id !== 'dz-tumkur' && z.id !== 'ALL')
-                  .map((z: any) => (
-                    <option key={z.id} value={z.id}>
-                      {z.name || z.zoneName || z.id}
-                    </option>
-                  ))}
-              </select>
+              <span style={{ fontSize: 13 }}>👑</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  Super Admin
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#14532D', whiteSpace: 'nowrap' }}>
+                  Global View (All Zones)
+                </span>
+              </div>
             </div>
           ) : assignedZone || (activeZoneId && activeZoneId !== 'ALL') ? (
             /* Locked Zone Territory Badge for Zone Admin */

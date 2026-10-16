@@ -73,6 +73,9 @@ export function isRouteAllowedForRole(pathname: string, role: string | null): bo
   // Super Admin can access all routes
   if (r === 'SUPER_ADMIN') return true;
 
+  // STRICT PRIVILEGE GUARD: User credential & role creation (/users) strictly reserved for Super Admin
+  if (pathname.startsWith('/users')) return false;
+
   // Darkstore Admin strictly isolated to darkstore module
   if (r.includes('DARKSTORE')) {
     return pathname.startsWith('/darkstore-admin') || pathname === '/login';

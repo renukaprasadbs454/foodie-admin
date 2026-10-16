@@ -294,6 +294,10 @@ export function LocationManagementPage() {
 
   const handleCreateZone = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isSuperAdmin) {
+      showToast('Creating new zones is restricted strictly to Super Administrators.');
+      return;
+    }
     if (!newZoneName.trim()) {
       alert('Please enter a Zone Name');
       return;
@@ -548,7 +552,7 @@ export function LocationManagementPage() {
       </div>
 
       {/* MULTI-ZONE CREATION DRAWER */}
-      {isCreatingZone && (
+      {isSuperAdmin && isCreatingZone && (
         <form
           onSubmit={handleCreateZone}
           style={{
