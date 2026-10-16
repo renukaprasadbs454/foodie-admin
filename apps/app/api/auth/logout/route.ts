@@ -53,11 +53,11 @@ export async function POST(request: Request) {
     },
     { status: 200 },
   );
-  for (const header of buildClearAuthSetCookieHeaders({
-    secure: ENV.cookieSecure,
-  })) {
-    response.headers.append('Set-Cookie', header);
-  }
+
+  response.cookies.set('foodie_access_token', '', { path: '/', maxAge: 0, httpOnly: true });
+  response.cookies.set('foodie_refresh_token', '', { path: '/', maxAge: 0, httpOnly: true });
+  response.cookies.delete('foodie_user_role');
+  response.cookies.delete('foodie_user_assigned_zone');
   response.cookies.delete('foodie_active_zone_id');
   response.cookies.delete('foodie_active_zone_name');
   return response;

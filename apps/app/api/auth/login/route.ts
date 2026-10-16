@@ -1,11 +1,68 @@
 import { NextResponse } from 'next/server';
 import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
   buildAuthSetCookieHeaders,
   buildClearAuthSetCookieHeaders,
 } from 'foodie-shared-web/auth';
 import { ENV } from '@/constants/env';
 import { safeFetch } from '@/lib/networkUtils';
 import { verifyPassword, getDefaultAdminUsers } from '@/lib/adminSecurity';
+
+function isSecureRequest(request: Request): boolean {
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  if (forwardedProto) {
+    return forwardedProto.split(',')[0].trim().toLowerCase() === 'https';
+  }
+  if (request.url.startsWith('https:')) {
+    return true;
+  }
+  return process.env.FOODIE_COOKIE_SECURE === 'true' || (process.env.NODE_ENV === 'production' && !request.url.includes('localhost'));
+}
+
+function applyAuthCookies(
+  response: NextResponse,
+  request: Request,
+  tokens: { accessToken: string; refreshToken: string }
+) {
+  const isSecure = isSecureRequest(request);
+  response.cookies.set(ACCESS_TOKEN_COOKIE, tokens.accessToken, {
+    path: '/',
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: 'lax',
+    maxAge: 15 * 60,
+  });
+  response.cookies.set(REFRESH_TOKEN_COOKIE, tokens.refreshToken, {
+    path: '/',
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: 'lax',
+    maxAge: 30 * 24 * 60 * 60,
+  });
+}
+
+function clearAuthCookies(response: NextResponse, request: Request) {
+  const isSecure = isSecureRequest(request);
+  response.cookies.set(ACCESS_TOKEN_COOKIE, '', {
+    path: '/',
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: 'lax',
+    maxAge: 0,
+  });
+  response.cookies.set(REFRESH_TOKEN_COOKIE, '', {
+    path: '/',
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: 'lax',
+    maxAge: 0,
+  });
+  response.cookies.delete('foodie_user_role');
+  response.cookies.delete('foodie_user_assigned_zone');
+  response.cookies.delete('foodie_active_zone_id');
+  response.cookies.delete('foodie_active_zone_name');
+}
 
 type LoginBody = {
   email?: string;
@@ -162,18 +219,10 @@ export async function POST(request: Request) {
         },
       }, { status: 200 });
 
-      for (const header of buildAuthSetCookieHeaders(
-        {
-          accessToken: userToken,
-          refreshToken: userRefresh,
-        },
-        {
-          access: { secure: ENV.cookieSecure },
-          refresh: { secure: ENV.cookieSecure },
-        },
-      )) {
-        response.headers.append('Set-Cookie', header);
-      }
+      applyAuthCookies(response, request, {
+        accessToken: userToken,
+        refreshToken: userRefresh,
+      });
 
       response.cookies.set('foodie_user_role', userRole, {
         path: '/',
@@ -217,9 +266,7 @@ export async function POST(request: Request) {
           pagination: null,
         },
       }, { status: 401 });
-      for (const header of buildClearAuthSetCookieHeaders({ secure: ENV.cookieSecure })) {
-        response.headers.append('Set-Cookie', header);
-      }
+      clearAuthCookies(response, request);
       return response;
     }
   }
@@ -294,18 +341,10 @@ export async function POST(request: Request) {
           },
           { status: upstream.status },
         );
-        for (const header of buildAuthSetCookieHeaders(
-          {
-            accessToken: envelope.data.accessToken,
-            refreshToken: envelope.data.refreshToken,
-          },
-          {
-            access: { secure: ENV.cookieSecure },
-            refresh: { secure: ENV.cookieSecure },
-          },
-        )) {
-          response.headers.append('Set-Cookie', header);
-        }
+        applyAuthCookies(response, request, {
+          accessToken: envelope.data.accessToken,
+          refreshToken: envelope.data.refreshToken,
+        });
 
         response.cookies.set('foodie_user_role', envelope.data.role, {
           path: '/',
@@ -380,18 +419,10 @@ export async function POST(request: Request) {
         },
         { status: 200 },
       );
-      for (const header of buildAuthSetCookieHeaders(
-        {
-          accessToken: realToken,
-          refreshToken: realRefresh,
-        },
-        {
-          access: { secure: ENV.cookieSecure },
-          refresh: { secure: ENV.cookieSecure },
-        },
-      )) {
-        response.headers.append('Set-Cookie', header);
-      }
+      applyAuthCookies(response, request, {
+        accessToken: realToken,
+        refreshToken: realRefresh,
+      });
 
       response.cookies.set('foodie_user_role', demo.role, {
         path: '/',
@@ -439,11 +470,7 @@ export async function POST(request: Request) {
       },
       { status: 401 },
     );
-    for (const header of buildClearAuthSetCookieHeaders({
-      secure: ENV.cookieSecure,
-    })) {
-      response.headers.append('Set-Cookie', header);
-    }
+    clearAuthCookies(response, request);
     return response;
   } catch {
     if (demo && (password === 'ChangeMe@123' || password === 'Admin@12345' || password === 'admin' || password === 'password')) {
@@ -469,18 +496,10 @@ export async function POST(request: Request) {
         },
         { status: 200 },
       );
-      for (const header of buildAuthSetCookieHeaders(
-        {
-          accessToken: `demo-admin-${demo.tokenKey}-token`,
-          refreshToken: `demo-refresh-${demo.tokenKey}-token`,
-        },
-        {
-          access: { secure: ENV.cookieSecure },
-          refresh: { secure: ENV.cookieSecure },
-        },
-      )) {
-        response.headers.append('Set-Cookie', header);
-      }
+      applyAuthCookies(response, request, {
+        accessToken: `demo-admin-${demo.tokenKey}-token`,
+        refreshToken: `demo-refresh-${demo.tokenKey}-token`,
+      });
 
       response.cookies.set('foodie_user_role', demo.role, {
         path: '/',
@@ -526,13 +545,9 @@ export async function POST(request: Request) {
           pagination: null,
         },
       },
-      { status: 502 },
+      { status: 503 },
     );
-    for (const header of buildClearAuthSetCookieHeaders({
-      secure: ENV.cookieSecure,
-    })) {
-      response.headers.append('Set-Cookie', header);
-    }
+    clearAuthCookies(response, request);
     return response;
   }
 }
