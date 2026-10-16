@@ -11,6 +11,7 @@ import {
   setRefundApprovalStatus,
   getRefundApprovalStatus,
 } from '../financialLedgerHelper';
+import { hashPassword, verifyPassword, isStrongPassword, getDefaultAdminUsers } from '@/lib/adminSecurity';
 
 /**
  * Thin BFF proxy — Blueprint §7.4 / System Design §9.4.
@@ -1344,6 +1345,24 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
   const token = accessToken || 'demo-admin-token';
   const urlObj = new URL(request.url);
 
+  // Extract user identity and zone assignment from cookies / session
+  const cookieHeader = request.headers.get('cookie') || '';
+  const userAssignedZoneCookie = cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
+  const userRoleCookie = cookieHeader.match(/foodie_user_role=([^;]+)/)?.[1];
+  let userAssignedZoneId = userAssignedZoneCookie ? decodeURIComponent(userAssignedZoneCookie) : null;
+  let userRole = userRoleCookie ? decodeURIComponent(userRoleCookie) : null;
+
+  if (globalAny.ADMIN_USERS_STORE && token) {
+    const store = globalAny.ADMIN_USERS_STORE as any[];
+    const found = store.find((u) => token.includes(u.id));
+    if (found) {
+      if (found.assignedZoneId) userAssignedZoneId = found.assignedZoneId;
+      if (found.role) userRole = found.role;
+    }
+  }
+
+  const isSuperAdmin = userRole === 'SUPER_ADMIN' || (!userAssignedZoneId && (token.includes('super_admin') || token.includes('USR-1001')));
+
   // Helper to restrict operating zones strictly to Bangalore Zone and Tumkur Zone
   const filterApprovedZones = (rawZones: any[]) => {
     const defaultBangalore = {
@@ -1373,26 +1392,73 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
       activeDrivers: 22,
     };
 
-    if (!Array.isArray(rawZones) || rawZones.length === 0) {
-      return [defaultBangalore, defaultTumkur];
+    const zoneMap = new Map<string, any>();
+    zoneMap.set('dz-bangalore', defaultBangalore);
+    zoneMap.set('dz-tumkur', defaultTumkur);
+
+    if (Array.isArray(rawZones) && rawZones.length > 0) {
+      for (const z of rawZones) {
+        if (!z || !z.id) continue;
+        const idLower = String(z.id).toLowerCase();
+        if (idLower === 'dz-bangalore') {
+          zoneMap.set('dz-bangalore', { ...defaultBangalore, ...z, id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: z.cityName || 'Bangalore' });
+        } else if (idLower === 'dz-tumkur') {
+          zoneMap.set('dz-tumkur', { ...defaultTumkur, ...z, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: z.cityName || 'Tumkur' });
+        } else if (z.status === 'ACTIVE' || !z.status) {
+          zoneMap.set(idLower, {
+            id: z.id,
+            zoneName: z.zoneName || z.id,
+            cityName: z.cityName || 'Karnataka',
+            latitude: z.latitude || 12.9716,
+            longitude: z.longitude || 77.5946,
+            radiusKm: z.radiusKm || 15.0,
+            status: 'ACTIVE',
+            restaurantEnabled: z.restaurantEnabled ?? true,
+            deliveryPartnerEnabled: z.deliveryPartnerEnabled ?? true,
+            customerOrderingEnabled: z.customerOrderingEnabled ?? true,
+            activeDrivers: z.activeDrivers ?? 10,
+          });
+        }
+      }
     }
 
-    const bgl = rawZones.find((z: any) => {
-      const name = String(z.zoneName || '').trim().toLowerCase();
-      const id = String(z.id || '').trim().toLowerCase();
-      return (id === 'dz-bangalore' || name === 'bangalore zone') && name !== 'bengaluru zone';
+    if (globalAny.ADMIN_USERS_STORE) {
+      for (const u of (globalAny.ADMIN_USERS_STORE as any[])) {
+        if (u.assignedZoneId) {
+          const zIdLower = u.assignedZoneId.trim().toLowerCase();
+          if (!zoneMap.has(zIdLower)) {
+            zoneMap.set(zIdLower, {
+              id: u.assignedZoneId.trim(),
+              zoneName: u.assignedZoneName || u.assignedZoneId.trim(),
+              cityName: 'Karnataka',
+              latitude: 12.9716,
+              longitude: 77.5946,
+              radiusKm: 15.0,
+              status: 'ACTIVE',
+              restaurantEnabled: true,
+              deliveryPartnerEnabled: true,
+              customerOrderingEnabled: true,
+              activeDrivers: 10,
+            });
+          }
+        }
+      }
+    }
+
+    let allZones = Array.from(zoneMap.values()).sort((a, b) => {
+      if (a.id.toLowerCase() === 'dz-bangalore') return -1;
+      if (b.id.toLowerCase() === 'dz-bangalore') return 1;
+      if (a.id.toLowerCase() === 'dz-tumkur') return -1;
+      if (b.id.toLowerCase() === 'dz-tumkur') return 1;
+      return (a.zoneName || a.id).localeCompare(b.zoneName || b.id);
     });
 
-    const tmk = rawZones.find((z: any) => {
-      const name = String(z.zoneName || '').trim().toLowerCase();
-      const id = String(z.id || '').trim().toLowerCase();
-      return (id === 'dz-tumkur' || name === 'tumkur zone') && name !== 'tumkur zone 1';
-    });
+    // Zone data isolation: Non-super-admins only see their assigned operating zone
+    if (!isSuperAdmin && userAssignedZoneId) {
+      return allZones.filter((z) => z.id.toLowerCase() === userAssignedZoneId!.toLowerCase());
+    }
 
-    return [
-      bgl ? { ...bgl, id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: 'Bangalore' } : defaultBangalore,
-      tmk ? { ...tmk, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: 'Tumkur' } : defaultTumkur,
-    ];
+    return allZones;
   };
 
   // 1. GET admin/zones/available
@@ -1462,6 +1528,19 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
 
     const selectedZoneId = isBangalore ? 'dz-bangalore' : 'dz-tumkur';
     const selectedZoneName = isBangalore ? 'Bangalore Zone' : 'Tumkur Zone';
+
+    // Backend Security: Prevent cross-zone access
+    if (!isSuperAdmin && userAssignedZoneId && selectedZoneId.toLowerCase() !== userAssignedZoneId.toLowerCase()) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: {
+          code: 'FORBIDDEN',
+          message: `Access denied: Your account is restricted to operating zone '${userAssignedZoneId}'. Cross-zone selection is prohibited.`,
+        },
+        meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+      }, { status: 403 });
+    }
 
     try {
       const { response: upstream } = await safeFetch(`${backendUrl}/api/v1/admin/zones/select`, {
@@ -1867,6 +1946,28 @@ async function proxy(request: Request, pathSegments: string[]) {
     let role = 'SUPER_ADMIN';
     let fullName = 'Admin Operator';
     let email = 'admin@foodie.local';
+    let assignedZoneId: string | null = null;
+    let assignedZoneName: string | null = null;
+
+    if (globalAny.ADMIN_USERS_STORE) {
+      const store = globalAny.ADMIN_USERS_STORE as any[];
+      const found = store.find((u) => rawAccessToken && rawAccessToken.includes(u.id));
+      if (found) {
+        role = found.role || role;
+        fullName = found.fullName || fullName;
+        email = found.email || email;
+        assignedZoneId = found.assignedZoneId || null;
+        assignedZoneName = found.assignedZoneName || null;
+      }
+    }
+
+    if (!assignedZoneId) {
+      const zoneCookie = cookieHeader?.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] ||
+        cookieHeader?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
+      if (zoneCookie) {
+        assignedZoneId = decodeURIComponent(zoneCookie);
+      }
+    }
 
     if (rawAccessToken.includes('auditor') || rawAccessToken.includes('audit')) {
       role = 'AUDITOR';
@@ -1902,6 +2003,8 @@ async function proxy(request: Request, pathSegments: string[]) {
         fullName,
         role,
         status: 'ACTIVE',
+        assignedZoneId,
+        assignedZoneName,
         permissions: ['*'],
       },
       error: null,
@@ -1922,74 +2025,38 @@ async function proxy(request: Request, pathSegments: string[]) {
     }
   }
 
-const DEFAULT_ADMIN_USERS = [
-  {
-    id: 'USR-1001',
-    fullName: 'Admin Operator',
-    email: 'admin@foodie.local',
-    phone: '+91 98000 00001',
-    role: 'SUPER_ADMIN',
-    accountStatus: 'ACTIVE',
-    joinedDate: '2025-01-10',
-    lastActive: 'Just now',
-    department: 'Executive Operations',
-  },
-  {
-    id: 'USR-1002',
-    fullName: 'Operations Admin',
-    email: 'ops@foodie.local',
-    phone: '+91 98000 00002',
-    role: 'OPS',
-    accountStatus: 'ACTIVE',
-    joinedDate: '2025-03-15',
-    lastActive: '12 mins ago',
-    department: 'Logistics & Merchant Ops',
-  },
-  {
-    id: 'USR-1003',
-    fullName: 'Finance Admin',
-    email: 'finance@foodie.local',
-    phone: '+91 98000 00003',
-    role: 'FINANCE',
-    accountStatus: 'ACTIVE',
-    joinedDate: '2025-06-20',
-    lastActive: '1 hour ago',
-    department: 'Corporate Finance & Payouts',
-  },
-  {
-    id: 'USR-1004',
-    fullName: 'Support Agent',
-    email: 'support@foodie.local',
-    phone: '+91 98000 00004',
-    role: 'SUPPORT',
-    accountStatus: 'ACTIVE',
-    joinedDate: '2025-09-01',
-    lastActive: '25 mins ago',
-    department: 'Customer Escalations Desk',
-  },
-  {
-    id: 'USR-1005',
-    fullName: 'Compliance Auditor',
-    email: 'auditor@foodie.local',
-    phone: '+91 98000 00005',
-    role: 'AUDITOR',
-    accountStatus: 'ACTIVE',
-    joinedDate: '2026-01-15',
-    lastActive: '2 hours ago',
-    department: 'Compliance & Risk Audit',
-  },
-];
-
 async function handleAdminUsers(request: Request, targetPath: string, accessToken: string | null) {
   if (!globalAny.ADMIN_USERS_STORE) {
-    globalAny.ADMIN_USERS_STORE = [...DEFAULT_ADMIN_USERS];
+    globalAny.ADMIN_USERS_STORE = getDefaultAdminUsers();
   }
-  const usersStore = globalAny.ADMIN_USERS_STORE as any[];
+  let usersStore = globalAny.ADMIN_USERS_STORE as any[];
+
+  // Automatically deduplicate usersStore by normalized email address
+  const seenEmails = new Set<string>();
+  const cleanUsers: any[] = [];
+  // Sort by numeric ID ascending so canonical accounts (e.g. USR-1006, USR-1007, USR-1008) are preserved and any duplicate entries are purged
+  const sorted = [...usersStore].sort((a, b) => {
+    const numA = parseInt(String(a.id || '').replace(/\D/g, '') || '9999', 10);
+    const numB = parseInt(String(b.id || '').replace(/\D/g, '') || '9999', 10);
+    return numA - numB;
+  });
+
+  for (const u of sorted) {
+    if (!u || !u.email) continue;
+    const emailKey = u.email.trim().toLowerCase();
+    if (!seenEmails.has(emailKey)) {
+      seenEmails.add(emailKey);
+      cleanUsers.push(u);
+    }
+  }
+  usersStore = cleanUsers;
+  globalAny.ADMIN_USERS_STORE = cleanUsers;
 
   if (request.method === 'GET' && targetPath === 'admin/users') {
+    const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => rest);
     return NextResponse.json({
       success: true,
-      data: usersStore,
+      data: safeUsers,
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
     }, { status: 200 });
@@ -1998,31 +2065,124 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
   if (request.method === 'POST' && targetPath === 'admin/users') {
     let body: any = {};
     try { body = await request.json(); } catch { body = {}; }
+
+    // Email validation
+    const rawEmail = typeof body.email === 'string' ? body.email.trim() : '';
+    if (!rawEmail) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: 'Email is required when provisioning an administrative user.',
+        },
+      }, { status: 400 });
+    }
+    const normalizedEmail = rawEmail.toLowerCase();
+
+    // Password validation: required and strong password validation
+    const rawPassword = typeof body.password === 'string' ? body.password : '';
+    if (!rawPassword) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: 'Password is required when provisioning an administrative user.',
+        },
+      }, { status: 400 });
+    }
+
+    if (!isStrongPassword(rawPassword)) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: 'Password must be at least 8 characters long and contain uppercase, lowercase, and a number or symbol.',
+        },
+      }, { status: 400 });
+    }
+
+    const passwordHash = hashPassword(rawPassword);
+
+    // Check if user already exists by normalized email
+    const existingIndex = usersStore.findIndex(
+      (u) => u.email && u.email.trim().toLowerCase() === normalizedEmail
+    );
+
+    if (existingIndex !== -1) {
+      // Idempotently update the existing account without creating duplicate IDs
+      const existingUser = usersStore[existingIndex];
+      if (body.fullName) existingUser.fullName = body.fullName;
+      if (body.phone) existingUser.phone = body.phone;
+      if (body.role) existingUser.role = body.role;
+      if (body.department) existingUser.department = body.department;
+      if (body.assignedZoneId !== undefined) {
+        existingUser.assignedZoneId = body.assignedZoneId || null;
+        existingUser.assignedZoneName = body.assignedZoneName || (body.assignedZoneId ? (body.assignedZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone') : null);
+      }
+      if (rawPassword) {
+        existingUser.passwordHash = passwordHash;
+      }
+      globalAny.ADMIN_USERS_STORE = usersStore;
+
+      const { passwordHash: _, ...safeUser } = existingUser;
+      return NextResponse.json({
+        success: true,
+        data: safeUser,
+        error: null,
+        meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+      }, { status: 200 });
+    }
+
+    // New unique admin user: allocate next highest unique ID
+    let maxIdNum = 1000;
+    for (const u of usersStore) {
+      const match = String(u.id || '').match(/^USR-(\d+)$/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxIdNum) {
+          maxIdNum = num;
+        }
+      }
+    }
+    const newId = `USR-${maxIdNum + 1}`;
+
     const newUser = {
-      id: `USR-${1000 + usersStore.length + 1}`,
+      id: newId,
       fullName: body.fullName || 'New Admin User',
-      email: body.email || 'user@foodie.local',
+      email: normalizedEmail,
       phone: body.phone || '+91 98000 00000',
       role: body.role || 'OPS',
       accountStatus: 'ACTIVE',
       joinedDate: new Date().toISOString().split('T')[0],
       lastActive: 'Just Provisioned',
       department: body.department || 'Platform Administration',
+      assignedZoneId: body.assignedZoneId || null,
+      assignedZoneName: body.assignedZoneName || (body.assignedZoneId ? (body.assignedZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone') : null),
+      passwordHash,
     };
-    usersStore.unshift(newUser);
+    usersStore.push(newUser);
     globalAny.ADMIN_USERS_STORE = usersStore;
 
     const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
     safeFetch(`${backendUrl}/api/v1/admin/users`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken || 'demo-admin-token'}` },
-      body: JSON.stringify({ fullName: newUser.fullName, phoneNumber: newUser.phone, email: newUser.email, role: newUser.role }),
-      timeoutMs: 5000,
+      body: JSON.stringify({
+        fullName: newUser.fullName,
+        phoneNumber: newUser.phone,
+        email: newUser.email,
+        role: newUser.role,
+        password: rawPassword,
+        assignedZoneId: newUser.assignedZoneId,
+      }),
+      timeoutMs: 1500,
     }).catch(() => null);
+
+    const { passwordHash: _, ...safeUser } = newUser;
 
     return NextResponse.json({
       success: true,
-      data: newUser,
+      data: safeUser,
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
     }, { status: 201 });
@@ -2037,9 +2197,10 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     if (targetUser) {
       targetUser.role = body.role || targetUser.role;
     }
+    const safeTarget = targetUser ? (({ passwordHash: _, ...rest }) => rest)(targetUser) : null;
     return NextResponse.json({
       success: true,
-      data: targetUser || null,
+      data: safeTarget,
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
     }, { status: 200 });
@@ -2054,21 +2215,211 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     if (targetUser) {
       targetUser.accountStatus = body.status || (targetUser.accountStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE');
     }
+    const safeTarget = targetUser ? (({ passwordHash: _, ...rest }) => rest)(targetUser) : null;
     return NextResponse.json({
       success: true,
-      data: targetUser || null,
+      data: safeTarget,
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
     }, { status: 200 });
   }
 
+  const passwordMatch = targetPath.match(/^admin\/users\/([^/]+)\/password$/);
+  if ((request.method === 'PATCH' || request.method === 'POST') && passwordMatch) {
+    const userId = decodeURIComponent(passwordMatch[1]);
+    let body: any = {};
+    try { body = await request.json(); } catch { body = {}; }
+    const rawPassword = typeof body.password === 'string' ? body.password : '';
+    if (!rawPassword || !isStrongPassword(rawPassword)) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: 'Password must be at least 8 characters long and contain uppercase, lowercase, and a number or symbol.',
+        },
+      }, { status: 400 });
+    }
+
+    const targetUser = usersStore.find(
+      (u) => u.id === userId ||
+             u.id.toLowerCase() === userId.toLowerCase() ||
+             (body.email && u.email && u.email.toLowerCase() === body.email.toLowerCase()) ||
+             (u.email && u.email.toLowerCase() === userId.toLowerCase())
+    );
+
+    if (!targetUser) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Admin user not found' },
+      }, { status: 404 });
+    }
+
+    targetUser.passwordHash = hashPassword(rawPassword);
+    globalAny.ADMIN_USERS_STORE = usersStore;
+
+    // Upstream sync if backend is active
+    const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+    safeFetch(`${backendUrl}/api/v1/admin/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken || 'demo-admin-token'}` },
+      body: JSON.stringify({
+        fullName: targetUser.fullName,
+        phoneNumber: targetUser.phone,
+        email: targetUser.email,
+        role: targetUser.role,
+        password: rawPassword,
+        assignedZoneId: targetUser.assignedZoneId,
+      }),
+      timeoutMs: 1500,
+    }).catch(() => null);
+
+    const safeTarget = (({ passwordHash: _, ...rest }) => rest)(targetUser);
+    return NextResponse.json({
+      success: true,
+      data: safeTarget,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => rest);
   return NextResponse.json({
     success: true,
-    data: usersStore,
+    data: safeUsers,
     error: null,
     meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
   }, { status: 200 });
 }
+
+async function handleAdminRoles() {
+  const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+  try {
+    const { response: upstream } = await safeFetch(`${backendUrl}/api/v1/auth/admin-roles`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      timeoutMs: 3000,
+    });
+    if (upstream && upstream.ok) {
+      const json = await upstream.json();
+      const rawData = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+      if (rawData.length > 0) {
+        return NextResponse.json(json, { status: 200 });
+      }
+    }
+  } catch {}
+
+  const defaultBangalore = { id: 'dz-bangalore', zoneName: 'Bangalore Zone' };
+  const defaultTumkur = { id: 'dz-tumkur', zoneName: 'Tumkur Zone' };
+
+  const zonesMap = new Map<string, { id: string; zoneName: string }>();
+  zonesMap.set('dz-bangalore', defaultBangalore);
+  zonesMap.set('dz-tumkur', defaultTumkur);
+
+  const globalAny = global as unknown as Record<string, unknown>;
+  const usersStore = (globalAny.ADMIN_USERS_STORE as any[]) || [];
+  for (const u of usersStore) {
+    if (u.assignedZoneId) {
+      const cleanId = u.assignedZoneId.trim().toLowerCase();
+      if (!zonesMap.has(cleanId)) {
+        zonesMap.set(cleanId, {
+          id: u.assignedZoneId.trim(),
+          zoneName: u.assignedZoneName || u.assignedZoneId.trim(),
+        });
+      }
+    }
+  }
+
+  const sortedZones = Array.from(zonesMap.values()).sort((a, b) => {
+    if (a.id.toLowerCase() === 'dz-bangalore') return -1;
+    if (b.id.toLowerCase() === 'dz-bangalore') return 1;
+    if (a.id.toLowerCase() === 'dz-tumkur') return -1;
+    if (b.id.toLowerCase() === 'dz-tumkur') return 1;
+    return a.zoneName.localeCompare(b.zoneName);
+  });
+
+  const options: any[] = [];
+  options.push({ key: 'SUPER_ADMIN', role: 'SUPER_ADMIN', label: 'Super Admin', zoneId: null, zoneName: null, defaultEmail: 'admin@foodie.local' });
+
+  for (const z of sortedZones) {
+    const userForZone = usersStore.find((u) => u.assignedZoneId && u.assignedZoneId.toLowerCase() === z.id.toLowerCase());
+    const role = userForZone?.role || 'OPS';
+    const email = userForZone?.email || (z.id === 'dz-bangalore' ? 'ops@foodie.local' : (z.id === 'dz-tumkur' ? 'finance@foodie.local' : null));
+    const label = z.zoneName.toLowerCase().endsWith('admin') ? z.zoneName : (z.zoneName.toLowerCase().endsWith('zone') ? `${z.zoneName} Admin` : `${z.zoneName} Zone Admin`);
+    options.push({ key: `ZONE_ADMIN_${z.id}`, role, label, zoneId: z.id, zoneName: z.zoneName, defaultEmail: email });
+  }
+
+  options.push({ key: 'AUDITOR', role: 'AUDITOR', label: 'Compliance Auditor', defaultEmail: 'auditor@foodie.local' });
+  options.push({ key: 'FINANCE_ADMIN', role: 'FINANCE_ADMIN', label: 'Finance Admin', defaultEmail: 'finance@foodie.local' });
+  options.push({ key: 'OPERATIONS_ADMIN', role: 'OPERATIONS_ADMIN', label: 'Operations Admin', defaultEmail: 'ops@foodie.local' });
+  options.push({ key: 'RESTAURANT_MANAGER', role: 'RESTAURANT_MANAGER', label: 'Restaurant Manager', defaultEmail: 'manager@foodie.local' });
+  options.push({ key: 'SUPPORT_AGENT', role: 'SUPPORT_AGENT', label: 'Support Agent', defaultEmail: 'support@foodie.local' });
+  options.push({ key: 'DARKSTORE_ADMIN', role: 'DARKSTORE_ADMIN', label: 'Darkstore Admin', defaultEmail: 'darkstore@foodie.local' });
+
+  return NextResponse.json({
+    success: true,
+    data: options,
+    error: null,
+    meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+  }, { status: 200 });
+}
+
+  if (targetPath === 'auth/roles' || targetPath === 'auth/admin-roles' || targetPath === 'admin/roles') {
+    return handleAdminRoles();
+  }
+
+  // Early cross-zone validation: non-super-admins cannot mutate other zones
+  const incomingReqUrl = new URL(request.url);
+  const userAssignedZoneCookieEarly = cookieHeader?.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
+  const userRoleCookieEarly = cookieHeader?.match(/foodie_user_role=([^;]+)/)?.[1];
+  let earlyAssignedZoneId = userAssignedZoneCookieEarly ? decodeURIComponent(userAssignedZoneCookieEarly) : null;
+  let earlyUserRole = userRoleCookieEarly ? decodeURIComponent(userRoleCookieEarly) : null;
+
+  if (globalAny.ADMIN_USERS_STORE && accessToken) {
+    const store = globalAny.ADMIN_USERS_STORE as any[];
+    const found = store.find((u) => accessToken.includes(u.id));
+    if (found) {
+      if (found.assignedZoneId) earlyAssignedZoneId = found.assignedZoneId;
+      if (found.role) earlyUserRole = found.role;
+    }
+  }
+
+  const isEarlySuperAdmin = earlyUserRole === 'SUPER_ADMIN' || (!earlyAssignedZoneId && (accessToken?.includes('super_admin') || accessToken?.includes('USR-1001')));
+
+  if (!isEarlySuperAdmin && earlyAssignedZoneId) {
+    const explicitTargetZone = request.headers.get('x-active-zone-id') ||
+      incomingReqUrl.searchParams.get('zoneId');
+
+    if (explicitTargetZone) {
+      const cleanTarget = decodeURIComponent(explicitTargetZone).trim().toLowerCase();
+      const cleanAssigned = earlyAssignedZoneId.trim().toLowerCase();
+      if (cleanTarget === 'all' || cleanTarget !== cleanAssigned) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Cross-zone access denied: Your account is restricted to operating zone '${earlyAssignedZoneId}'.`,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    }
+
+    const cookieZone = request.headers.get('cookie')?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
+    if (cookieZone && decodeURIComponent(cookieZone).trim().toLowerCase() !== earlyAssignedZoneId.trim().toLowerCase()) {
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Cross-zone operation denied: Your account is restricted to operating zone '${earlyAssignedZoneId}'.`,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    }
+  }
 
   if (targetPath.startsWith('admin/notifications')) {
     return handleAdminNotifications(request, targetPath, accessToken);
@@ -2189,16 +2540,91 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
   if (contentType) headers.set('Content-Type', contentType);
   const idempotency = request.headers.get('idempotency-key');
   if (idempotency) headers.set('Idempotency-Key', idempotency);
+
   const incomingActiveZone = request.headers.get('x-active-zone-id') ||
     request.headers.get('cookie')?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
-  if (incomingActiveZone) {
+
+  const userAssignedZoneCookie = cookieHeader?.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
+  const userRoleCookie = cookieHeader?.match(/foodie_user_role=([^;]+)/)?.[1];
+  let userAssignedZoneId = userAssignedZoneCookie ? decodeURIComponent(userAssignedZoneCookie) : null;
+  let userRole = userRoleCookie ? decodeURIComponent(userRoleCookie) : null;
+
+  if (globalAny.ADMIN_USERS_STORE && accessToken) {
+    const store = globalAny.ADMIN_USERS_STORE as any[];
+    const found = store.find((u) => accessToken.includes(u.id));
+    if (found) {
+      if (found.assignedZoneId) userAssignedZoneId = found.assignedZoneId;
+      if (found.role) userRole = found.role;
+    }
+  }
+
+  const isSuperAdmin = userRole === 'SUPER_ADMIN' || (!userAssignedZoneId && (accessToken.includes('super_admin') || accessToken.includes('USR-1001')));
+
+  // Backend Security & Data Isolation Enforcement (Task items 4, 5, 6)
+  if (!isSuperAdmin && userAssignedZoneId) {
+    const explicitZone = request.headers.get('x-active-zone-id') ||
+      incomingUrl.searchParams.get('zoneId');
+
+    if (explicitZone) {
+      const cleanExplicit = decodeURIComponent(explicitZone).trim().toLowerCase();
+      const cleanAssigned = userAssignedZoneId.trim().toLowerCase();
+      if (cleanExplicit === 'all' || cleanExplicit !== cleanAssigned) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Cross-zone access denied: Your account is restricted to operating zone '${userAssignedZoneId}'.`,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    }
+
+    const anyTargetZone = explicitZone ||
+      request.headers.get('cookie')?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
+
+    if (anyTargetZone && decodeURIComponent(anyTargetZone).trim().toLowerCase() !== userAssignedZoneId.trim().toLowerCase()) {
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Cross-zone operation denied: Your account is restricted to operating zone '${userAssignedZoneId}'.`,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    }
+
+    // For authorized operations, enforce data isolation by pinning active zone header and query param to user's assigned zone
+    headers.set('X-Active-Zone-Id', userAssignedZoneId);
+    if (incomingUrl.searchParams.has('zoneId')) {
+      incomingUrl.searchParams.set('zoneId', userAssignedZoneId);
+    }
+  } else if (incomingActiveZone) {
     headers.set('X-Active-Zone-Id', decodeURIComponent(incomingActiveZone));
   }
 
   if (accessToken.startsWith('demo-') && targetPath.includes('admin/users/me')) {
-    let role = 'SUPER_ADMIN';
+    let role = userRole || 'SUPER_ADMIN';
     let fullName = 'Admin Operator';
     let email = 'admin@foodie.local';
+    let assignedZoneId: string | null = userAssignedZoneId || null;
+    let assignedZoneName: string | null = null;
+
+    if (globalAny.ADMIN_USERS_STORE) {
+      const store = globalAny.ADMIN_USERS_STORE as any[];
+      const found = store.find((u) => accessToken && accessToken.includes(u.id));
+      if (found) {
+        role = found.role || role;
+        fullName = found.fullName || fullName;
+        email = found.email || email;
+        assignedZoneId = found.assignedZoneId || assignedZoneId;
+        assignedZoneName = found.assignedZoneName || null;
+      }
+    }
 
     if (accessToken.includes('auditor') || accessToken.includes('audit')) {
       role = 'AUDITOR';
@@ -2234,6 +2660,8 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
         fullName,
         role,
         status: 'ACTIVE',
+        assignedZoneId,
+        assignedZoneName,
         permissions: ['*'],
       },
       error: null,
@@ -2741,6 +3169,77 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
           expiresAt: Date.now() + 20_000,
         });
         responseHeaders['X-Cache'] = 'MISS';
+      }
+
+      if (!isSuperAdmin && userAssignedZoneId && contentType.includes('application/json')) {
+        try {
+          const text = Buffer.from(body).toString('utf-8');
+          const json = JSON.parse(text);
+          if (json && json.data) {
+            const cleanAssigned = userAssignedZoneId.trim().toLowerCase();
+            const isMatch = (item: any) => {
+              if (!item || typeof item !== 'object') return true;
+              const z = item.zoneId || item.assignedZoneId || item.zone?.id;
+              if (z && typeof z === 'string') {
+                return z.trim().toLowerCase() === cleanAssigned;
+              }
+              return true;
+            };
+
+            // Single item detail check
+            if (json.data && !Array.isArray(json.data) && !json.data.items && !json.data.content && !json.data.customers) {
+              const singleZone = json.data.zoneId || json.data.assignedZoneId || json.data.zone?.id;
+              if (singleZone && typeof singleZone === 'string' && singleZone.trim().toLowerCase() !== cleanAssigned) {
+                return NextResponse.json({
+                  success: false,
+                  data: null,
+                  error: {
+                    code: 'FORBIDDEN',
+                    message: `Cross-zone access denied: Resource belongs to another operating zone.`,
+                  },
+                  meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+                }, { status: 403 });
+              }
+            }
+
+            let modified = false;
+            if (Array.isArray(json.data)) {
+              const origLen = json.data.length;
+              json.data = json.data.filter(isMatch);
+              if (json.data.length !== origLen) modified = true;
+            } else if (json.data.items && Array.isArray(json.data.items)) {
+              const origLen = json.data.items.length;
+              json.data.items = json.data.items.filter(isMatch);
+              if (json.data.items.length !== origLen) {
+                if (json.data.pagination) json.data.pagination.totalItems = json.data.items.length;
+                modified = true;
+              }
+            } else if (json.data.content && Array.isArray(json.data.content)) {
+              const origLen = json.data.content.length;
+              json.data.content = json.data.content.filter(isMatch);
+              if (json.data.content.length !== origLen) {
+                json.data.totalElements = json.data.content.length;
+                modified = true;
+              }
+            } else if (json.data.customers && Array.isArray(json.data.customers)) {
+              const origLen = json.data.customers.length;
+              json.data.customers = json.data.customers.filter(isMatch);
+              if (json.data.customers.length !== origLen) {
+                json.data.total = json.data.customers.length;
+                if (json.data.summary) json.data.summary.totalRegistered = json.data.customers.length;
+                modified = true;
+              }
+            }
+
+            if (modified) {
+              const newBuf = Buffer.from(JSON.stringify(json));
+              return new NextResponse(newBuf, {
+                status: upstream.status,
+                headers: responseHeaders,
+              });
+            }
+          }
+        } catch {}
       }
 
       return new NextResponse(body, {

@@ -10,19 +10,126 @@ import {
   useCreateAdminUserMutation,
   useUpdateAdminUserRoleMutation,
   useUpdateAdminUserStatusMutation,
+  useUpdateAdminUserPasswordMutation,
 } from '@/api/endpoints/usersApi';
 import {
   useGetZoneLoginHistoryQuery,
   useGetAvailableZonesQuery,
 } from '@/api/endpoints/zoneApi';
 
+const DEFAULT_ZONE_ADMIN_PASSWORDS: Record<string, string> = {
+  'blr.admin@foodie.local': 'BlrSecure@2026',
+  'tmk.admin@foodie.local': 'TmkSecure@2026',
+  'mysuru.admin@foodie.local': 'MysuruPass@2026',
+};
+
 export function UserManagementStudio() {
   const { data: rawUsers = [], isLoading, isError, refetch } = useGetAdminUsersQuery();
   const [createAdminUser] = useCreateAdminUserMutation();
   const [updateAdminUserRole] = useUpdateAdminUserRoleMutation();
   const [updateAdminUserStatus] = useUpdateAdminUserStatusMutation();
+  const [updateAdminUserPassword] = useUpdateAdminUserPasswordMutation();
 
-  const users: AdminUser[] = rawUsers;
+  const [adminPasswords, setAdminPasswords] = useState<Record<string, string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('foodie_admin_passwords');
+        if (stored) {
+          return { ...DEFAULT_ZONE_ADMIN_PASSWORDS, ...JSON.parse(stored) };
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return DEFAULT_ZONE_ADMIN_PASSWORDS;
+  });
+
+  const saveAdminPassword = (email: string, pass: string) => {
+    const key = email.toLowerCase().trim();
+    setAdminPasswords((prev) => {
+      const next = { ...prev, [key]: pass };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('foodie_admin_passwords', JSON.stringify(next));
+        } catch {}
+      }
+      return next;
+    });
+  };
+
+  const [revealedPasswordIds, setRevealedPasswordIds] = useState<Set<string>>(new Set());
+  const togglePasswordReveal = (userId: string) => {
+    setRevealedPasswordIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
+  const handleCopyPassword = (userId: string, pass: string) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(pass);
+      setCopiedUserId(userId);
+      showToast('Password copied to clipboard');
+      setTimeout(() => setCopiedUserId(null), 2000);
+    }
+  };
+
+  const [selectedUserForPasswordReset, setSelectedUserForPasswordReset] = useState<AdminUser | null>(null);
+  const [resetPasswordInput, setResetPasswordInput] = useState('');
+  const [showResetPasswordInput, setShowResetPasswordInput] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+
+  const isResetPasswordLengthValid = resetPasswordInput.length >= 8;
+  const hasResetUpperCase = /[A-Z]/.test(resetPasswordInput);
+  const hasResetLowerCase = /[a-z]/.test(resetPasswordInput);
+  const hasResetNumberOrSymbol = /[0-9!@#$%^&*(),.?":{}|<>]/.test(resetPasswordInput);
+  const isResetPasswordValid = isResetPasswordLengthValid && hasResetUpperCase && hasResetLowerCase && hasResetNumberOrSymbol;
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUserForPasswordReset) return;
+    if (!isResetPasswordValid) {
+      showToast('Password must be at least 8 characters and include uppercase, lowercase, and a number or symbol.');
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      await updateAdminUserPassword({
+        userId: selectedUserForPasswordReset.id,
+        email: selectedUserForPasswordReset.email,
+        password: resetPasswordInput,
+      }).unwrap();
+
+      saveAdminPassword(selectedUserForPasswordReset.email, resetPasswordInput);
+      showToast(`Password successfully updated for ${selectedUserForPasswordReset.fullName}`);
+      setSelectedUserForPasswordReset(null);
+      setResetPasswordInput('');
+      setShowResetPasswordInput(false);
+      refetch();
+    } catch {
+      showToast(`Failed to reset password for ${selectedUserForPasswordReset.fullName}`);
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const users: AdminUser[] = React.useMemo(() => {
+    const seen = new Set<string>();
+    const deduplicated: AdminUser[] = [];
+    for (const u of rawUsers) {
+      if (!u) continue;
+      const key = (u.email || u.id || '').trim().toLowerCase();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(u);
+      }
+    }
+    return deduplicated;
+  }, [rawUsers]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -77,6 +184,16 @@ export function UserManagementStudio() {
   const [newPhone, setNewPhone] = useState('');
   const [newRole, setNewRole] = useState<AdminRole>('OPS');
   const [newDept, setNewDept] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [newAssignedZoneId, setNewAssignedZoneId] = useState('ALL');
+
+  // Password validation criteria
+  const isPasswordLengthValid = newPassword.length >= 8;
+  const hasUpperCase = /[A-Z]/.test(newPassword);
+  const hasLowerCase = /[a-z]/.test(newPassword);
+  const hasNumberOrSymbol = /[0-9!@#$%^&*(),.?":{}|<>]/.test(newPassword);
+  const isPasswordValid = isPasswordLengthValid && hasUpperCase && hasLowerCase && hasNumberOrSymbol;
 
   const [selectedUserForStatus, setSelectedUserForStatus] = useState<AdminUser | null>(null);
   const [selectedUserForRole, setSelectedUserForRole] = useState<AdminUser | null>(null);
@@ -92,7 +209,9 @@ export function UserManagementStudio() {
       u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.phone.includes(searchQuery) ||
-      u.id.toLowerCase().includes(searchQuery.toLowerCase());
+      u.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.assignedZoneName && u.assignedZoneName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.assignedZoneId && u.assignedZoneId.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
     const matchesStatus = statusFilter === 'ALL' || u.accountStatus === statusFilter;
@@ -104,6 +223,16 @@ export function UserManagementStudio() {
     e.preventDefault();
     if (!newFullName || !newEmail || !newPhone) return;
 
+    if (!isPasswordValid) {
+      showToast('Password must be at least 8 characters and include uppercase, lowercase, and a number or symbol.');
+      return;
+    }
+
+    const assignedZoneObj = availableZones.find((z) => z.id === newAssignedZoneId);
+    const assignedZoneName = newAssignedZoneId === 'ALL'
+      ? 'All Zones'
+      : (assignedZoneObj?.zoneName || (newAssignedZoneId === 'dz-bangalore' ? 'Bangalore Zone' : (newAssignedZoneId === 'dz-tumkur' ? 'Tumkur Zone' : newAssignedZoneId)));
+
     try {
       await createAdminUser({
         fullName: newFullName,
@@ -111,7 +240,12 @@ export function UserManagementStudio() {
         phone: newPhone,
         role: newRole,
         department: newDept || 'Platform Administration',
+        password: newPassword,
+        assignedZoneId: newAssignedZoneId === 'ALL' ? undefined : newAssignedZoneId,
+        assignedZoneName,
       }).unwrap();
+
+      saveAdminPassword(newEmail, newPassword);
 
       showToast(`Successfully provisioned admin user: ${newFullName} (${newRole})`);
 
@@ -121,6 +255,9 @@ export function UserManagementStudio() {
       setNewPhone('');
       setNewRole('OPS');
       setNewDept('');
+      setNewPassword('');
+      setShowPassword(false);
+      setNewAssignedZoneId('ALL');
       setIsCreateModalOpen(false);
       refetch();
     } catch {
@@ -368,7 +505,8 @@ export function UserManagementStudio() {
                 <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Staff Member</th>
                 <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Info</th>
                 <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Role Privilege</th>
-                <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Department</th>
+                <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Password</th>
+                <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assigned Zone</th>
                 <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
                 <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Last Active</th>
                 <th style={{ padding: '12px 16px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
@@ -377,19 +515,19 @@ export function UserManagementStudio() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: '#2196F3', fontWeight: 600 }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: '#2196F3', fontWeight: 600 }}>
                     Loading administrative user directory from backend...
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: '#EF4444', fontWeight: 600 }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: '#EF4444', fontWeight: 600 }}>
                     Failed to fetch user directory from backend.
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: '#6B7280', fontWeight: 500 }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '36px', color: '#6B7280', fontWeight: 500 }}>
                     No administrative users match the filter criteria.
                   </td>
                 </tr>
@@ -447,8 +585,160 @@ export function UserManagementStudio() {
                         </span>
                       </td>
 
-                      <td style={{ padding: '14px 16px', color: '#6B7280', fontWeight: 500 }}>
-                        {user.department}
+                      <td style={{ padding: '14px 16px' }}>
+                        {(() => {
+                          const emailKey = (user.email || '').toLowerCase().trim();
+                          const adminPassword = adminPasswords[emailKey] || adminPasswords[user.id];
+                          const isRevealed = revealedPasswordIds.has(user.id);
+                          const isCopied = copiedUserId === user.id;
+
+                          if (adminPassword) {
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
+                                <div
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    padding: '4px 8px',
+                                    borderRadius: 8,
+                                    backgroundColor: '#F3F4F6',
+                                    border: '1px solid #E5E7EB',
+                                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                                    fontSize: 12,
+                                    color: '#1F2937',
+                                  }}
+                                >
+                                  <span style={{ letterSpacing: isRevealed ? 'normal' : '0.15em', fontWeight: 600 }}>
+                                    {isRevealed ? adminPassword : '••••••••••••'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => togglePasswordReveal(user.id)}
+                                    title={isRevealed ? 'Hide password' : 'Show password'}
+                                    aria-label={isRevealed ? 'Hide password' : 'Show password'}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      padding: 2,
+                                      color: '#6B7280',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                    }}
+                                  >
+                                    {isRevealed ? (
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                                        <line x1="1" y1="1" x2="23" y2="23" />
+                                      </svg>
+                                    ) : (
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyPassword(user.id, adminPassword)}
+                                    title="Copy password"
+                                    aria-label="Copy password"
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      padding: 2,
+                                      color: isCopied ? '#10B981' : '#6B7280',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                    }}
+                                  >
+                                    {isCopied ? (
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12" />
+                                      </svg>
+                                    ) : (
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedUserForPasswordReset(user);
+                                    setResetPasswordInput('');
+                                  }}
+                                  title="Reset Password"
+                                  style={{
+                                    padding: '4px 8px',
+                                    borderRadius: 6,
+                                    border: '1px solid #E5E7EB',
+                                    backgroundColor: '#FFFFFF',
+                                    color: '#6B7280',
+                                    fontSize: 11,
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Reset
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedUserForPasswordReset(user);
+                                setResetPasswordInput('');
+                              }}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 8,
+                                border: '1px dashed #9CA3AF',
+                                backgroundColor: '#F9FAFB',
+                                color: '#4B5563',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                              </svg>
+                              Reset Password
+                            </button>
+                          );
+                        })()}
+                      </td>
+
+                      <td style={{ padding: '14px 16px' }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                            backgroundColor: user.assignedZoneId ? '#EFF6FF' : '#F3F4F6',
+                            color: user.assignedZoneId ? '#1D4ED8' : '#4B5563',
+                            border: `1px solid ${user.assignedZoneId ? '#BFDBFE' : '#E5E7EB'}`,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          {user.assignedZoneId ? '📍 ' + (user.assignedZoneName || user.assignedZoneId) : '🌐 All Zones'}
+                        </span>
                       </td>
 
                       <td style={{ padding: '14px 16px' }}>
@@ -1051,6 +1341,140 @@ export function UserManagementStudio() {
               </div>
             </div>
 
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>
+                Assigned Operating Zone *
+              </label>
+              <select
+                value={newAssignedZoneId}
+                onChange={(e) => setNewAssignedZoneId(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontWeight: 600, color: '#111827', backgroundColor: '#FFFFFF', boxSizing: 'border-box' }}
+              >
+                <option value="ALL">All Zones (Global Super Admin)</option>
+                {availableZones.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.zoneName} ({z.cityName || 'Active Zone'})
+                  </option>
+                ))}
+              </select>
+              <span style={{ fontSize: 11, color: '#6B7280', marginTop: 4, display: 'block' }}>
+                {newAssignedZoneId === 'ALL'
+                  ? 'User will retain global access across all operating zones.'
+                  : 'User will be strictly isolated to viewing and operating in this assigned zone.'}
+              </span>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>
+                Admin-Created Password *
+              </label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder="Create user password (min 8 chars)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 40px 10px 12px',
+                    borderRadius: 10,
+                    border: `1px solid ${newPassword && !isPasswordValid ? '#F87171' : '#E5E7EB'}`,
+                    fontSize: 13,
+                    color: '#111827',
+                    backgroundColor: '#FFFFFF',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: 10,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#6B7280',
+                  }}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+              {/* Real-time Password Strength Feedback */}
+              <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  backgroundColor: isPasswordLengthValid ? '#DCFCE7' : '#F3F4F6',
+                  color: isPasswordLengthValid ? '#15803D' : '#6B7280',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}>
+                  {isPasswordLengthValid ? '✓' : '○'} 8+ Chars
+                </span>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  backgroundColor: hasUpperCase ? '#DCFCE7' : '#F3F4F6',
+                  color: hasUpperCase ? '#15803D' : '#6B7280',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}>
+                  {hasUpperCase ? '✓' : '○'} Uppercase
+                </span>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  backgroundColor: hasLowerCase ? '#DCFCE7' : '#F3F4F6',
+                  color: hasLowerCase ? '#15803D' : '#6B7280',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}>
+                  {hasLowerCase ? '✓' : '○'} Lowercase
+                </span>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  backgroundColor: hasNumberOrSymbol ? '#DCFCE7' : '#F3F4F6',
+                  color: hasNumberOrSymbol ? '#15803D' : '#6B7280',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}>
+                  {hasNumberOrSymbol ? '✓' : '○'} Number/Symbol
+                </span>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
               <button
                 type="button"
@@ -1239,6 +1663,248 @@ export function UserManagementStudio() {
                 Confirm {selectedUserForStatus.accountStatus === 'ACTIVE' ? 'Suspension' : 'Activation'}
               </button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* SECURE PASSWORD RESET MODAL */}
+      {selectedUserForPasswordReset ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(17, 24, 39, 0.4)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              padding: 28,
+              maxWidth: 480,
+              width: '100%',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #E5E7EB',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: '#EFF6FF',
+                    color: '#2563EB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+                    Reset Admin Password
+                  </h3>
+                  <p style={{ fontSize: 12, color: '#6B7280', margin: '2px 0 0' }}>
+                    Provision a new secure password for this administrative account.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedUserForPasswordReset(null);
+                  setResetPasswordInput('');
+                  setShowResetPasswordInput(false);
+                }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6B7280', lineHeight: 1 }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Target Account Info */}
+            <div
+              style={{
+                backgroundColor: '#F9FAFB',
+                border: '1px solid #E5E7EB',
+                borderRadius: 12,
+                padding: '12px 14px',
+                marginBottom: 18,
+                fontSize: 12,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ color: '#6B7280' }}>Account:</span>
+                <span style={{ fontWeight: 600, color: '#111827' }}>{selectedUserForPasswordReset.fullName}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ color: '#6B7280' }}>Email:</span>
+                <span style={{ fontWeight: 500, color: '#111827' }}>{selectedUserForPasswordReset.email}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#6B7280' }}>Assigned Zone:</span>
+                <span style={{ fontWeight: 600, color: selectedUserForPasswordReset.assignedZoneId ? '#1D4ED8' : '#374151' }}>
+                  {selectedUserForPasswordReset.assignedZoneName || selectedUserForPasswordReset.assignedZoneId || 'All Zones (Global)'}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleResetPassword}>
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>
+                  New Password *
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type={showResetPasswordInput ? 'text' : 'password'}
+                    required
+                    placeholder="Enter new password (min 8 characters)"
+                    value={resetPasswordInput}
+                    onChange={(e) => setResetPasswordInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 40px 10px 12px',
+                      borderRadius: 10,
+                      border: `1px solid ${resetPasswordInput && !isResetPasswordValid ? '#F87171' : '#E5E7EB'}`,
+                      fontSize: 13,
+                      color: '#111827',
+                      backgroundColor: '#FFFFFF',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPasswordInput(!showResetPasswordInput)}
+                    style={{
+                      position: 'absolute',
+                      right: 10,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#6B7280',
+                    }}
+                    title={showResetPasswordInput ? 'Hide password' : 'Show password'}
+                  >
+                    {showResetPasswordInput ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
+                {/* Real-time Password Strength Feedback */}
+                <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    backgroundColor: isResetPasswordLengthValid ? '#DCFCE7' : '#F3F4F6',
+                    color: isResetPasswordLengthValid ? '#15803D' : '#6B7280',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}>
+                    {isResetPasswordLengthValid ? '✓' : '○'} 8+ Chars
+                  </span>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    backgroundColor: hasResetUpperCase ? '#DCFCE7' : '#F3F4F6',
+                    color: hasResetUpperCase ? '#15803D' : '#6B7280',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}>
+                    {hasResetUpperCase ? '✓' : '○'} Uppercase
+                  </span>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    backgroundColor: hasResetLowerCase ? '#DCFCE7' : '#F3F4F6',
+                    color: hasResetLowerCase ? '#15803D' : '#6B7280',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}>
+                    {hasResetLowerCase ? '✓' : '○'} Lowercase
+                  </span>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    backgroundColor: hasResetNumberOrSymbol ? '#DCFCE7' : '#F3F4F6',
+                    color: hasResetNumberOrSymbol ? '#15803D' : '#6B7280',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}>
+                    {hasResetNumberOrSymbol ? '✓' : '○'} Number / Symbol
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedUserForPasswordReset(null);
+                    setResetPasswordInput('');
+                    setShowResetPasswordInput(false);
+                  }}
+                  style={{ padding: '9px 16px', borderRadius: 10, border: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!isResetPasswordValid || isResettingPassword}
+                  style={{
+                    padding: '9px 18px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: isResetPasswordValid && !isResettingPassword
+                      ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)'
+                      : '#9CA3AF',
+                    color: '#FFFFFF',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: isResetPasswordValid && !isResettingPassword ? 'pointer' : 'not-allowed',
+                    boxShadow: isResetPasswordValid ? '0 4px 14px rgba(33, 150, 243, 0.25)' : 'none',
+                  }}
+                >
+                  {isResettingPassword ? 'Updating Password...' : 'Save New Password'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       ) : null}

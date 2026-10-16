@@ -8,6 +8,9 @@ export interface CreateAdminUserBody {
   phone: string;
   role: AdminRole;
   department?: string;
+  password?: string;
+  assignedZoneId?: string;
+  assignedZoneName?: string;
 }
 
 export const usersApi = baseApi.injectEndpoints({
@@ -47,6 +50,14 @@ export const usersApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Admin', { type: 'Admin', id: 'USERS_LIST' }],
     }),
+    updateAdminUserPassword: builder.mutation<AdminUser, { userId: string; email?: string; password: string }>({
+      query: ({ userId, email, password }) => ({
+        url: `/api/bff/admin/users/${encodeURIComponent(userId)}/password`,
+        method: 'PATCH',
+        body: { email, password },
+      }),
+      invalidatesTags: ['Admin', { type: 'Admin', id: 'USERS_LIST' }],
+    }),
   }),
 });
 
@@ -55,4 +66,5 @@ export const {
   useCreateAdminUserMutation,
   useUpdateAdminUserRoleMutation,
   useUpdateAdminUserStatusMutation,
+  useUpdateAdminUserPasswordMutation,
 } = usersApi;

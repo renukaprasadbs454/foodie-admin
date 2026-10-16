@@ -5,12 +5,26 @@ export type AdminLoginRequest = {
   email: string;
   password: string;
   deviceInfo?: string;
+  expectedZoneId?: string;
+};
+
+export type AdminRoleOption = {
+  key: string;
+  role: string;
+  label: string;
+  zoneId?: string | null;
+  zoneName?: string | null;
+  defaultEmail?: string | null;
 };
 
 export type AdminLoginIdentity = {
   userId: string;
   userType: 'ADMIN';
   role: AdminRole;
+  fullName?: string;
+  email?: string;
+  assignedZoneId?: string | null;
+  assignedZoneName?: string | null;
 };
 
 export type AdminUserProfile = {
@@ -21,6 +35,8 @@ export type AdminUserProfile = {
   profileImageKey?: string | null;
   restaurantId?: string | null;
   permissions?: string[];
+  assignedZoneId?: string | null;
+  assignedZoneName?: string | null;
 };
 
 export const authApi = baseApi.injectEndpoints({
@@ -54,7 +70,25 @@ export const authApi = baseApi.injectEndpoints({
       },
       providesTags: ['Auth'],
     }),
+    getAdminRoles: builder.query<AdminRoleOption[], void>({
+      query: () => ({
+        url: '/api/auth/roles',
+        method: 'GET',
+      }),
+      transformResponse: (response: any) => {
+        if (Array.isArray(response)) return response;
+        if (Array.isArray(response?.data)) return response.data;
+        return [];
+      },
+      providesTags: ['Auth'],
+    }),
   }),
 });
 
-export const { useLoginMutation, useLogoutMutation, useGetAdminMeQuery } = authApi;
+export const {
+  useLoginMutation,
+  useLogoutMutation,
+  useGetAdminMeQuery,
+  useGetAdminRolesQuery,
+} = authApi;
+

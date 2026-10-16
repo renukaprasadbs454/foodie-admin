@@ -10,6 +10,8 @@ export interface AdminProfile {
   profileImageKey?: string;
   restaurantId?: string | null;
   permissions: string[];
+  assignedZoneId?: string | null;
+  assignedZoneName?: string | null;
 }
 
 interface PermissionContextType {
@@ -102,6 +104,8 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
               restaurantId: profileData.restaurantId || null,
               profileImageKey: profileData.profileImageKey,
               permissions: perms,
+              assignedZoneId: profileData.assignedZoneId || null,
+              assignedZoneName: profileData.assignedZoneName || null,
             });
             return;
           }
@@ -110,6 +114,8 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
           const token = localStorage.getItem('foodie_admin_token') || sessionStorage.getItem('foodie_admin_token');
           const rawRole = localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role') || 'SUPER_ADMIN';
           const storedRole = String(rawRole).toUpperCase();
+          const savedAssignedZoneId = localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone');
+          const savedAssignedZoneName = localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name');
           if (token || storedRole) {
             setProfile({
               adminUserId: '44444444-4444-4444-4444-444444444001',
@@ -117,6 +123,8 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
               fullName: `${storedRole.replace('_', ' ')} User`,
               role: storedRole,
               permissions: ROLE_PERMISSIONS[storedRole] || ROLE_PERMISSIONS.SUPER_ADMIN,
+              assignedZoneId: savedAssignedZoneId || null,
+              assignedZoneName: savedAssignedZoneName || null,
             });
           } else {
             setProfile(null);

@@ -35,6 +35,30 @@ export async function GET(request: Request) {
     let role = 'SUPER_ADMIN';
     let fullName = 'Admin Operator';
     let email = 'admin@foodie.local';
+    let assignedZoneId: string | null = null;
+    let assignedZoneName: string | null = null;
+
+    const globalAny = global as unknown as Record<string, unknown>;
+    if (globalAny.ADMIN_USERS_STORE) {
+      const usersStore = globalAny.ADMIN_USERS_STORE as any[];
+      const matched = usersStore.find((u) => accessToken.includes(u.id));
+      if (matched) {
+        role = matched.role || role;
+        fullName = matched.fullName || fullName;
+        email = matched.email || email;
+        assignedZoneId = matched.assignedZoneId || null;
+        assignedZoneName = matched.assignedZoneName || null;
+      }
+    }
+
+    if (!assignedZoneId) {
+      const cookieHeader = request.headers.get('cookie') || '';
+      const zoneCookie = cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] ||
+        cookieHeader.match(/foodie_active_zone_id=([^;]+)/)?.[1];
+      if (zoneCookie) {
+        assignedZoneId = decodeURIComponent(zoneCookie);
+      }
+    }
 
     if (accessToken.includes('auditor') || accessToken.includes('audit')) {
       role = 'AUDITOR';
@@ -70,6 +94,8 @@ export async function GET(request: Request) {
         fullName,
         role,
         status: 'ACTIVE',
+        assignedZoneId,
+        assignedZoneName,
         permissions: ['*'],
       },
       error: null,

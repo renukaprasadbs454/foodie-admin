@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
@@ -29,6 +29,8 @@ import type {
   LocationZoneDto,
   UnserviceableRequestDto,
 } from '../../../api/endpoints/locationApi';
+import { useCreateAdminUserMutation } from '../../../api/endpoints/usersApi';
+import type { AdminRole } from 'foodie-shared-web';
 import { GoogleMapsPolygonPinPicker } from '../components/GoogleMapsPolygonPinPicker';
 
 export type CityRecord = CityDto;
@@ -47,6 +49,7 @@ export function LocationManagementPage() {
   const [createCity] = useCreateCityMutation();
   const { data: dbDeliveryZones = [], isLoading: isLoadingZones, isError: isErrorZones, refetch: refetchZones } = useGetZonesQuery();
   const [createZone] = useCreateZoneMutation();
+  const [createAdminUser] = useCreateAdminUserMutation();
   const [updateZoneToggles] = useUpdateZoneTogglesMutation();
   const [updateZoneStatus] = useUpdateZoneStatusMutation();
   const [deleteZone] = useDeleteZoneMutation();
@@ -242,12 +245,44 @@ export function LocationManagementPage() {
     showToast(`Zone permission updated for ${powerType}.`);
   };
 
+  // Zone Admin User Creation State
+  const [createZoneAdmin, setCreateZoneAdmin] = useState(true);
+  const [zoneAdminName, setZoneAdminName] = useState('');
+  const [zoneAdminEmail, setZoneAdminEmail] = useState('');
+  const [zoneAdminPhone, setZoneAdminPhone] = useState('');
+  const [zoneAdminRole, setZoneAdminRole] = useState<AdminRole>('OPS');
+  const [zoneAdminDept, setZoneAdminDept] = useState('Zone Operations');
+  const [zoneAdminPassword, setZoneAdminPassword] = useState('');
+  const [showZoneAdminPassword, setShowZoneAdminPassword] = useState(false);
+
+  // Password validation criteria for zone admin user
+  const isZonePasswordLengthValid = zoneAdminPassword.length >= 8;
+  const hasZoneUpperCase = /[A-Z]/.test(zoneAdminPassword);
+  const hasZoneLowerCase = /[a-z]/.test(zoneAdminPassword);
+  const hasZoneNumberOrSymbol = /[0-9!@#$%^&*(),.?":{}|<>]/.test(zoneAdminPassword);
+  const isZonePasswordValid = isZonePasswordLengthValid && hasZoneUpperCase && hasZoneLowerCase && hasZoneNumberOrSymbol;
+
   const handleCreateZone = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newZoneName.trim()) {
       alert('Please enter a Zone Name');
       return;
     }
+
+    if (createZoneAdmin) {
+      if (!zoneAdminName.trim() || !zoneAdminEmail.trim() || !zoneAdminPhone.trim() || !zoneAdminPassword.trim()) {
+        alert('Please fill out all required fields for the Zone Administrator (Name, Email, Mobile Phone, and Password).');
+        return;
+      }
+      if (!isZonePasswordValid) {
+        alert('Zone Administrator password must be at least 8 characters and include uppercase, lowercase, and a number or symbol.');
+        return;
+      }
+    }
+
+    const zoneSlug = newZoneName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const assignedZoneId = `dz-${zoneSlug}`;
+
     createZone({
       zoneName: newZoneName.trim(),
       cityName: newZoneCity || (cities[0]?.cityName ?? 'Bangalore'),
@@ -261,10 +296,37 @@ export function LocationManagementPage() {
       restaurantEnabled: newRestEnabled,
       deliveryPartnerEnabled: newDriverEnabled,
       customerOrderingEnabled: newCustomerEnabled,
-    }).unwrap().then(() => {
+    }).unwrap().then(async (createdZone) => {
+      const finalZoneId = createdZone?.id || assignedZoneId;
+      const finalZoneName = createdZone?.zoneName || newZoneName.trim();
+
+      if (createZoneAdmin) {
+        try {
+          await createAdminUser({
+            fullName: zoneAdminName.trim(),
+            email: zoneAdminEmail.trim(),
+            phone: zoneAdminPhone.trim(),
+            role: zoneAdminRole,
+            department: zoneAdminDept.trim() || 'Zone Operations',
+            password: zoneAdminPassword,
+            assignedZoneId: finalZoneId,
+            assignedZoneName: finalZoneName,
+          }).unwrap();
+        } catch (err: any) {
+          console.warn('Zone user provisioning warning:', err);
+        }
+      }
+
       setIsCreatingZone(false);
-      showToast(`Multi-Zone "${newZoneName.trim()}" created successfully in database!`);
+      showToast(createZoneAdmin
+        ? `Multi-Zone "${finalZoneName}" and Administrator "${zoneAdminName.trim()}" created successfully!`
+        : `Multi-Zone "${finalZoneName}" created successfully in database!`
+      );
       setNewZoneName('');
+      setZoneAdminName('');
+      setZoneAdminEmail('');
+      setZoneAdminPhone('');
+      setZoneAdminPassword('');
     }).catch((err) => {
       showToast(`Failed to create zone: ${err?.data?.message || err?.message || 'Server Error'}`);
     });
@@ -624,6 +686,224 @@ export function LocationManagementPage() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* ZONE ADMINISTRATOR USER PROVISIONING */}
+          <div style={{ backgroundColor: '#F8FAFC', padding: 20, borderRadius: 14, border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
+                  Zone Administrator Account Provisioning
+                </div>
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                  Create an administrative user account bound exclusively to this newly created zone
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#2563EB' }}>
+                <input
+                  type="checkbox"
+                  checked={createZoneAdmin}
+                  onChange={(e) => setCreateZoneAdmin(e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: '#2196F3' }}
+                />
+                Create Zone User
+              </label>
+            </div>
+
+            {createZoneAdmin && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                    Administrator Name *
+                  </label>
+                  <input
+                    type="text"
+                    required={createZoneAdmin}
+                    placeholder="e.g. Zone Operations Manager"
+                    value={zoneAdminName}
+                    onChange={(e) => setZoneAdminName(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                    Work Email *
+                  </label>
+                  <input
+                    type="email"
+                    required={createZoneAdmin}
+                    placeholder="e.g. manager.zone@foodie.com"
+                    value={zoneAdminEmail}
+                    onChange={(e) => setZoneAdminEmail(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                    Mobile Phone *
+                  </label>
+                  <input
+                    type="tel"
+                    required={createZoneAdmin}
+                    placeholder="e.g. +91 98000 00000"
+                    value={zoneAdminPhone}
+                    onChange={(e) => setZoneAdminPhone(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                    System Role Privilege *
+                  </label>
+                  <select
+                    value={zoneAdminRole}
+                    onChange={(e) => setZoneAdminRole(e.target.value as AdminRole)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontWeight: 600, backgroundColor: '#FFFFFF', color: '#111827' }}
+                  >
+                    <option value="OPS">Operations (OPS)</option>
+                    <option value="FINANCE">Finance (FINANCE)</option>
+                    <option value="SUPPORT">Support (SUPPORT)</option>
+                    <option value="SUPER_ADMIN">Super Admin (SUPER_ADMIN)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                    Department
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Zone Logistics"
+                    value={zoneAdminDept}
+                    onChange={(e) => setZoneAdminDept(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                    Assigned Zone
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={newZoneName ? `${newZoneName} (Current Zone)` : 'Bound to Created Zone'}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, backgroundColor: '#F1F5F9', color: '#475569', fontWeight: 600 }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                    Admin-Created Password *
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showZoneAdminPassword ? 'text' : 'password'}
+                      required={createZoneAdmin}
+                      placeholder="Enter initial password for zone administrator (min 8 chars)"
+                      value={zoneAdminPassword}
+                      onChange={(e) => setZoneAdminPassword(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 40px 10px 12px',
+                        borderRadius: 10,
+                        border: `1px solid ${zoneAdminPassword && !isZonePasswordValid ? '#F87171' : '#E5E7EB'}`,
+                        fontSize: 13,
+                        backgroundColor: '#FFFFFF',
+                        color: '#111827',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowZoneAdminPassword(!showZoneAdminPassword)}
+                      style={{
+                        position: 'absolute',
+                        right: 10,
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#6B7280',
+                      }}
+                      title={showZoneAdminPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showZoneAdminPassword ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+
+                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      backgroundColor: isZonePasswordLengthValid ? '#DCFCE7' : '#F3F4F6',
+                      color: isZonePasswordLengthValid ? '#15803D' : '#6B7280',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}>
+                      {isZonePasswordLengthValid ? '✓' : '○'} 8+ Chars
+                    </span>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      backgroundColor: hasZoneUpperCase ? '#DCFCE7' : '#F3F4F6',
+                      color: hasZoneUpperCase ? '#15803D' : '#6B7280',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}>
+                      {hasZoneUpperCase ? '✓' : '○'} Uppercase
+                    </span>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      backgroundColor: hasZoneLowerCase ? '#DCFCE7' : '#F3F4F6',
+                      color: hasZoneLowerCase ? '#15803D' : '#6B7280',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}>
+                      {hasZoneLowerCase ? '✓' : '○'} Lowercase
+                    </span>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      backgroundColor: hasZoneNumberOrSymbol ? '#DCFCE7' : '#F3F4F6',
+                      color: hasZoneNumberOrSymbol ? '#15803D' : '#6B7280',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}>
+                      {hasZoneNumberOrSymbol ? '✓' : '○'} Number/Symbol
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>

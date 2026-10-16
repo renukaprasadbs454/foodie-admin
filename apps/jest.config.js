@@ -10,4 +10,5 @@ module.exports = {
     '^foodie-shared-web/(.*)$': '<rootDir>/shared/$1',
   },
   clearMocks: true,
+  setupFiles: ['<rootDir>/jest.setup.js'],
 };

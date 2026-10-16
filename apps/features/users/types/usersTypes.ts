@@ -13,6 +13,8 @@ export interface AdminUser {
   lastActive: string;
   department: string;
   avatarUrl?: string;
+  assignedZoneId?: string;
+  assignedZoneName?: string;
 }
 
 export function formatRoleBadge(role: AdminRole): { label: string; color: string; bg: string; border: string } {

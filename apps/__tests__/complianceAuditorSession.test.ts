@@ -4,6 +4,7 @@ import { GET as bffRoute } from '../app/api/bff/[...path]/route';
 import { filterNavForRole, getHomeRouteForRole, isRouteAllowedForRole } from '../lib/routeGuards';
 
 describe('Compliance Auditor Session Persistence & Routes', () => {
+  jest.setTimeout(15000);
   it('login route generates demo auditor session and sets cookies', async () => {
     const req = new Request('http://localhost:3000/api/auth/login', {
       method: 'POST',

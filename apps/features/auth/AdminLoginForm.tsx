@@ -7,7 +7,11 @@ import {
   trackAnalyticsEvent,
   useConnectivity,
 } from 'foodie-shared-web';
-import { useLoginMutation } from '@/api/endpoints/authApi';
+import {
+  useLoginMutation,
+  useGetAdminRolesQuery,
+  type AdminRoleOption,
+} from '@/api/endpoints/authApi';
 import { useAppDispatch } from '@/store/hooks';
 import { setSession } from './authSlice';
 import { isNonEmptyPassword, isValidAdminEmail } from './validation';
@@ -42,7 +46,24 @@ export function AdminLoginForm({
   const { isConnected } = useConnectivity();
   const dispatch = useAppDispatch();
   const [login, { isLoading }] = useLoginMutation();
-  const [selectedRole, setSelectedRole] = useState<string>('SUPER_ADMIN');
+  const { data: dynamicRoles = [] } = useGetAdminRolesQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  const DEFAULT_ROLE_OPTIONS: AdminRoleOption[] = [
+    { key: 'SUPER_ADMIN', role: 'SUPER_ADMIN', label: 'Super Admin', defaultEmail: 'admin@foodie.local' },
+    { key: 'ZONE_ADMIN_dz-bangalore', role: 'OPS', label: 'Bangalore Zone Admin', zoneId: 'dz-bangalore', zoneName: 'Bangalore Zone', defaultEmail: 'ops@foodie.local' },
+    { key: 'ZONE_ADMIN_dz-tumkur', role: 'FINANCE', label: 'Tumkur Zone Admin', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone', defaultEmail: 'finance@foodie.local' },
+    { key: 'AUDITOR', role: 'AUDITOR', label: 'Compliance Auditor', defaultEmail: 'auditor@foodie.local' },
+    { key: 'FINANCE_ADMIN', role: 'FINANCE_ADMIN', label: 'Finance Admin', defaultEmail: 'finance@foodie.local' },
+    { key: 'OPERATIONS_ADMIN', role: 'OPERATIONS_ADMIN', label: 'Operations Admin', defaultEmail: 'ops@foodie.local' },
+    { key: 'RESTAURANT_MANAGER', role: 'RESTAURANT_MANAGER', label: 'Restaurant Manager', defaultEmail: 'manager@foodie.local' },
+    { key: 'SUPPORT_AGENT', role: 'SUPPORT_AGENT', label: 'Support Agent', defaultEmail: 'support@foodie.local' },
+    { key: 'DARKSTORE_ADMIN', role: 'DARKSTORE_ADMIN', label: 'Darkstore Admin', defaultEmail: 'darkstore@foodie.local' },
+  ];
+
+  const roleOptions: AdminRoleOption[] = dynamicRoles.length > 0 ? dynamicRoles : DEFAULT_ROLE_OPTIONS;
+  const [selectedRoleKey, setSelectedRoleKey] = useState<string>('SUPER_ADMIN');
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState(initialPassword);
   const [showPassword, setShowPassword] = useState(false);
@@ -54,39 +75,17 @@ export function AdminLoginForm({
     variant: 'error' | 'info';
   } | null>(null);
 
-  const ROLE_OPTIONS = [
-    {
-      role: 'SUPER_ADMIN',
-      label: 'Super Admin',
-    },
-    {
-      role: 'AUDITOR',
-      label: 'Compliance Auditor',
-    },
-    {
-      role: 'FINANCE_ADMIN',
-      label: 'Finance Admin',
-    },
-    {
-      role: 'OPERATIONS_ADMIN',
-      label: 'Operations Admin',
-    },
-    {
-      role: 'RESTAURANT_MANAGER',
-      label: 'Restaurant Manager',
-    },
-    {
-      role: 'SUPPORT_AGENT',
-      label: 'Support Agent',
-    },
-    {
-      role: 'DARKSTORE_ADMIN',
-      label: 'Darkstore Admin',
-    },
-  ];
+  const currentRoleInfo =
+    roleOptions.find((r) => r.key === selectedRoleKey || r.role === selectedRoleKey) ||
+    roleOptions[0] ||
+    DEFAULT_ROLE_OPTIONS[0];
 
   const handleRoleSelect = (roleKey: string) => {
-    setSelectedRole(roleKey);
+    setSelectedRoleKey(roleKey);
+    const opt = roleOptions.find((r) => r.key === roleKey || r.role === roleKey);
+    if (opt?.defaultEmail && !email) {
+      setEmail(opt.defaultEmail);
+    }
     setEmailError(undefined);
     setPasswordError(undefined);
     setInlineError(null);
@@ -129,10 +128,16 @@ export function AdminLoginForm({
         email: email.trim(),
         password,
         deviceInfo: 'Admin Panel',
+        expectedZoneId: currentRoleInfo.zoneId || undefined,
       }).unwrap();
 
-      const backendRole: AdminRole = (selectedRole || identity.role || 'SUPER_ADMIN') as AdminRole;
+      const backendRole: AdminRole = (identity.role || currentRoleInfo.role || 'SUPER_ADMIN') as AdminRole;
       const userEmail = email.trim();
+      const finalZoneId = identity.assignedZoneId || currentRoleInfo.zoneId;
+      const finalZoneName =
+        identity.assignedZoneName ||
+        currentRoleInfo.zoneName ||
+        (finalZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone');
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('foodie_admin_role', backendRole);
@@ -141,6 +146,32 @@ export function AdminLoginForm({
         sessionStorage.setItem('foodie_admin_user_id', identity.userId || '44444444-4444-4444-4444-444444444001');
         localStorage.setItem('foodie_admin_email', userEmail);
         sessionStorage.setItem('foodie_admin_email', userEmail);
+
+        if (finalZoneId) {
+          localStorage.setItem('foodie_active_zone_id', finalZoneId);
+          sessionStorage.setItem('foodie_active_zone_id', finalZoneId);
+          localStorage.setItem('foodie_user_assigned_zone', finalZoneId);
+          sessionStorage.setItem('foodie_user_assigned_zone', finalZoneId);
+          localStorage.setItem('foodie_active_zone_name', finalZoneName);
+          sessionStorage.setItem('foodie_active_zone_name', finalZoneName);
+          document.cookie = `foodie_active_zone_id=${encodeURIComponent(finalZoneId)}; path=/; max-age=86400; SameSite=Lax`;
+          document.cookie = `foodie_active_zone_name=${encodeURIComponent(finalZoneName)}; path=/; max-age=86400; SameSite=Lax`;
+          document.cookie = `foodie_user_assigned_zone=${encodeURIComponent(finalZoneId)}; path=/; max-age=86400; SameSite=Lax`;
+        } else {
+          localStorage.removeItem('foodie_user_assigned_zone');
+          sessionStorage.removeItem('foodie_user_assigned_zone');
+          document.cookie = 'foodie_user_assigned_zone=; path=/; max-age=0; SameSite=Lax';
+          if (backendRole === 'SUPER_ADMIN') {
+            const defaultZoneId = 'dz-bangalore';
+            const defaultZoneName = 'Bangalore Zone';
+            localStorage.setItem('foodie_active_zone_id', defaultZoneId);
+            sessionStorage.setItem('foodie_active_zone_id', defaultZoneId);
+            localStorage.setItem('foodie_active_zone_name', defaultZoneName);
+            sessionStorage.setItem('foodie_active_zone_name', defaultZoneName);
+            document.cookie = `foodie_active_zone_id=${encodeURIComponent(defaultZoneId)}; path=/; max-age=86400; SameSite=Lax`;
+            document.cookie = `foodie_active_zone_name=${encodeURIComponent(defaultZoneName)}; path=/; max-age=86400; SameSite=Lax`;
+          }
+        }
       }
 
       dispatch(
@@ -148,14 +179,20 @@ export function AdminLoginForm({
           userId: identity.userId || '44444444-4444-4444-4444-444444444001',
           role: backendRole,
           userType: 'ADMIN',
-          fullName: backendRole === 'AUDITOR' ? 'Compliance Auditor' : (backendRole === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin Operator'),
+          fullName:
+            identity.fullName ||
+            (backendRole === 'AUDITOR'
+              ? 'Compliance Auditor'
+              : backendRole === 'SUPER_ADMIN'
+              ? 'Super Admin'
+              : currentRoleInfo.label || 'Admin Operator'),
           email: userEmail,
         }),
       );
 
       trackAnalyticsEvent('admin_auth_succeeded', { role: backendRole });
-      if (backendRole === 'SUPER_ADMIN') {
-        window.location.href = '/zone-select';
+      if (finalZoneId) {
+        window.location.href = '/dashboard';
       } else {
         const redirectPath = getHomeRouteForRole(backendRole);
         window.location.href = redirectPath;
@@ -175,8 +212,6 @@ export function AdminLoginForm({
       });
     }
   };
-
-  const currentRoleInfo = ROLE_OPTIONS.find((r) => r.role === selectedRole) || ROLE_OPTIONS[0];
 
   return (
     <form
@@ -234,12 +269,12 @@ export function AdminLoginForm({
 
         <select
           id="admin-role-select"
-          value={selectedRole}
+          value={selectedRoleKey}
           onChange={(e) => handleRoleSelect(e.target.value)}
           className="foodie-role-select"
         >
-          {ROLE_OPTIONS.map((item) => (
-            <option key={item.role} value={item.role}>
+          {roleOptions.map((item) => (
+            <option key={item.key || item.role} value={item.key || item.role}>
               {item.label}
             </option>
           ))}
