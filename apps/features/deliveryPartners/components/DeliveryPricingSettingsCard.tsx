@@ -7,6 +7,11 @@ import {
   useUpdateDeliveryPricingMutation,
 } from '@/api/endpoints/deliveryPartnersApi';
 
+export interface IncentiveMilestone {
+  trips: number;
+  reward: number;
+}
+
 export interface IncentiveItem {
   id: string;
   title: string;
@@ -16,6 +21,8 @@ export interface IncentiveItem {
   active: boolean;
   description: string;
   category: 'Base & Distance' | 'Target & Mileage' | 'Weather & Surge' | 'Reward & Rating';
+  targetCount?: number;
+  milestones?: IncentiveMilestone[];
 }
 
 export interface ZoneItem {
@@ -60,8 +67,15 @@ const DEFAULT_INCENTIVES: IncentiveItem[] = [
     value: 150,
     unit: '₹ / day',
     active: true,
-    description: 'Bonus awarded upon completing 15 or more orders in a single calendar day.',
+    description: 'Bonus awarded upon completing daily order targets.',
     category: 'Target & Mileage',
+    targetCount: 15,
+    milestones: [
+      { trips: 6, reward: 50 },
+      { trips: 9, reward: 75 },
+      { trips: 13, reward: 120 },
+      { trips: 18, reward: 190 },
+    ],
   },
   {
     id: 'weeklyTargetBonus',
@@ -72,6 +86,7 @@ const DEFAULT_INCENTIVES: IncentiveItem[] = [
     active: true,
     description: 'Tier-1 weekly payout bonus for completing 80+ deliveries per week.',
     category: 'Target & Mileage',
+    targetCount: 80,
   },
   {
     id: 'longDistanceBonus',
@@ -102,6 +117,7 @@ const DEFAULT_INCENTIVES: IncentiveItem[] = [
     active: true,
     description: 'Onboarding reward paid after referred delivery partner completes 25 orders.',
     category: 'Reward & Rating',
+    targetCount: 25,
   },
   {
     id: 'performanceBonus',
@@ -115,51 +131,17 @@ const DEFAULT_INCENTIVES: IncentiveItem[] = [
   },
 ];
 
-const INITIAL_ZONES: ZoneItem[] = [
-  { id: 'zone-downtown', name: 'Downtown Central', city: 'Tumakuru', code: 'Z-01', description: 'High-density commercial market hub & food streets' },
-  { id: 'zone-north', name: 'North Metro Corridor', city: 'Tumakuru', code: 'Z-02', description: 'Highway connecting outer commercial suburbs' },
-  { id: 'zone-westside', name: 'Westside Tech & University Hub', city: 'Tumakuru', code: 'Z-03', description: 'University campuses, colleges & technology parks' },
-  { id: 'zone-east', name: 'East Suburban Cluster', city: 'Tumakuru', code: 'Z-04', description: 'Residential townships & peripheral gated communities' },
-  { id: 'zone-tumakuru-central', name: 'Tumakuru Central Hub', city: 'Tumakuru', code: 'Z-05', description: 'Core city market, railway station & bus terminus' },
-  { id: 'zone-bangalore-south', name: 'Bangalore South (Koramangala & HSR)', city: 'Bengaluru', code: 'Z-06', description: 'Prime dining hotspots, cloud kitchen clusters & startups' },
-  { id: 'zone-indiranagar', name: 'Indiranagar & CBD Central', city: 'Bengaluru', code: 'Z-07', description: 'High-ticket fine dining & commercial dining corridor' },
-  { id: 'zone-whitefield', name: 'Whitefield & ITPL Tech Hub', city: 'Bengaluru', code: 'Z-08', description: 'Extended suburban tech parks and residential high-rises' },
-];
-
 export function DeliveryPricingSettingsCard() {
   const { tokens } = useTheme();
   const { data: pricingConfig, isLoading } = useGetDeliveryPricingQuery();
   const [updatePricing, { isLoading: isUpdating }] = useUpdateDeliveryPricingMutation();
 
-  // Mode: Universal Basis vs Zone Basis
-  const [pricingBasis, setPricingBasis] = useState<'UNIVERSAL' | 'ZONE'>('UNIVERSAL');
-
-  // Universal Basis State
+  // Universal Configuration State
   const [universalConfig, setUniversalConfig] = useState<PayoutStructureConfig>({
     minPrice: 200,
     moneyPerKm: 25,
     incentives: DEFAULT_INCENTIVES,
   });
-
-  // Zone Basis State
-  const [zones, setZones] = useState<ZoneItem[]>(INITIAL_ZONES);
-  const [selectedZoneId, setSelectedZoneId] = useState<string>('zone-downtown');
-  const [zoneSearchQuery, setZoneSearchQuery] = useState<string>('');
-  const [zoneConfigs, setZoneConfigs] = useState<Record<string, PayoutStructureConfig>>({
-    'zone-downtown': { minPrice: 220, moneyPerKm: 28, incentives: DEFAULT_INCENTIVES },
-    'zone-north': { minPrice: 200, moneyPerKm: 25, incentives: DEFAULT_INCENTIVES },
-    'zone-westside': { minPrice: 190, moneyPerKm: 24, incentives: DEFAULT_INCENTIVES },
-    'zone-east': { minPrice: 210, moneyPerKm: 26, incentives: DEFAULT_INCENTIVES },
-    'zone-tumakuru-central': { minPrice: 230, moneyPerKm: 30, incentives: DEFAULT_INCENTIVES },
-    'zone-bangalore-south': { minPrice: 250, moneyPerKm: 32, incentives: DEFAULT_INCENTIVES },
-    'zone-indiranagar': { minPrice: 260, moneyPerKm: 35, incentives: DEFAULT_INCENTIVES },
-    'zone-whitefield': { minPrice: 240, moneyPerKm: 30, incentives: DEFAULT_INCENTIVES },
-  });
-
-  // New Custom Zone State
-  const [isAddingZone, setIsAddingZone] = useState(false);
-  const [newZoneName, setNewZoneName] = useState('');
-  const [newZoneCity, setNewZoneCity] = useState('Tumakuru');
 
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [savedItemsMap, setSavedItemsMap] = useState<Record<string, boolean>>({});
@@ -183,30 +165,16 @@ export function DeliveryPricingSettingsCard() {
   // Initialize from LocalStorage and Backend API
   useEffect(() => {
     try {
-      const savedBasis = localStorage.getItem('foodie_pricing_basis');
-      if (savedBasis === 'ZONE' || savedBasis === 'UNIVERSAL') {
-        setPricingBasis(savedBasis);
-      }
-      const savedZoneId = localStorage.getItem('foodie_selected_zone_id');
-      if (savedZoneId) {
-        setSelectedZoneId(savedZoneId);
-      }
+      // Clean up legacy zone-based keys from local storage
+      localStorage.removeItem('foodie_pricing_basis');
+      localStorage.removeItem('foodie_selected_zone_id');
+      localStorage.removeItem('foodie_zone_pricing_configs');
+      localStorage.removeItem('foodie_custom_zones');
+
       const savedUniversal = localStorage.getItem('foodie_universal_pricing_config');
       if (savedUniversal) {
         const parsed = JSON.parse(savedUniversal);
         setUniversalConfig(parsed);
-      }
-      const savedZoneConfigs = localStorage.getItem('foodie_zone_pricing_configs');
-      if (savedZoneConfigs) {
-        const parsed = JSON.parse(savedZoneConfigs);
-        setZoneConfigs(parsed);
-      }
-      const savedCustomZones = localStorage.getItem('foodie_custom_zones');
-      if (savedCustomZones) {
-        const parsed = JSON.parse(savedCustomZones);
-        if (Array.isArray(parsed)) {
-          setZones(parsed);
-        }
       }
     } catch (_e) {
       // Ignore parse errors
@@ -221,10 +189,6 @@ export function DeliveryPricingSettingsCard() {
 
       setMinPriceInput((prev) => (prev === '' ? String(bMin) : prev));
       setMoneyPerKmInput((prev) => (prev === '' ? String(bKm) : prev));
-
-      if (pricingConfig.pricingBasis === 'ZONE' || pricingConfig.pricingBasis === 'UNIVERSAL') {
-        setPricingBasis(pricingConfig.pricingBasis);
-      }
 
       if (pricingConfig.universalConfig) {
         const uIncentives = Array.isArray(pricingConfig.universalConfig.incentives)
@@ -250,14 +214,6 @@ export function DeliveryPricingSettingsCard() {
           moneyPerKm: bKm,
         }));
       }
-
-      if (pricingConfig.zoneConfigs) {
-        setZoneConfigs(pricingConfig.zoneConfigs);
-      }
-
-      if (pricingConfig.zones && Array.isArray(pricingConfig.zones) && pricingConfig.zones.length > 0) {
-        setZones(pricingConfig.zones);
-      }
     }
   }, [pricingConfig]);
 
@@ -275,51 +231,15 @@ export function DeliveryPricingSettingsCard() {
     );
   }, [savedMinPrice, savedMoneyPerKm, parsedMinPrice, parsedMoneyPerKm, isMinPriceValid, isMoneyPerKmValid]);
 
-  // Current Active Configuration (Universal vs Selected Zone)
-  const currentConfig: PayoutStructureConfig = useMemo(() => {
-    if (pricingBasis === 'UNIVERSAL') {
-      return universalConfig;
-    }
-    const zoneConfig = zoneConfigs[selectedZoneId];
-    if (zoneConfig) {
-      return zoneConfig;
-    }
-    return universalConfig;
-  }, [pricingBasis, selectedZoneId, universalConfig, zoneConfigs]);
-
-  const activeZone = useMemo(() => {
-    return zones.find((z) => z.id === selectedZoneId) || zones[0];
-  }, [zones, selectedZoneId]);
-
-  // Filtered Zones based on Search
-  const filteredZones = useMemo(() => {
-    const q = zoneSearchQuery.trim().toLowerCase();
-    if (!q) return zones;
-    return zones.filter(
-      (z) =>
-        z.name.toLowerCase().includes(q) ||
-        z.city.toLowerCase().includes(q) ||
-        z.code.toLowerCase().includes(q) ||
-        z.description.toLowerCase().includes(q)
-    );
-  }, [zones, zoneSearchQuery]);
+  // Current Active Configuration (Platform Universal)
+  const currentConfig: PayoutStructureConfig = universalConfig;
 
   // Update Active Config Values
   const handleUpdateMinPrice = (valStr: string) => {
     setMinPriceInput(valStr);
     const num = parseFloat(valStr);
     if (!isNaN(num) && num >= 0) {
-      if (pricingBasis === 'UNIVERSAL') {
-        setUniversalConfig((prev) => ({ ...prev, minPrice: num }));
-      } else {
-        setZoneConfigs((prev) => ({
-          ...prev,
-          [selectedZoneId]: {
-            ...(prev[selectedZoneId] || universalConfig),
-            minPrice: num,
-          },
-        }));
-      }
+      setUniversalConfig((prev) => ({ ...prev, minPrice: num }));
     }
   };
 
@@ -327,49 +247,24 @@ export function DeliveryPricingSettingsCard() {
     setMoneyPerKmInput(valStr);
     const num = parseFloat(valStr);
     if (!isNaN(num) && num >= 0) {
-      if (pricingBasis === 'UNIVERSAL') {
-        setUniversalConfig((prev) => ({ ...prev, moneyPerKm: num }));
-      } else {
-        setZoneConfigs((prev) => ({
-          ...prev,
-          [selectedZoneId]: {
-            ...(prev[selectedZoneId] || universalConfig),
-            moneyPerKm: num,
-          },
-        }));
-      }
+      setUniversalConfig((prev) => ({ ...prev, moneyPerKm: num }));
     }
   };
 
   const handleIncentiveChange = async (
     id: string,
-    field: 'value' | 'active' | 'description' | 'title',
-    val: number | boolean | string
+    field: 'value' | 'active' | 'description' | 'title' | 'targetCount' | 'milestones',
+    val: any
   ) => {
     setSavedItemsMap((prev) => ({ ...prev, [id]: false }));
     const updateList = (list: IncentiveItem[]) =>
       list.map((item) => (item.id === id ? { ...item, [field]: val } : item));
 
-    let updatedUniversal = universalConfig;
-    let updatedZoneConfigs = zoneConfigs;
-
-    if (pricingBasis === 'UNIVERSAL') {
-      updatedUniversal = {
-        ...universalConfig,
-        incentives: updateList(universalConfig.incentives),
-      };
-      setUniversalConfig(updatedUniversal);
-    } else {
-      const existing = zoneConfigs[selectedZoneId] || universalConfig;
-      updatedZoneConfigs = {
-        ...zoneConfigs,
-        [selectedZoneId]: {
-          ...existing,
-          incentives: updateList(existing.incentives),
-        },
-      };
-      setZoneConfigs(updatedZoneConfigs);
-    }
+    const updatedUniversal = {
+      ...universalConfig,
+      incentives: updateList(universalConfig.incentives),
+    };
+    setUniversalConfig(updatedUniversal);
 
     if (field === 'active') {
       try {
@@ -378,15 +273,12 @@ export function DeliveryPricingSettingsCard() {
         await updatePricing({
           minPricePerDelivery: minP,
           moneyPerKm: mKm,
-          pricingBasis,
+          pricingBasis: 'UNIVERSAL',
           universalConfig: updatedUniversal,
-          zoneConfigs: updatedZoneConfigs,
-          zones,
         }).unwrap();
         setSavedItemsMap((prev) => ({ ...prev, [id]: true }));
         try {
           localStorage.setItem('foodie_universal_pricing_config', JSON.stringify(updatedUniversal));
-          localStorage.setItem('foodie_zone_pricing_configs', JSON.stringify(updatedZoneConfigs));
         } catch (_e) {}
         setToastMsg({
           text: `Incentive "${id}" turned ${val ? 'ON' : 'OFF'} and synced!`,
@@ -407,89 +299,26 @@ export function DeliveryPricingSettingsCard() {
     const newId = `customBonus_${Date.now()}`;
     const newRule: IncentiveItem = {
       id: newId,
-      title: 'Custom Location Surge',
+      title: 'Platform Mileage Surge',
       icon: '',
       value: 50,
       unit: '₹ / order',
       active: true,
-      description: `Custom incentive bonus active for ${pricingBasis === 'ZONE' ? activeZone.name : 'all platform orders'}.`,
+      description: 'Custom platform incentive bonus active for fulfilled delivery assignments.',
       category: 'Reward & Rating',
     };
 
-    if (pricingBasis === 'UNIVERSAL') {
-      setUniversalConfig((prev) => ({
-        ...prev,
-        incentives: [...prev.incentives, newRule],
-      }));
-    } else {
-      setZoneConfigs((prev) => {
-        const existing = prev[selectedZoneId] || universalConfig;
-        return {
-          ...prev,
-          [selectedZoneId]: {
-            ...existing,
-            incentives: [...existing.incentives, newRule],
-          },
-        };
-      });
-    }
+    setUniversalConfig((prev) => ({
+      ...prev,
+      incentives: [...prev.incentives, newRule],
+    }));
   };
 
   const handleRemoveIncentive = (id: string) => {
-    if (pricingBasis === 'UNIVERSAL') {
-      setUniversalConfig((prev) => ({
-        ...prev,
-        incentives: prev.incentives.filter((i) => i.id !== id),
-      }));
-    } else {
-      setZoneConfigs((prev) => {
-        const existing = prev[selectedZoneId] || universalConfig;
-        return {
-          ...prev,
-          [selectedZoneId]: {
-            ...existing,
-            incentives: existing.incentives.filter((i) => i.id !== id),
-          },
-        };
-      });
-    }
-  };
-
-  const handleAddCustomZone = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newZoneName.trim()) {
-      alert('Please enter a valid Zone / Location name');
-      return;
-    }
-    const zoneId = `zone-${Date.now()}`;
-    const newZone: ZoneItem = {
-      id: zoneId,
-      name: newZoneName.trim(),
-      city: newZoneCity.trim() || 'Tumakuru',
-      code: `Z-0${zones.length + 1}`,
-      description: `Custom zone location created for ${newZoneName.trim()}`,
-    };
-
-    const updatedZones = [...zones, newZone];
-    setZones(updatedZones);
-    setSelectedZoneId(zoneId);
-    setZoneConfigs((prev) => ({
+    setUniversalConfig((prev) => ({
       ...prev,
-      [zoneId]: {
-        minPrice: universalConfig.minPrice,
-        moneyPerKm: universalConfig.moneyPerKm,
-        incentives: [...universalConfig.incentives],
-      },
+      incentives: prev.incentives.filter((i) => i.id !== id),
     }));
-
-    try {
-      localStorage.setItem('foodie_custom_zones', JSON.stringify(updatedZones));
-    } catch (_e) {}
-
-    setIsAddingZone(false);
-    setNewZoneName('');
-    setToastMsg({ text: `Location "${newZone.name}" created and selected!`, type: 'success' });
-    setTimeout(() => setToastMsg(null), 3500);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -507,10 +336,7 @@ export function DeliveryPricingSettingsCard() {
     }
 
     try {
-      localStorage.setItem('foodie_pricing_basis', pricingBasis);
-      localStorage.setItem('foodie_selected_zone_id', selectedZoneId);
       localStorage.setItem('foodie_universal_pricing_config', JSON.stringify(universalConfig));
-      localStorage.setItem('foodie_zone_pricing_configs', JSON.stringify(zoneConfigs));
 
       // Mark all rules as saved
       const allSavedMap: Record<string, boolean> = {};
@@ -526,10 +352,8 @@ export function DeliveryPricingSettingsCard() {
       const res = await updatePricing({
         minPricePerDelivery: parsedMinPrice,
         moneyPerKm: parsedMoneyPerKm,
-        pricingBasis,
+        pricingBasis: 'UNIVERSAL',
         universalConfig: updatedUniversalConfig,
-        zoneConfigs,
-        zones,
       }).unwrap();
 
       const updatedMin = res?.minPricePerDelivery ?? parsedMinPrice;
@@ -546,14 +370,7 @@ export function DeliveryPricingSettingsCard() {
         moneyPerKm: updatedKm,
       }));
 
-      if (pricingBasis === 'UNIVERSAL') {
-        setToastMsg({ text: 'Universal global payout structure saved to database successfully!', type: 'success' });
-      } else {
-        setToastMsg({
-          text: `Payout structure & incentives for "${activeZone.name}" (${activeZone.city}) saved successfully!`,
-          type: 'success',
-        });
-      }
+      setToastMsg({ text: 'Universal platform payout structure and incentives saved successfully!', type: 'success' });
       setTimeout(() => setToastMsg(null), 4000);
     } catch (err: any) {
       const errorMsg = err?.data?.error?.message || err?.message || 'Failed to save payout settings to database. Please try again.';
@@ -608,234 +425,25 @@ export function DeliveryPricingSettingsCard() {
             Delivery Partner Payout Structure & Incentives
           </h2>
           <p style={{ margin: '6px 0 0 0', fontSize: '0.875rem', color: '#6B7280', lineHeight: '1.5' }}>
-            Configure guaranteed base payouts, distance rates, and incentives on a universal platform-wide or zone-specific location basis.
+            Configure guaranteed base payouts, distance rates, and incentives across the platform.
           </p>
         </div>
 
-        {/* Universal vs Zone Basis Toggle */}
-        <div
-          style={{
-            display: 'flex',
-            backgroundColor: '#F9FAFB',
-            padding: '4px',
-            borderRadius: '10px',
-            border: '1px solid #E5E7EB',
-            gap: '4px',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setPricingBasis('UNIVERSAL')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
             style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: 'none',
-              background: pricingBasis === 'UNIVERSAL' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
-              color: pricingBasis === 'UNIVERSAL' ? '#FFFFFF' : '#6B7280',
-              fontSize: '0.8125rem',
+              fontSize: '0.75rem',
               fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease',
-              boxShadow: pricingBasis === 'UNIVERSAL' ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
+              backgroundColor: '#E3F2FD',
+              color: '#2196F3',
+              padding: '6px 14px',
+              borderRadius: '12px',
+              border: '1px solid #BFDBFE',
             }}
           >
-            Universal Basis
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPricingBasis('ZONE')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: 'none',
-              background: pricingBasis === 'ZONE' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
-              color: pricingBasis === 'ZONE' ? '#FFFFFF' : '#6B7280',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease',
-              boxShadow: pricingBasis === 'ZONE' ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
-            }}
-          >
-            Zone Basis
-          </button>
+            Platform Universal Scope
+          </span>
         </div>
-      </div>
-
-      {/* Zone Search & Location Selector (Rendered only in Zone Basis Mode) */}
-      {pricingBasis === 'ZONE' && (
-        <div
-          style={{
-            backgroundColor: '#F9FAFB',
-            borderRadius: '16px',
-            padding: '18px 20px',
-            marginBottom: '24px',
-            border: '1px solid #E5E7EB',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>Select Operating Zone / Location</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '2px 8px', borderRadius: '12px', border: '1px solid #BFDBFE' }}>
-                {zones.length} Zones Available
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsAddingZone(true)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                color: '#FFFFFF',
-                border: 'none',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
-              }}
-            >
-              + Add Custom Location
-            </button>
-          </div>
-
-          {/* Search Input Bar */}
-          <div style={{ position: 'relative' }}>
-            <input
-              type="text"
-              placeholder="Search zone by name, city, or code (e.g. Tumakuru, Downtown, Koramangala, Indiranagar)..."
-              value={zoneSearchQuery}
-              onChange={(e) => setZoneSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '10px',
-                border: '1px solid #E5E7EB',
-                fontSize: '0.875rem',
-                backgroundColor: '#FFFFFF',
-                color: '#111827',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          {/* Quick Zone Chips Selector */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '140px', overflowY: 'auto' }}>
-            {filteredZones.map((z) => {
-              const isSelected = selectedZoneId === z.id;
-              const hasCustomConfig = !!zoneConfigs[z.id];
-              return (
-                <button
-                  key={z.id}
-                  type="button"
-                  onClick={() => setSelectedZoneId(z.id)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    border: isSelected ? '1px solid #BFDBFE' : '1px solid #E5E7EB',
-                    background: isSelected ? '#E3F2FD' : '#FFFFFF',
-                    color: isSelected ? '#2196F3' : '#374151',
-                    fontSize: '0.8125rem',
-                    fontWeight: isSelected ? 700 : 500,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <span>{z.name}</span>
-                  <span style={{ fontSize: '0.7rem', opacity: isSelected ? 0.9 : 0.7, fontWeight: 700 }}>
-                    ({z.city})
-                  </span>
-                  {hasCustomConfig && (
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isSelected ? '#2196F3' : '#9CA3AF' }} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Active Zone Details Card Banner */}
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '10px',
-              padding: '12px 16px',
-              border: '1px solid #E5E7EB',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#111827' }}>
-                Configuring Zone: <span style={{ textDecoration: 'underline' }}>{activeZone.name}</span> ({activeZone.code})
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '2px' }}>
-                {activeZone.description} · City: {activeZone.city}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  backgroundColor: '#E3F2FD',
-                  color: '#2196F3',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  border: '1px solid #BFDBFE',
-                }}
-              >
-                Base: ₹{currentConfig.minPrice} · ₹{currentConfig.moneyPerKm}/km
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mode Status Banner */}
-      <div
-        style={{
-          padding: '10px 16px',
-          borderRadius: '10px',
-          backgroundColor: '#E3F2FD',
-          border: '1px solid #BFDBFE',
-          color: '#1D4ED8',
-          fontSize: '0.8125rem',
-          fontWeight: 600,
-          marginBottom: '20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '8px',
-        }}
-      >
-        <span>
-          {pricingBasis === 'UNIVERSAL'
-            ? 'Universal Global Pricing Active: Rules set here apply to all delivery partners and zones across the marketplace.'
-            : `Zone Override Active for "${activeZone.name}": Custom payout multipliers apply specifically to deliveries originating in this zone.`}
-        </span>
-        <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          {pricingBasis === 'UNIVERSAL' ? 'Default Scope' : 'Zone Scope'}
-        </span>
       </div>
 
       {/* Alert Notification Toast */}
@@ -1088,7 +696,7 @@ export function DeliveryPricingSettingsCard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  Rider Incentives & Performance Bonus Matrix ({pricingBasis === 'UNIVERSAL' ? 'Universal' : activeZone.name})
+                  Rider Incentives & Performance Bonus Matrix
                 </h3>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#6B7280' }}>
                   Admin Operator Control: Configure custom rule conditions, toggle ON/OFF, and adjust compensation values.
@@ -1258,7 +866,166 @@ export function DeliveryPricingSettingsCard() {
                         {item.unit}
                       </span>
                     </div>
+
+                    {/* Target Delivery Count */}
+                    {(item.targetCount !== undefined || item.category === 'Target & Mileage') && (
+                      <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#6B7280', minWidth: '105px' }}>
+                          Target Deliveries:
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.targetCount ?? (item.id === 'weeklyTargetBonus' ? 80 : 15)}
+                          disabled={!item.active}
+                          onChange={(e) => handleIncentiveChange(item.id, 'targetCount', Math.max(1, parseInt(e.target.value) || 1))}
+                          style={{
+                            width: '70px',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #E5E7EB',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            backgroundColor: item.active ? '#FFFFFF' : '#F9FAFB',
+                            color: '#111827',
+                            outline: 'none',
+                          }}
+                        />
+                        <span style={{ fontSize: '0.6875rem', color: '#6B7280' }}>orders</span>
+                      </div>
+                    )}
+
+                    {/* Milestone Tiers for Daily Target Bonus */}
+                    {item.id === 'dailyTargetBonus' && (
+                      <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #E5E7EB' }}>
+                        <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#4B5563', marginBottom: '8px' }}>
+                          Daily Milestone Ladder:
+                        </div>
+                        <div
+                          className="daily-milestone-ladder-grid"
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                            gap: '8px',
+                            width: '100%',
+                          }}
+                        >
+                          {(item.milestones || [
+                            { trips: 6, reward: 50 },
+                            { trips: 9, reward: 75 },
+                            { trips: 13, reward: 120 },
+                            { trips: 18, reward: 190 },
+                          ]).map((m, mIdx) => (
+                            <div
+                              key={mIdx}
+                              className="daily-milestone-item"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '2px',
+                                padding: '3px 4px',
+                                borderRadius: '8px',
+                                backgroundColor: item.active ? '#FFFFFF' : '#F9FAFB',
+                                border: '1px solid #E5E7EB',
+                                boxSizing: 'border-box',
+                                height: '36px',
+                                minHeight: '36px',
+                                width: '100%',
+                                minWidth: 0,
+                              }}
+                            >
+                              {/* Editable Trip Count Input */}
+                              <input
+                                type="number"
+                                min="1"
+                                value={m.trips ?? (m as any).orders ?? 1}
+                                disabled={!item.active}
+                                onChange={(e) => {
+                                  const val = Math.max(1, parseInt(e.target.value) || 1);
+                                  const currentMilestones = (item.milestones || [
+                                    { trips: 6, reward: 50 },
+                                    { trips: 9, reward: 75 },
+                                    { trips: 13, reward: 120 },
+                                    { trips: 18, reward: 190 },
+                                  ]).map((mItem, idx) =>
+                                    idx === mIdx ? { ...mItem, trips: val, orders: val } : mItem
+                                  );
+                                  handleIncentiveChange(item.id, 'milestones', currentMilestones);
+                                }}
+                                style={{
+                                  width: '28px',
+                                  minWidth: '28px',
+                                  height: '26px',
+                                  padding: '0',
+                                  borderRadius: '4px',
+                                  border: '1px solid #D1D5DB',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  backgroundColor: item.active ? '#F9FAFB' : '#F3F4F6',
+                                  color: '#111827',
+                                  outline: 'none',
+                                  textAlign: 'center',
+                                  boxSizing: 'border-box',
+                                }}
+                              />
+
+                              {/* trips label */}
+                              <span style={{ fontSize: '0.625rem', fontWeight: 600, color: '#4B5563', whiteSpace: 'nowrap', lineHeight: 1 }}>
+                                trips
+                              </span>
+
+                              {/* arrow */}
+                              <span style={{ fontSize: '0.625rem', color: '#9CA3AF', fontWeight: 700, margin: '0', lineHeight: 1 }}>
+                                →
+                              </span>
+
+                              {/* currency symbol */}
+                              <span style={{ fontWeight: 800, color: '#166534', fontSize: '0.625rem', margin: '0', lineHeight: 1 }}>
+                                ₹
+                              </span>
+
+                              {/* Editable Reward Input */}
+                              <input
+                                type="number"
+                                min="0"
+                                value={m.reward}
+                                disabled={!item.active}
+                                onChange={(e) => {
+                                  const val = Math.max(0, Number(e.target.value) || 0);
+                                  const currentMilestones = (item.milestones || [
+                                    { trips: 6, reward: 50 },
+                                    { trips: 9, reward: 75 },
+                                    { trips: 13, reward: 120 },
+                                    { trips: 18, reward: 190 },
+                                  ]).map((mItem, idx) =>
+                                    idx === mIdx ? { ...mItem, reward: val } : mItem
+                                  );
+                                  handleIncentiveChange(item.id, 'milestones', currentMilestones);
+                                }}
+                                style={{
+                                  width: '34px',
+                                  minWidth: '34px',
+                                  height: '26px',
+                                  padding: '0',
+                                  borderRadius: '4px',
+                                  border: '1px solid #D1D5DB',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  backgroundColor: item.active ? '#F9FAFB' : '#F3F4F6',
+                                  color: '#111827',
+                                  outline: 'none',
+                                  textAlign: 'center',
+                                  boxSizing: 'border-box',
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
+
                 );
               })}
             </div>
@@ -1277,7 +1044,7 @@ export function DeliveryPricingSettingsCard() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
                 <div style={{ fontSize: '0.975rem', fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  Formula & Interactive Payout Simulator ({pricingBasis === 'UNIVERSAL' ? 'Universal' : activeZone.name})
+                  Formula & Interactive Payout Simulator
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '2px' }}>
                   Test real-time trip payouts with active rate multipliers
@@ -1488,145 +1255,28 @@ export function DeliveryPricingSettingsCard() {
                 gap: '8px',
               }}
             >
-              <span>
-                {isUpdating
-                  ? 'Saving...'
-                  : pricingBasis === 'UNIVERSAL'
-                  ? 'Save Universal Payout Structure'
-                  : `Save ${activeZone.name} Payout Structure`}
-              </span>
+              <span>{isUpdating ? 'Saving...' : 'Save Universal Payout Structure'}</span>
             </button>
           </div>
         </form>
       )}
 
-      {/* Add Custom Zone Modal */}
-      {isAddingZone && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(17, 24, 39, 0.6)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 20,
-              width: 440,
-              maxWidth: '90%',
-              padding: 24,
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
-              border: '1px solid #E5E7EB',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#111827' }}>
-                Add New Delivery Zone / Location
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsAddingZone(false)}
-                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#6B7280' }}
-              >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleAddCustomZone} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>
-                  Zone / Area Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Electronic City Phase 1 or HSR Layout"
-                  value={newZoneName}
-                  onChange={(e) => setNewZoneName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #E5E7EB',
-                    fontSize: 13,
-                    color: '#111827',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>
-                  City / Region
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Tumakuru or Bengaluru"
-                  value={newZoneCity}
-                  onChange={(e) => setNewZoneCity(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #E5E7EB',
-                    fontSize: 13,
-                    color: '#111827',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingZone(false)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 8,
-                    border: '1px solid #E5E7EB',
-                    backgroundColor: '#FFFFFF',
-                    color: '#475569',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '8px 20px',
-                    borderRadius: 8,
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                    color: '#FFFFFF',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
-                  }}
-                >
-                  Create & Select Zone
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       <style jsx global>{`
+        .daily-milestone-ladder-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          width: 100%;
+        }
+        .daily-milestone-item input[type='number']::-webkit-outer-spin-button,
+        .daily-milestone-item input[type='number']::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        .daily-milestone-item input[type='number'] {
+          -moz-appearance: textfield;
+          appearance: textfield;
+        }
         @media (max-width: 640px) {
           .pricing-card-responsive {
             padding: 16px 14px !important;
@@ -1636,6 +1286,14 @@ export function DeliveryPricingSettingsCard() {
           }
           .save-button-responsive {
             width: 100% !important;
+          }
+          .daily-milestone-ladder-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+        @media (max-width: 340px) {
+          .daily-milestone-ladder-grid {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>

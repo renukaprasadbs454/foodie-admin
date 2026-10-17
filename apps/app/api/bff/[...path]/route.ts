@@ -1432,69 +1432,10 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
           if (!isZoneDeleted('dz-tumkur', 'Tumkur Zone')) {
             zoneMap.set('dz-tumkur', { ...defaultTumkur, ...z, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: z.cityName || 'Tumkur' });
           }
-        } else if (z.status === 'ACTIVE' || !z.status) {
-          zoneMap.set(idLower, {
-            id: z.id,
-            zoneName: z.zoneName || z.id,
-            cityName: z.cityName || 'Karnataka',
-            latitude: z.latitude || 12.9716,
-            longitude: z.longitude || 77.5946,
-            radiusKm: z.radiusKm || 15.0,
-            status: 'ACTIVE',
-            restaurantEnabled: z.restaurantEnabled ?? true,
-            deliveryPartnerEnabled: z.deliveryPartnerEnabled ?? true,
-            customerOrderingEnabled: z.customerOrderingEnabled ?? true,
-            activeDrivers: z.activeDrivers ?? 10,
-          });
         }
       }
     }
 
-    if (globalAny.ADMIN_DYNAMIC_ZONES) {
-      for (const dz of (globalAny.ADMIN_DYNAMIC_ZONES as any[])) {
-        if (dz && dz.id && !isZoneDeleted(dz.id, dz.zoneName)) {
-          const idLower = String(dz.id).toLowerCase();
-          if (!zoneMap.has(idLower)) {
-            zoneMap.set(idLower, {
-              id: dz.id,
-              zoneName: dz.zoneName || dz.id,
-              cityName: dz.cityName || 'Karnataka',
-              latitude: dz.latitude || 12.9716,
-              longitude: dz.longitude || 77.5946,
-              radiusKm: dz.radiusKm || 10.0,
-              status: dz.status || 'ACTIVE',
-              restaurantEnabled: dz.restaurantEnabled ?? true,
-              deliveryPartnerEnabled: dz.deliveryPartnerEnabled ?? true,
-              customerOrderingEnabled: dz.customerOrderingEnabled ?? true,
-              activeDrivers: dz.activeDrivers ?? 10,
-            });
-          }
-        }
-      }
-    }
-
-    if (globalAny.ADMIN_USERS_STORE) {
-      for (const u of (globalAny.ADMIN_USERS_STORE as any[])) {
-        if (u.assignedZoneId && !isZoneDeleted(u.assignedZoneId, u.assignedZoneName)) {
-          const zIdLower = u.assignedZoneId.trim().toLowerCase();
-          if (!zoneMap.has(zIdLower)) {
-            zoneMap.set(zIdLower, {
-              id: u.assignedZoneId.trim(),
-              zoneName: u.assignedZoneName || u.assignedZoneId.trim(),
-              cityName: 'Karnataka',
-              latitude: 12.9716,
-              longitude: 77.5946,
-              radiusKm: 15.0,
-              status: 'ACTIVE',
-              restaurantEnabled: true,
-              deliveryPartnerEnabled: true,
-              customerOrderingEnabled: true,
-              activeDrivers: 10,
-            });
-          }
-        }
-      }
-    }
 
     let allZones = Array.from(zoneMap.values()).sort((a, b) => {
       if (a.id.toLowerCase() === 'dz-bangalore') return -1;
@@ -2238,6 +2179,13 @@ async function handleAdminLocationCities(request: Request, targetPath: string, a
         { id: 'cty-mumbai', cityName: 'Mumbai', state: 'Maharashtra', activeZonesCount: 0, activeMerchantsCount: 190, status: 'ACTIVE' },
         { id: 'cty-delhi', cityName: 'Delhi-NCR', state: 'Delhi', activeZonesCount: 0, activeMerchantsCount: 145, status: 'ACTIVE' },
       ];
+    } else {
+      if (!cities.some((c) => (c.cityName || '').toLowerCase().includes('tum'))) {
+        cities.unshift({ id: 'cty-tumkur', cityName: 'Tumakuru', state: 'Karnataka', activeZonesCount: 0, activeMerchantsCount: 48, status: 'ACTIVE' });
+      }
+      if (!cities.some((c) => (c.cityName || '').toLowerCase().includes('bang') || (c.cityName || '').toLowerCase().includes('beng'))) {
+        cities.unshift({ id: 'cty-bangalore', cityName: 'Bangalore', state: 'Karnataka', activeZonesCount: 0, activeMerchantsCount: 265, status: 'ACTIVE' });
+      }
     }
 
     // Get all current non-deleted active zones to accurately count active zones per city
