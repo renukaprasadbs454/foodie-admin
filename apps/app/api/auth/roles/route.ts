@@ -42,10 +42,24 @@ export async function GET() {
       const rawData = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
       if (rawData.length > 0) {
         const globalAny = global as unknown as Record<string, unknown>;
+        const deletedZones = (globalAny.ADMIN_DELETED_ZONES as Set<string>) || new Set<string>();
+        const isDeleted = (id?: string | null, name?: string | null) => {
+          if (!id && !name) return false;
+          const idL = (id || '').trim().toLowerCase();
+          const nameL = (name || '').trim().toLowerCase();
+          return deletedZones.has(idL) || deletedZones.has(nameL);
+        };
         const usersStore = (globalAny.ADMIN_USERS_STORE as any[]) || [];
-        const combined = [...rawData];
+        const combined = rawData.filter((r: any) => {
+          if (r.zoneId && isDeleted(r.zoneId, r.zoneName)) return false;
+          if (r.key && r.key.startsWith('ZONE_ADMIN_')) {
+            const rawZId = r.key.replace(/^ZONE_ADMIN_/, '');
+            if (isDeleted(rawZId, r.label)) return false;
+          }
+          return true;
+        });
         for (const u of usersStore) {
-          if (u.assignedZoneId) {
+          if (u.assignedZoneId && !isDeleted(u.assignedZoneId, u.assignedZoneName)) {
             const label = formatZoneAdminLabel(u.assignedZoneName || u.assignedZoneId);
             if (!combined.some((item: any) => item.label === label || item.zoneId === u.assignedZoneId)) {
               combined.push({
@@ -74,6 +88,13 @@ export async function GET() {
   // 2. Fallback dynamic role derivation using global stores
   const globalAny = global as unknown as Record<string, unknown>;
   const usersStore = (globalAny.ADMIN_USERS_STORE as any[]) || [];
+  const deletedZones = (globalAny.ADMIN_DELETED_ZONES as Set<string>) || new Set<string>();
+  const isDeleted = (id?: string | null, name?: string | null) => {
+    if (!id && !name) return false;
+    const idL = (id || '').trim().toLowerCase();
+    const nameL = (name || '').trim().toLowerCase();
+    return deletedZones.has(idL) || deletedZones.has(nameL);
+  };
 
   const defaultBangalore = {
     id: 'dz-bangalore',
@@ -85,12 +106,16 @@ export async function GET() {
   };
 
   const zonesMap = new Map<string, { id: string; zoneName: string }>();
-  zonesMap.set('dz-bangalore', defaultBangalore);
-  zonesMap.set('dz-tumkur', defaultTumkur);
+  if (!isDeleted('dz-bangalore', 'Bangalore Zone')) {
+    zonesMap.set('dz-bangalore', defaultBangalore);
+  }
+  if (!isDeleted('dz-tumkur', 'Tumkur Zone')) {
+    zonesMap.set('dz-tumkur', defaultTumkur);
+  }
 
   // Collect any custom zones created in ADMIN_USERS_STORE
   for (const u of usersStore) {
-    if (u.assignedZoneId) {
+    if (u.assignedZoneId && !isDeleted(u.assignedZoneId, u.assignedZoneName)) {
       const cleanId = u.assignedZoneId.trim().toLowerCase();
       if (!zonesMap.has(cleanId)) {
         zonesMap.set(cleanId, {
@@ -104,7 +129,7 @@ export async function GET() {
   // Collect from dynamic zones created by Super Admin
   const dynamicZones = (globalAny.ADMIN_DYNAMIC_ZONES as any[]) || [];
   for (const dz of dynamicZones) {
-    if (dz.id) {
+    if (dz.id && !isDeleted(dz.id, dz.zoneName)) {
       const cleanId = dz.id.trim().toLowerCase();
       if (!zonesMap.has(cleanId)) {
         zonesMap.set(cleanId, {
@@ -118,7 +143,7 @@ export async function GET() {
   // Collect from location history if available
   const loginHistory = (globalAny.ADMIN_ZONE_LOGIN_HISTORY as any[]) || [];
   for (const h of loginHistory) {
-    if (h.zoneId) {
+    if (h.zoneId && !isDeleted(h.zoneId, h.zoneName)) {
       const cleanId = h.zoneId.trim().toLowerCase();
       if (!zonesMap.has(cleanId)) {
         zonesMap.set(cleanId, {

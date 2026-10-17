@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   type AdminRole,
   Toast,
@@ -52,8 +52,6 @@ export function AdminLoginForm({
 
   const DEFAULT_ROLE_OPTIONS: AdminRoleOption[] = [
     { key: 'SUPER_ADMIN', role: 'SUPER_ADMIN', label: 'Super Admin', defaultEmail: 'admin@foodie.local' },
-    { key: 'ZONE_ADMIN_dz-bangalore', role: 'OPS', label: 'Bangalore Zone Admin', zoneId: 'dz-bangalore', zoneName: 'Bangalore Zone', defaultEmail: 'ops@foodie.local' },
-    { key: 'ZONE_ADMIN_dz-tumkur', role: 'FINANCE', label: 'Tumkur Zone Admin', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone', defaultEmail: 'finance@foodie.local' },
     { key: 'AUDITOR', role: 'AUDITOR', label: 'Compliance Auditor', defaultEmail: 'auditor@foodie.local' },
     { key: 'FINANCE_ADMIN', role: 'FINANCE_ADMIN', label: 'Finance Admin', defaultEmail: 'finance@foodie.local' },
     { key: 'OPERATIONS_ADMIN', role: 'OPERATIONS_ADMIN', label: 'Operations Admin', defaultEmail: 'ops@foodie.local' },
@@ -64,6 +62,13 @@ export function AdminLoginForm({
 
   const roleOptions: AdminRoleOption[] = dynamicRoles.length > 0 ? dynamicRoles : DEFAULT_ROLE_OPTIONS;
   const [selectedRoleKey, setSelectedRoleKey] = useState<string>('SUPER_ADMIN');
+
+  useEffect(() => {
+    if (selectedRoleKey !== 'SUPER_ADMIN' && !roleOptions.some((r) => r.key === selectedRoleKey || r.role === selectedRoleKey)) {
+      setSelectedRoleKey('SUPER_ADMIN');
+    }
+  }, [roleOptions, selectedRoleKey]);
+
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState(initialPassword);
   const [showPassword, setShowPassword] = useState(false);
