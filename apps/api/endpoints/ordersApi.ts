@@ -16,10 +16,16 @@ export const ordersApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => {
         const raw = Array.isArray(response)
           ? response
+          : Array.isArray(response?.data?.items)
+          ? response.data.items
+          : Array.isArray(response?.data?.content)
+          ? response.data.content
           : Array.isArray(response?.data)
           ? response.data
           : Array.isArray(response?.items)
           ? response.items
+          : Array.isArray(response?.content)
+          ? response.content
           : [];
         return raw.map((item: any) => {
           let status = String(item.status || 'PENDING').toUpperCase();

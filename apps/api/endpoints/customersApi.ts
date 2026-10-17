@@ -27,56 +27,116 @@ export interface UpdateTicketStatusRequest {
   agentNotes?: string;
 }
 
+export interface GetCustomersParams {
+  search?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+  fetchAllPages?: boolean;
+}
+
 export const customersApi = baseApi.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
-    getCustomers: builder.query<CustomerDashboardResponse, { search?: string; status?: string } | void>({
-      query: (params) => {
+    getCustomers: builder.query<CustomerDashboardResponse, GetCustomersParams | void>({
+      queryFn: async (arg, _queryApi, _extraOptions, fetchWithBQ) => {
+        const params = arg || {};
         const queryParams = new URLSearchParams();
-        if (params?.search) queryParams.set('search', params.search);
-        if (params?.status && params.status !== 'ALL') queryParams.set('status', params.status);
-        const searchStr = queryParams.toString();
-        return `/api/bff/admin/customers${searchStr ? `?${searchStr}` : ''}`;
-      },
-      transformResponse: (response: any): CustomerDashboardResponse => {
-        let payload = response;
-        if (payload && typeof payload === 'object' && 'data' in payload && payload.data !== null && payload.data !== undefined) {
-          payload = payload.data;
+        if (params.search) queryParams.set('search', params.search);
+        if (params.status && params.status !== 'ALL') queryParams.set('status', params.status);
+        if (typeof params.page === 'number') queryParams.set('page', String(params.page));
+        if (typeof params.size === 'number') queryParams.set('size', String(params.size));
+
+        const baseQueryStr = queryParams.toString();
+        const initialUrl = `/api/bff/admin/customers${baseQueryStr ? `?${baseQueryStr}` : ''}`;
+        const initialRes = await fetchWithBQ(initialUrl);
+
+        if (initialRes.error) {
+          return { error: initialRes.error };
         }
 
-        if (payload && typeof payload === 'object' && Array.isArray(payload.customers)) {
-          const custList = payload.customers;
-          return {
-            summary: payload.summary ?? {
-              totalRegistered: custList.length,
-              activeAccounts: custList.filter((c: any) => c?.accountStatus === 'ACTIVE').length,
-              suspendedAccounts: custList.filter((c: any) => c?.accountStatus === 'SUSPENDED').length,
-              averageCustomerLtv: 0,
-            },
-            customers: custList,
-            total: typeof payload.total === 'number' ? payload.total : custList.length,
-            openTicketsCount: typeof payload.openTicketsCount === 'number' ? payload.openTicketsCount : 0,
-          };
+        const extractFromResponse = (response: any) => {
+          let payload = response;
+          if (payload && typeof payload === 'object' && 'data' in payload && payload.data !== null && payload.data !== undefined) {
+            payload = payload.data;
+          }
+
+          let customers: CustomerProfile[] = [];
+          if (payload && typeof payload === 'object' && Array.isArray(payload.customers)) {
+            customers = payload.customers;
+          } else if (Array.isArray(payload)) {
+            customers = payload;
+          } else if (Array.isArray(payload?.content)) {
+            customers = payload.content;
+          } else if (Array.isArray(payload?.items)) {
+            customers = payload.items;
+          }
+
+          const total = typeof payload?.total === 'number'
+            ? payload.total
+            : typeof response?.meta?.pagination?.totalItems === 'number'
+            ? response.meta.pagination.totalItems
+            : typeof payload?.totalElements === 'number'
+            ? payload.totalElements
+            : customers.length;
+
+          const totalPages = typeof payload?.totalPages === 'number'
+            ? payload.totalPages
+            : typeof response?.meta?.pagination?.totalPages === 'number'
+            ? response.meta.pagination.totalPages
+            : 1;
+
+          const openTicketsCount = typeof payload?.openTicketsCount === 'number'
+            ? payload.openTicketsCount
+            : 0;
+
+          return { customers, total, totalPages, openTicketsCount, summary: payload?.summary };
+        };
+
+        const page0 = extractFromResponse(initialRes.data);
+        const accumulatedCustomers = [...page0.customers];
+
+        // Retrieve subsequent pages if the backend API reports multiple pages
+        if (page0.totalPages > 1 && (params.page === undefined || params.fetchAllPages !== false)) {
+          const pageSize = params.size || 50;
+          for (let p = 1; p < page0.totalPages; p++) {
+            const nextParams = new URLSearchParams(queryParams);
+            nextParams.set('page', String(p));
+            nextParams.set('size', String(pageSize));
+            const nextRes = await fetchWithBQ(`/api/bff/admin/customers?${nextParams.toString()}`);
+            if (!nextRes.error && nextRes.data) {
+              const nextData = extractFromResponse(nextRes.data);
+              accumulatedCustomers.push(...nextData.customers);
+            }
+          }
         }
 
-        const list: CustomerProfile[] = Array.isArray(payload)
-          ? payload
-          : (Array.isArray(payload?.content)
-            ? payload.content
-            : (Array.isArray(payload?.items)
-              ? payload.items
-              : []));
+        // Deduplicate customer records by stable identifier
+        const seenIds = new Set<string>();
+        const dedupedCustomers: CustomerProfile[] = [];
+        for (const cust of accumulatedCustomers) {
+          if (!cust) continue;
+          const stableId = cust.id || cust.email || cust.phone;
+          if (stableId && seenIds.has(stableId)) continue;
+          if (stableId) seenIds.add(stableId);
+          dedupedCustomers.push(cust);
+        }
+
+        const activeCount = dedupedCustomers.filter((c) => c.accountStatus === 'ACTIVE').length;
+        const suspendedCount = dedupedCustomers.filter((c) => c.accountStatus === 'SUSPENDED').length;
 
         return {
-          summary: {
-            totalRegistered: list.length,
-            activeAccounts: list.filter((c: any) => c?.accountStatus === 'ACTIVE').length,
-            suspendedAccounts: list.filter((c: any) => c?.accountStatus === 'SUSPENDED').length,
-            averageCustomerLtv: 0,
+          data: {
+            summary: page0.summary ?? {
+              totalRegistered: dedupedCustomers.length,
+              activeAccounts: activeCount,
+              suspendedAccounts: suspendedCount,
+              averageCustomerLtv: 0,
+            },
+            customers: dedupedCustomers,
+            total: Math.max(page0.total, dedupedCustomers.length),
+            openTicketsCount: page0.openTicketsCount,
           },
-          customers: list,
-          total: typeof payload?.total === 'number' ? payload.total : list.length,
-          openTicketsCount: typeof payload?.openTicketsCount === 'number' ? payload.openTicketsCount : 0,
         };
       },
       providesTags: [{ type: 'Admin', id: 'CUSTOMERS' }],

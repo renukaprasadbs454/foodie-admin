@@ -12,7 +12,8 @@ export interface CustomerProfile {
   accountStatus: AccountStatus;
   joinedDate: string;
   lastOrderDate: string;
-  loyaltyTier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+  loyaltyTier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | string;
+  orders?: any[];
 }
 
 export type TicketCategory = 'MISSING_ITEM' | 'COLD_FOOD' | 'REFUND_REQUEST' | 'DELIVERY_DELAY' | 'OTHER';
