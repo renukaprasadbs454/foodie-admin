@@ -154,6 +154,8 @@ export function AdminLoginForm({
       if (typeof window !== 'undefined') {
         localStorage.setItem('foodie_admin_role', backendRole);
         sessionStorage.setItem('foodie_admin_role', backendRole);
+        document.cookie = `foodie_user_role=${encodeURIComponent(backendRole)}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `foodie_admin_role=${encodeURIComponent(backendRole)}; path=/; max-age=86400; SameSite=Lax`;
         localStorage.setItem('foodie_admin_user_id', identity.userId || '44444444-4444-4444-4444-444444444001');
         sessionStorage.setItem('foodie_admin_user_id', identity.userId || '44444444-4444-4444-4444-444444444001');
         localStorage.setItem('foodie_admin_email', userEmail);

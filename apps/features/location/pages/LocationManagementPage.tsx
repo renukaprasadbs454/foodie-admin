@@ -1160,7 +1160,24 @@ export function LocationManagementPage() {
                       </button>
                       <button onClick={() => updateZoneStatus({ id: dz.id, status: dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }).unwrap().then(() => { showToast(`Zone status updated to ${dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}`); void refetchZones(); })} style={{ padding: '6px 12px', background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{dz.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
                       {isSuperAdmin && (
-                        <button onClick={() => { if (confirm('Are you sure you want to permanently delete this zone? This action cannot be undone.')) { deleteZone(dz.id).unwrap().then(() => { showToast('Zone deleted permanently.'); void refetchZones(); }); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to permanently delete "${dz.zoneName}"? This action cannot be undone.`)) {
+                              deleteZone(dz.id).unwrap().then(() => {
+                                showToast(`Zone "${dz.zoneName}" deleted permanently.`);
+                                void refetchZones();
+                                void refetchCities();
+                              }).catch((err: any) => {
+                                const msg = err?.data?.error?.message || err?.message || 'Failed to delete zone.';
+                                showToast(`Error: ${msg}`);
+                              });
+                            }
+                          }}
+                          style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          Delete
+                        </button>
                       )}
                     </td>
                   </tr>
