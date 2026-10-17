@@ -1468,7 +1468,7 @@ export function CustomerManagementStudio() {
                   Base Delivery Fee
                 </span>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
-                  {isLoadingDeliveryCharges ? '...' : `₹${Number(deliveryCharges?.baseCharge ?? 35).toFixed(2)}`}
+                  {isLoadingDeliveryCharges ? '...' : `₹${Number(baseChargeInput || (deliveryCharges?.baseCharge ?? 35)).toFixed(2)}`}
                 </div>
               </div>
               <div>
@@ -1476,7 +1476,7 @@ export function CustomerManagementStudio() {
                   Base Distance
                 </span>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
-                  {isLoadingDeliveryCharges ? '...' : `${deliveryCharges?.baseDistanceKm ?? 3} km`}
+                  {isLoadingDeliveryCharges ? '...' : `${baseDistanceKmInput || (deliveryCharges?.baseDistanceKm ?? 3)} km`}
                 </div>
               </div>
               <div>
@@ -1484,7 +1484,7 @@ export function CustomerManagementStudio() {
                   Extra Fee / KM
                 </span>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
-                  {isLoadingDeliveryCharges ? '...' : `₹${Number(deliveryCharges?.additionalChargePerKm ?? 10).toFixed(2)}/km`}
+                  {isLoadingDeliveryCharges ? '...' : `₹${Number(additionalChargePerKmInput || (deliveryCharges?.additionalChargePerKm ?? 10)).toFixed(2)}/km`}
                 </div>
               </div>
             </div>
@@ -1595,7 +1595,7 @@ export function CustomerManagementStudio() {
                 </div>
               )}
 
-              {/* Dynamic Distance Slabs Structure Preview */}
+              {/* Interactive Distance Test Simulator */}
               <div
                 style={{
                   backgroundColor: '#F8FAFC',
@@ -1605,76 +1605,38 @@ export function CustomerManagementStudio() {
                   marginBottom: 16,
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>📍</span> Distance Slabs Structure (Calculated from Parameters)
-                </div>
-
-                {(() => {
-                  const bDist = Math.max(0.1, Number(baseDistanceKmInput) || 3);
-                  const bFee = Math.max(0, Number(baseChargeInput) || 35);
-                  const aFee = Math.max(0, Number(additionalChargePerKmInput) || 10);
-                  const midDist = bDist + 2;
-                  const slab2EndFee = bFee + 2 * aFee;
-
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          padding: '6px 10px',
-                          backgroundColor: '#FFFFFF',
-                          borderRadius: 8,
-                          border: '1px solid #E2E8F0',
-                          fontSize: 12,
-                        }}
-                      >
-                        <span style={{ fontWeight: 600, color: '#0F172A' }}>0 – {bDist} km (Base Slab)</span>
-                        <span style={{ fontWeight: 700, color: '#0284C7' }}>₹{bFee.toFixed(2)} flat</span>
-                      </div>
-
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          padding: '6px 10px',
-                          backgroundColor: '#FFFFFF',
-                          borderRadius: 8,
-                          border: '1px solid #E2E8F0',
-                          fontSize: 12,
-                        }}
-                      >
-                        <span style={{ fontWeight: 600, color: '#0F172A' }}>{bDist} – {midDist} km (Medium Range)</span>
-                        <span style={{ fontWeight: 700, color: '#0284C7' }}>
-                          ₹{bFee.toFixed(2)} – ₹{slab2EndFee.toFixed(2)} (+₹{aFee.toFixed(2)}/km)
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          padding: '6px 10px',
-                          backgroundColor: '#FFFFFF',
-                          borderRadius: 8,
-                          border: '1px solid #E2E8F0',
-                          fontSize: 12,
-                        }}
-                      >
-                        <span style={{ fontWeight: 600, color: '#0F172A' }}>Above {midDist} km (Extended Range)</span>
-                        <span style={{ fontWeight: 700, color: '#0284C7' }}>
-                          ₹{slab2EndFee.toFixed(2)} + ₹{aFee.toFixed(2)}/km
-                        </span>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>Test Trip Distance:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="number"
+                          id="input-test-trip-distance-km"
+                          min="0"
+                          step="0.5"
+                          value={testSimKm}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setTestSimKm(isNaN(val) ? 0 : val);
+                          }}
+                          style={{
+                            width: 65,
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                            border: '1px solid #0284C7',
+                            backgroundColor: '#FFFFFF',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: '#0F172A',
+                            outline: 'none',
+                            textAlign: 'center',
+                          }}
+                        />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B' }}>KM</span>
                       </div>
                     </div>
-                  );
-                })()}
-
-                {/* Interactive Distance Test Simulator */}
-                <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #CBD5E1' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>Test Trip Distance:</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0284C7' }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: '#0284C7' }}>
                       {testSimKm} km → Fee: ₹
                       {(
                         (Number(baseChargeInput) || 35) +
@@ -1682,28 +1644,38 @@ export function CustomerManagementStudio() {
                       ).toFixed(2)}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {[2, 3, 5, 8, 12].map((km) => (
-                      <button
-                        key={km}
-                        type="button"
-                        onClick={() => setTestSimKm(km)}
-                        style={{
-                          flex: 1,
-                          padding: '4px 6px',
-                          borderRadius: 6,
-                          border: testSimKm === km ? '1px solid #0284C7' : '1px solid #E2E8F0',
-                          backgroundColor: testSimKm === km ? '#E0F2FE' : '#FFFFFF',
-                          color: testSimKm === km ? '#0369A1' : '#64748B',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {km} km
-                      </button>
-                    ))}
-                  </div>
+
+                  {/* Preset quick test distance buttons */}
+                  {(() => {
+                    const currentBase = Number(baseDistanceKmInput) || 3;
+                    const rawPresets = [2, 3, currentBase, 5, 8, 12];
+                    const uniquePresets = Array.from(new Set(rawPresets)).sort((a, b) => a - b);
+                    return (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {uniquePresets.map((km) => (
+                          <button
+                            key={km}
+                            type="button"
+                            onClick={() => setTestSimKm(km)}
+                            style={{
+                              flex: 1,
+                              minWidth: 50,
+                              padding: '5px 8px',
+                              borderRadius: 6,
+                              border: testSimKm === km ? '1px solid #0284C7' : '1px solid #E2E8F0',
+                              backgroundColor: testSimKm === km ? '#E0F2FE' : '#FFFFFF',
+                              color: testSimKm === km ? '#0369A1' : '#64748B',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {km} km {km === currentBase ? '(Base)' : ''}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

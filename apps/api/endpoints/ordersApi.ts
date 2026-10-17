@@ -39,6 +39,34 @@ export const ordersApi = baseApi.injectEndpoints({
             status = 'CANCELED';
           }
 
+          const rawPay = String(item.paymentMethod || '').toUpperCase();
+          const isCod = rawPay.includes('COD') || (rawPay.includes('CASH') && !rawPay.includes('CASHFREE'));
+          const paymentMethod = isCod ? 'Cash on Delivery' : 'Online Payment';
+
+          let paymentStatus = item.paymentStatus;
+          if (!paymentStatus) {
+            if (isCod) {
+              if (status === 'DELIVERED') {
+                paymentStatus = 'Completed';
+              } else if (status === 'CANCELED') {
+                paymentStatus = 'Cancelled';
+              } else {
+                paymentStatus = 'Processing';
+              }
+            } else {
+              if (status === 'CANCELED') {
+                paymentStatus = 'Refunded';
+              } else {
+                paymentStatus = 'Completed';
+              }
+            }
+          }
+
+          const summary =
+            item.itemsSummary && item.itemsSummary !== 'Multi-dish order'
+              ? item.itemsSummary
+              : (item.storeName ? `${item.storeName} Dishes` : 'Order Items');
+
           return {
             id: String(item.id || item.orderId || ''),
             orderCode: item.orderCode || item.orderNumber || '',
@@ -46,9 +74,10 @@ export const ordersApi = baseApi.injectEndpoints({
             customerPhone: item.customerPhone || '',
             storeName: item.storeName || item.restaurantName || 'Restaurant',
             module: item.module || 'General Dining',
-            itemsSummary: item.itemsSummary || 'Order Items',
+            itemsSummary: summary,
             totalAmount: typeof item.totalAmount === 'number' ? item.totalAmount : Number(item.totalAmount) || 0,
-            paymentMethod: (item.paymentMethod === 'COD' ? 'COD' : 'DIGITAL') as 'COD' | 'DIGITAL',
+            paymentMethod,
+            paymentStatus,
             status: status as OrderItemRecord['status'],
             createdAt: item.createdAt || '',
           };

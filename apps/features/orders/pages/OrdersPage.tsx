@@ -47,6 +47,9 @@ function formatDisplayDate(dateStr: string): string {
   return dateStr;
 }
 
+import { getOrderPaymentStatusInfo } from '../lib/orderPaymentStatus';
+export { getOrderPaymentStatusInfo };
+
 export function OrdersPage() {
   const { tokens } = useTheme();
   const router = useRouter();
@@ -214,6 +217,7 @@ export function OrdersPage() {
               <th style={{ padding: '14px 20px' }}>Store & Module</th>
               <th style={{ padding: '14px 20px' }}>Items Summary</th>
               <th style={{ padding: '14px 20px' }}>Amount & Pay</th>
+              <th style={{ padding: '14px 20px' }}>Payment Status</th>
               <th style={{ padding: '14px 20px' }}>Status</th>
               <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
             </tr>
@@ -221,7 +225,7 @@ export function OrdersPage() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#6B7280' }}>
+                <td colSpan={8} style={{ padding: 40, textAlign: 'center', color: '#6B7280' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                     <span
                       style={{
@@ -240,7 +244,7 @@ export function OrdersPage() {
               </tr>
             ) : isError ? (
               <tr>
-                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#B91C1C' }}>
+                <td colSpan={8} style={{ padding: 32, textAlign: 'center', color: '#B91C1C' }}>
                   <span>Failed to load orders from backend. </span>
                   <button
                     type="button"
@@ -261,7 +265,7 @@ export function OrdersPage() {
               </tr>
             ) : filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#6B7280' }}>
+                <td colSpan={8} style={{ padding: 32, textAlign: 'center', color: '#6B7280' }}>
                   No orders found matching the selected filter.
                 </td>
               </tr>
@@ -290,24 +294,76 @@ export function OrdersPage() {
                       <div style={{ fontWeight: 600, color: '#111827' }}>{order.storeName}</div>
                       <span style={{ fontSize: 11, color: '#6B7280' }}>{order.module}</span>
                     </td>
-                    <td style={{ padding: '14px 20px', color: '#4B5563', fontSize: 12 }}>{order.itemsSummary}</td>
+                    <td style={{ padding: '14px 20px', color: '#334155', fontSize: 13, fontWeight: 500, maxWidth: 280 }}>
+                      <div style={{ lineHeight: 1.4 }}>
+                        {order.itemsSummary && order.itemsSummary !== 'Multi-dish order'
+                          ? order.itemsSummary
+                          : (order.storeName ? `${order.storeName} Selection` : 'Order Dishes')}
+                      </div>
+                    </td>
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ fontWeight: 700, color: '#111827' }}>₹{order.totalAmount}</div>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 600,
-                          padding: '2px 6px',
-                          borderRadius: 4,
-                          backgroundColor: '#F3F4F6',
-                          border: '1px solid #E5E7EB',
-                          color: '#4B5563',
-                          display: 'inline-block',
-                          marginTop: 3,
-                        }}
-                      >
-                        {order.paymentMethod}
-                      </span>
+                      {(() => {
+                        const rawPay = String(order.paymentMethod || '').toUpperCase();
+                        const isCod = rawPay.includes('COD') || (rawPay.includes('CASH') && !rawPay.includes('CASHFREE'));
+                        const payLabel = isCod ? 'Cash on Delivery' : 'Online Payment';
+                        return (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: 4,
+                              backgroundColor: isCod ? '#FEF3C7' : '#EFF6FF',
+                              border: isCod ? '1px solid #FDE68A' : '1px solid #BFDBFE',
+                              color: isCod ? '#92400E' : '#1D4ED8',
+                              display: 'inline-block',
+                              marginTop: 3,
+                              letterSpacing: '0.02em',
+                            }}
+                          >
+                            {payLabel}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td style={{ padding: '14px 20px' }}>
+                      {(() => {
+                        const payStatus = getOrderPaymentStatusInfo(order);
+                        return (
+                          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 3 }}>
+                            <span
+                              style={{
+                                background: payStatus.bg,
+                                color: payStatus.color,
+                                border: `1px solid ${payStatus.border}`,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '3px 10px',
+                                borderRadius: 20,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                width: 'fit-content',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: '50%',
+                                  backgroundColor: payStatus.dotColor,
+                                  display: 'inline-block',
+                                }}
+                              />
+                              {payStatus.label}
+                            </span>
+                            <span style={{ fontSize: 10, color: '#6B7280', whiteSpace: 'nowrap' }}>
+                              {payStatus.subtext}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td style={{ padding: '14px 20px' }}>
                       <span

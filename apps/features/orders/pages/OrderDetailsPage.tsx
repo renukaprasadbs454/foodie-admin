@@ -197,6 +197,59 @@ export function OrderDetailsPage({ orderId }: Props) {
                 <div style={{ fontSize: 12, color: '#111827', marginTop: 4 }}>Subtotal: {formatMoneyInr(data.subtotal)} | Delivery: {formatMoneyInr(data.deliveryFee)}</div>
                 <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>Discount: {formatMoneyInr(data.discountAmount)} | Tax: {formatMoneyInr(data.taxAmount)}</div>
               </div>
+              <div style={{ backgroundColor: '#F9FAFB', padding: '16px', borderRadius: 14, border: '1px solid #E5E7EB' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>PAYMENT STATUS</div>
+                {(() => {
+                  const rawMethod = String(data.paymentMethod || '').toUpperCase();
+                  const isCod = rawMethod.includes('COD') || (rawMethod.includes('CASH') && !rawMethod.includes('CASHFREE'));
+                  const isDelivered = data.status === 'DELIVERED';
+                  const isCanceled = data.status === 'CANCELLED' || data.status === 'CANCELED' || data.status === 'REJECTED';
+                  const payLabel = isCod ? 'Cash on Delivery' : 'Online Payment';
+                  let statusText = 'Completed';
+                  let statusBg = '#DCFCE7';
+                  let statusColor = '#15803D';
+                  let statusBorder = '#BBF7D0';
+                  let note = isCod ? 'Amount received by delivery partner' : 'Paid online via gateway';
+
+                  if (isCod && !isDelivered && !isCanceled) {
+                    statusText = 'Processing';
+                    statusBg = '#FEF3C7';
+                    statusColor = '#B45309';
+                    statusBorder = '#FDE68A';
+                    note = 'Awaiting delivery partner collection';
+                  } else if (isCanceled) {
+                    statusText = isCod ? 'Cancelled' : 'Refunded';
+                    statusBg = '#F3F4F6';
+                    statusColor = '#6B7280';
+                    statusBorder = '#E5E7EB';
+                    note = isCod ? 'Order cancelled (not collected)' : 'Online payment reversed';
+                  }
+
+                  return (
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <span
+                          style={{
+                            backgroundColor: statusBg,
+                            color: statusColor,
+                            border: `1px solid ${statusBorder}`,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            padding: '3px 10px',
+                            borderRadius: 16,
+                          }}
+                        >
+                          {statusText}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#4B5563' }}>
+                          ({payLabel})
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>{note}</div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             {data.placedAt ? (

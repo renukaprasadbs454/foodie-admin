@@ -3417,6 +3417,124 @@ async function handleAdminRoles() {
       });
     }
 
+    if (targetPath === 'admin/orders' && isGet) {
+      const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
+      const targetUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/orders${incomingUrl.search}`;
+      const authHeaders: Record<string, string> = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${upstreamToken}`,
+      };
+      if (incomingActiveZone) {
+        authHeaders['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+      }
+
+      const { response: upstream } = await safeFetch(targetUrl, {
+        method: 'GET',
+        headers: authHeaders,
+        timeoutMs: 8000,
+      });
+
+      if (upstream && upstream.ok) {
+        try {
+          const json = await upstream.json();
+          const rawOrders: any[] = Array.isArray(json.data) ? json.data : (json.data?.items || json.data?.content || []);
+
+          if (!globalAny.BFF_ORDER_ENRICHMENT_CACHE) {
+            globalAny.BFF_ORDER_ENRICHMENT_CACHE = new Map<string, { itemsSummary: string; paymentMethod: string }>();
+          }
+          const enrichmentCache: Map<string, { itemsSummary: string; paymentMethod: string }> = globalAny.BFF_ORDER_ENRICHMENT_CACHE as any;
+
+          // Concurrently enrich orders with real dish names and exact payment category
+          const toEnrich = rawOrders.slice(0, 35).filter((o) => !enrichmentCache.has(o.id));
+          if (toEnrich.length > 0) {
+            await Promise.all(
+              toEnrich.map(async (o) => {
+                try {
+                  const detailUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/orders/${o.id}`;
+                  const { response: detRes } = await safeFetch(detailUrl, {
+                    method: 'GET',
+                    headers: authHeaders,
+                    timeoutMs: 3000,
+                  });
+                  if (detRes && detRes.ok) {
+                    const detJson = await detRes.json();
+                    const detData = detJson.data || detJson;
+                    const items = detData.items || [];
+                    let itemsSummary = '';
+                    if (Array.isArray(items) && items.length > 0) {
+                      itemsSummary = items
+                        .map((it: any) => `${it.name || 'Dish'}${it.quantity && it.quantity > 1 ? ` x${it.quantity}` : ''}`)
+                        .join(', ');
+                    }
+                    const events = detData.orderStatusEvents || [];
+                    const confirmEvt = events.find((e: any) => e.toStatus === 'CONFIRMED');
+                    const isCod =
+                      confirmEvt?.actorType === 'CUSTOMER' ||
+                      (detData.paymentMethod || '').toUpperCase().includes('COD') ||
+                      (detData.paymentMethod || '').toUpperCase().includes('CASH');
+                    const paymentMethod = isCod ? 'Cash on Delivery' : 'Online Payment';
+
+                    enrichmentCache.set(o.id, {
+                      itemsSummary: itemsSummary || `${o.storeName || 'Store'} Items`,
+                      paymentMethod,
+                    });
+                  }
+                } catch {
+                  // Fallback
+                }
+              })
+            );
+          }
+
+          const enriched = rawOrders.map((o) => {
+            const cached = enrichmentCache.get(o.id);
+            const method = cached?.paymentMethod || o.paymentMethod || '';
+            const rawMethod = String(method).toUpperCase();
+            const isCod = rawMethod.includes('COD') || (rawMethod.includes('CASH') && !rawMethod.includes('CASHFREE'));
+            const paymentMethod = cached?.paymentMethod || (isCod ? 'Cash on Delivery' : 'Online Payment');
+
+            const statusUpper = String(o.status || '').toUpperCase();
+            let paymentStatus = 'Completed';
+            if (isCod) {
+              if (statusUpper === 'DELIVERED') {
+                paymentStatus = 'Completed';
+              } else if (statusUpper === 'CANCELED' || statusUpper === 'CANCELLED' || statusUpper === 'REJECTED') {
+                paymentStatus = 'Cancelled';
+              } else {
+                paymentStatus = 'Processing';
+              }
+            } else {
+              if (statusUpper === 'CANCELED' || statusUpper === 'CANCELLED' || statusUpper === 'REJECTED') {
+                paymentStatus = 'Refunded';
+              } else {
+                paymentStatus = 'Completed';
+              }
+            }
+
+            return {
+              ...o,
+              itemsSummary: cached?.itemsSummary || (o.itemsSummary && o.itemsSummary !== 'Multi-dish order' ? o.itemsSummary : `${o.storeName || 'Special'} Dishes`),
+              paymentMethod,
+              paymentStatus,
+            };
+          });
+
+          return NextResponse.json({
+            success: true,
+            data: enriched,
+            error: null,
+            meta: json.meta || {
+              timestamp: new Date().toISOString(),
+              requestId: crypto.randomUUID(),
+              pagination: null,
+            },
+          });
+        } catch {
+          // Fall through
+        }
+      }
+    }
+
     if (targetPath === 'admin/payments/transactions') {
       const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
       const settlementsUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/settlements`;

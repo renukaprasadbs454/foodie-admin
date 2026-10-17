@@ -27,7 +27,8 @@ export interface OrderItemRecord {
   module: string;
   itemsSummary: string;
   totalAmount: number;
-  paymentMethod: 'COD' | 'DIGITAL';
+  paymentMethod: 'COD' | 'DIGITAL' | 'Online Payment' | 'Cash on Delivery' | string;
+  paymentStatus?: 'Completed' | 'Processing' | 'Refunded' | 'Cancelled' | string;
   status: 'PENDING' | 'PREPARING' | 'READY_FOR_PICKUP' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELED';
   createdAt: string;
 }
@@ -66,6 +67,8 @@ export type AdminOrder = {
   placedAt?: string | null;
   items?: OrderItem[] | null;
   orderStatusEvents?: OrderStatusEvent[] | null;
+  paymentMethod?: string | null;
+  paymentStatus?: string | null;
 };
 
 export type OverrideOrderStatusBody = {

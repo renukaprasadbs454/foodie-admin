@@ -98,4 +98,80 @@ describe('Admin Orders Real Backend Integration', () => {
       expect.objectContaining({ storeName: 'Royal Biryani House' })
     );
   });
+
+  describe('Payment Status business rules', () => {
+    // Dynamically test the payment status determination
+    const { getOrderPaymentStatusInfo } = require('../features/orders/lib/orderPaymentStatus');
+
+    it('shows Processing for COD orders until delivery partner delivers order', () => {
+      const pendingCodOrder = {
+        id: '1',
+        customerName: 'Chandu',
+        customerPhone: '+919686753394',
+        storeName: 'Hotel Mayura',
+        module: 'Dining',
+        itemsSummary: 'Chicken masala',
+        totalAmount: 528,
+        paymentMethod: 'Cash on Delivery',
+        status: 'OUT_FOR_DELIVERY',
+        createdAt: '2026-10-17T09:14:27.727824Z',
+      };
+      const statusInfo = getOrderPaymentStatusInfo(pendingCodOrder);
+      expect(statusInfo.label).toBe('Processing');
+      expect(statusInfo.subtext).toContain('Awaiting delivery partner collection');
+    });
+
+    it('shows Completed for COD orders once delivery partner receives amount (DELIVERED)', () => {
+      const deliveredCodOrder = {
+        id: '2',
+        customerName: 'Chandu',
+        customerPhone: '+919686753394',
+        storeName: 'Hotel Mayura',
+        module: 'Dining',
+        itemsSummary: 'Chicken masala',
+        totalAmount: 528,
+        paymentMethod: 'Cash on Delivery',
+        status: 'DELIVERED',
+        createdAt: '2026-10-17T09:14:27.727824Z',
+      };
+      const statusInfo = getOrderPaymentStatusInfo(deliveredCodOrder);
+      expect(statusInfo.label).toBe('Completed');
+      expect(statusInfo.subtext).toContain('Amount received by partner');
+    });
+
+    it('shows Completed for online payment orders that are active or delivered', () => {
+      const onlineOrder = {
+        id: '3',
+        customerName: 'Karishma',
+        customerPhone: '+9188867190102',
+        storeName: 'Hotel Mayura',
+        module: 'Dining',
+        itemsSummary: 'Paneer Butter Masala',
+        totalAmount: 528,
+        paymentMethod: 'Online Payment',
+        status: 'PENDING',
+        createdAt: '2026-10-17T09:14:27.727824Z',
+      };
+      const statusInfo = getOrderPaymentStatusInfo(onlineOrder);
+      expect(statusInfo.label).toBe('Completed');
+      expect(statusInfo.subtext).toContain('Paid online via gateway');
+    });
+
+    it('shows Refunded for cancelled online payment orders', () => {
+      const cancelledOnlineOrder = {
+        id: '4',
+        customerName: 'Rocky',
+        customerPhone: '+916363021866',
+        storeName: 'Hotel Mayura',
+        module: 'Dining',
+        itemsSummary: 'Chicken masala',
+        totalAmount: 279,
+        paymentMethod: 'Online Payment',
+        status: 'CANCELED',
+        createdAt: '2026-10-17T07:14:22.365847Z',
+      };
+      const statusInfo = getOrderPaymentStatusInfo(cancelledOnlineOrder);
+      expect(statusInfo.label).toBe('Refunded');
+    });
+  });
 });
