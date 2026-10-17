@@ -9,6 +9,10 @@ import {
   useGetAdminDeliveryPartnersQuery,
   useApproveDeliveryPartnerKycMutation,
   useRejectDeliveryPartnerKycMutation,
+  useGetAdminShiftsQuery,
+  useCreateDeliveryShiftMutation,
+  useDeleteDeliveryShiftMutation,
+  type DeliveryShift,
 } from '@/api/endpoints/deliveryPartnersApi';
 import {
   isDeliveryPartnerKycEligible,
@@ -64,6 +68,19 @@ function isPdfDocument(url: string, doc?: DeliveryDocument | any): boolean {
   return u.includes('.pdf') || k.includes('.pdf');
 }
 
+function convert24to12(timeStr: string): string {
+  if (!timeStr) return '';
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let h = parseInt(parts[0], 10);
+  const m = parts[1].slice(0, 2);
+  if (isNaN(h)) return timeStr;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h.toString().padStart(2, '0')}:${m} ${ampm}`;
+}
+
 export function DeliveryPartnersPage() {
   const { tokens } = useTheme();
   const router = useRouter();
@@ -83,6 +100,13 @@ export function DeliveryPartnersPage() {
   } | null>(null);
   const [isDocLoading, setIsDocLoading] = useState(true);
   const [docLoadError, setDocLoadError] = useState(false);
+
+  // Shift Modal State
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [shiftName, setShiftName] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [shiftFormError, setShiftFormError] = useState<string | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -127,6 +151,18 @@ export function DeliveryPartnersPage() {
   const [approveKyc, { isLoading: isApproving }] = useApproveDeliveryPartnerKycMutation();
   const [rejectKyc, { isLoading: isRejecting }] = useRejectDeliveryPartnerKycMutation();
 
+  // Dynamic Shift Management from Backend Database
+  const {
+    data: shifts = [],
+    isLoading: isLoadingShifts,
+    isFetching: isFetchingShifts,
+    refetch: refetchShifts,
+  } = useGetAdminShiftsQuery();
+
+  const [createShiftMutation, { isLoading: isSavingShift }] = useCreateDeliveryShiftMutation();
+  const [deleteShiftMutation, { isLoading: isDeletingShift }] = useDeleteDeliveryShiftMutation();
+  const [shiftToDelete, setShiftToDelete] = useState<DeliveryShift | null>(null);
+
   const rawPartners: AdminDeliveryPartner[] =
     (partnersData as any)?.items ??
     (partnersData as any)?.data?.items ??
@@ -150,6 +186,73 @@ export function DeliveryPartnersPage() {
   const showToast = (type: 'success' | 'error', message: string) => {
     setToastMsg({ type, message });
     setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const handleSaveShift = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setShiftFormError(null);
+
+    const name = shiftName.trim();
+    const start = startTime.trim();
+    const end = endTime.trim();
+
+    if (!name) {
+      setShiftFormError('Please enter a Shift Name.');
+      return;
+    }
+    if (!start) {
+      setShiftFormError('Please specify a Start Time.');
+      return;
+    }
+    if (!end) {
+      setShiftFormError('Please specify an End Time.');
+      return;
+    }
+    if (start.toLowerCase() === end.toLowerCase()) {
+      setShiftFormError('Start Time and End Time cannot be equal.');
+      return;
+    }
+
+    try {
+      await createShiftMutation({
+        shiftName: name,
+        startTime: start,
+        endTime: end,
+      }).unwrap();
+
+      showToast('success', `Delivery shift "${name}" saved to database successfully.`);
+      setIsShiftModalOpen(false);
+      setShiftName('');
+      setStartTime('');
+      setEndTime('');
+      setShiftFormError(null);
+      refetchShifts();
+    } catch (err: any) {
+      const msg =
+        err?.data?.error?.message ||
+        err?.data?.message ||
+        err?.error ||
+        'Failed to save shift to database. Please check your inputs and try again.';
+      setShiftFormError(msg);
+    }
+  };
+
+  const handleConfirmDeleteShift = async () => {
+    if (!shiftToDelete || !shiftToDelete.shiftId) return;
+    const name = shiftToDelete.shiftName;
+    try {
+      await deleteShiftMutation(shiftToDelete.shiftId).unwrap();
+      showToast('success', `Delivery shift "${name}" deleted from database successfully.`);
+      setShiftToDelete(null);
+      refetchShifts();
+    } catch (err: any) {
+      const msg =
+        err?.data?.error?.message ||
+        err?.data?.message ||
+        err?.error ||
+        'Failed to delete shift from database.';
+      showToast('error', msg);
+    }
   };
 
   const handleApproveKyc = async (partner: AdminDeliveryPartner) => {
@@ -207,8 +310,11 @@ export function DeliveryPartnersPage() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button
             type="button"
-            onClick={() => refetch()}
-            disabled={isFetching}
+            onClick={() => {
+              refetch();
+              refetchShifts();
+            }}
+            disabled={isFetching || isFetchingShifts}
             style={{
               padding: '10px 18px',
               backgroundColor: '#FFFFFF',
@@ -217,13 +323,257 @@ export function DeliveryPartnersPage() {
               borderRadius: 10,
               fontWeight: 600,
               fontSize: 13,
-              cursor: isFetching ? 'wait' : 'pointer',
+              cursor: isFetching || isFetchingShifts ? 'wait' : 'pointer',
               boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
-            {isFetching ? 'Refreshing...' : 'Refresh Data'}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            {isFetching || isFetchingShifts ? 'Refreshing...' : 'Refresh Data'}
+          </button>
+
+          <button
+            type="button"
+            id="create-shift-button"
+            onClick={() => {
+              setShiftFormError(null);
+              setShiftName('');
+              setStartTime('');
+              setEndTime('');
+              setIsShiftModalOpen(true);
+            }}
+            style={{
+              padding: '10px 18px',
+              backgroundColor: '#EA580C',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 10,
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(234, 88, 12, 0.25)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'background-color 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#C2410C')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#EA580C')}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Create Shift
           </button>
         </div>
+      </div>
+
+      {/* Active Delivery Shifts Section */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 20,
+          border: '1px solid #E5E7EB',
+          padding: '20px 24px',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: '#FFF7ED',
+                color: '#EA580C',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 18,
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text as="h3" variant="heading2" color="#111827" style={{ fontWeight: 700, fontSize: 16 }}>
+                  Active Delivery Shifts
+                </Text>
+                <span
+                  style={{
+                    backgroundColor: '#F3F4F6',
+                    color: '#4B5563',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: 12,
+                  }}
+                >
+                  {shifts.length} {shifts.length === 1 ? 'Shift' : 'Shifts'}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+                Configured operating shifts saved permanently in backend database for fleet allocation
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShiftFormError(null);
+              setShiftName('');
+              setStartTime('');
+              setEndTime('');
+              setIsShiftModalOpen(true);
+            }}
+            style={{
+              padding: '6px 14px',
+              backgroundColor: '#FFF7ED',
+              color: '#EA580C',
+              border: '1px solid #FFEDD5',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <span>+ Add Another Shift</span>
+          </button>
+        </div>
+
+        {/* Shift List Cards */}
+        {isLoadingShifts ? (
+          <div style={{ fontSize: 13, color: '#9CA3AF', padding: '12px 0' }}>Loading saved shifts from backend database...</div>
+        ) : shifts.length === 0 ? (
+          <div
+            style={{
+              padding: '24px 16px',
+              textAlign: 'center',
+              border: '1px dashed #E5E7EB',
+              borderRadius: 12,
+              backgroundColor: '#F9FAFB',
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>No Delivery Shifts Found</div>
+            <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+              Click <strong>+ Create Shift</strong> above to configure operating shifts for your delivery partners.
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+            {shifts.map((s) => (
+              <div
+                key={s.shiftId || `${s.shiftName}-${s.startTime}`}
+                style={{
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                  backgroundColor: '#FAFAFA',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  position: 'relative',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{s.shiftName}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 10,
+                        backgroundColor: s.status === 'ACTIVE' ? '#DCFCE7' : '#F3F4F6',
+                        color: s.status === 'ACTIVE' ? '#15803D' : '#6B7280',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {s.status}
+                    </span>
+                    <button
+                      type="button"
+                      id={`delete-shift-${s.shiftId}`}
+                      onClick={() => setShiftToDelete(s)}
+                      title={`Delete "${s.shiftName}" shift`}
+                      aria-label={`Delete "${s.shiftName}" shift`}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        borderRadius: 6,
+                        color: '#9CA3AF',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#FEE2E2';
+                        e.currentTarget.style.color = '#DC2626';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = '#9CA3AF';
+                      }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#4B5563' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <span>
+                    <strong>{s.startTime}</strong> – <strong>{s.endTime}</strong>
+                  </span>
+                </div>
+                {s.durationHours && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, color: '#6B7280' }}>Duration:</span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: '#EA580C',
+                        backgroundColor: '#FFEDD5',
+                        padding: '1px 6px',
+                        borderRadius: 6,
+                      }}
+                    >
+                      {s.durationHours}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Delivery Partner Pricing Rules Card */}
@@ -1128,6 +1478,431 @@ export function DeliveryPartnersPage() {
                 }}
               >
                 {isRejecting ? 'Rejecting...' : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Shift Modal */}
+      {isShiftModalOpen && (
+        <div
+          id="create-shift-modal"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(17, 24, 39, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsShiftModalOpen(false);
+            }
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              width: 480,
+              maxWidth: '94%',
+              padding: 26,
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.16)',
+              border: '1px solid #E5E7EB',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 18,
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <Text as="h2" variant="heading2" color="#111827" style={{ fontWeight: 800, fontSize: 18 }}>
+                  Create Delivery Shift
+                </Text>
+                <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                  Enter actual shift schedule to permanently persist in the backend database.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsShiftModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#9CA3AF',
+                  padding: 4,
+                  fontSize: 18,
+                  lineHeight: 1,
+                }}
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Error Notification */}
+            {shiftFormError && (
+              <div
+                style={{
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FCA5A5',
+                  color: '#991B1B',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  fontSize: 13,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>{shiftFormError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveShift} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Shift Name Input */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label htmlFor="shift-name-input" style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
+                  Shift Name <span style={{ color: '#EF4444' }}>*</span>
+                </label>
+                <input
+                  id="shift-name-input"
+                  type="text"
+                  placeholder="e.g. Morning Rush, Dinner Peak, Night Slot"
+                  value={shiftName}
+                  onChange={(e) => {
+                    setShiftName(e.target.value);
+                    if (shiftFormError) setShiftFormError(null);
+                  }}
+                  required
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    border: '1px solid #D1D5DB',
+                    fontSize: 14,
+                    outline: 'none',
+                    color: '#111827',
+                    backgroundColor: '#FFFFFF',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                  }}
+                />
+              </div>
+
+              {/* Start Time & End Time Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                {/* Start Time */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label htmlFor="start-time-input" style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
+                    Start Time <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="start-time-input"
+                      type="text"
+                      placeholder="e.g. 06:00 AM or 06:00"
+                      value={startTime}
+                      onChange={(e) => {
+                        setStartTime(e.target.value);
+                        if (shiftFormError) setShiftFormError(null);
+                      }}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '10px 38px 10px 12px',
+                        borderRadius: 10,
+                        border: '1px solid #D1D5DB',
+                        fontSize: 13,
+                        outline: 'none',
+                        color: '#111827',
+                        backgroundColor: '#FFFFFF',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                      }}
+                    />
+                    <input
+                      type="time"
+                      aria-label="Pick start time"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setStartTime(convert24to12(e.target.value));
+                          if (shiftFormError) setShiftFormError(null);
+                        }
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 24,
+                        height: 24,
+                        opacity: 0.6,
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: 'transparent',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* End Time */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label htmlFor="end-time-input" style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
+                    End Time <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="end-time-input"
+                      type="text"
+                      placeholder="e.g. 12:00 PM or 12:00"
+                      value={endTime}
+                      onChange={(e) => {
+                        setEndTime(e.target.value);
+                        if (shiftFormError) setShiftFormError(null);
+                      }}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '10px 38px 10px 12px',
+                        borderRadius: 10,
+                        border: '1px solid #D1D5DB',
+                        fontSize: 13,
+                        outline: 'none',
+                        color: '#111827',
+                        backgroundColor: '#FFFFFF',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                      }}
+                    />
+                    <input
+                      type="time"
+                      aria-label="Pick end time"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setEndTime(convert24to12(e.target.value));
+                          if (shiftFormError) setShiftFormError(null);
+                        }
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 24,
+                        height: 24,
+                        opacity: 0.6,
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: 'transparent',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Time Presets */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280' }}>Common Shift Slots (1-Click Fill):</span>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Morning (6 AM – 12 PM)', start: '06:00 AM', end: '12:00 PM' },
+                    { label: 'Afternoon (12 PM – 5 PM)', start: '12:00 PM', end: '05:00 PM' },
+                    { label: 'Evening Peak (5 PM – 11 PM)', start: '05:00 PM', end: '11:00 PM' },
+                    { label: 'Late Night (11 PM – 3 AM)', start: '11:00 PM', end: '03:00 AM' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => {
+                        setStartTime(preset.start);
+                        setEndTime(preset.end);
+                        if (!shiftName) {
+                          setShiftName(preset.label.split(' (')[0]);
+                        }
+                        if (shiftFormError) setShiftFormError(null);
+                      }}
+                      style={{
+                        fontSize: 11,
+                        padding: '4px 8px',
+                        backgroundColor: '#F3F4F6',
+                        color: '#374151',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+                <button
+                  type="button"
+                  id="cancel-shift-button"
+                  onClick={() => setIsShiftModalOpen(false)}
+                  disabled={isSavingShift}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: 10,
+                    border: '1px solid #D1D5DB',
+                    backgroundColor: '#FFFFFF',
+                    color: '#4B5563',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  id="save-shift-button"
+                  disabled={isSavingShift}
+                  style={{
+                    padding: '10px 22px',
+                    borderRadius: 10,
+                    border: 'none',
+                    backgroundColor: isSavingShift ? '#9CA3AF' : '#EA580C',
+                    color: '#FFFFFF',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: isSavingShift ? 'wait' : 'pointer',
+                    boxShadow: '0 2px 4px rgba(234, 88, 12, 0.25)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  {isSavingShift ? (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin">
+                        <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="10"></circle>
+                      </svg>
+                      Saving Shift...
+                    </>
+                  ) : (
+                    'Save Shift'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Shift Confirmation Modal */}
+      {shiftToDelete && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            backdropFilter: 'blur(3px)',
+          }}
+          onClick={() => !isDeletingShift && setShiftToDelete(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 18,
+              width: 420,
+              maxWidth: '92%',
+              padding: 24,
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.18)',
+              border: '1px solid #E5E7EB',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  backgroundColor: '#FEE2E2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#DC2626',
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 16, fontWeight: 800, color: '#111827' }}>Delete Delivery Shift</span>
+                <span style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.4 }}>
+                  Are you sure you want to permanently delete shift <strong>&quot;{shiftToDelete.shiftName}&quot;</strong> ({shiftToDelete.startTime} – {shiftToDelete.endTime}) from the backend database?
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
+              <button
+                type="button"
+                id="cancel-delete-shift-button"
+                onClick={() => setShiftToDelete(null)}
+                disabled={isDeletingShift}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #D1D5DB',
+                  backgroundColor: '#FFFFFF',
+                  color: '#4B5563',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                id="confirm-delete-shift-button"
+                onClick={handleConfirmDeleteShift}
+                disabled={isDeletingShift}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 8,
+                  border: 'none',
+                  backgroundColor: isDeletingShift ? '#9CA3AF' : '#DC2626',
+                  color: '#FFFFFF',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: isDeletingShift ? 'wait' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                {isDeletingShift ? 'Deleting Shift...' : 'Delete Shift'}
               </button>
             </div>
           </div>

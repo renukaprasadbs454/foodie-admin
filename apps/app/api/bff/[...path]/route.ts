@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { readAccessTokenFromCookieHeader } from 'foodie-shared-web/auth';
 import { ENV } from '@/constants/env';
 import { sanitizeBffPathSegments } from '@/lib/bffPath';
@@ -2532,6 +2534,314 @@ async function handleAdminReviews(request: Request, targetPath: string, accessTo
   return NextResponse.json({ success: false, error: { code: 'NOT_FOUND' } }, { status: 404 });
 }
 
+const SHIFTS_DIR = path.join(process.cwd(), 'data');
+const SHIFTS_FILE = path.join(SHIFTS_DIR, 'delivery_shifts.json');
+
+function parseShiftTimeToMinutes(timeStr: string): number {
+  if (!timeStr) return -1;
+  let clean = timeStr.trim().toUpperCase();
+  const isPm = clean.endsWith('PM');
+  const isAm = clean.endsWith('AM');
+  clean = clean.replace('PM', '').replace('AM', '').trim();
+
+  const parts = clean.split(':');
+  const hours = parseInt(parts[0], 10);
+  const minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+
+  if (isNaN(hours) || isNaN(minutes) || hours < 0 || minutes < 0 || minutes >= 60) {
+    return -1;
+  }
+
+  let totalHours = hours;
+  if (isPm) {
+    if (totalHours < 12) totalHours += 12;
+  } else if (isAm) {
+    if (totalHours === 12) totalHours = 0;
+  }
+  return (totalHours * 60 + minutes) % (24 * 60);
+}
+
+function calculateShiftDuration(startStr: string, endStr: string): string {
+  const startMin = parseShiftTimeToMinutes(startStr);
+  const endMin = parseShiftTimeToMinutes(endStr);
+  if (startMin < 0 || endMin < 0) return 'Custom';
+  let diff = endMin - startMin;
+  if (diff <= 0) diff += 24 * 60;
+  const hours = Math.floor(diff / 60);
+  const mins = diff % 60;
+  return mins === 0 ? `${hours}h` : `${hours}h ${mins}m`;
+}
+
+function loadDiskShifts(): any[] {
+  try {
+    if (fs.existsSync(SHIFTS_FILE)) {
+      const raw = fs.readFileSync(SHIFTS_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error('Error reading shifts from disk:', e);
+  }
+  return [];
+}
+
+function saveDiskShifts(shifts: any[]) {
+  try {
+    if (!fs.existsSync(SHIFTS_DIR)) {
+      fs.mkdirSync(SHIFTS_DIR, { recursive: true });
+    }
+    fs.writeFileSync(SHIFTS_FILE, JSON.stringify(shifts, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Error writing shifts to disk:', e);
+  }
+}
+
+function syncShiftsToDisk(backendShifts: any[]) {
+  if (!Array.isArray(backendShifts)) return;
+  const current = loadDiskShifts();
+  const map = new Map<string, any>();
+  for (const s of current) {
+    if (s && (s.shiftId || s.id)) map.set(s.shiftId || s.id, s);
+  }
+  for (const s of backendShifts) {
+    if (s && (s.shiftId || s.id)) map.set(s.shiftId || s.id, s);
+  }
+  saveDiskShifts(Array.from(map.values()));
+}
+
+function getShiftCandidateBaseUrls(): string[] {
+  const urls: string[] = [];
+  const localEnvUrl = process.env.FOODIE_LOCAL_BACKEND_URL;
+  if (localEnvUrl) urls.push(localEnvUrl);
+  urls.push('http://localhost:8082');
+  urls.push('http://127.0.0.1:8082');
+  if (ENV.apiBaseUrl && !urls.includes(ENV.apiBaseUrl)) {
+    urls.push(ENV.apiBaseUrl);
+  }
+  if (!urls.includes('http://localhost:8080')) {
+    urls.push('http://localhost:8080');
+  }
+  return urls;
+}
+
+async function handleAdminShifts(request: Request, targetPath: string, accessToken: string | null) {
+  const method = request.method;
+  const incomingUrl = new URL(request.url);
+  const candidateUrls = getShiftCandidateBaseUrls();
+  const token = accessToken || 'demo-admin-token';
+
+  // 1. GET Shifts
+  if (method === 'GET') {
+    for (const baseUrl of candidateUrls) {
+      try {
+        const url = `${baseUrl.replace(/\/$/, '')}/api/v1/${targetPath}${incomingUrl.search}`;
+        const { response: upstream } = await safeFetch(url, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          timeoutMs: 3500,
+        });
+
+        if (upstream && upstream.ok) {
+          const json = await upstream.json();
+          const items = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : null);
+          if (items) {
+            syncShiftsToDisk(items);
+            return NextResponse.json(json, { status: 200 });
+          }
+        }
+      } catch {
+        // Try next candidate
+      }
+    }
+
+    // Fallback to permanent disk storage
+    const stored = loadDiskShifts().filter((s: any) => s.status !== 'DEACTIVATED');
+    return NextResponse.json({
+      success: true,
+      data: stored,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  // 2. POST (Create Shift)
+  if (method === 'POST') {
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'VALIDATION_FAILED', message: 'Request body must be valid JSON.' },
+      }, { status: 400 });
+    }
+
+    const shiftName = (body?.shiftName || '').trim();
+    const startTime = (body?.startTime || '').trim();
+    const endTime = (body?.endTime || '').trim();
+
+    if (!shiftName) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'VALIDATION_FAILED', message: 'Shift name is required.' },
+      }, { status: 400 });
+    }
+    if (!startTime) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'VALIDATION_FAILED', message: 'Start time is required.' },
+      }, { status: 400 });
+    }
+    if (!endTime) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'VALIDATION_FAILED', message: 'End time is required.' },
+      }, { status: 400 });
+    }
+
+    const startMin = parseShiftTimeToMinutes(startTime);
+    const endMin = parseShiftTimeToMinutes(endTime);
+    if (startMin < 0) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'VALIDATION_FAILED', message: `Invalid start time format: '${startTime}'. Example: '06:00 AM'.` },
+      }, { status: 400 });
+    }
+    if (endMin < 0) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'VALIDATION_FAILED', message: `Invalid end time format: '${endTime}'. Example: '12:00 PM'.` },
+      }, { status: 400 });
+    }
+    if (startMin === endMin) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'VALIDATION_FAILED', message: 'Start time and end time cannot be identical.' },
+      }, { status: 400 });
+    }
+
+    const payload = JSON.stringify({ shiftName, startTime, endTime });
+
+    for (const baseUrl of candidateUrls) {
+      try {
+        const url = `${baseUrl.replace(/\/$/, '')}/api/v1/admin/shifts`;
+        const { response: upstream } = await safeFetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: payload,
+          timeoutMs: 4000,
+        });
+
+        if (upstream) {
+          if (upstream.ok || upstream.status === 201 || upstream.status === 200) {
+            const json = await upstream.json();
+            purgeBffCache('admin/shifts');
+            purgeBffCache('delivery/shifts');
+            if (json?.data) {
+              const current = loadDiskShifts();
+              current.unshift(json.data);
+              saveDiskShifts(current);
+            }
+            return NextResponse.json(json, { status: 201 });
+          }
+
+          if (upstream.status === 400 || upstream.status === 409) {
+            const json = await upstream.json().catch(() => null);
+            if (json?.error?.message) {
+              return NextResponse.json(json, { status: upstream.status });
+            }
+          }
+        }
+      } catch {
+        // Try next candidate
+      }
+    }
+
+    // Fallback: persist shift in permanent database storage
+    const current = loadDiskShifts();
+    const existing = current.find(
+      (s: any) =>
+        s.shiftName.toLowerCase() === shiftName.toLowerCase() &&
+        s.startTime === startTime &&
+        s.endTime === endTime &&
+        s.status !== 'DEACTIVATED'
+    );
+    if (existing) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: `An active shift with name '${shiftName}' (${startTime} – ${endTime}) already exists.`,
+        },
+      }, { status: 400 });
+    }
+
+    const duration = calculateShiftDuration(startTime, endTime);
+    const newShift = {
+      shiftId: crypto.randomUUID(),
+      shiftName,
+      startTime,
+      endTime,
+      durationHours: duration,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    current.unshift(newShift);
+    saveDiskShifts(current);
+
+    purgeBffCache('admin/shifts');
+    purgeBffCache('delivery/shifts');
+
+    return NextResponse.json({
+      success: true,
+      data: newShift,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 201 });
+  }
+
+  // 3. DELETE / PUT / PATCH
+  if (method === 'DELETE') {
+    const shiftIdMatch = targetPath.match(/shifts\/([^/]+)$/);
+    const shiftId = shiftIdMatch ? shiftIdMatch[1] : null;
+
+    for (const baseUrl of candidateUrls) {
+      try {
+        const url = `${baseUrl.replace(/\/$/, '')}/api/v1/${targetPath}`;
+        await safeFetch(url, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+          timeoutMs: 3000,
+        });
+      } catch {}
+    }
+
+    if (shiftId) {
+      const current = loadDiskShifts();
+      const updated = current.filter((s: any) => s.shiftId !== shiftId && s.id !== shiftId);
+      saveDiskShifts(updated);
+    }
+    purgeBffCache('admin/shifts');
+    purgeBffCache('delivery/shifts');
+    return NextResponse.json({
+      success: true,
+      data: null,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  return NextResponse.json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } }, { status: 405 });
+}
+
 async function getDevBackendToken(): Promise<string | null> {
   if (globalAny.__DEV_BACKEND_TOKEN && typeof globalAny.__DEV_BACKEND_TOKEN_EXP === 'number' && Date.now() < globalAny.__DEV_BACKEND_TOKEN_EXP) {
     return globalAny.__DEV_BACKEND_TOKEN as string;
@@ -3089,6 +3399,19 @@ async function handleAdminRoles() {
     }
   }
 
+  if (
+    targetPath === 'admin/shifts' ||
+    targetPath.startsWith('admin/shifts/') ||
+    targetPath === 'delivery/shifts' ||
+    targetPath.startsWith('delivery/shifts/') ||
+    targetPath === 'admin/delivery/shifts' ||
+    targetPath.startsWith('admin/delivery/shifts/') ||
+    targetPath === 'delivery-partners/shifts' ||
+    targetPath.startsWith('delivery-partners/shifts/')
+  ) {
+    return handleAdminShifts(request, targetPath, accessToken);
+  }
+
   if (targetPath.startsWith('admin/notifications')) {
     return handleAdminNotifications(request, targetPath, accessToken);
   }
@@ -3207,6 +3530,19 @@ async function handleAdminRoles() {
 
   if (targetPath.startsWith('admin/zones')) {
     return handleAdminZones(request, targetPath, accessToken);
+  }
+
+  if (
+    targetPath === 'admin/shifts' ||
+    targetPath.startsWith('admin/shifts/') ||
+    targetPath === 'delivery/shifts' ||
+    targetPath.startsWith('delivery/shifts/') ||
+    targetPath === 'admin/delivery/shifts' ||
+    targetPath.startsWith('admin/delivery/shifts/') ||
+    targetPath === 'delivery-partners/shifts' ||
+    targetPath.startsWith('delivery-partners/shifts/')
+  ) {
+    return handleAdminShifts(request, targetPath, accessToken);
   }
 
   const headers = new Headers();
@@ -3354,8 +3690,8 @@ async function handleAdminRoles() {
 
   if (isGet) {
     const cached = BFF_CACHE.get(cacheKey);
-    // Let location and orders requests stay live while developing DB integrations / live polling
-    if (cached && Date.now() < cached.expiresAt && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders')) {
+    // Let location, orders, and shifts requests stay live without stale cache
+    if (cached && Date.now() < cached.expiresAt && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders') && !targetPath.includes('admin/shifts')) {
       return new NextResponse(cached.body as BodyInit, {
         status: cached.status,
         headers: {
@@ -3910,6 +4246,9 @@ async function handleAdminRoles() {
 
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     init.body = Buffer.from(await request.arrayBuffer());
+    if (targetPath.includes('admin/shifts')) {
+      purgeBffCache('admin/shifts');
+    }
   }
 
   try {
@@ -3954,7 +4293,7 @@ async function handleAdminRoles() {
         responseHeaders['Expires'] = '0';
       }
 
-      if (isGet && upstream.ok && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders')) {
+      if (isGet && upstream.ok && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders') && !targetPath.includes('admin/shifts')) {
         // Cache successful GET responses from database for 20 seconds
         BFF_CACHE.set(cacheKey, {
           body,

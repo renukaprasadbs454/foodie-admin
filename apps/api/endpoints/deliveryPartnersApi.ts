@@ -40,6 +40,23 @@ export interface RejectKycRequest {
   reason?: string;
 }
 
+export interface DeliveryShift {
+  shiftId: string;
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  durationHours?: string;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateShiftRequest {
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+}
+
 export const deliveryPartnersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getAdminDeliveryPartners: builder.query<AdminDeliveryPartnersResponse, GetAdminDeliveryPartnersParams | void>({
@@ -122,6 +139,31 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'Admin', id: 'DELIVERY_PRICING' }],
     }),
+    getAdminShifts: builder.query<DeliveryShift[], void>({
+      query: () => '/api/bff/admin/shifts',
+      transformResponse: (response: any): DeliveryShift[] => {
+        const raw = response?.data || response;
+        if (Array.isArray(raw)) return raw;
+        if (Array.isArray(raw?.items)) return raw.items;
+        return [];
+      },
+      providesTags: [{ type: 'Admin', id: 'SHIFT_LIST' }],
+    }),
+    createDeliveryShift: builder.mutation<DeliveryShift, CreateShiftRequest>({
+      query: (body) => ({
+        url: '/api/bff/admin/shifts',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Admin', id: 'SHIFT_LIST' }],
+    }),
+    deleteDeliveryShift: builder.mutation<void, string>({
+      query: (shiftId) => ({
+        url: `/api/bff/admin/shifts/${shiftId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Admin', id: 'SHIFT_LIST' }],
+    }),
   }),
 });
 
@@ -131,4 +173,7 @@ export const {
   useRejectDeliveryPartnerKycMutation,
   useGetDeliveryPricingQuery,
   useUpdateDeliveryPricingMutation,
+  useGetAdminShiftsQuery,
+  useCreateDeliveryShiftMutation,
+  useDeleteDeliveryShiftMutation,
 } = deliveryPartnersApi;
