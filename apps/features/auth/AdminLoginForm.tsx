@@ -88,8 +88,17 @@ export function AdminLoginForm({
   const handleRoleSelect = (roleKey: string) => {
     setSelectedRoleKey(roleKey);
     const opt = roleOptions.find((r) => r.key === roleKey || r.role === roleKey);
-    if (opt?.defaultEmail && !email) {
-      setEmail(opt.defaultEmail);
+    let targetEmail = opt?.defaultEmail;
+    if (!targetEmail && opt?.zoneId) {
+      const zLower = (opt.zoneId + ' ' + (opt.zoneName || '')).toLowerCase();
+      if (zLower.includes('bangalore') || zLower.includes('bengaluru')) {
+        targetEmail = 'ops@foodie.local';
+      } else if (zLower.includes('tumkur') || zLower.includes('tumakuru')) {
+        targetEmail = 'finance@foodie.local';
+      }
+    }
+    if (targetEmail) {
+      setEmail(targetEmail);
     }
     setEmailError(undefined);
     setPasswordError(undefined);

@@ -50,14 +50,26 @@ export async function GET() {
           return deletedZones.has(idL) || deletedZones.has(nameL);
         };
         const usersStore = (globalAny.ADMIN_USERS_STORE as any[]) || [];
-        const combined = rawData.filter((r: any) => {
-          if (r.zoneId && isDeleted(r.zoneId, r.zoneName)) return false;
-          if (r.key && r.key.startsWith('ZONE_ADMIN_')) {
-            const rawZId = r.key.replace(/^ZONE_ADMIN_/, '');
-            if (isDeleted(rawZId, r.label)) return false;
-          }
-          return true;
-        });
+        const combined = rawData
+          .map((r: any) => {
+            if (r.zoneId && !r.defaultEmail) {
+              const zLower = (r.zoneId + ' ' + (r.zoneName || '')).toLowerCase();
+              if (zLower.includes('bangalore') || zLower.includes('bengaluru')) {
+                return { ...r, defaultEmail: 'ops@foodie.local' };
+              } else if (zLower.includes('tumkur') || zLower.includes('tumakuru')) {
+                return { ...r, defaultEmail: 'finance@foodie.local' };
+              }
+            }
+            return r;
+          })
+          .filter((r: any) => {
+            if (r.zoneId && isDeleted(r.zoneId, r.zoneName)) return false;
+            if (r.key && r.key.startsWith('ZONE_ADMIN_')) {
+              const rawZId = r.key.replace(/^ZONE_ADMIN_/, '');
+              if (isDeleted(rawZId, r.label)) return false;
+            }
+            return true;
+          });
         for (const u of usersStore) {
           if (u.assignedZoneId && !isDeleted(u.assignedZoneId, u.assignedZoneName)) {
             const label = formatZoneAdminLabel(u.assignedZoneName || u.assignedZoneId);
@@ -180,7 +192,12 @@ export async function GET() {
       (u) => u.assignedZoneId && u.assignedZoneId.toLowerCase() === z.id.toLowerCase()
     );
     const role = userForZone?.role || 'OPS';
-    const email = userForZone?.email || (z.id === 'dz-bangalore' ? 'ops@foodie.local' : (z.id === 'dz-tumkur' ? 'finance@foodie.local' : null));
+    const zLower = (z.id + ' ' + (z.zoneName || '')).toLowerCase();
+    const email = userForZone?.email || (
+      (zLower.includes('bangalore') || zLower.includes('bengaluru')) ? 'ops@foodie.local' : (
+        (zLower.includes('tumkur') || zLower.includes('tumakuru')) ? 'finance@foodie.local' : null
+      )
+    );
 
     options.push({
       key: `ZONE_ADMIN_${z.id}`,
