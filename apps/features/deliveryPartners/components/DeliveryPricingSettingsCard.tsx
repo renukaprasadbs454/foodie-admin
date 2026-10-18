@@ -12,6 +12,18 @@ export interface IncentiveMilestone {
   reward: number;
 }
 
+export interface IncentiveCondition {
+  id: string;
+  type?: 'LOGIN_SLOT' | 'ORDER_REJECTION' | 'MINIMUM_DELIVERIES' | 'CUSTOM';
+  title: string;
+  timeSlot?: string;
+  duration?: string;
+  minDurationMinutes?: number;
+  maxRejections?: number;
+  subtext?: string;
+  value?: string;
+}
+
 export interface IncentiveItem {
   id: string;
   title: string;
@@ -23,6 +35,7 @@ export interface IncentiveItem {
   category: 'Base & Distance' | 'Target & Mileage' | 'Weather & Surge' | 'Reward & Rating';
   targetCount?: number;
   milestones?: IncentiveMilestone[];
+  conditions?: IncentiveCondition[];
 }
 
 export interface ZoneItem {
@@ -75,6 +88,24 @@ const DEFAULT_INCENTIVES: IncentiveItem[] = [
       { trips: 9, reward: 75 },
       { trips: 13, reward: 120 },
       { trips: 18, reward: 190 },
+    ],
+    conditions: [
+      {
+        id: 'loginSlot',
+        type: 'LOGIN_SLOT',
+        title: 'Mandatory Login: Complete below slot',
+        timeSlot: '7pm - 12am',
+        duration: '4h 30m',
+        minDurationMinutes: 270,
+      },
+      {
+        id: 'orderRejection',
+        type: 'ORDER_REJECTION',
+        title: 'Other condition',
+        value: 'Do not reject',
+        subtext: 'more than 1 order',
+        maxRejections: 1,
+      },
     ],
   },
   {
@@ -253,7 +284,7 @@ export function DeliveryPricingSettingsCard() {
 
   const handleIncentiveChange = async (
     id: string,
-    field: 'value' | 'active' | 'description' | 'title' | 'targetCount' | 'milestones',
+    field: 'value' | 'active' | 'description' | 'title' | 'targetCount' | 'milestones' | 'conditions',
     val: any
   ) => {
     setSavedItemsMap((prev) => ({ ...prev, [id]: false }));
@@ -1021,6 +1052,111 @@ export function DeliveryPricingSettingsCard() {
                               />
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Offer Conditions for Daily Target Bonus */}
+                    {item.id === 'dailyTargetBonus' && (
+                      <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #E5E7EB' }}>
+                        <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#4B5563', marginBottom: '8px' }}>
+                          Offer Conditions:
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {/* Login slot condition */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.6875rem' }}>
+                            <span style={{ color: '#4B5563', fontWeight: 600 }}>Login Slot:</span>
+                            <input
+                              type="text"
+                              disabled={!item.active}
+                              value={item.conditions?.find(c => c.type === 'LOGIN_SLOT')?.timeSlot || '7pm - 12am'}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const existing = item.conditions || [
+                                  { id: 'loginSlot', type: 'LOGIN_SLOT', title: 'Mandatory Login: Complete below slot', timeSlot: '7pm - 12am', duration: '4h 30m', minDurationMinutes: 270 },
+                                  { id: 'orderRejection', type: 'ORDER_REJECTION', title: 'Do not reject', subtext: 'more than 1 order', maxRejections: 1 },
+                                ];
+                                const updated = existing.map(c => c.type === 'LOGIN_SLOT' ? { ...c, timeSlot: val, value: val } : c);
+                                handleIncentiveChange(item.id, 'conditions', updated);
+                              }}
+                              style={{
+                                width: '100px',
+                                padding: '3px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid #D1D5DB',
+                                fontSize: '0.6875rem',
+                                fontWeight: 700,
+                                backgroundColor: item.active ? '#F9FAFB' : '#F3F4F6',
+                                color: '#111827',
+                                outline: 'none',
+                              }}
+                            />
+                          </div>
+
+                          {/* Login duration condition */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.6875rem' }}>
+                            <span style={{ color: '#4B5563', fontWeight: 600 }}>Duration:</span>
+                            <input
+                              type="text"
+                              disabled={!item.active}
+                              value={item.conditions?.find(c => c.type === 'LOGIN_SLOT')?.duration || '4h 30m'}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const existing = item.conditions || [
+                                  { id: 'loginSlot', type: 'LOGIN_SLOT', title: 'Mandatory Login: Complete below slot', timeSlot: '7pm - 12am', duration: '4h 30m', minDurationMinutes: 270 },
+                                  { id: 'orderRejection', type: 'ORDER_REJECTION', title: 'Do not reject', subtext: 'more than 1 order', maxRejections: 1 },
+                                ];
+                                const updated = existing.map(c => c.type === 'LOGIN_SLOT' ? { ...c, duration: val, subtext: val } : c);
+                                handleIncentiveChange(item.id, 'conditions', updated);
+                              }}
+                              style={{
+                                width: '100px',
+                                padding: '3px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid #D1D5DB',
+                                fontSize: '0.6875rem',
+                                fontWeight: 700,
+                                backgroundColor: item.active ? '#F9FAFB' : '#F3F4F6',
+                                color: '#111827',
+                                outline: 'none',
+                              }}
+                            />
+                          </div>
+
+                          {/* Order rejection limit */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.6875rem' }}>
+                            <span style={{ color: '#4B5563', fontWeight: 600 }}>Max Rejections:</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <input
+                                type="number"
+                                min="0"
+                                disabled={!item.active}
+                                value={item.conditions?.find(c => c.type === 'ORDER_REJECTION')?.maxRejections ?? 1}
+                                onChange={(e) => {
+                                  const val = Math.max(0, parseInt(e.target.value) || 0);
+                                  const existing = item.conditions || [
+                                    { id: 'loginSlot', type: 'LOGIN_SLOT', title: 'Mandatory Login: Complete below slot', timeSlot: '7pm - 12am', duration: '4h 30m', minDurationMinutes: 270 },
+                                    { id: 'orderRejection', type: 'ORDER_REJECTION', title: 'Do not reject', subtext: 'more than 1 order', maxRejections: 1 },
+                                  ];
+                                  const updated = existing.map(c => c.type === 'ORDER_REJECTION' ? { ...c, maxRejections: val, subtext: `more than ${val} order${val > 1 ? 's' : ''}` } : c);
+                                  handleIncentiveChange(item.id, 'conditions', updated);
+                                }}
+                                style={{
+                                  width: '45px',
+                                  padding: '3px 6px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #D1D5DB',
+                                  fontSize: '0.6875rem',
+                                  fontWeight: 700,
+                                  backgroundColor: item.active ? '#F9FAFB' : '#F3F4F6',
+                                  color: '#111827',
+                                  outline: 'none',
+                                  textAlign: 'center',
+                                }}
+                              />
+                              <span style={{ color: '#6B7280', fontSize: '0.625rem' }}>orders</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
