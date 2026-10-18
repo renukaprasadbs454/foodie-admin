@@ -45,12 +45,12 @@ export default function OtherBusinessPage() {
               Location Management
             </h3>
             <p style={{ fontSize: 13, color: '#6B7280', margin: 0, lineHeight: 1.5 }}>
-              Configure operating cities, service area coverage, delivery polygon zones, distance-based charges & radius parameters.
+              Configure operating cities, delivery polygon zones, distance-based charges & radius parameters.
             </p>
           </div>
           <div style={{ borderTop: '1px solid #F3F4F6', paddingTop: 14, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#2196F3' }}>
-              Cities • Service Areas • Zones • Charges • Radius
+              Cities • Zones • Charges • Radius
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#2196F3' }}>&rarr;</span>
           </div>

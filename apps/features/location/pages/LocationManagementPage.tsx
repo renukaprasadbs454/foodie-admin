@@ -17,7 +17,6 @@ import {
   useGetUnserviceableRequestsQuery,
   useCreateUnserviceableRequestMutation,
   useApproveUnserviceableRequestMutation,
-  useGetServiceAreasQuery,
   useGetDeliveryChargesQuery,
   useUpdateDeliveryChargesMutation,
   useGetRadiusSettingsQuery,
@@ -25,7 +24,6 @@ import {
 } from '../../../api/endpoints/locationApi';
 import type {
   CityDto,
-  ServiceAreaDto,
   LocationZoneDto,
   UnserviceableRequestDto,
 } from '../../../api/endpoints/locationApi';
@@ -34,11 +32,10 @@ import type { AdminRole } from 'foodie-shared-web';
 import { GoogleMapsPolygonPinPicker } from '../components/GoogleMapsPolygonPinPicker';
 
 export type CityRecord = CityDto;
-export type ServiceAreaRecord = ServiceAreaDto;
 export type DeliveryZoneRecord = LocationZoneDto;
 export type UnserviceableRequestRecord = UnserviceableRequestDto;
 
-type LocationTab = 'CITIES' | 'SERVICE_AREAS' | 'DELIVERY_ZONES' | 'UNSERVICEABLE_REQUESTS' | 'DELIVERY_CHARGES' | 'RADIUS_SETTINGS';
+type LocationTab = 'CITIES' | 'DELIVERY_ZONES' | 'UNSERVICEABLE_REQUESTS' | 'DELIVERY_CHARGES' | 'RADIUS_SETTINGS';
 
 export function LocationManagementPage() {
   const { tokens } = useTheme();
@@ -60,8 +57,6 @@ export function LocationManagementPage() {
   const [createUnserviceableRequest] = useCreateUnserviceableRequestMutation();
   const [approveUnserviceableRequest] = useApproveUnserviceableRequestMutation();
 
-  const { data: dbServiceAreas = [], isLoading: isLoadingAreas, isError: isErrorAreas, refetch: refetchAreas } = useGetServiceAreasQuery();
-
   const { data: dbDeliveryCharges, isLoading: isLoadingCharges } = useGetDeliveryChargesQuery();
   const [updateDeliveryCharges] = useUpdateDeliveryChargesMutation();
 
@@ -71,7 +66,6 @@ export function LocationManagementPage() {
   const cities = dbCities as CityRecord[];
   const deliveryZones = dbDeliveryZones as DeliveryZoneRecord[];
   const unserviceableRequests = dbUnserviceableRequests as UnserviceableRequestRecord[];
-  const serviceAreas = dbServiceAreas as ServiceAreaRecord[];
 
   const userAssignedZone = typeof window !== 'undefined'
     ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
@@ -524,7 +518,6 @@ export function LocationManagementPage() {
           { id: 'DELIVERY_ZONES', label: isSuperAdmin ? `Delivery Multi-Zones (${deliveryZones.length})` : `My Operating Zone (${visibleDeliveryZones.length})` },
           { id: 'UNSERVICEABLE_REQUESTS', label: `Unserviceable Requests (${pendingRequestsCount} Pending)` },
           { id: 'CITIES', label: `Cities (${cities.length})` },
-          { id: 'SERVICE_AREAS', label: `Service Areas (${serviceAreas.length})` },
           { id: 'DELIVERY_CHARGES', label: 'Delivery Charges' },
           { id: 'RADIUS_SETTINGS', label: 'Radius Settings' },
         ].map((tab) => {
@@ -1600,53 +1593,7 @@ export function LocationManagementPage() {
         </div>
       )}
 
-      {/* TAB 4: SERVICE AREAS */}
-      {activeTab === 'SERVICE_AREAS' && (
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)' }}>
-          {isLoadingAreas ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
-              Loading service areas from database...
-            </div>
-          ) : isErrorAreas ? (
-            <div style={{ padding: 32, textAlign: 'center', color: '#DC2626' }}>
-              <p style={{ fontWeight: 600, margin: '0 0 8px 0' }}>Failed to load service areas.</p>
-              <button onClick={() => void refetchAreas()} style={{ padding: '6px 14px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Retry</button>
-            </div>
-          ) : serviceAreas.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
-              No service area records found.
-            </div>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-              <thead>
-                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service Area & City</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pincode</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coverage Level</th>
-                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Outlets</th>
-                </tr>
-              </thead>
-              <tbody>
-                {serviceAreas.map((sa) => (
-                  <tr key={sa.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 600, color: '#111827' }}>{sa.areaName}</div>
-                      <div style={{ fontSize: 11, color: '#6B7280' }}>{sa.cityName}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{sa.pincode}</td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: 6 }}>
-                        {sa.coverageStatus ? sa.coverageStatus.replace('_', ' ') : 'FULL COVERAGE'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#111827' }}>{sa.totalOutlets} Outlets</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+
 
       {/* TAB 5: DELIVERY CHARGES */}
       {activeTab === 'DELIVERY_CHARGES' && (
