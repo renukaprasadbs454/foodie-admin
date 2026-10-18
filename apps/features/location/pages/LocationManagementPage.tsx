@@ -77,25 +77,40 @@ export function LocationManagementPage() {
     ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name') || (typeof document !== 'undefined' ? decodeURIComponent(document.cookie.match(/foodie_active_zone_name=([^;]+)/)?.[1] || '') : null) || 'Assigned Zone')
     : 'Assigned Zone';
 
-  const isSuperAdmin = Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
+  const hasAssignedZone = Boolean(userAssignedZone && userAssignedZone !== 'ALL');
+  const isSuperAdmin = !hasAssignedZone && Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
+
+  const isMatchingZone = (zoneIdOrName: string, targetZone: string): boolean => {
+    const z = (zoneIdOrName || '').trim().toLowerCase();
+    const t = (targetZone || '').trim().toLowerCase();
+    if (!z || !t) return false;
+    if (z === t || z.includes(t) || t.includes(z)) return true;
+    const isZBlr = z.includes('bangalore') || z.includes('bengaluru') || z.includes('blr');
+    const isTBlr = t.includes('bangalore') || t.includes('bengaluru') || t.includes('blr');
+    if (isZBlr && isTBlr) return true;
+    const isZTmk = z.includes('tumkur') || z.includes('tumakuru') || z.includes('tmk');
+    const isTTmk = t.includes('tumkur') || t.includes('tumakuru') || t.includes('tmk');
+    if (isZTmk && isTTmk) return true;
+    const isZMys = z.includes('mysore') || z.includes('mysuru') || z.includes('myq');
+    const isTMys = t.includes('mysore') || t.includes('mysuru') || t.includes('myq');
+    if (isZMys && isTMys) return true;
+    return false;
+  };
 
   const visibleDeliveryZones = React.useMemo(() => {
-    if (isSuperAdmin || !userAssignedZone) return deliveryZones;
+    if (isSuperAdmin || !hasAssignedZone || !userAssignedZone) return deliveryZones;
     const target = decodeURIComponent(userAssignedZone).trim().toLowerCase();
     return deliveryZones.filter((dz) => {
       const zId = (dz.id || '').trim().toLowerCase();
       const zName = (dz.zoneName || '').trim().toLowerCase();
       const zCity = (dz.cityName || '').trim().toLowerCase();
       return (
-        zId === target ||
-        target.includes(zId) ||
-        zId.includes(target) ||
-        zName.includes(target) ||
-        target.includes(zName) ||
-        (zCity && (zCity.includes(target) || target.includes(zCity)))
+        isMatchingZone(zId, target) ||
+        isMatchingZone(zName, target) ||
+        (zCity && isMatchingZone(zCity, target))
       );
     });
-  }, [deliveryZones, isSuperAdmin, userAssignedZone]);
+  }, [deliveryZones, isSuperAdmin, hasAssignedZone, userAssignedZone]);
 
   const pendingRequestsCount = unserviceableRequests.filter((r) => r.status === 'PENDING').length;
 
@@ -145,6 +160,12 @@ export function LocationManagementPage() {
   useEffect(() => {
     trackAnalyticsEvent('admin_location_management_viewed', {});
   }, []);
+
+  useEffect(() => {
+    if (!isSuperAdmin && activeTab !== 'DELIVERY_ZONES') {
+      setActiveTab('DELIVERY_ZONES');
+    }
+  }, [isSuperAdmin, activeTab]);
 
   useEffect(() => {
     if (dbDeliveryCharges) {
@@ -462,42 +483,44 @@ export function LocationManagementPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            type="button"
-            onClick={() => setShowRequestModal(true)}
-            style={{
-              padding: '10px 16px',
-              backgroundColor: '#FFFFFF',
-              color: '#374151',
-              border: '1px solid #E5E7EB',
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            + Request Unserviceable Location
-          </button>
           {isSuperAdmin && (
-            <button
-              type="button"
-              onClick={() => setIsCreatingZone(true)}
-              style={{
-                padding: '10px 18px',
-                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              + Create Multi-Zone
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setShowRequestModal(true)}
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#374151',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                + Request Unserviceable Location
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCreatingZone(true)}
+                style={{
+                  padding: '10px 18px',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                + Create Multi-Zone
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -514,13 +537,15 @@ export function LocationManagementPage() {
           overflowX: 'auto',
         }}
       >
-        {[
-          { id: 'DELIVERY_ZONES', label: isSuperAdmin ? `Delivery Multi-Zones (${deliveryZones.length})` : `My Operating Zone (${visibleDeliveryZones.length})` },
+        {(isSuperAdmin ? [
+          { id: 'DELIVERY_ZONES', label: `Delivery Multi-Zones (${deliveryZones.length})` },
           { id: 'UNSERVICEABLE_REQUESTS', label: `Unserviceable Requests (${pendingRequestsCount} Pending)` },
           { id: 'CITIES', label: `Cities (${cities.length})` },
           { id: 'DELIVERY_CHARGES', label: 'Delivery Charges' },
           { id: 'RADIUS_SETTINGS', label: 'Radius Settings' },
-        ].map((tab) => {
+        ] : [
+          { id: 'DELIVERY_ZONES', label: `My Operating Zone (${visibleDeliveryZones.length})` },
+        ]).map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button

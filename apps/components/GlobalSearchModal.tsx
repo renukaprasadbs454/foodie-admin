@@ -135,7 +135,11 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
         { id: 'm-enq-3', category: 'Restaurant', title: 'ENQ-903: Menu Price Update', subtitle: 'From: Rajesh Gupta • Status: OPEN', url: '/support', icon: '' },
       ];
 
-      const isSuperAdmin = typeof window !== 'undefined' && (
+      const assignedZone = typeof window !== 'undefined'
+        ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
+        : null;
+      const hasAssignedZone = Boolean(assignedZone && assignedZone !== 'ALL');
+      const isSuperAdmin = !hasAssignedZone && typeof window !== 'undefined' && (
         (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role'))?.toUpperCase() === 'SUPER_ADMIN'
       );
 

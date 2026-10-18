@@ -107,9 +107,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         ? 'SUPER_ADMIN'
         : (isAuditorPath || storedRole === 'AUDITOR' || meProfile.role === 'AUDITOR')
         ? 'AUDITOR'
-        : (isFinancePath || storedRole === 'FINANCE_ADMIN' || (storedRole && storedRole.toUpperCase().includes('FINANCE')) || meProfile.role === 'FINANCE_ADMIN')
+        : (!hasAssignedZone && (isFinancePath || storedRole === 'FINANCE_ADMIN' || (storedRole && storedRole.toUpperCase().includes('FINANCE')) || meProfile.role === 'FINANCE_ADMIN'))
         ? 'FINANCE_ADMIN'
-        : (hasAssignedZone ? (meProfile.role && meProfile.role !== 'SUPER_ADMIN' ? meProfile.role : 'OPS') : (meProfile.role || storedRole || role || 'SUPER_ADMIN'));
+        : (hasAssignedZone ? 'OPS' : (meProfile.role || storedRole || role || 'SUPER_ADMIN'));
       const storedEmail = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null;
       const storedPhone = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone')) : null;
       dispatch(
@@ -227,7 +227,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     storedRole === 'AUDITOR'
   );
 
-  const isFinanceContext = !isSuperAdmin && (
+  const isFinanceContext = !isSuperAdmin && !hasAssignedZone && (
     Boolean(pathname && (
       pathname.startsWith('/finance-admin') ||
       pathname.startsWith('/delivery-payouts') ||

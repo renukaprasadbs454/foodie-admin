@@ -27,8 +27,11 @@ const DEFAULT_ZONE_ADMIN_PASSWORDS: Record<string, string> = {
 
 export function UserManagementStudio() {
   const role = useAppSelector(selectAdminRole);
-  const storedRole = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null;
-  const isSuperAdmin = (role && role.toUpperCase() === 'SUPER_ADMIN') || (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN');
+  const assignedZone = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
+    : null;
+  const hasAssignedZone = Boolean(assignedZone && assignedZone !== 'ALL');
+  const isSuperAdmin = !hasAssignedZone && Boolean((role && role.toUpperCase() === 'SUPER_ADMIN') || (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN'));
 
   const { data: rawUsers = [], isLoading, isError, refetch } = useGetAdminUsersQuery(undefined, { skip: !isSuperAdmin });
   const [createAdminUser] = useCreateAdminUserMutation();

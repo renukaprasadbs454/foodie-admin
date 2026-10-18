@@ -147,6 +147,11 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   const hasPermission = (permission: string): boolean => {
     if (!profile) return false;
     if (profile.role === 'SUPER_ADMIN') return true;
+    if (profile.assignedZoneId) {
+      const norm = (permission || '').toLowerCase();
+      if (norm.startsWith('user.') || norm.startsWith('role.')) return false;
+      return true;
+    }
     const perms = Array.isArray(profile.permissions) ? profile.permissions : [];
     if (perms.includes('*')) return true;
     const normPermission = permission.toLowerCase();
