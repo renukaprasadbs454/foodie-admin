@@ -48,6 +48,7 @@ function formatDisplayDate(dateStr: string): string {
 }
 
 import { getOrderPaymentStatusInfo } from '../lib/orderPaymentStatus';
+import { usePermissions } from '@/context/PermissionContext';
 export { getOrderPaymentStatusInfo };
 
 export function OrdersPage() {
@@ -60,12 +61,15 @@ export function OrdersPage() {
   const [searchUuid, setSearchUuid] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
 
+  const { profile } = usePermissions();
+  const assignedZoneId = profile?.assignedZoneId || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone')) : null);
+
   const {
     data: orders = [],
     isLoading,
     isError,
     refetch,
-  } = useGetAdminOrdersQuery(undefined, {
+  } = useGetAdminOrdersQuery(assignedZoneId ? { zoneId: assignedZoneId } : undefined, {
     pollingInterval: 3000,
     refetchOnFocus: true,
     refetchOnReconnect: true,
@@ -292,7 +296,24 @@ export function OrdersPage() {
                     </td>
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ fontWeight: 600, color: '#111827' }}>{order.storeName}</div>
-                      <span style={{ fontSize: 11, color: '#6B7280' }}>{order.module}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                        <span style={{ fontSize: 11, color: '#6B7280' }}>{order.module}</span>
+                        {order.zoneId && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                              backgroundColor: order.zoneId.toLowerCase().includes('tumkur') ? '#FDF2F8' : '#EFF6FF',
+                              border: `1px solid ${order.zoneId.toLowerCase().includes('tumkur') ? '#FBCFE8' : '#BFDBFE'}`,
+                              color: order.zoneId.toLowerCase().includes('tumkur') ? '#9D174D' : '#1D4ED8',
+                            }}
+                          >
+                            📍 {order.zoneId.toLowerCase().includes('tumkur') ? 'Tumkur' : 'Bangalore'}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td style={{ padding: '14px 20px', color: '#334155', fontSize: 13, fontWeight: 500, maxWidth: 280 }}>
                       <div style={{ lineHeight: 1.4 }}>

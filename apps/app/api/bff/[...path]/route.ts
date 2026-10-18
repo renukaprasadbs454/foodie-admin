@@ -3828,13 +3828,18 @@ async function handleAdminRoles() {
 
     if (targetPath === 'admin/orders' && isGet) {
       const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
-      const targetUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/orders${incomingUrl.search}`;
+      const effectiveZone = incomingActiveZone ? decodeURIComponent(incomingActiveZone) : (!isSuperAdmin && userAssignedZoneId ? userAssignedZoneId : null);
+      const ordersParams = new URLSearchParams(incomingUrl.searchParams);
+      if (effectiveZone && effectiveZone !== 'ALL' && !ordersParams.has('zoneId')) {
+        ordersParams.set('zoneId', effectiveZone);
+      }
+      const targetUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/orders${ordersParams.toString() ? `?${ordersParams.toString()}` : ''}`;
       const authHeaders: Record<string, string> = {
         Accept: 'application/json',
         Authorization: `Bearer ${upstreamToken}`,
       };
-      if (incomingActiveZone) {
-        authHeaders['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+      if (effectiveZone) {
+        authHeaders['X-Active-Zone-Id'] = effectiveZone;
       }
 
       const { response: upstream } = await safeFetch(targetUrl, {
@@ -3920,17 +3925,40 @@ async function handleAdminRoles() {
               }
             }
 
+            const store = o.storeName || o.restaurantName || '';
+            const isStoreTmk = store.toLowerCase().includes('tumkur') || store.toLowerCase().includes('pavithra') || store.toLowerCase().includes('thatte');
+            const derivedZoneId = o.zoneId || o.assignedZoneId || (isStoreTmk ? 'dz-tumkur' : 'dz-bangalore');
+            const derivedZoneName = o.zoneName || (derivedZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone');
+
             return {
               ...o,
+              zoneId: derivedZoneId,
+              zoneName: derivedZoneName,
               itemsSummary: cached?.itemsSummary || (o.itemsSummary && o.itemsSummary !== 'Multi-dish order' ? o.itemsSummary : `${o.storeName || 'Special'} Dishes`),
               paymentMethod,
               paymentStatus,
             };
           });
 
+          let finalOrders = enriched;
+          if (!isSuperAdmin && userAssignedZoneId) {
+            const cleanAssigned = userAssignedZoneId.trim().toLowerCase();
+            const isATmk = cleanAssigned.includes('tumkur') || cleanAssigned.includes('tumakuru') || cleanAssigned.includes('tmk');
+            finalOrders = enriched.filter((o) => {
+              const z = o.zoneId || o.assignedZoneId;
+              if (z) {
+                const isZTmk = String(z).toLowerCase().includes('tumkur');
+                return isATmk ? isZTmk : !isZTmk;
+              }
+              const store = o.storeName || o.restaurantName || '';
+              const isSTmk = store.toLowerCase().includes('tumkur') || store.toLowerCase().includes('pavithra');
+              return isATmk ? isSTmk : !isSTmk;
+            });
+          }
+
           return NextResponse.json({
             success: true,
-            data: enriched,
+            data: finalOrders,
             error: null,
             meta: json.meta || {
               timestamp: new Date().toISOString(),
@@ -4438,38 +4466,84 @@ async function handleAdminRoles() {
             const cleanAssigned = userAssignedZoneId.trim().toLowerCase();
             const isMatch = (item: any) => {
               if (!item || typeof item !== 'object') return true;
-              const z = item.zoneId || item.assignedZoneId || item.zone?.id || item.zoneName;
+
+              const isATmk = cleanAssigned.includes('tumkur') || cleanAssigned.includes('tumakuru') || cleanAssigned.includes('tmk');
+              const isABlr = cleanAssigned.includes('bangalore') || cleanAssigned.includes('bengaluru') || cleanAssigned.includes('blr');
+
+              // 1. Explicit Zone Identifier
+              const z = item.zoneId || item.assignedZoneId || item.zone?.id || item.zoneName || item.zone;
               if (z && typeof z === 'string') {
                 const cleanZ = z.trim().toLowerCase();
                 if (cleanZ === cleanAssigned || cleanZ.includes(cleanAssigned) || cleanAssigned.includes(cleanZ)) return true;
                 const isZBlr = cleanZ.includes('bangalore') || cleanZ.includes('bengaluru') || cleanZ.includes('blr');
-                const isABlr = cleanAssigned.includes('bangalore') || cleanAssigned.includes('bengaluru') || cleanAssigned.includes('blr');
                 if (isZBlr && isABlr) return true;
                 const isZTmk = cleanZ.includes('tumkur') || cleanZ.includes('tumakuru') || cleanZ.includes('tmk');
-                const isATmk = cleanAssigned.includes('tumkur') || cleanAssigned.includes('tumakuru') || cleanAssigned.includes('tmk');
                 if (isZTmk && isATmk) return true;
-                return false;
+                if ((isZBlr && isATmk) || (isZTmk && isABlr)) return false;
               }
-              const city = item.city || item.cityName;
+
+              // 2. City (from root, address, or deliveryAddress)
+              const city = item.city || item.cityName || item.address?.city || item.deliveryAddress?.city;
               if (city && typeof city === 'string') {
                 const cleanC = city.trim().toLowerCase();
                 const isCBlr = cleanC.includes('bangalore') || cleanC.includes('bengaluru') || cleanC.includes('blr');
-                const isABlr = cleanAssigned.includes('bangalore') || cleanAssigned.includes('bengaluru') || cleanAssigned.includes('blr');
                 if (isCBlr && isABlr) return true;
                 const isCTmk = cleanC.includes('tumkur') || cleanC.includes('tumakuru') || cleanC.includes('tmk');
-                const isATmk = cleanAssigned.includes('tumkur') || cleanAssigned.includes('tumakuru') || cleanAssigned.includes('tmk');
                 if (isCTmk && isATmk) return true;
-                return false;
+                if ((isCBlr && isATmk) || (isCTmk && isABlr)) return false;
               }
+
+              // 3. Formatted Address / Lines
+              const addr = item.address?.formattedAddress || item.address?.line1 || item.deliveryAddress?.formattedAddress || item.deliveryAddress?.addressLine1;
+              if (addr && typeof addr === 'string') {
+                const cleanA = addr.trim().toLowerCase();
+                const isAddrBlr = cleanA.includes('bangalore') || cleanA.includes('bengaluru') || cleanA.includes('blr');
+                if (isAddrBlr && isABlr) return true;
+                const isAddrTmk = cleanA.includes('tumkur') || cleanA.includes('tumakuru') || cleanA.includes('tmk');
+                if (isAddrTmk && isATmk) return true;
+                if ((isAddrBlr && isATmk) || (isAddrTmk && isABlr)) return false;
+              }
+
+              // 4. Coordinates
+              const lat = item.latitude || item.address?.latitude || item.deliveryAddress?.latitude;
+              const lng = item.longitude || item.address?.longitude || item.deliveryAddress?.longitude;
+              if (lat != null && lng != null) {
+                const nLat = Number(lat);
+                const nLng = Number(lng);
+                if (!isNaN(nLat) && !isNaN(nLng)) {
+                  if (nLat > 13.2 && nLat < 13.5 && nLng > 77.0 && nLng < 77.3) {
+                    return isATmk;
+                  }
+                  if (nLat > 12.8 && nLat < 13.1 && nLng > 77.4 && nLng < 77.8) {
+                    return isABlr;
+                  }
+                }
+              }
+
+              // 5. Store / Restaurant Name
+              const store = item.storeName || item.restaurantName || (item.restaurant && (item.restaurant.name || item.restaurant.storeName));
+              if (store && typeof store === 'string') {
+                const cleanS = store.trim().toLowerCase();
+                if (cleanS.includes('tumkur') || cleanS.includes('pavithra') || cleanS.includes('thatte')) {
+                  return isATmk;
+                }
+                if (cleanS.includes('bangalore') || cleanS.includes('bengaluru') || cleanS.includes('empire') || cleanS.includes('meghana')) {
+                  return isABlr;
+                }
+              }
+
+              // 6. Customer / Contact Name
               const name = item.name || item.fullName || item.customerName;
               if (name && typeof name === 'string') {
                 const cleanN = name.trim().toLowerCase();
-                const isATmk = cleanAssigned.includes('tumkur') || cleanAssigned.includes('tumakuru') || cleanAssigned.includes('tmk');
-                const isABlr = cleanAssigned.includes('bangalore') || cleanAssigned.includes('bengaluru') || cleanAssigned.includes('blr');
-                if (isATmk) return cleanN.includes('priya') || cleanN.includes('karthik');
-                if (isABlr) return cleanN.includes('ananya') || cleanN.includes('rahul');
+                if (cleanN.includes('tumkur') || cleanN.includes('pavithra') || cleanN.includes('thatte')) return isATmk;
+                if (cleanN.includes('bangalore') || cleanN.includes('bengaluru') || cleanN.includes('empire') || cleanN.includes('meghana')) return isABlr;
+                if (cleanN.includes('priya') || cleanN.includes('karthik')) return isATmk;
+                if (cleanN.includes('ananya') || cleanN.includes('rahul')) return isABlr;
               }
-              return false;
+
+              // Retain items returned by backend for zone-scoped queries
+              return true;
             };
 
             // Single item detail check

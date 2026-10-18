@@ -33,23 +33,33 @@ export const restaurantsApi = baseApi.injectEndpoints({
       ],
       keepUnusedDataFor: 60,
     }),
-    getAdminRestaurants: builder.query<{ items: RestaurantDetail[]; pagination: any }, { status?: string; page?: number; size?: number; sort?: string }>({
-      query: ({ status, page = 0, size = 20, sort }) => ({
-        url: `/api/bff/admin/restaurants`,
-        params: {
-          ...(status ? { status } : {}),
-          page,
-          size,
-          ...(sort ? { sort } : {}),
-        },
-      }),
+    getAdminRestaurants: builder.query<{ items: RestaurantDetail[]; pagination: any }, { status?: string; page?: number; size?: number; sort?: string; zoneId?: string } | void>({
+      query: (arg) => {
+        const status = typeof arg === 'object' && arg?.status ? arg.status : undefined;
+        const page = typeof arg === 'object' && arg?.page !== undefined ? arg.page : 0;
+        const size = typeof arg === 'object' && arg?.size !== undefined ? arg.size : 20;
+        const sort = typeof arg === 'object' && arg?.sort ? arg.sort : undefined;
+        const zoneId = typeof arg === 'object' && arg?.zoneId ? arg.zoneId : undefined;
+        return {
+          url: `/api/bff/admin/restaurants`,
+          params: {
+            ...(status ? { status } : {}),
+            page,
+            size,
+            ...(sort ? { sort } : {}),
+            ...(zoneId ? { zoneId } : {}),
+          },
+        };
+      },
       transformResponse: (response: any) => {
-        const items = response?.content || response?.items || response || [];
+        const payload = (response && typeof response === 'object' && 'data' in response) ? response.data : response;
+        const rawList = payload?.items || payload?.content || (Array.isArray(payload) ? payload : (response?.items || response?.content || (Array.isArray(response) ? response : [])));
+        const items: RestaurantDetail[] = Array.isArray(rawList) ? rawList : [];
 
         // Ensure documents use absolute backend URL in local development
         const baseUrl = ENV.apiBaseUrl.replace(/\/$/, '');
         items.forEach((item: any) => {
-          if (item.documents && Array.isArray(item.documents)) {
+          if (item && item.documents && Array.isArray(item.documents)) {
             item.documents.forEach((doc: any) => {
               if (doc.documentUrl && doc.documentUrl.startsWith('/api')) {
                 doc.documentUrl = `${baseUrl}${doc.documentUrl}`;
@@ -60,7 +70,7 @@ export const restaurantsApi = baseApi.injectEndpoints({
 
         return {
           items,
-          pagination: response?.pageable || response?.pagination || response || null,
+          pagination: payload?.pagination || payload?.pageable || response?.pagination || response?.pageable || null,
         };
       },
       providesTags: ['Admin', 'Restaurant', { type: 'Admin', id: 'LIST' }],

@@ -9,6 +9,7 @@ import { selectActiveModule } from '@/store/moduleSlice';
 import { useGetAdminRestaurantsQuery, useApproveRestaurantMutation, useSuspendRestaurantMutation, useUpdateAdminRestaurantPositionsMutation, useCreateAdminRestaurantMutation } from '@/api/endpoints/restaurantsApi';
 import { RestaurantCommissionModal, CommissionSettingsData, SelectedRestaurantTarget } from '../components/RestaurantCommissionModal';
 import { TopRestaurantsManager } from '../components/TopRestaurantsManager';
+import { usePermissions } from '@/context/PermissionContext';
 
 export interface StoreItem {
   id: string;
@@ -119,9 +120,13 @@ export function RestaurantsPage() {
     });
   }, []);
 
+  const { profile } = usePermissions();
+  const assignedZoneId = profile?.assignedZoneId || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone')) : null);
+
   const { data: adminData, refetch } = useGetAdminRestaurantsQuery({
     status: (activeTab === 'ALL' || activeTab === 'TOP_RESTAURANTS') ? undefined : activeTab,
     size: 100,
+    zoneId: assignedZoneId || undefined,
   });
 
   const stores: StoreItem[] = adminData?.items?.map(r => ({
@@ -132,7 +137,7 @@ export function RestaurantsPage() {
       : 'General Food',
     ownerName: (r.legalDetails as any)?.legalName || r.ownerUserCredentialId?.slice(0, 8) || '—',
     phone: (r.legalDetails as any)?.contactPhone || (r as any).phone || '—',
-    zone: r.address?.city || 'N/A',
+    zone: (r as any).zoneName || ((r as any).zoneId === 'dz-tumkur' ? 'Tumkur Zone' : ((r as any).zoneId === 'dz-bangalore' ? 'Bangalore Zone' : (r.address?.city ? `${r.address.city} Zone` : 'Bangalore Zone'))),
     rating: typeof r.avgRating === 'number' ? r.avgRating : 0,
     ordersCount: (r as any).ordersCount || 0,
     commissionRate: typeof r.commissionPct === 'number' ? r.commissionPct : 15,
@@ -455,7 +460,24 @@ export function RestaurantsPage() {
                     <div style={{ fontWeight: 600, color: '#111827' }}>{store.ownerName}</div>
                     <div style={{ fontSize: 12, color: '#6B7280' }}>{store.phone}</div>
                   </td>
-                  <td style={{ padding: '14px 20px', color: '#4B5563', fontWeight: 500 }}>{store.zone}</td>
+                  <td style={{ padding: '14px 20px' }}>
+                    <span
+                      style={{
+                        backgroundColor: store.zone.toLowerCase().includes('tumkur') ? '#FDF2F8' : '#EFF6FF',
+                        color: store.zone.toLowerCase().includes('tumkur') ? '#9D174D' : '#1D4ED8',
+                        border: `1px solid ${store.zone.toLowerCase().includes('tumkur') ? '#FBCFE8' : '#BFDBFE'}`,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      📍 {store.zone}
+                    </span>
+                  </td>
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#111827' }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1">
