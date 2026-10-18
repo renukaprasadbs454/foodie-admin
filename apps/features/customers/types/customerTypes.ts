@@ -13,6 +13,9 @@ export interface CustomerProfile {
   joinedDate: string;
   lastOrderDate: string;
   loyaltyTier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | string;
+  zoneId?: string;
+  zoneName?: string;
+  city?: string;
   orders?: any[];
 }
 

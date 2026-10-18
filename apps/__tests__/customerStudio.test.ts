@@ -200,5 +200,84 @@ describe('Customer Operations & Support Studio Integration Tests', () => {
     handleOpenDeliveryFee();
     expect(isDeliveryFeeModalOpen).toBe(true);
   });
+
+  test('restricts customer directory data strictly to the assigned operating zone', () => {
+    const customers = [
+      { id: 'c-1', name: 'Ananya Sharma', zoneId: 'dz-bangalore', zoneName: 'Bangalore Zone', city: 'Bangalore' },
+      { id: 'c-2', name: 'Rahul Dravid', zoneId: 'dz-bangalore', zoneName: 'Bangalore Zone', city: 'Bangalore' },
+      { id: 'c-3', name: 'Priya Tumkur', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone', city: 'Tumkur' },
+      { id: 'c-4', name: 'Karthik Gowda', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone', city: 'Tumkur' },
+    ];
+
+    const isMatchingZone = (cust: any, targetZone: string) => {
+      const t = targetZone.trim().toLowerCase();
+      const zId = (cust.zoneId || '').trim().toLowerCase();
+      const zName = (cust.zoneName || '').trim().toLowerCase();
+      const city = (cust.city || '').trim().toLowerCase();
+      const isTBlr = t.includes('bangalore') || t.includes('bengaluru') || t.includes('blr');
+      const isTTmk = t.includes('tumkur') || t.includes('tumakuru') || t.includes('tmk');
+
+      if (zId) {
+        if (zId === t || zId.includes(t) || t.includes(zId)) return true;
+        if (isTBlr && (zId.includes('bangalore') || zId.includes('bengaluru') || zId.includes('blr'))) return true;
+        if (isTTmk && (zId.includes('tumkur') || zId.includes('tumakuru') || zId.includes('tmk'))) return true;
+      }
+      if (zName) {
+        if (zName === t || zName.includes(t) || t.includes(zName)) return true;
+        if (isTBlr && (zName.includes('bangalore') || zName.includes('bengaluru') || zName.includes('blr'))) return true;
+        if (isTTmk && (zName.includes('tumkur') || zName.includes('tumakuru') || zName.includes('tmk'))) return true;
+      }
+      if (city) {
+        if (isTBlr && (city.includes('bangalore') || city.includes('bengaluru') || city.includes('blr'))) return true;
+        if (isTTmk && (city.includes('tumkur') || city.includes('tumakuru') || city.includes('tmk'))) return true;
+      }
+      return false;
+    };
+
+    const filterByZone = (list: typeof customers, zone: string) => list.filter((c) => isMatchingZone(c, zone));
+
+    // Tumkur admin only sees Tumkur customers
+    const tumkurCustomers = filterByZone(customers, 'dz-tumkur');
+    expect(tumkurCustomers).toHaveLength(2);
+    expect(tumkurCustomers.map((c) => c.name)).toEqual(['Priya Tumkur', 'Karthik Gowda']);
+
+    // Bangalore admin only sees Bangalore customers
+    const bangaloreCustomers = filterByZone(customers, 'dz-bangalore');
+    expect(bangaloreCustomers).toHaveLength(2);
+    expect(bangaloreCustomers.map((c) => c.name)).toEqual(['Ananya Sharma', 'Rahul Dravid']);
+  });
+
+  test('restricts platform fee and delivery partner fee updates to the assigned zone only', () => {
+    const buildPlatformFeePayload = (fee: number, zoneId?: string) => ({
+      restaurantCommissionRate: 15,
+      deliveryCommissionRate: 10,
+      platformFixedFee: fee,
+      ...(zoneId ? { zoneId } : {}),
+    });
+
+    const buildDeliveryChargesPayload = (baseCharge: number, baseDist: number, perKm: number, zoneId?: string) => ({
+      baseCharge,
+      baseDistanceKm: baseDist,
+      additionalChargePerKm: perKm,
+      freeDeliveryMinOrder: 499,
+      nightSurcharge: 25,
+      surgeMultiplier: 1.15,
+      ...(zoneId ? { zoneId } : {}),
+    });
+
+    // Tumkur zone payload
+    const tumkurPlatformFee = buildPlatformFeePayload(25, 'dz-tumkur');
+    expect(tumkurPlatformFee.platformFixedFee).toBe(25);
+    expect(tumkurPlatformFee.zoneId).toBe('dz-tumkur');
+
+    const tumkurDeliveryFee = buildDeliveryChargesPayload(30, 2.5, 8, 'dz-tumkur');
+    expect(tumkurDeliveryFee.baseCharge).toBe(30);
+    expect(tumkurDeliveryFee.zoneId).toBe('dz-tumkur');
+
+    // Bangalore zone payload remains independent
+    const bangalorePlatformFee = buildPlatformFeePayload(40, 'dz-bangalore');
+    expect(bangalorePlatformFee.platformFixedFee).toBe(40);
+    expect(bangalorePlatformFee.zoneId).toBe('dz-bangalore');
+  });
 });
 

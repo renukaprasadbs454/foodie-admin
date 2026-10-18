@@ -33,6 +33,7 @@ export interface GetCustomersParams {
   page?: number;
   size?: number;
   fetchAllPages?: boolean;
+  zoneId?: string;
 }
 
 export const customersApi = baseApi.injectEndpoints({
@@ -46,6 +47,7 @@ export const customersApi = baseApi.injectEndpoints({
         if (params.status && params.status !== 'ALL') queryParams.set('status', params.status);
         if (typeof params.page === 'number') queryParams.set('page', String(params.page));
         if (typeof params.size === 'number') queryParams.set('size', String(params.size));
+        if (params.zoneId) queryParams.set('zoneId', params.zoneId);
 
         const baseQueryStr = queryParams.toString();
         const initialUrl = `/api/bff/admin/customers${baseQueryStr ? `?${baseQueryStr}` : ''}`;

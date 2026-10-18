@@ -11,8 +11,13 @@ import type {
 export const ordersApi = baseApi.injectEndpoints({
   overrideExisting: true,
   endpoints: (builder) => ({
-    getAdminOrders: builder.query<OrderItemRecord[], void>({
-      query: () => '/api/bff/admin/orders',
+    getAdminOrders: builder.query<OrderItemRecord[], { zoneId?: string } | void>({
+      query: (arg) => {
+        const zoneId = typeof arg === 'object' && arg?.zoneId ? arg.zoneId : undefined;
+        return zoneId
+          ? `/api/bff/admin/orders?zoneId=${encodeURIComponent(zoneId)}`
+          : '/api/bff/admin/orders';
+      },
       transformResponse: (response: any) => {
         const raw = Array.isArray(response)
           ? response
@@ -80,6 +85,7 @@ export const ordersApi = baseApi.injectEndpoints({
             paymentStatus,
             status: status as OrderItemRecord['status'],
             createdAt: item.createdAt || '',
+            zoneId: item.zoneId || item.zone?.id || item.assignedZoneId || undefined,
           };
         });
       },

@@ -109,17 +109,28 @@ export const paymentsApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Payment', id: 'PAYOUTS' }],
     }),
 
-    getCommissionRules: builder.query<CommissionConfig, void>({
-      query: () => '/api/bff/admin/payments/commission-rules',
+    getCommissionRules: builder.query<CommissionConfig, { zoneId?: string } | void>({
+      query: (arg) => {
+        const zoneId = typeof arg === 'object' && arg?.zoneId ? arg.zoneId : undefined;
+        return zoneId
+          ? `/api/bff/admin/payments/commission-rules?zoneId=${encodeURIComponent(zoneId)}`
+          : '/api/bff/admin/payments/commission-rules';
+      },
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
-      providesTags: [{ type: 'Payment', id: 'RULES' }],
+      providesTags: (_res, _err, arg) => [
+        { type: 'Payment', id: 'RULES' },
+        { type: 'Payment', id: typeof arg === 'object' && arg?.zoneId ? `RULES_${arg.zoneId}` : 'RULES_DEFAULT' },
+      ],
     }),
 
-    updateCommissionRules: builder.mutation<CommissionConfig, CommissionConfig>({
-      query: (config) => ({
-        url: '/api/bff/admin/payments/commission-rules',
+    updateCommissionRules: builder.mutation<CommissionConfig, CommissionConfig & { zoneId?: string }>({
+      query: ({ zoneId, ...config }) => ({
+        url: zoneId
+          ? `/api/bff/admin/payments/commission-rules?zoneId=${encodeURIComponent(zoneId)}`
+          : '/api/bff/admin/payments/commission-rules',
         method: 'POST',
         body: config,
+        headers: zoneId ? { 'X-Active-Zone-Id': zoneId } : undefined,
       }),
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
       invalidatesTags: [{ type: 'Payment', id: 'RULES' }],

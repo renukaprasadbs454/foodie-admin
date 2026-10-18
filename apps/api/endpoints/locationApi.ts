@@ -177,15 +177,26 @@ export const locationApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ['ServiceArea'],
         }),
-        getDeliveryCharges: builder.query<DeliveryChargesDto, void>({
-            query: () => `/api/bff/admin/location/delivery-charges`,
-            providesTags: ['DeliveryCharges'],
+        getDeliveryCharges: builder.query<DeliveryChargesDto, { zoneId?: string } | void>({
+            query: (arg) => {
+                const zoneId = typeof arg === 'object' && arg?.zoneId ? arg.zoneId : undefined;
+                return zoneId
+                    ? `/api/bff/admin/location/delivery-charges?zoneId=${encodeURIComponent(zoneId)}`
+                    : `/api/bff/admin/location/delivery-charges`;
+            },
+            providesTags: (_res, _err, arg) => [
+                'DeliveryCharges',
+                typeof arg === 'object' && arg?.zoneId ? { type: 'DeliveryCharges' as any, id: arg.zoneId } : { type: 'DeliveryCharges' as any, id: 'DEFAULT' },
+            ],
         }),
-        updateDeliveryCharges: builder.mutation<DeliveryChargesDto, DeliveryChargesDto>({
-            query: (body) => ({
-                url: '/api/bff/admin/location/delivery-charges',
+        updateDeliveryCharges: builder.mutation<DeliveryChargesDto, DeliveryChargesDto & { zoneId?: string }>({
+            query: ({ zoneId, ...body }) => ({
+                url: zoneId
+                    ? `/api/bff/admin/location/delivery-charges?zoneId=${encodeURIComponent(zoneId)}`
+                    : '/api/bff/admin/location/delivery-charges',
                 method: 'PUT',
                 body,
+                headers: zoneId ? { 'X-Active-Zone-Id': zoneId } : undefined,
             }),
             invalidatesTags: ['DeliveryCharges'],
         }),
