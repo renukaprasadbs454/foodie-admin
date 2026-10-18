@@ -27,6 +27,7 @@ const DEFAULT_ZONE_ADMIN_PASSWORDS: Record<string, string> = {
 
 export function UserManagementStudio() {
   const role = useAppSelector(selectAdminRole);
+  const storedRole = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role')) : null;
   const assignedZone = typeof window !== 'undefined'
     ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
     : null;
