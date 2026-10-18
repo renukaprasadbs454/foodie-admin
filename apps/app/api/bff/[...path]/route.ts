@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { readAccessTokenFromCookieHeader } from 'foodie-shared-web/auth';
 import { ENV } from '@/constants/env';
 import { sanitizeBffPathSegments } from '@/lib/bffPath';
@@ -1345,9 +1346,44 @@ async function handleAdminNotifications(request: Request, targetPath: string, ac
   }, { status: 404 });
 }
 
+const ZONES_PERSISTENCE_FILE = path.join(os.tmpdir(), 'foodie_admin_zones_state_v2.json');
+
+function loadPersistentZonesState(): { deletedZones: string[]; dynamicZones: any[] } {
+  try {
+    if (fs.existsSync(ZONES_PERSISTENCE_FILE)) {
+      const raw = fs.readFileSync(ZONES_PERSISTENCE_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      return {
+        deletedZones: Array.isArray(parsed?.deletedZones) ? parsed.deletedZones : [],
+        dynamicZones: Array.isArray(parsed?.dynamicZones) ? parsed.dynamicZones : [],
+      };
+    }
+  } catch {}
+  return { deletedZones: [], dynamicZones: [] };
+}
+
+function savePersistentZonesState(deletedZones: Set<string> | string[], dynamicZones: any[]) {
+  try {
+    const data = {
+      deletedZones: Array.from(deletedZones),
+      dynamicZones: dynamicZones || [],
+      updatedAt: new Date().toISOString(),
+    };
+    fs.writeFileSync(ZONES_PERSISTENCE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch {}
+}
+
 function isZoneDeleted(id?: string | null, name?: string | null): boolean {
   if (!id && !name) return false;
   const globalAny = global as unknown as Record<string, unknown>;
+  if (!globalAny.ADMIN_DELETED_ZONES) {
+    if (process.env.NODE_ENV === 'test') {
+      globalAny.ADMIN_DELETED_ZONES = new Set<string>();
+    } else {
+      const persisted = loadPersistentZonesState();
+      globalAny.ADMIN_DELETED_ZONES = new Set<string>(persisted.deletedZones);
+    }
+  }
   const deleted = (globalAny.ADMIN_DELETED_ZONES as Set<string>) || new Set<string>();
   const idL = (id || '').trim().toLowerCase();
   const nameL = (name || '').trim().toLowerCase();
@@ -1415,11 +1451,13 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
     };
 
     const zoneMap = new Map<string, any>();
-    if (!isZoneDeleted('dz-bangalore', 'Bangalore Zone')) {
-      zoneMap.set('dz-bangalore', defaultBangalore);
-    }
-    if (!isZoneDeleted('dz-tumkur', 'Tumkur Zone')) {
-      zoneMap.set('dz-tumkur', defaultTumkur);
+    if (!Array.isArray(rawZones) || rawZones.length === 0) {
+      if (!isZoneDeleted('dz-bangalore', 'Bangalore Zone')) {
+        zoneMap.set('dz-bangalore', defaultBangalore);
+      }
+      if (!isZoneDeleted('dz-tumkur', 'Tumkur Zone')) {
+        zoneMap.set('dz-tumkur', defaultTumkur);
+      }
     }
 
     if (Array.isArray(rawZones) && rawZones.length > 0) {
@@ -1428,24 +1466,54 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
         const idLower = String(z.id).toLowerCase();
         if (idLower === 'dz-bangalore') {
           if (!isZoneDeleted('dz-bangalore', 'Bangalore Zone')) {
-            zoneMap.set('dz-bangalore', { ...defaultBangalore, ...z, id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: z.cityName || 'Bangalore' });
+            zoneMap.set('dz-bangalore', { ...defaultBangalore, ...z, id: 'dz-bangalore', zoneName: z.zoneName || 'Bangalore Zone', cityName: z.cityName || 'Bangalore' });
           }
         } else if (idLower === 'dz-tumkur') {
           if (!isZoneDeleted('dz-tumkur', 'Tumkur Zone')) {
-            zoneMap.set('dz-tumkur', { ...defaultTumkur, ...z, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: z.cityName || 'Tumkur' });
+            zoneMap.set('dz-tumkur', { ...defaultTumkur, ...z, id: 'dz-tumkur', zoneName: z.zoneName || 'Tumkur Zone', cityName: z.cityName || 'Tumkur' });
+          }
+        } else if (z.status === 'ACTIVE' || !z.status) {
+          if (!zoneMap.has(idLower)) {
+            zoneMap.set(idLower, {
+              ...z,
+              id: z.id,
+              zoneName: z.zoneName || z.name || z.id,
+              cityName: z.cityName || z.city || 'Operating Zone',
+              status: z.status || 'ACTIVE',
+              restaurantEnabled: z.restaurantEnabled ?? true,
+              deliveryPartnerEnabled: z.deliveryPartnerEnabled ?? true,
+              customerOrderingEnabled: z.customerOrderingEnabled ?? true,
+            });
           }
         }
       }
     }
 
+    // Merge in dynamic zones created in memory
+    const dynamicZonesStore = (globalAny.ADMIN_DYNAMIC_ZONES as any[]) || [];
+    for (const dz of dynamicZonesStore) {
+      if (!dz || !dz.id || isZoneDeleted(dz.id, dz.zoneName)) continue;
+      const idLower = String(dz.id).toLowerCase();
+      if (!zoneMap.has(idLower)) {
+        zoneMap.set(idLower, {
+          ...dz,
+          id: dz.id,
+          zoneName: dz.zoneName || dz.name || dz.id,
+          cityName: dz.cityName || dz.city || 'Operating Zone',
+          status: dz.status || 'ACTIVE',
+        });
+      }
+    }
 
-    let allZones = Array.from(zoneMap.values()).sort((a, b) => {
-      if (a.id.toLowerCase() === 'dz-bangalore') return -1;
-      if (b.id.toLowerCase() === 'dz-bangalore') return 1;
-      if (a.id.toLowerCase() === 'dz-tumkur') return -1;
-      if (b.id.toLowerCase() === 'dz-tumkur') return 1;
-      return (a.zoneName || a.id).localeCompare(b.zoneName || b.id);
-    });
+    let allZones = Array.from(zoneMap.values())
+      .filter((z) => !isZoneDeleted(z.id, z.zoneName) && z.status !== 'DELETED')
+      .sort((a, b) => {
+        if (a.id.toLowerCase() === 'dz-bangalore') return -1;
+        if (b.id.toLowerCase() === 'dz-bangalore') return 1;
+        if (a.id.toLowerCase() === 'dz-tumkur') return -1;
+        if (b.id.toLowerCase() === 'dz-tumkur') return 1;
+        return (a.zoneName || a.id).localeCompare(b.zoneName || b.id);
+      });
 
     // Zone data isolation: Non-super-admins only see their assigned operating zone
     if (!isSuperAdmin && userAssignedZoneId) {
@@ -1508,20 +1576,47 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
     const isBangalore = cleanLower === 'dz-bangalore' || cleanLower === 'bangalore zone' || cleanLower === 'bengaluru zone';
     const isTumkur = cleanLower === 'dz-tumkur' || cleanLower === 'tumkur zone' || cleanLower === 'tumkur zone 1';
 
-    if (!isBangalore && !isTumkur) {
+    let selectedZoneId = rawZoneId;
+    let selectedZoneName = typeof body?.zoneName === 'string' && body.zoneName.trim() ? body.zoneName.trim() : rawZoneId;
+
+    if (isBangalore) {
+      selectedZoneId = 'dz-bangalore';
+      selectedZoneName = 'Bangalore Zone';
+    } else if (isTumkur) {
+      selectedZoneId = 'dz-tumkur';
+      selectedZoneName = 'Tumkur Zone';
+    } else {
+      const approved = filterApprovedZones([]);
+      const found = approved.find(
+        (z) => z.id.toLowerCase() === cleanLower || (z.zoneName && z.zoneName.toLowerCase() === cleanLower)
+      );
+      if (found) {
+        selectedZoneId = found.id;
+        selectedZoneName = found.zoneName || found.id;
+      } else if (isZoneDeleted(rawZoneId, body?.zoneName)) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Operating zone '${rawZoneId}' is deleted or inactive.`,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    }
+
+    if (isZoneDeleted(selectedZoneId, selectedZoneName)) {
       return NextResponse.json({
         success: false,
         data: null,
         error: {
           code: 'FORBIDDEN',
-          message: `Invalid operating zone: '${rawZoneId}'. Only Bangalore Zone and Tumkur Zone are approved operating zones.`,
+          message: `Operating zone '${selectedZoneId}' is deleted or inactive.`,
         },
         meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
       }, { status: 403 });
     }
-
-    const selectedZoneId = isBangalore ? 'dz-bangalore' : 'dz-tumkur';
-    const selectedZoneName = isBangalore ? 'Bangalore Zone' : 'Tumkur Zone';
 
     // Backend Security: Prevent cross-zone access
     if (!isSuperAdmin && userAssignedZoneId && selectedZoneId.toLowerCase() !== userAssignedZoneId.toLowerCase()) {
@@ -1597,7 +1692,7 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
         sessionRecordId: record.id,
         zoneId: selectedZoneId,
         zoneName: selectedZoneName,
-        cityName: selectedZoneId === 'dz-tumkur' ? 'Tumkur' : 'Bangalore',
+        cityName: selectedZoneId === 'dz-tumkur' ? 'Tumkur' : (selectedZoneId === 'dz-bangalore' ? 'Bangalore' : selectedZoneName),
         adminName: 'Super Admin',
         adminEmail: 'admin@foodie.local',
         role: 'SUPER_ADMIN',
@@ -1706,7 +1801,12 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
     (!userAssignedZoneId && (token.includes('super_admin') || token.includes('USR-1001') || token.includes('demo-admin')));
 
   if (!globalAny.ADMIN_DYNAMIC_ZONES) {
-    globalAny.ADMIN_DYNAMIC_ZONES = [];
+    if (process.env.NODE_ENV === 'test') {
+      globalAny.ADMIN_DYNAMIC_ZONES = [];
+    } else {
+      const persisted = loadPersistentZonesState();
+      globalAny.ADMIN_DYNAMIC_ZONES = persisted.dynamicZones;
+    }
   }
   const dynamicZonesStore = globalAny.ADMIN_DYNAMIC_ZONES as any[];
 
@@ -1744,12 +1844,6 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
     };
 
     const zoneMap = new Map<string, any>();
-    if (!isZoneDeleted('dz-bangalore', 'Bangalore Zone')) {
-      zoneMap.set('dz-bangalore', defaultBangalore);
-    }
-    if (!isZoneDeleted('dz-tumkur', 'Tumkur Zone')) {
-      zoneMap.set('dz-tumkur', defaultTumkur);
-    }
 
     try {
       const [locUp, availUp] = await Promise.all([
@@ -1766,6 +1860,7 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
       ]);
 
       const rawItems: any[] = [];
+      const isUpstreamOk = Boolean((locUp.response && locUp.response.ok) || (availUp.response && availUp.response.ok));
       if (locUp.response && locUp.response.ok) {
         const json = await locUp.response.json().catch(() => null);
         const list = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
@@ -1777,8 +1872,18 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
         rawItems.push(...list);
       }
 
+      // Only fall back to canonical default zones if upstream backend is offline or completely uninitialized
+      if (!isUpstreamOk && rawItems.length === 0) {
+        if (!isZoneDeleted('dz-bangalore', 'Bangalore Zone')) {
+          zoneMap.set('dz-bangalore', defaultBangalore);
+        }
+        if (!isZoneDeleted('dz-tumkur', 'Tumkur Zone')) {
+          zoneMap.set('dz-tumkur', defaultTumkur);
+        }
+      }
+
       for (const z of rawItems) {
-        if (!z || !z.id || isZoneDeleted(z.id, z.zoneName)) continue;
+        if (!z || !z.id || isZoneDeleted(z.id, z.zoneName) || z.status === 'DELETED') continue;
         const idLower = String(z.id).toLowerCase();
         if (idLower === 'dz-bangalore') {
           if (!isZoneDeleted('dz-bangalore', 'Bangalore Zone')) {
@@ -1857,13 +1962,15 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
       }
     }
 
-    let allZones = Array.from(zoneMap.values()).sort((a, b) => {
-      if (a.id.toLowerCase() === 'dz-bangalore') return -1;
-      if (b.id.toLowerCase() === 'dz-bangalore') return 1;
-      if (a.id.toLowerCase() === 'dz-tumkur') return -1;
-      if (b.id.toLowerCase() === 'dz-tumkur') return 1;
-      return (a.zoneName || a.id).localeCompare(b.zoneName || b.id);
-    });
+    let allZones = Array.from(zoneMap.values())
+      .filter((z) => !isZoneDeleted(z.id, z.zoneName) && z.status !== 'DELETED')
+      .sort((a, b) => {
+        if (a.id.toLowerCase() === 'dz-bangalore') return -1;
+        if (b.id.toLowerCase() === 'dz-bangalore') return 1;
+        if (a.id.toLowerCase() === 'dz-tumkur') return -1;
+        if (b.id.toLowerCase() === 'dz-tumkur') return 1;
+        return (a.zoneName || a.id).localeCompare(b.zoneName || b.id);
+      });
 
     if (!isSuperAdmin && userAssignedZoneId) {
       allZones = allZones.filter((z) => z.id.toLowerCase() === userAssignedZoneId!.toLowerCase());
@@ -1941,6 +2048,7 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
     deleted.delete(zoneId);
     deleted.delete(zoneName.toLowerCase());
     deleted.delete(zoneName);
+    savePersistentZonesState(deleted, dynamicZonesStore);
 
     try {
       await safeFetch(`${backendUrl}/api/v1/admin/location/zones`, {
@@ -2142,6 +2250,7 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
       }
     } catch {}
 
+    savePersistentZonesState(deleted, dynamicZonesStore);
     purgeBffCache('admin/location');
     purgeBffCache('admin/zones');
     purgeBffCache('admin/users');
