@@ -31,6 +31,8 @@ export interface OrderItemRecord {
   paymentStatus?: 'Completed' | 'Processing' | 'Refunded' | 'Cancelled' | string;
   status: 'PENDING' | 'PREPARING' | 'READY_FOR_PICKUP' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELED';
   createdAt: string;
+  zoneId?: string;
+  zoneName?: string;
 }
 
 export type OrderItem = {
