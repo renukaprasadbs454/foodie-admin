@@ -2,14 +2,12 @@ import { DASHBOARD_NAV, filterNavForRole } from '../lib/routeGuards';
 import { formatRoleBadge, formatStatusBadge } from '../features/users/types/usersTypes';
 
 describe('Users Feature & Sidebar Integration', () => {
-  it('places /users in DASHBOARD_NAV under Members in BUSINESS MANAGERS category', () => {
+  it('places /users in DASHBOARD_NAV in BUSINESS MANAGERS category', () => {
     const businessItems = DASHBOARD_NAV.filter((item) => item.category === 'BUSINESS MANAGERS');
     const hrefs = businessItems.map((item) => item.href);
 
     expect(hrefs).toContain('/users');
-    const membersIdx = hrefs.indexOf('/members');
-    const usersIdx = hrefs.indexOf('/users');
-    expect(usersIdx).toBe(membersIdx + 1);
+    expect(hrefs[0]).toBe('/users');
 
     const usersNavItem = DASHBOARD_NAV.find((item) => item.href === '/users');
     expect(usersNavItem).toBeDefined();
