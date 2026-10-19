@@ -1,4 +1,4 @@
-﻿import { baseApi } from '../baseApi';
+import { baseApi } from '../baseApi';
 
 export interface AdminReviewRecord {
   id: string;
@@ -9,9 +9,9 @@ export interface AdminReviewRecord {
   customerName?: string;
   deliveryPartnerId?: string;
   deliveryPartnerName?: string;
-  restaurantRating?: number;
-  rating?: number;
-  deliveryRating?: number;
+  restaurantRating?: number | null;
+  rating?: number | null;
+  deliveryRating?: number | null;
   comment?: string;
   createdAt?: string;
   updatedAt?: string;

@@ -12,13 +12,16 @@ export interface CustomerReviewRecord {
   restaurantName: string;
   deliveryManName: string;
   module: string;
-  rating: number;
-  deliveryRating: number;
+  restaurantRating: number | null;
+  deliveryRating: number | null;
+  rating?: number | null;
   comment: string;
   createdAt: string;
   status: 'PUBLISHED' | 'FLAGGED' | 'HIDDEN';
   isReported: boolean;
 }
+
+import { parseReviewDetails, stripEmojis } from '../types';
 
 export interface SupportTicketRecord {
   id: string;
@@ -36,7 +39,7 @@ export interface SupportTicketRecord {
 }
 
 type MainTab = 'REVIEWS_RATINGS' | 'CUSTOMER_COMPLAINTS';
-type ReviewSubTab = 'ALL' | 'RESTAURANT_RATINGS' | 'DELIVERY_RATINGS' | 'REPORTED_REVIEWS' | 'MODERATION';
+type ReviewSubTab = 'ALL' | 'RESTAURANT_RATINGS' | 'DELIVERY_RATINGS';
 type TicketSubTab = 'ALL' | 'RESTAURANT_ISSUES' | 'DELIVERY_ISSUES' | 'REFUND_REQUESTS';
 
 export function ReviewsPage() {
@@ -111,15 +114,23 @@ export function ReviewsPage() {
       const liveReviews: CustomerReviewRecord[] = adminReviewsData.map((rev: any, idx: number) => {
         const status: 'PUBLISHED' | 'FLAGGED' | 'HIDDEN' =
           rev.status === 'FLAGGED' ? 'FLAGGED' : rev.status === 'HIDDEN' ? 'HIDDEN' : 'PUBLISHED';
+        const rawResto = typeof rev.restaurantRating === 'number'
+          ? rev.restaurantRating
+          : typeof rev.rating === 'number'
+          ? rev.rating
+          : null;
+        const rawDeliv = typeof rev.deliveryRating === 'number' ? rev.deliveryRating : null;
+
         return {
           id: rev.id ? String(rev.id) : `rev-${idx + 1}`,
           customerName: rev.customerName || 'Customer',
           restaurantName: rev.restaurantName || 'Restaurant',
-          deliveryManName: rev.deliveryPartnerName || 'Standard Fleet Partner',
+          deliveryManName: rev.deliveryPartnerName || rev.deliveryManName || 'Standard Fleet Partner',
           module: 'Food Quality',
-          rating: typeof rev.restaurantRating === 'number' ? rev.restaurantRating : (typeof rev.rating === 'number' ? rev.rating : 5),
-          deliveryRating: typeof rev.deliveryRating === 'number' ? rev.deliveryRating : 5,
-          comment: (rev.comment && rev.comment.trim()) ? rev.comment.trim() : 'Rating given without comment',
+          restaurantRating: rawResto,
+          deliveryRating: rawDeliv,
+          rating: rawResto,
+          comment: (rev.comment && rev.comment.trim()) ? stripEmojis(rev.comment.trim()) : 'Rating given without comment',
           createdAt: rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
           status,
           isReported: Boolean(rev.isReported || rev.status === 'FLAGGED'),
@@ -174,10 +185,12 @@ export function ReviewsPage() {
 
       if (!matchesSearch) return false;
 
-      if (reviewSubTab === 'RESTAURANT_RATINGS') return r.rating > 0;
-      if (reviewSubTab === 'DELIVERY_RATINGS') return r.deliveryRating > 0;
-      if (reviewSubTab === 'REPORTED_REVIEWS') return r.isReported;
-      if (reviewSubTab === 'MODERATION') return r.status === 'FLAGGED' || r.status === 'HIDDEN';
+      if (reviewSubTab === 'RESTAURANT_RATINGS') {
+        return typeof r.restaurantRating === 'number' && r.restaurantRating > 0;
+      }
+      if (reviewSubTab === 'DELIVERY_RATINGS') {
+        return typeof r.deliveryRating === 'number' && r.deliveryRating > 0;
+      }
 
       return true;
     });
@@ -204,17 +217,29 @@ export function ReviewsPage() {
     });
   }, [tickets, searchQuery, ticketSubTab, ticketStatusFilter]);
 
-  const avgRestaurantRating = useMemo(() => {
-    if (reviews.length === 0) return 0;
-    const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
-    return (sum / reviews.length).toFixed(1);
+  const restaurantRatedReviews = useMemo(() => {
+    return reviews.filter((r) => typeof r.restaurantRating === 'number' && r.restaurantRating > 0);
   }, [reviews]);
 
-  const avgDeliveryRating = useMemo(() => {
-    if (reviews.length === 0) return 0;
-    const sum = reviews.reduce((acc, r) => acc + (r.deliveryRating || 0), 0);
-    return (sum / reviews.length).toFixed(1);
+  const deliveryRatedReviews = useMemo(() => {
+    return reviews.filter((r) => typeof r.deliveryRating === 'number' && r.deliveryRating > 0);
   }, [reviews]);
+
+  const avgRestaurantRating = useMemo(() => {
+    if (restaurantRatedReviews.length === 0) return '0.0';
+    const sum = restaurantRatedReviews.reduce((acc, r) => acc + (r.restaurantRating || 0), 0);
+    return (sum / restaurantRatedReviews.length).toFixed(1);
+  }, [restaurantRatedReviews]);
+
+  const avgDeliveryRating = useMemo(() => {
+    if (deliveryRatedReviews.length === 0) return '0.0';
+    const sum = deliveryRatedReviews.reduce((acc, r) => acc + (r.deliveryRating || 0), 0);
+    return (sum / deliveryRatedReviews.length).toFixed(1);
+  }, [deliveryRatedReviews]);
+
+  const showRestaurantRating = reviewSubTab !== 'DELIVERY_RATINGS';
+  const showDeliveryRating = reviewSubTab !== 'RESTAURANT_RATINGS';
+  const tableColSpan = 4 + (showRestaurantRating ? 1 : 0) + (showDeliveryRating ? 1 : 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -311,8 +336,6 @@ export function ReviewsPage() {
               { id: 'ALL', label: 'All Reviews' },
               { id: 'RESTAURANT_RATINGS', label: `Restaurant Ratings ${Number(avgRestaurantRating) > 0 ? `(${avgRestaurantRating} Avg)` : ''}` },
               { id: 'DELIVERY_RATINGS', label: `Delivery Partner Ratings ${Number(avgDeliveryRating) > 0 ? `(${avgDeliveryRating} Avg)` : ''}` },
-              { id: 'REPORTED_REVIEWS', label: 'Reported Reviews' },
-              { id: 'MODERATION', label: 'Review Moderation' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -341,8 +364,12 @@ export function ReviewsPage() {
               <thead>
                 <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
                   <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Customer & Store</th>
-                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ratings</th>
-                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feedback Comment</th>
+                  {showRestaurantRating && (
+                    <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Restaurant Rating</th>
+                  )}
+                  {showDeliveryRating && (
+                    <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Partner Rating</th>
+                  )}
                   <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Partner</th>
                   <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
                   <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Review Moderation</th>
@@ -351,7 +378,7 @@ export function ReviewsPage() {
               <tbody>
                 {filteredReviews.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 20px', color: '#6B7280' }}>
+                    <td colSpan={tableColSpan} style={{ textAlign: 'center', padding: '64px 20px', color: '#6B7280' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                         <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>
                           No customer reviews found in database
@@ -363,29 +390,63 @@ export function ReviewsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredReviews.map((r) => (
-                    <tr key={r.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                      <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 600, color: '#111827' }}>{r.customerName}</div>
-                        <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{r.restaurantName}</div>
-                      </td>
-                      <td style={{ padding: '16px 20px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontWeight: 600, color: '#2196F3' }}>{r.rating}.0 / 5</span>
-                          <span style={{ fontSize: 11, color: '#6B7280' }}>(Food)</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                          <span style={{ fontWeight: 500, color: '#6B7280', fontSize: 12 }}>{r.deliveryRating}.0 / 5</span>
-                          <span style={{ fontSize: 11, color: '#6B7280' }}>(Delivery)</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px 20px', maxWidth: 320 }}>
-                        <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>"{r.comment}"</div>
-                        <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{r.createdAt}</div>
-                      </td>
-                      <td style={{ padding: '16px 20px', fontSize: 13, color: '#111827', fontWeight: 500 }}>
-                        {r.deliveryManName}
-                      </td>
+                  filteredReviews.map((r) => {
+                    const parsed = parseReviewDetails(r.comment);
+                    const hasRestoRating = typeof r.restaurantRating === 'number' && r.restaurantRating > 0;
+                    const hasDelivRating = typeof r.deliveryRating === 'number' && r.deliveryRating > 0;
+
+                    return (
+                      <tr key={r.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                        <td style={{ padding: '16px 20px' }}>
+                          <div style={{ fontWeight: 600, color: '#111827' }}>{r.customerName}</div>
+                          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{r.restaurantName}</div>
+                        </td>
+                        {showRestaurantRating && (
+                          <td style={{ padding: '16px 20px', maxWidth: 320 }}>
+                            {hasRestoRating ? (
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontWeight: 600, color: '#2196F3' }}>
+                                    {Number(r.restaurantRating).toFixed(1)} / 5
+                                  </span>
+                                </div>
+                                {parsed.restaurantComment ? (
+                                  <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.5, marginTop: 4 }}>
+                                    "{parsed.restaurantComment}"
+                                  </div>
+                                ) : null}
+                                {r.createdAt ? (
+                                  <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{r.createdAt}</div>
+                                ) : null}
+                              </>
+                            ) : (
+                              <span style={{ color: '#9CA3AF', fontSize: 13, fontStyle: 'italic' }}>Not rated</span>
+                            )}
+                          </td>
+                        )}
+                        {showDeliveryRating && (
+                          <td style={{ padding: '16px 20px', maxWidth: 320 }}>
+                            {hasDelivRating ? (
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontWeight: 600, color: '#2196F3' }}>
+                                    {Number(r.deliveryRating).toFixed(1)} / 5
+                                  </span>
+                                </div>
+                                {parsed.deliveryComment ? (
+                                  <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.5, marginTop: 4 }}>
+                                    "{parsed.deliveryComment}"
+                                  </div>
+                                ) : null}
+                              </>
+                            ) : (
+                              <span style={{ color: '#9CA3AF', fontSize: 13, fontStyle: 'italic' }}>Not rated</span>
+                            )}
+                          </td>
+                        )}
+                        <td style={{ padding: '16px 20px', fontSize: 13, color: '#111827', fontWeight: 500 }}>
+                          {r.deliveryManName}
+                        </td>
                       <td style={{ padding: '16px 20px' }}>
                         <span
                           style={{
@@ -437,8 +498,9 @@ export function ReviewsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
+                  );
+                })
+              )}
               </tbody>
             </table>
           </div>
