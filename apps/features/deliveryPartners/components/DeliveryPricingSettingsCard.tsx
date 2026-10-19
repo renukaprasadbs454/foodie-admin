@@ -5,7 +5,11 @@ import { useTheme } from 'foodie-shared-web';
 import {
   useGetDeliveryPricingQuery,
   useUpdateDeliveryPricingMutation,
+  useGetAdminShiftsQuery,
+  type DeliveryShift,
 } from '@/api/endpoints/deliveryPartnersApi';
+import { useGetZonesQuery } from '@/api/endpoints/locationApi';
+import { usePermissions } from '@/context/PermissionContext';
 
 export interface IncentiveMilestone {
   trips: number;
@@ -36,6 +40,7 @@ export interface IncentiveItem {
   targetCount?: number;
   milestones?: IncentiveMilestone[];
   conditions?: IncentiveCondition[];
+  zoneId?: string;
 }
 
 export interface ZoneItem {
@@ -51,6 +56,47 @@ export interface PayoutStructureConfig {
   moneyPerKm: number;
   incentives: IncentiveItem[];
 }
+
+export function formatShiftLabel(shift: { startTime?: string; endTime?: string }): string {
+  if (!shift || !shift.startTime || !shift.endTime) return '8 PM – 12 AM';
+  const formatTimePart = (t: string) => {
+    const trimmed = (t || '').trim();
+    const m12 = trimmed.match(/^0?(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+    if (m12) {
+      const h = m12[1];
+      const m = m12[2] && m12[2] !== '00' ? `:${m12[2]}` : '';
+      return `${h}${m} ${m12[3].toUpperCase()}`;
+    }
+    const m24 = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+    if (m24) {
+      const h = parseInt(m24[1], 10);
+      const m = m24[2] !== '00' ? `:${m24[2]}` : '';
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${h12}${m} ${ampm}`;
+    }
+    return trimmed;
+  };
+  return `${formatTimePart(shift.startTime)} – ${formatTimePart(shift.endTime)}`;
+}
+
+export function areShiftsMatching(slotA?: string, slotB?: string): boolean {
+  if (!slotA || !slotB) return false;
+  const normalize = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[\s–—\-]+/g, '')
+      .replace(/:00/g, '');
+  return normalize(slotA) === normalize(slotB);
+}
+
+export const DEFAULT_SHIFTS: DeliveryShift[] = [
+  { shiftId: 'night-owl', shiftName: 'Night Owl', startTime: '08:00 PM', endTime: '12:00 AM', durationHours: '4h', status: 'ACTIVE' },
+  { shiftId: 'morning-shift', shiftName: 'Morning Shift', startTime: '06:00 AM', endTime: '12:00 PM', durationHours: '6h', status: 'ACTIVE' },
+  { shiftId: 'afternoon-shift', shiftName: 'Afternoon Shift', startTime: '12:00 PM', endTime: '05:00 PM', durationHours: '5h', status: 'ACTIVE' },
+  { shiftId: 'evening-rush', shiftName: 'Evening Rush', startTime: '05:00 PM', endTime: '11:00 PM', durationHours: '6h', status: 'ACTIVE' },
+  { shiftId: 'late-night', shiftName: 'Late Night', startTime: '11:00 PM', endTime: '04:00 AM', durationHours: '5h', status: 'ACTIVE' },
+];
 
 const DEFAULT_INCENTIVES: IncentiveItem[] = [
   {
@@ -94,7 +140,7 @@ const DEFAULT_INCENTIVES: IncentiveItem[] = [
         id: 'loginSlot',
         type: 'LOGIN_SLOT',
         title: 'Mandatory Login: Complete below slot',
-        timeSlot: '7pm - 12am',
+        timeSlot: '8 PM – 12 AM',
         duration: '4h 30m',
         minDurationMinutes: 270,
       },
@@ -164,10 +210,72 @@ const DEFAULT_INCENTIVES: IncentiveItem[] = [
 
 export function DeliveryPricingSettingsCard() {
   const { tokens } = useTheme();
+  const { profile } = usePermissions();
+  const isSuperAdminUser = profile?.role === 'SUPER_ADMIN';
+
+  // Zone & Session Isolation Context
+  const userAssignedZone = profile?.assignedZoneId || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null)) : null);
+  const userActiveZone = typeof window !== 'undefined' ? (localStorage.getItem('foodie_active_zone_id') || sessionStorage.getItem('foodie_active_zone_id') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1] : null)) : null;
+
+  const isZoneAdmin = Boolean(
+    (!isSuperAdminUser && (userAssignedZone || (userActiveZone && userActiveZone !== 'ALL'))) ||
+    (profile?.role && profile.role !== 'SUPER_ADMIN' && (profile.assignedZoneId || userAssignedZone || userActiveZone))
+  );
+
+  const lockedZoneId = isZoneAdmin
+    ? (userAssignedZone && userAssignedZone !== 'ALL' ? userAssignedZone : (userActiveZone && userActiveZone !== 'ALL' ? userActiveZone : profile?.assignedZoneId))
+    : null;
+  const lockedZoneName = profile?.assignedZoneName || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name')) : null);
+
+  const [selectedZone, setSelectedZone] = useState<string>('ALL');
+
+  useEffect(() => {
+    if (isZoneAdmin && lockedZoneId) {
+      setSelectedZone(lockedZoneId);
+    }
+  }, [isZoneAdmin, lockedZoneId]);
+
   const { data: pricingConfig, isLoading } = useGetDeliveryPricingQuery();
   const [updatePricing, { isLoading: isUpdating }] = useUpdateDeliveryPricingMutation();
+  const { data: adminShifts = [] } = useGetAdminShiftsQuery();
+  const { data: dbZones = [] } = useGetZonesQuery();
 
-  // Universal Configuration State
+  const availableZones = useMemo(() => {
+    const list: Array<{ id: string; name: string }> = [];
+    if (Array.isArray(dbZones)) {
+      dbZones.forEach((z) => {
+        if (z && z.id) {
+          list.push({ id: z.id, name: z.zoneName || z.cityName || z.id });
+        }
+      });
+    }
+    if (pricingConfig?.zoneConfigs) {
+      Object.keys(pricingConfig.zoneConfigs).forEach((k) => {
+        if (!list.some((item) => item.id.toLowerCase() === k.toLowerCase())) {
+          list.push({ id: k, name: k });
+        }
+      });
+    }
+    return list;
+  }, [dbZones, pricingConfig]);
+
+  const selectedZoneDisplayName = useMemo(() => {
+    if (selectedZone === 'ALL') return 'Platform Universal (All Zones)';
+    if (isZoneAdmin && (lockedZoneName || lockedZoneId)) {
+      return lockedZoneName || lockedZoneId;
+    }
+    const found = availableZones.find((z) => z.id.toLowerCase() === selectedZone.toLowerCase());
+    return found ? found.name : selectedZone;
+  }, [selectedZone, isZoneAdmin, lockedZoneName, lockedZoneId, availableZones]);
+
+  const availableShifts = useMemo(() => {
+    if (adminShifts && adminShifts.length > 0) {
+      return adminShifts.filter((s) => s.status === 'ACTIVE' || !s.status);
+    }
+    return DEFAULT_SHIFTS;
+  }, [adminShifts]);
+
+  // Universal / Current Zone Configuration State
   const [universalConfig, setUniversalConfig] = useState<PayoutStructureConfig>({
     minPrice: 200,
     moneyPerKm: 25,
@@ -176,6 +284,9 @@ export function DeliveryPricingSettingsCard() {
 
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [savedItemsMap, setSavedItemsMap] = useState<Record<string, boolean>>({});
+
+  const [isSavingIncentives, setIsSavingIncentives] = useState(false);
+  const [incentivesToastMsg, setIncentivesToastMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Input Focus States
   const [minPriceFocused, setMinPriceFocused] = useState(false);
@@ -221,21 +332,29 @@ export function DeliveryPricingSettingsCard() {
       setMinPriceInput((prev) => (prev === '' ? String(bMin) : prev));
       setMoneyPerKmInput((prev) => (prev === '' ? String(bKm) : prev));
 
-      if (pricingConfig.universalConfig) {
-        const uIncentives = Array.isArray(pricingConfig.universalConfig.incentives)
-          ? pricingConfig.universalConfig.incentives
-          : [];
+      // Zone-specific vs Universal incentives loading
+      const effectiveZoneConfig = (selectedZone !== 'ALL' && pricingConfig.zoneConfigs)
+        ? pricingConfig.zoneConfigs[selectedZone]
+        : null;
+
+      const activeIncentivesSource = (effectiveZoneConfig && Array.isArray(effectiveZoneConfig.incentives))
+        ? effectiveZoneConfig.incentives
+        : (pricingConfig.universalConfig && Array.isArray(pricingConfig.universalConfig.incentives))
+        ? pricingConfig.universalConfig.incentives
+        : [];
+
+      if (activeIncentivesSource.length > 0) {
         const mergedIncentives = DEFAULT_INCENTIVES.map((defItem) => {
-          const match = uIncentives.find((i: IncentiveItem) => i.id === defItem.id);
+          const match = activeIncentivesSource.find((i: IncentiveItem) => i.id === defItem.id);
           return match ? { ...defItem, ...match } : defItem;
         });
-        const customIncentives = uIncentives.filter(
+        const customIncentives = activeIncentivesSource.filter(
           (i: IncentiveItem) => !DEFAULT_INCENTIVES.some((d) => d.id === i.id)
         );
 
         setUniversalConfig({
-          minPrice: pricingConfig.universalConfig.minPrice ?? bMin,
-          moneyPerKm: pricingConfig.universalConfig.moneyPerKm ?? bKm,
+          minPrice: (effectiveZoneConfig?.minPrice ?? pricingConfig.universalConfig?.minPrice) ?? bMin,
+          moneyPerKm: (effectiveZoneConfig?.moneyPerKm ?? pricingConfig.universalConfig?.moneyPerKm) ?? bKm,
           incentives: [...mergedIncentives, ...customIncentives],
         });
       } else {
@@ -243,10 +362,11 @@ export function DeliveryPricingSettingsCard() {
           ...prev,
           minPrice: bMin,
           moneyPerKm: bKm,
+          incentives: DEFAULT_INCENTIVES,
         }));
       }
     }
-  }, [pricingConfig]);
+  }, [pricingConfig, selectedZone]);
 
   const parsedMinPrice = parseFloat(minPriceInput);
   const parsedMoneyPerKm = parseFloat(moneyPerKmInput);
@@ -301,16 +421,50 @@ export function DeliveryPricingSettingsCard() {
       try {
         const minP = isMinPriceValid ? parsedMinPrice : (savedMinPrice ?? 201.5);
         const mKm = isMoneyPerKmValid ? parsedMoneyPerKm : (savedMoneyPerKm ?? 25.5);
-        await updatePricing({
-          minPricePerDelivery: minP,
-          moneyPerKm: mKm,
-          pricingBasis: 'UNIVERSAL',
-          universalConfig: updatedUniversal,
-        }).unwrap();
+
+        if (selectedZone === 'ALL') {
+          const updatedUniversalConfig = {
+            ...universalConfig,
+            minPrice: minP,
+            moneyPerKm: mKm,
+            incentives: updatedUniversal.incentives,
+          };
+
+          await updatePricing({
+            minPricePerDelivery: minP,
+            moneyPerKm: mKm,
+            pricingBasis: 'UNIVERSAL',
+            universalConfig: updatedUniversalConfig,
+            zoneConfigs: pricingConfig?.zoneConfigs || {},
+            zones: pricingConfig?.zones,
+          }).unwrap();
+        } else {
+          const existingZone = (pricingConfig?.zoneConfigs && pricingConfig.zoneConfigs[selectedZone]) || {};
+          const zoneIncentives = updatedUniversal.incentives.map((item) => ({
+            ...item,
+            zoneId: selectedZone,
+          }));
+          const updatedZoneConfigs = {
+            ...(pricingConfig?.zoneConfigs || {}),
+            [selectedZone]: {
+              ...existingZone,
+              minPrice: minP,
+              moneyPerKm: mKm,
+              incentives: zoneIncentives,
+            },
+          };
+
+          await updatePricing({
+            minPricePerDelivery: minP,
+            moneyPerKm: mKm,
+            pricingBasis: 'ZONE',
+            universalConfig: pricingConfig?.universalConfig,
+            zoneConfigs: updatedZoneConfigs,
+            zones: pricingConfig?.zones,
+          }).unwrap();
+        }
+
         setSavedItemsMap((prev) => ({ ...prev, [id]: true }));
-        try {
-          localStorage.setItem('foodie_universal_pricing_config', JSON.stringify(updatedUniversal));
-        } catch (_e) {}
         setToastMsg({
           text: `Incentive "${id}" turned ${val ? 'ON' : 'OFF'} and synced!`,
           type: 'success',
@@ -326,17 +480,103 @@ export function DeliveryPricingSettingsCard() {
     }
   };
 
+  const handleSaveIncentives = async () => {
+    setIncentivesToastMsg(null);
+    setIsSavingIncentives(true);
+
+    try {
+      const minP = isMinPriceValid ? parsedMinPrice : (savedMinPrice ?? 201.5);
+      const mKm = isMoneyPerKmValid ? parsedMoneyPerKm : (savedMoneyPerKm ?? 25.5);
+
+      if (selectedZone === 'ALL') {
+        const updatedUniversalConfig = {
+          ...universalConfig,
+          minPrice: minP,
+          moneyPerKm: mKm,
+          incentives: currentConfig.incentives.map((i) => ({ ...i, zoneId: undefined })),
+        };
+
+        await updatePricing({
+          minPricePerDelivery: minP,
+          moneyPerKm: mKm,
+          pricingBasis: 'UNIVERSAL',
+          universalConfig: updatedUniversalConfig,
+          zoneConfigs: pricingConfig?.zoneConfigs || {},
+          zones: pricingConfig?.zones,
+        }).unwrap();
+
+        try {
+          localStorage.setItem('foodie_universal_pricing_config', JSON.stringify(updatedUniversalConfig));
+        } catch (_e) {}
+
+        setIncentivesToastMsg({
+          text: 'Incentives successfully saved and synced for all delivery partner zones!',
+          type: 'success',
+        });
+      } else {
+        const zoneIncentives = currentConfig.incentives.map((item) => ({
+          ...item,
+          zoneId: selectedZone,
+        }));
+
+        const existingZone = (pricingConfig?.zoneConfigs && pricingConfig.zoneConfigs[selectedZone]) || {};
+        const updatedZoneConfigs = {
+          ...(pricingConfig?.zoneConfigs || {}),
+          [selectedZone]: {
+            ...existingZone,
+            minPrice: minP,
+            moneyPerKm: mKm,
+            incentives: zoneIncentives,
+          },
+        };
+
+        await updatePricing({
+          minPricePerDelivery: minP,
+          moneyPerKm: mKm,
+          pricingBasis: 'ZONE',
+          universalConfig: pricingConfig?.universalConfig,
+          zoneConfigs: updatedZoneConfigs,
+          zones: pricingConfig?.zones,
+        }).unwrap();
+
+        try {
+          localStorage.setItem('foodie_zone_pricing_configs', JSON.stringify(updatedZoneConfigs));
+        } catch (_e) {}
+
+        setIncentivesToastMsg({
+          text: `Incentives successfully saved and synced for zone "${selectedZoneDisplayName}"!`,
+          type: 'success',
+        });
+      }
+
+      const allSavedMap: Record<string, boolean> = {};
+      currentConfig.incentives.forEach((item) => (allSavedMap[item.id] = true));
+      setSavedItemsMap(allSavedMap);
+
+      setTimeout(() => setIncentivesToastMsg(null), 3500);
+    } catch (err: any) {
+      const errorMsg = err?.data?.error?.message || err?.message || 'Failed to save incentives. Please try again.';
+      setIncentivesToastMsg({ text: errorMsg, type: 'error' });
+      setTimeout(() => setIncentivesToastMsg(null), 4000);
+    } finally {
+      setIsSavingIncentives(false);
+    }
+  };
+
   const handleAddCustomIncentive = () => {
     const newId = `customBonus_${Date.now()}`;
     const newRule: IncentiveItem = {
       id: newId,
-      title: 'Platform Mileage Surge',
+      title: selectedZone !== 'ALL' ? 'Zone Mileage Surge' : 'Platform Mileage Surge',
       icon: '',
       value: 50,
       unit: '₹ / order',
       active: true,
-      description: 'Custom platform incentive bonus active for fulfilled delivery assignments.',
+      description: selectedZone !== 'ALL'
+        ? `Custom zone incentive bonus active for fulfilled delivery assignments in ${selectedZoneDisplayName}.`
+        : 'Custom platform incentive bonus active for fulfilled delivery assignments.',
       category: 'Reward & Rating',
+      zoneId: selectedZone !== 'ALL' ? selectedZone : undefined,
     };
 
     setUniversalConfig((prev) => ({
@@ -460,20 +700,56 @@ export function DeliveryPricingSettingsCard() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span
-            style={{
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              backgroundColor: '#E3F2FD',
-              color: '#2196F3',
-              padding: '6px 14px',
-              borderRadius: '12px',
-              border: '1px solid #BFDBFE',
-            }}
-          >
-            Platform Universal Scope
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {isZoneAdmin && (lockedZoneId || lockedZoneName) ? (
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                backgroundColor: '#EFF6FF',
+                color: '#1D4ED8',
+                padding: '6px 14px',
+                borderRadius: '12px',
+                border: '1px solid #BFDBFE',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+              title="Operating zone assigned to your administrator account"
+            >
+              <span>📍</span>
+              <span>Operating Zone: {lockedZoneName || lockedZoneId}</span>
+            </span>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label htmlFor="zoneScopeSelect" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4B5563' }}>
+                Scope:
+              </label>
+              <select
+                id="zoneScopeSelect"
+                value={selectedZone}
+                onChange={(e) => setSelectedZone(e.target.value)}
+                style={{
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  backgroundColor: selectedZone === 'ALL' ? '#E3F2FD' : '#EFF6FF',
+                  color: selectedZone === 'ALL' ? '#1E40AF' : '#1D4ED8',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  border: `1px solid ${selectedZone === 'ALL' ? '#93C5FD' : '#BFDBFE'}`,
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="ALL">🌐 Platform Universal (All Zones)</option>
+                {availableZones.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    📍 {z.name} ({z.id})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1063,34 +1339,86 @@ export function DeliveryPricingSettingsCard() {
                           Offer Conditions:
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          {/* Login slot condition */}
+                          {/* Login slot condition - Shift Dropdown Selection */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.6875rem' }}>
-                            <span style={{ color: '#4B5563', fontWeight: 600 }}>Login Slot:</span>
-                            <input
-                              type="text"
-                              disabled={!item.active}
-                              value={item.conditions?.find(c => c.type === 'LOGIN_SLOT')?.timeSlot || '7pm - 12am'}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                const existing = item.conditions || [
-                                  { id: 'loginSlot', type: 'LOGIN_SLOT', title: 'Mandatory Login: Complete below slot', timeSlot: '7pm - 12am', duration: '4h 30m', minDurationMinutes: 270 },
-                                  { id: 'orderRejection', type: 'ORDER_REJECTION', title: 'Do not reject', subtext: 'more than 1 order', maxRejections: 1 },
-                                ];
-                                const updated = existing.map(c => c.type === 'LOGIN_SLOT' ? { ...c, timeSlot: val, value: val } : c);
-                                handleIncentiveChange(item.id, 'conditions', updated);
-                              }}
-                              style={{
-                                width: '100px',
-                                padding: '3px 6px',
-                                borderRadius: '4px',
-                                border: '1px solid #D1D5DB',
-                                fontSize: '0.6875rem',
-                                fontWeight: 700,
-                                backgroundColor: item.active ? '#F9FAFB' : '#F3F4F6',
-                                color: '#111827',
-                                outline: 'none',
-                              }}
-                            />
+                            <span style={{ color: '#4B5563', fontWeight: 600, minWidth: '65px' }}>Login Slot:</span>
+                            {(() => {
+                              const currentCondition = item.conditions?.find(c => c.type === 'LOGIN_SLOT');
+                              const currentSlotValue = currentCondition?.timeSlot || currentCondition?.value || '8 PM – 12 AM';
+
+                              // Find matching shift from available shifts
+                              const matchedShift = availableShifts.find(s =>
+                                areShiftsMatching(formatShiftLabel(s), currentSlotValue) ||
+                                areShiftsMatching(`${s.startTime} - ${s.endTime}`, currentSlotValue)
+                              );
+
+                              const selectValue = matchedShift ? formatShiftLabel(matchedShift) : currentSlotValue;
+                              const hasMatchInList = availableShifts.some(s =>
+                                areShiftsMatching(formatShiftLabel(s), selectValue)
+                              );
+
+                              return (
+                                <select
+                                  id="daily-target-login-slot-dropdown"
+                                  disabled={!item.active}
+                                  value={selectValue}
+                                  onChange={(e) => {
+                                    const selectedVal = e.target.value;
+                                    const chosenShift = availableShifts.find(s =>
+                                      formatShiftLabel(s) === selectedVal || areShiftsMatching(formatShiftLabel(s), selectedVal)
+                                    );
+                                    const chosenSlotLabel = chosenShift ? formatShiftLabel(chosenShift) : selectedVal;
+                                    const chosenDuration = chosenShift?.durationHours || '4h 30m';
+
+                                    const existing = item.conditions || [
+                                      { id: 'loginSlot', type: 'LOGIN_SLOT', title: 'Mandatory Login: Complete below slot', timeSlot: '8 PM – 12 AM', duration: '4h 30m', minDurationMinutes: 240 },
+                                      { id: 'orderRejection', type: 'ORDER_REJECTION', title: 'Do not reject', subtext: 'more than 1 order', maxRejections: 1 },
+                                    ];
+
+                                    const updated = existing.map(c =>
+                                      c.type === 'LOGIN_SLOT'
+                                        ? {
+                                            ...c,
+                                            timeSlot: chosenSlotLabel,
+                                            value: chosenSlotLabel,
+                                            duration: chosenDuration,
+                                            subtext: chosenDuration,
+                                          }
+                                        : c
+                                    );
+                                    handleIncentiveChange(item.id, 'conditions', updated);
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    maxWidth: '160px',
+                                    height: '28px',
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #D1D5DB',
+                                    fontSize: '0.6875rem',
+                                    fontWeight: 700,
+                                    backgroundColor: item.active ? '#FFFFFF' : '#F3F4F6',
+                                    color: '#111827',
+                                    outline: 'none',
+                                    cursor: item.active ? 'pointer' : 'not-allowed',
+                                  }}
+                                >
+                                  {availableShifts.map((s) => {
+                                    const label = formatShiftLabel(s);
+                                    return (
+                                      <option key={s.shiftId || `${s.shiftName}-${s.startTime}`} value={label}>
+                                        {label}{s.shiftName ? ` (${s.shiftName})` : ''}
+                                      </option>
+                                    );
+                                  })}
+                                  {!hasMatchInList && currentSlotValue && (
+                                    <option value={currentSlotValue}>
+                                      {currentSlotValue}
+                                    </option>
+                                  )}
+                                </select>
+                              );
+                            })()}
                           </div>
 
                           {/* Login duration condition */}
@@ -1164,6 +1492,80 @@ export function DeliveryPricingSettingsCard() {
 
                 );
               })}
+            </div>
+
+            {/* Incentive Matrix Footer with Save Button (red circle location in admin screenshot) */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: '12px',
+                marginTop: '20px',
+                paddingTop: '16px',
+                borderTop: '1px solid #E5E7EB',
+                flexWrap: 'wrap',
+              }}
+            >
+              {selectedZone !== 'ALL' && (
+                <div
+                  style={{
+                    marginRight: 'auto',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#1D4ED8',
+                    backgroundColor: '#EFF6FF',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #BFDBFE',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span>📍</span>
+                  <span>Target Zone: {selectedZoneDisplayName}</span>
+                </div>
+              )}
+
+              {incentivesToastMsg && (
+                <div
+                  style={{
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    color: incentivesToastMsg.type === 'success' ? '#166534' : '#DC2626',
+                    backgroundColor: incentivesToastMsg.type === 'success' ? '#DCFCE7' : '#FEE2E2',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: `1px solid ${incentivesToastMsg.type === 'success' ? '#86EFAC' : '#FCA5A5'}`,
+                  }}
+                >
+                  {incentivesToastMsg.text}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSaveIncentives}
+                disabled={isSavingIncentives}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: '#2196F3',
+                  color: '#FFFFFF',
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  cursor: isSavingIncentives ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(33, 150, 243, 0.3)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                {isSavingIncentives ? 'Saving...' : 'Save Incentives'}
+              </button>
             </div>
           </div>
 
