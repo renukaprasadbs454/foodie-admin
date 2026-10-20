@@ -41,6 +41,8 @@ export interface IncentiveItem {
   milestones?: IncentiveMilestone[];
   conditions?: IncentiveCondition[];
   zoneId?: string;
+  creatorRole?: string;
+  scope?: 'GLOBAL' | 'ZONE';
 }
 
 export interface ZoneItem {
@@ -333,9 +335,21 @@ export function DeliveryPricingSettingsCard() {
       setMoneyPerKmInput((prev) => (prev === '' ? String(bKm) : prev));
 
       // Zone-specific vs Universal incentives loading
-      const effectiveZoneConfig = (selectedZone !== 'ALL' && pricingConfig.zoneConfigs)
-        ? pricingConfig.zoneConfigs[selectedZone]
-        : null;
+      let effectiveZoneConfig = null;
+      if (selectedZone !== 'ALL' && pricingConfig.zoneConfigs) {
+        if (pricingConfig.zoneConfigs[selectedZone]) {
+          effectiveZoneConfig = pricingConfig.zoneConfigs[selectedZone];
+        } else {
+          const matchKey = Object.keys(pricingConfig.zoneConfigs).find(
+            (k) =>
+              k.toLowerCase() === selectedZone.toLowerCase() ||
+              k.toLowerCase().replace(/^(dz[-_]|zone[-_])/, '') === selectedZone.toLowerCase().replace(/^(dz[-_]|zone[-_])/, '')
+          );
+          if (matchKey) {
+            effectiveZoneConfig = pricingConfig.zoneConfigs[matchKey];
+          }
+        }
+      }
 
       const activeIncentivesSource = (effectiveZoneConfig && Array.isArray(effectiveZoneConfig.incentives))
         ? effectiveZoneConfig.incentives
@@ -427,7 +441,12 @@ export function DeliveryPricingSettingsCard() {
             ...universalConfig,
             minPrice: minP,
             moneyPerKm: mKm,
-            incentives: updatedUniversal.incentives,
+            incentives: updatedUniversal.incentives.map((i) => ({
+              ...i,
+              creatorRole: i.creatorRole || 'SUPER_ADMIN',
+              scope: 'GLOBAL' as const,
+              zoneId: undefined,
+            })),
           };
 
           await updatePricing({
@@ -443,6 +462,8 @@ export function DeliveryPricingSettingsCard() {
           const zoneIncentives = updatedUniversal.incentives.map((item) => ({
             ...item,
             zoneId: selectedZone,
+            creatorRole: item.creatorRole || (isSuperAdminUser ? 'SUPER_ADMIN' : 'ZONE_ADMIN'),
+            scope: 'ZONE' as const,
           }));
           const updatedZoneConfigs = {
             ...(pricingConfig?.zoneConfigs || {}),
@@ -493,7 +514,12 @@ export function DeliveryPricingSettingsCard() {
           ...universalConfig,
           minPrice: minP,
           moneyPerKm: mKm,
-          incentives: currentConfig.incentives.map((i) => ({ ...i, zoneId: undefined })),
+          incentives: currentConfig.incentives.map((i) => ({
+            ...i,
+            creatorRole: i.creatorRole || 'SUPER_ADMIN',
+            scope: 'GLOBAL' as const,
+            zoneId: undefined,
+          })),
         };
 
         await updatePricing({
@@ -517,6 +543,8 @@ export function DeliveryPricingSettingsCard() {
         const zoneIncentives = currentConfig.incentives.map((item) => ({
           ...item,
           zoneId: selectedZone,
+          creatorRole: item.creatorRole || (isSuperAdminUser ? 'SUPER_ADMIN' : 'ZONE_ADMIN'),
+          scope: 'ZONE' as const,
         }));
 
         const existingZone = (pricingConfig?.zoneConfigs && pricingConfig.zoneConfigs[selectedZone]) || {};
@@ -564,19 +592,22 @@ export function DeliveryPricingSettingsCard() {
   };
 
   const handleAddCustomIncentive = () => {
+    const isGlobal = selectedZone === 'ALL';
     const newId = `customBonus_${Date.now()}`;
     const newRule: IncentiveItem = {
       id: newId,
-      title: selectedZone !== 'ALL' ? 'Zone Mileage Surge' : 'Platform Mileage Surge',
+      title: !isGlobal ? 'Zone Mileage Surge' : 'Platform Mileage Surge',
       icon: '',
       value: 50,
       unit: '₹ / order',
       active: true,
-      description: selectedZone !== 'ALL'
+      description: !isGlobal
         ? `Custom zone incentive bonus active for fulfilled delivery assignments in ${selectedZoneDisplayName}.`
         : 'Custom platform incentive bonus active for fulfilled delivery assignments.',
       category: 'Reward & Rating',
-      zoneId: selectedZone !== 'ALL' ? selectedZone : undefined,
+      zoneId: !isGlobal ? selectedZone : undefined,
+      creatorRole: isSuperAdminUser ? (isGlobal ? 'SUPER_ADMIN' : 'SUPER_ADMIN') : 'ZONE_ADMIN',
+      scope: isGlobal ? 'GLOBAL' : 'ZONE',
     };
 
     setUniversalConfig((prev) => ({
@@ -607,42 +638,94 @@ export function DeliveryPricingSettingsCard() {
     }
 
     try {
-      localStorage.setItem('foodie_universal_pricing_config', JSON.stringify(universalConfig));
-
-      // Mark all rules as saved
       const allSavedMap: Record<string, boolean> = {};
       currentConfig.incentives.forEach((item) => (allSavedMap[item.id] = true));
       setSavedItemsMap(allSavedMap);
 
-      const updatedUniversalConfig = {
-        ...universalConfig,
-        minPrice: parsedMinPrice,
-        moneyPerKm: parsedMoneyPerKm,
-      };
+      if (selectedZone !== 'ALL') {
+        const existingZone = (pricingConfig?.zoneConfigs && pricingConfig.zoneConfigs[selectedZone]) || {};
+        const zoneIncentives = currentConfig.incentives.map((i) => ({
+          ...i,
+          zoneId: selectedZone,
+          creatorRole: i.creatorRole || (isSuperAdminUser ? 'SUPER_ADMIN' : 'ZONE_ADMIN'),
+          scope: 'ZONE' as const,
+        }));
+        const updatedZoneConfigs = {
+          ...(pricingConfig?.zoneConfigs || {}),
+          [selectedZone]: {
+            ...existingZone,
+            minPrice: parsedMinPrice,
+            moneyPerKm: parsedMoneyPerKm,
+            incentives: zoneIncentives,
+          },
+        };
 
-      const res = await updatePricing({
-        minPricePerDelivery: parsedMinPrice,
-        moneyPerKm: parsedMoneyPerKm,
-        pricingBasis: 'UNIVERSAL',
-        universalConfig: updatedUniversalConfig,
-      }).unwrap();
+        const res = await updatePricing({
+          minPricePerDelivery: parsedMinPrice,
+          moneyPerKm: parsedMoneyPerKm,
+          pricingBasis: 'ZONE',
+          universalConfig: pricingConfig?.universalConfig,
+          zoneConfigs: updatedZoneConfigs,
+          zones: pricingConfig?.zones,
+        }).unwrap();
 
-      const updatedMin = res?.minPricePerDelivery ?? parsedMinPrice;
-      const updatedKm = res?.moneyPerKm ?? parsedMoneyPerKm;
+        const updatedMin = res?.minPricePerDelivery ?? parsedMinPrice;
+        const updatedKm = res?.moneyPerKm ?? parsedMoneyPerKm;
 
-      setSavedMinPrice(updatedMin);
-      setSavedMoneyPerKm(updatedKm);
-      setMinPriceInput(String(updatedMin));
-      setMoneyPerKmInput(String(updatedKm));
+        setSavedMinPrice(updatedMin);
+        setSavedMoneyPerKm(updatedKm);
+        setMinPriceInput(String(updatedMin));
+        setMoneyPerKmInput(String(updatedKm));
 
-      setUniversalConfig((prev) => ({
-        ...prev,
-        minPrice: updatedMin,
-        moneyPerKm: updatedKm,
-      }));
+        setUniversalConfig((prev) => ({
+          ...prev,
+          minPrice: updatedMin,
+          moneyPerKm: updatedKm,
+          incentives: zoneIncentives,
+        }));
 
-      setToastMsg({ text: 'Universal platform payout structure and incentives saved successfully!', type: 'success' });
-      setTimeout(() => setToastMsg(null), 4000);
+        setToastMsg({ text: `Payout structure and incentives for "${selectedZoneDisplayName}" saved successfully!`, type: 'success' });
+        setTimeout(() => setToastMsg(null), 4000);
+      } else {
+        const updatedUniversalConfig = {
+          ...universalConfig,
+          minPrice: parsedMinPrice,
+          moneyPerKm: parsedMoneyPerKm,
+          incentives: currentConfig.incentives.map((i) => ({
+            ...i,
+            creatorRole: i.creatorRole || 'SUPER_ADMIN',
+            scope: 'GLOBAL' as const,
+            zoneId: undefined,
+          })),
+        };
+
+        const res = await updatePricing({
+          minPricePerDelivery: parsedMinPrice,
+          moneyPerKm: parsedMoneyPerKm,
+          pricingBasis: 'UNIVERSAL',
+          universalConfig: updatedUniversalConfig,
+          zoneConfigs: pricingConfig?.zoneConfigs || {},
+          zones: pricingConfig?.zones,
+        }).unwrap();
+
+        const updatedMin = res?.minPricePerDelivery ?? parsedMinPrice;
+        const updatedKm = res?.moneyPerKm ?? parsedMoneyPerKm;
+
+        setSavedMinPrice(updatedMin);
+        setSavedMoneyPerKm(updatedKm);
+        setMinPriceInput(String(updatedMin));
+        setMoneyPerKmInput(String(updatedKm));
+
+        setUniversalConfig((prev) => ({
+          ...prev,
+          minPrice: updatedMin,
+          moneyPerKm: updatedKm,
+          incentives: updatedUniversalConfig.incentives,
+        }));
+
+        setToastMsg({ text: 'Platform universal payout structure and incentives saved successfully!', type: 'success' });
+        setTimeout(() => setToastMsg(null), 4000);
+      }
     } catch (err: any) {
       const errorMsg = err?.data?.error?.message || err?.message || 'Failed to save payout settings to database. Please try again.';
       setToastMsg({
