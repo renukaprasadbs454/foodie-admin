@@ -1346,6 +1346,285 @@ async function handleAdminNotifications(request: Request, targetPath: string, ac
   }, { status: 404 });
 }
 
+
+const SETTINGS_PERSISTENCE_FILE = path.join(os.tmpdir(), 'foodie_admin_zone_settings_v2.json');
+
+const DEFAULT_UNIVERSAL_ZONE_SETTINGS: Record<string, any> = {
+  ALL: {
+    zoneId: 'ALL',
+    zoneName: 'Platform Universal (All Zones)',
+    gstinNumber: '29AAAAA0000A1Z5',
+    foodGstRate: '5.0',
+    deliveryGstRate: '18.0',
+    tcsTaxRate: '1.0',
+    cashfreeEnabled: true,
+    stripeEnabled: true,
+    codEnabled: true,
+    codMaxLimit: '2000',
+    minAppVersion: 'v2.4.0',
+    maxDeliveryRadius: '15',
+    forceUpdateEnabled: true,
+    maintenanceMode: false,
+    customerOrderingEnabled: true,
+    restaurantEnabled: true,
+    deliveryPartnerEnabled: true,
+    baseDeliveryCharge: '35.00',
+    baseDistanceKm: '3.00',
+    additionalChargePerKm: '10.00',
+    freeDeliveryMinOrder: '499.00',
+    nightSurcharge: '25.00',
+    surgeMultiplier: '1.15',
+    isCustomOverride: false,
+  },
+  'dz-bengaluru-zone': {
+    zoneId: 'dz-bengaluru-zone',
+    zoneName: 'Bengaluru zone',
+    cityName: 'Bangalore',
+    gstinNumber: '29AAAAA0000A1Z5',
+    foodGstRate: '5.0',
+    deliveryGstRate: '18.0',
+    tcsTaxRate: '1.0',
+    cashfreeEnabled: true,
+    stripeEnabled: true,
+    codEnabled: true,
+    codMaxLimit: '2500',
+    minAppVersion: 'v2.4.0',
+    maxDeliveryRadius: '50',
+    forceUpdateEnabled: true,
+    maintenanceMode: false,
+    customerOrderingEnabled: true,
+    restaurantEnabled: true,
+    deliveryPartnerEnabled: true,
+    baseDeliveryCharge: '40.00',
+    baseDistanceKm: '3.00',
+    additionalChargePerKm: '12.00',
+    freeDeliveryMinOrder: '599.00',
+    nightSurcharge: '30.00',
+    surgeMultiplier: '1.20',
+    isCustomOverride: true,
+  },
+  'dz-bangalore': {
+    zoneId: 'dz-bangalore',
+    zoneName: 'Bangalore Zone',
+    cityName: 'Bangalore',
+    gstinNumber: '29AAAAA0000A1Z5',
+    foodGstRate: '5.0',
+    deliveryGstRate: '18.0',
+    tcsTaxRate: '1.0',
+    cashfreeEnabled: true,
+    stripeEnabled: true,
+    codEnabled: true,
+    codMaxLimit: '2500',
+    minAppVersion: 'v2.4.0',
+    maxDeliveryRadius: '25',
+    forceUpdateEnabled: true,
+    maintenanceMode: false,
+    customerOrderingEnabled: true,
+    restaurantEnabled: true,
+    deliveryPartnerEnabled: true,
+    baseDeliveryCharge: '40.00',
+    baseDistanceKm: '3.00',
+    additionalChargePerKm: '12.00',
+    freeDeliveryMinOrder: '599.00',
+    nightSurcharge: '30.00',
+    surgeMultiplier: '1.20',
+    isCustomOverride: true,
+  },
+  'dz-tumkur-zone': {
+    zoneId: 'dz-tumkur-zone',
+    zoneName: 'Tumkur zone',
+    cityName: 'Tumakuru',
+    gstinNumber: '29AAAAA0000A1Z5',
+    foodGstRate: '5.0',
+    deliveryGstRate: '18.0',
+    tcsTaxRate: '1.0',
+    cashfreeEnabled: true,
+    stripeEnabled: false,
+    codEnabled: true,
+    codMaxLimit: '1500',
+    minAppVersion: 'v2.4.0',
+    maxDeliveryRadius: '100',
+    forceUpdateEnabled: true,
+    maintenanceMode: false,
+    customerOrderingEnabled: true,
+    restaurantEnabled: true,
+    deliveryPartnerEnabled: true,
+    baseDeliveryCharge: '30.00',
+    baseDistanceKm: '3.00',
+    additionalChargePerKm: '8.00',
+    freeDeliveryMinOrder: '399.00',
+    nightSurcharge: '20.00',
+    surgeMultiplier: '1.00',
+    isCustomOverride: true,
+  },
+  'dz-tumkur': {
+    zoneId: 'dz-tumkur',
+    zoneName: 'Tumkur Zone',
+    cityName: 'Tumkur',
+    gstinNumber: '29AAAAA0000A1Z5',
+    foodGstRate: '5.0',
+    deliveryGstRate: '18.0',
+    tcsTaxRate: '1.0',
+    cashfreeEnabled: true,
+    stripeEnabled: false,
+    codEnabled: true,
+    codMaxLimit: '1500',
+    minAppVersion: 'v2.4.0',
+    maxDeliveryRadius: '20',
+    forceUpdateEnabled: true,
+    maintenanceMode: false,
+    customerOrderingEnabled: true,
+    restaurantEnabled: true,
+    deliveryPartnerEnabled: true,
+    baseDeliveryCharge: '30.00',
+    baseDistanceKm: '3.00',
+    additionalChargePerKm: '8.00',
+    freeDeliveryMinOrder: '399.00',
+    nightSurcharge: '20.00',
+    surgeMultiplier: '1.00',
+    isCustomOverride: true,
+  },
+  'dz-hassan-zone': {
+    zoneId: 'dz-hassan-zone',
+    zoneName: 'Hassan zone',
+    cityName: 'Hassan',
+    gstinNumber: '29AAAAA0000A1Z5',
+    foodGstRate: '5.0',
+    deliveryGstRate: '18.0',
+    tcsTaxRate: '1.0',
+    cashfreeEnabled: true,
+    stripeEnabled: false,
+    codEnabled: true,
+    codMaxLimit: '1200',
+    minAppVersion: 'v2.4.0',
+    maxDeliveryRadius: '80',
+    forceUpdateEnabled: true,
+    maintenanceMode: false,
+    customerOrderingEnabled: true,
+    restaurantEnabled: true,
+    deliveryPartnerEnabled: true,
+    baseDeliveryCharge: '30.00',
+    baseDistanceKm: '3.00',
+    additionalChargePerKm: '8.00',
+    freeDeliveryMinOrder: '399.00',
+    nightSurcharge: '20.00',
+    surgeMultiplier: '1.00',
+    isCustomOverride: true,
+  },
+  'dz-hubballi-zone': {
+    zoneId: 'dz-hubballi-zone',
+    zoneName: 'Hubballi zone',
+    cityName: 'Hubballi',
+    gstinNumber: '29AAAAA0000A1Z5',
+    foodGstRate: '5.0',
+    deliveryGstRate: '18.0',
+    tcsTaxRate: '1.0',
+    cashfreeEnabled: true,
+    stripeEnabled: false,
+    codEnabled: true,
+    codMaxLimit: '1500',
+    minAppVersion: 'v2.4.0',
+    maxDeliveryRadius: '10',
+    forceUpdateEnabled: true,
+    maintenanceMode: false,
+    customerOrderingEnabled: true,
+    restaurantEnabled: true,
+    deliveryPartnerEnabled: true,
+    baseDeliveryCharge: '32.00',
+    baseDistanceKm: '3.00',
+    additionalChargePerKm: '9.00',
+    freeDeliveryMinOrder: '449.00',
+    nightSurcharge: '20.00',
+    surgeMultiplier: '1.05',
+    isCustomOverride: true,
+  },
+};
+
+function loadPersistentZoneSettings(): Record<string, any> {
+  try {
+    if (fs.existsSync(SETTINGS_PERSISTENCE_FILE)) {
+      const raw = fs.readFileSync(SETTINGS_PERSISTENCE_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return { ...DEFAULT_UNIVERSAL_ZONE_SETTINGS, ...parsed };
+      }
+    }
+  } catch {}
+  return { ...DEFAULT_UNIVERSAL_ZONE_SETTINGS };
+}
+
+function savePersistentZoneSettings(settings: Record<string, any>) {
+  try {
+    fs.writeFileSync(SETTINGS_PERSISTENCE_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+  } catch {}
+}
+
+async function handleAdminSettings(request: Request, targetPath: string, accessToken: string | null) {
+  if (!globalAny.ADMIN_ZONE_SETTINGS) {
+    globalAny.ADMIN_ZONE_SETTINGS = loadPersistentZoneSettings();
+  }
+  const store = globalAny.ADMIN_ZONE_SETTINGS as Record<string, any>;
+  const urlObj = new URL(request.url);
+  const requestedZoneId = urlObj.searchParams.get('zoneId') || 'ALL';
+  const returnAll = urlObj.searchParams.get('all') === 'true';
+
+  if (request.method === 'GET') {
+    if (returnAll) {
+      return NextResponse.json({
+        success: true,
+        data: store,
+        error: null,
+        meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+      });
+    }
+
+    const found = store[requestedZoneId] || (store['ALL'] ? { ...store['ALL'], zoneId: requestedZoneId, isCustomOverride: false } : DEFAULT_UNIVERSAL_ZONE_SETTINGS.ALL);
+    return NextResponse.json({
+      success: true,
+      data: found,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    });
+  }
+
+  if (request.method === 'PUT' || request.method === 'POST') {
+    let body: any = {};
+    try { body = await request.json(); } catch {}
+    const zoneId = body.zoneId || requestedZoneId || 'ALL';
+    const existing = store[zoneId] || store['ALL'] || DEFAULT_UNIVERSAL_ZONE_SETTINGS.ALL;
+    const updated = {
+      ...existing,
+      ...body,
+      zoneId,
+      isCustomOverride: zoneId !== 'ALL',
+      updatedAt: new Date().toISOString(),
+    };
+    store[zoneId] = updated;
+    savePersistentZoneSettings(store);
+    return NextResponse.json({
+      success: true,
+      data: updated,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    });
+  }
+
+  if (request.method === 'DELETE') {
+    if (requestedZoneId !== 'ALL') {
+      delete store[requestedZoneId];
+      savePersistentZoneSettings(store);
+    }
+    return NextResponse.json({
+      success: true,
+      data: { reset: true, zoneId: requestedZoneId },
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    });
+  }
+
+  return NextResponse.json({ success: false, error: { message: 'Method not allowed' } }, { status: 405 });
+}
+
 const ZONES_PERSISTENCE_FILE = path.join(os.tmpdir(), 'foodie_admin_zones_state_v2.json');
 
 function loadPersistentZonesState(): { deletedZones: string[]; dynamicZones: any[] } {
@@ -3635,6 +3914,10 @@ async function handleAdminRoles() {
 
   if (targetPath.startsWith('admin/location/cities')) {
     return handleAdminLocationCities(request, targetPath, accessToken);
+  }
+
+    if (targetPath.startsWith('admin/settings')) {
+    return handleAdminSettings(request, targetPath, accessToken);
   }
 
   if (targetPath.startsWith('admin/zones')) {
