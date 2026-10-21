@@ -2720,13 +2720,13 @@ function syncShiftsToDisk(backendShifts: any[]) {
 
 function getShiftCandidateBaseUrls(): string[] {
   const urls: string[] = [];
-  const localEnvUrl = process.env.FOODIE_LOCAL_BACKEND_URL;
-  if (localEnvUrl) urls.push(localEnvUrl);
-  urls.push('http://localhost:8082');
-  urls.push('http://127.0.0.1:8082');
   if (ENV.apiBaseUrl && !urls.includes(ENV.apiBaseUrl)) {
     urls.push(ENV.apiBaseUrl);
   }
+  const localEnvUrl = process.env.FOODIE_LOCAL_BACKEND_URL;
+  if (localEnvUrl && !urls.includes(localEnvUrl)) urls.push(localEnvUrl);
+  urls.push('http://localhost:8082');
+  urls.push('http://127.0.0.1:8082');
   if (!urls.includes('http://localhost:8080')) {
     urls.push('http://localhost:8080');
   }

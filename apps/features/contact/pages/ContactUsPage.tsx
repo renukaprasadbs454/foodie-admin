@@ -10,6 +10,12 @@ import {
 } from '../../../api/endpoints/supportApi';
 
 import { useAppSelector } from '@/store/hooks';
+import { usePermissions } from '@/context/PermissionContext';
+import { useGetAdminRestaurantsQuery } from '@/api/endpoints/restaurantsApi';
+import { useGetAdminOrdersQuery } from '@/api/endpoints/ordersApi';
+import { useGetAdminDeliveryPartnersQuery } from '@/api/endpoints/deliveryPartnersApi';
+import { useGetCustomersQuery } from '@/api/endpoints/customersApi';
+import { useGetZonesQuery } from '@/api/endpoints/locationApi';
 
 export interface ChatMessage {
   id: string;
@@ -38,6 +44,8 @@ export interface EnquiryRecord {
   unreadCount?: number;
   resolvedAt?: string;
   orderId?: string;
+  zoneId?: string;
+  zoneName?: string;
 }
 
 const QUICK_TEMPLATES = [
@@ -50,8 +58,343 @@ const QUICK_TEMPLATES = [
 
 type ContactTab = 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY' | 'HISTORY';
 
+function isEnquiryInZone(
+  item: EnquiryRecord,
+  targetZoneId: string,
+  targetZoneName?: string | null,
+  targetCityName?: string | null,
+  restaurants: any[] = [],
+  orders: any[] = [],
+  deliveryPartners: any[] = [],
+  customers: any[] = []
+): boolean {
+  if (!targetZoneId || targetZoneId === 'ALL') return true;
+
+  const tzId = targetZoneId.trim().toLowerCase();
+  const tzName = (targetZoneName || '').trim().toLowerCase();
+  const tzCity = (targetCityName || '').trim().toLowerCase();
+
+  const isTBlr =
+    tzId.includes('bangalore') ||
+    tzId.includes('bengaluru') ||
+    tzId.includes('blr') ||
+    tzName.includes('bangalore') ||
+    tzName.includes('bengaluru');
+  const isTTmk =
+    tzId.includes('tumkur') ||
+    tzId.includes('tumakuru') ||
+    tzId.includes('tmk') ||
+    tzName.includes('tumkur') ||
+    tzName.includes('tumakuru');
+
+  const zoneKeywords: string[] = [tzId];
+  const strippedId = tzId.replace(/^dz-/, '').replace(/-zone$/, '');
+  if (strippedId && strippedId.length > 2) zoneKeywords.push(strippedId);
+
+  if (tzName) {
+    tzName.split(/\s+/).forEach((w) => {
+      const clean = w.replace(/[^a-z0-9]/g, '');
+      if (clean.length > 2 && clean !== 'zone') zoneKeywords.push(clean);
+    });
+  }
+  if (tzCity) {
+    tzCity.split(/\s+/).forEach((w) => {
+      const clean = w.replace(/[^a-z0-9]/g, '');
+      if (clean.length > 2) zoneKeywords.push(clean);
+    });
+  }
+
+  if (isTBlr) {
+    zoneKeywords.push('bangalore', 'bengaluru', 'blr', 'indiranagar', 'koramangala', 'whitefield', 'domlur');
+  }
+  if (isTTmk) {
+    zoneKeywords.push('tumkur', 'tumakuru', 'tmk', 'kyatsandra', 'siddaganga');
+  }
+
+  // 1. Direct Zone Properties on Ticket
+  if (item.zoneId) {
+    const iz = item.zoneId.toLowerCase();
+    if (iz === tzId || zoneKeywords.some((k) => iz.includes(k))) return true;
+    if (isTBlr && (iz.includes('tumkur') || iz.includes('tmk'))) return false;
+    if (isTTmk && (iz.includes('bangalore') || iz.includes('bengaluru') || iz.includes('blr'))) return false;
+  }
+  if (item.zoneName) {
+    const izn = item.zoneName.toLowerCase();
+    if (izn === tzName || zoneKeywords.some((k) => izn.includes(k))) return true;
+    if (isTBlr && (izn.includes('tumkur') || izn.includes('tmk'))) return false;
+    if (isTTmk && (izn.includes('bangalore') || izn.includes('bengaluru') || izn.includes('blr'))) return false;
+  }
+
+  // 2. Order Linkage
+  if (item.orderId) {
+    const ordClean = item.orderId.replace(/^#/, '').toLowerCase();
+    const order = orders.find(
+      (o: any) =>
+        (o.id && o.id.toLowerCase() === ordClean) ||
+        (o.orderCode && o.orderCode.toLowerCase() === ordClean) ||
+        (ordClean.length > 5 &&
+          ((o.id && o.id.toLowerCase().includes(ordClean)) ||
+            (o.orderCode && o.orderCode.toLowerCase().includes(ordClean))))
+    );
+    if (order) {
+      const oz = (order.zoneId || '').toLowerCase();
+      const ozn = (order.zoneName || '').toLowerCase();
+      if (oz) {
+        if (oz === tzId || zoneKeywords.some((k) => oz.includes(k))) return true;
+        if (isTBlr && (oz.includes('tumkur') || oz.includes('tmk'))) return false;
+        if (isTTmk && (oz.includes('bangalore') || oz.includes('bengaluru') || oz.includes('blr'))) return false;
+      }
+      if (ozn) {
+        if (ozn === tzName || zoneKeywords.some((k) => ozn.includes(k))) return true;
+        if (isTBlr && (ozn.includes('tumkur') || ozn.includes('tmk'))) return false;
+        if (isTTmk && (ozn.includes('bangalore') || ozn.includes('bengaluru') || ozn.includes('blr'))) return false;
+      }
+      const storeName = (order.storeName || '').toLowerCase();
+      if (
+        isTTmk &&
+        (storeName.includes('mayura') ||
+          storeName.includes('meghana') ||
+          storeName.includes('tumkur') ||
+          storeName.includes('rayara') ||
+          storeName.includes('madhuvan') ||
+          storeName.includes('pavithra'))
+      )
+        return true;
+      if (
+        isTBlr &&
+        (storeName.includes('royal') ||
+          storeName.includes('ganesha') ||
+          storeName.includes('empire') ||
+          storeName.includes('raama') ||
+          storeName.includes('bangalore'))
+      )
+        return true;
+      if (isTBlr && (storeName.includes('mayura') || storeName.includes('meghana') || storeName.includes('tumkur')))
+        return false;
+      if (
+        isTTmk &&
+        (storeName.includes('royal') ||
+          storeName.includes('ganesha') ||
+          storeName.includes('empire') ||
+          storeName.includes('raama'))
+      )
+        return false;
+    }
+  }
+
+  // 3. Category: RESTAURANT
+  if (item.category === 'RESTAURANT' || item.restaurantId || item.restaurantName) {
+    const rest = restaurants.find(
+      (r: any) =>
+        (item.restaurantId && (r.restaurantId === item.restaurantId || r.id === item.restaurantId)) ||
+        (item.restaurantName && r.name && r.name.toLowerCase() === item.restaurantName.toLowerCase()) ||
+        (item.senderName && r.name && r.name.toLowerCase() === item.senderName.toLowerCase())
+    );
+    if (rest) {
+      const rz = (rest.zoneId || '').toLowerCase();
+      const rzn = (rest.zoneName || '').toLowerCase();
+      const rc = (rest.address?.city || '').toLowerCase();
+      if (rz) {
+        if (rz === tzId || zoneKeywords.some((k) => rz.includes(k))) return true;
+        if (isTBlr && (rz.includes('tumkur') || rz.includes('tmk'))) return false;
+        if (isTTmk && (rz.includes('bangalore') || rz.includes('bengaluru') || rz.includes('blr'))) return false;
+      }
+      if (rzn) {
+        if (rzn === tzName || zoneKeywords.some((k) => rzn.includes(k))) return true;
+        if (isTBlr && (rzn.includes('tumkur') || rzn.includes('tmk'))) return false;
+        if (isTTmk && (rzn.includes('bangalore') || rzn.includes('bengaluru') || rzn.includes('blr'))) return false;
+      }
+      if (rc && zoneKeywords.some((k) => rc.includes(k))) return true;
+    }
+
+    const text = `${item.restaurantName || ''} ${item.senderName || ''} ${item.subject || ''} ${item.message || ''}`.toLowerCase();
+    if (
+      isTTmk &&
+      (text.includes('rayara') ||
+        text.includes('madhuvan') ||
+        text.includes('mayura') ||
+        text.includes('meghana') ||
+        text.includes('tumkur') ||
+        text.includes('pavithra'))
+    )
+      return true;
+    if (
+      isTBlr &&
+      (text.includes('ganesha') ||
+        text.includes('raama') ||
+        text.includes('royal') ||
+        text.includes('gold cafe') ||
+        text.includes('city garden') ||
+        text.includes('shivam cafe') ||
+        text.includes('kalpataru') ||
+        text.includes('malgudi') ||
+        text.includes('rahah') ||
+        text.includes('empire') ||
+        text.includes('bangalore'))
+    )
+      return true;
+    if (
+      isTTmk &&
+      (text.includes('ganesha') ||
+        text.includes('raama') ||
+        text.includes('royal') ||
+        text.includes('gold cafe') ||
+        text.includes('city garden') ||
+        text.includes('shivam cafe') ||
+        text.includes('kalpataru') ||
+        text.includes('malgudi') ||
+        text.includes('rahah') ||
+        text.includes('empire') ||
+        text.includes('bangalore') ||
+        text.includes('indiranagar'))
+    )
+      return false;
+    if (
+      isTBlr &&
+      (text.includes('rayara') ||
+        text.includes('madhuvan') ||
+        text.includes('mayura') ||
+        text.includes('meghana') ||
+        text.includes('tumkur'))
+    )
+      return false;
+    if (zoneKeywords.some((k) => k.length > 3 && text.includes(k))) return true;
+    return isTBlr;
+  }
+
+  // 4. Category: DELIVERY
+  if (item.category === 'DELIVERY') {
+    const text = `${item.senderName || ''} ${item.senderEmail || ''} ${item.subject || ''} ${item.message || ''}`.toLowerCase();
+    const dp = deliveryPartners.find(
+      (d: any) =>
+        (item.senderEmail &&
+          (d.userCredentialId === item.senderEmail || d.id === item.senderEmail || d.email === item.senderEmail)) ||
+        (item.senderPhone && d.phoneNumber === item.senderPhone) ||
+        (d.fullName && text.includes(d.fullName.toLowerCase()))
+    );
+    if (dp && dp.zone) {
+      const dz = dp.zone.toLowerCase();
+      if (dz === tzId || dz === tzName || zoneKeywords.some((k) => dz.includes(k))) return true;
+      if (isTBlr && (dz.includes('tumkur') || dz.includes('tmk'))) return false;
+      if (isTTmk && (dz.includes('bangalore') || dz.includes('bengaluru') || dz.includes('blr'))) return false;
+    }
+
+    if (isTTmk && (text.includes('tumkur') || text.includes('pavan') || text.includes('siddaraju'))) return true;
+    if (isTBlr && (text.includes('bangalore') || text.includes('indiranagar') || text.includes('karishma') || text.includes('ramesh')))
+      return true;
+    if (
+      isTTmk &&
+      (text.includes('karishma') || text.includes('ramesh') || text.includes('indiranagar') || text.includes('koramangala'))
+    )
+      return false;
+    if (isTBlr && (text.includes('tumkur') || text.includes('pavan') || text.includes('siddaraju'))) return false;
+    if (zoneKeywords.some((k) => k.length > 3 && text.includes(k))) return true;
+    return isTBlr;
+  }
+
+  // 5. Category: CUSTOMER
+  if (item.category === 'CUSTOMER') {
+    const cust = customers.find(
+      (c: any) =>
+        (item.senderPhone && c.phone === item.senderPhone) ||
+        (item.senderEmail && (c.id === item.senderEmail || c.email === item.senderEmail)) ||
+        (c.name && item.senderName && c.name.toLowerCase() === item.senderName.toLowerCase())
+    );
+    if (cust) {
+      const cz = (cust.zoneId || '').toLowerCase();
+      const czn = (cust.zoneName || '').toLowerCase();
+      const cc = (cust.city || '').toLowerCase();
+      if (cz) {
+        if (cz === tzId || zoneKeywords.some((k) => cz.includes(k))) return true;
+        if (isTBlr && (cz.includes('tumkur') || cz.includes('tmk'))) return false;
+        if (isTTmk && (cz.includes('bangalore') || cz.includes('bengaluru') || cz.includes('blr'))) return false;
+      }
+      if (czn) {
+        if (czn === tzName || zoneKeywords.some((k) => czn.includes(k))) return true;
+        if (isTBlr && (czn.includes('tumkur') || czn.includes('tmk'))) return false;
+        if (isTTmk && (czn.includes('bangalore') || czn.includes('bengaluru') || czn.includes('blr'))) return false;
+      }
+      if (cc && zoneKeywords.some((k) => cc.includes(k))) return true;
+    }
+
+    const text = `${item.senderName || ''} ${item.subject || ''} ${item.message || ''}`.toLowerCase();
+    if (isTTmk && (text.includes('tumkur') || text.includes('priya') || text.includes('karthik'))) return true;
+    if (
+      isTBlr &&
+      (text.includes('bangalore') ||
+        text.includes('ananya') ||
+        text.includes('rahul') ||
+        text.includes('ord-9821') ||
+        text.includes('indiranagar'))
+    )
+      return true;
+    if (
+      isTTmk &&
+      (text.includes('ananya') || text.includes('ord-9821') || text.includes('indiranagar') || text.includes('koramangala'))
+    )
+      return false;
+    if (isTBlr && (text.includes('tumkur') || text.includes('priya') || text.includes('karthik'))) return false;
+    if (zoneKeywords.some((k) => k.length > 3 && text.includes(k))) return true;
+    return isTBlr;
+  }
+
+  return true;
+}
+
 export function ContactUsPage() {
   const authState = useAppSelector((state) => state.auth);
+  const { profile } = usePermissions();
+
+  // Zone & Role Context: Authenticated admin information
+  const userStoredRole =
+    profile?.role ||
+    authState.role ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem('foodie_admin_role') ||
+        sessionStorage.getItem('foodie_admin_role') ||
+        (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_role=([^;]+)/)?.[1] : null)
+      : null);
+
+  const userAssignedZone =
+    profile?.assignedZoneId ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem('foodie_user_assigned_zone') ||
+        sessionStorage.getItem('foodie_user_assigned_zone') ||
+        (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null)
+      : null);
+
+  const userAssignedZoneName =
+    profile?.assignedZoneName ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem('foodie_active_zone_name') ||
+        sessionStorage.getItem('foodie_active_zone_name') ||
+        (typeof document !== 'undefined'
+          ? decodeURIComponent(document.cookie.match(/foodie_active_zone_name=([^;]+)/)?.[1] || '')
+          : null)
+      : null);
+
+  const hasAssignedZone = Boolean(userAssignedZone && userAssignedZone !== 'ALL');
+  const isSuperAdmin = !hasAssignedZone && Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
+  const isZoneAdmin = !isSuperAdmin && hasAssignedZone;
+  const assignedZoneId = isZoneAdmin ? userAssignedZone : null;
+  const assignedZoneName = isZoneAdmin ? (userAssignedZoneName || userAssignedZone) : null;
+
+  // Correlate tickets with backend entity zones
+  const { data: dbZones = [] } = useGetZonesQuery();
+  const { data: restaurantsData } = useGetAdminRestaurantsQuery({ size: 100 });
+  const { data: adminOrders = [] } = useGetAdminOrdersQuery();
+  const { data: deliveryPartnersData } = useGetAdminDeliveryPartnersQuery({ size: 100 });
+  const { data: customersData } = useGetCustomersQuery({ size: 100 });
+
+  const currentZoneObj = (Array.isArray(dbZones) ? dbZones : []).find(
+    (z: any) =>
+      z &&
+      (z.id?.toLowerCase() === assignedZoneId?.toLowerCase() ||
+        (assignedZoneName && z.zoneName?.toLowerCase() === assignedZoneName.toLowerCase()))
+  );
+  const effectiveZoneName = currentZoneObj?.zoneName || assignedZoneName || assignedZoneId;
+  const effectiveCityName = currentZoneObj?.cityName;
+
   const [activeTab, setActiveTab] = useState<ContactTab>('CUSTOMER');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'>('ALL');
@@ -120,6 +463,8 @@ export function ContactUsPage() {
           status: t.status || 'OPEN',
           priority: t.priority || 'MEDIUM',
           orderId: t.orderId,
+          zoneId: t.zoneId,
+          zoneName: t.zoneName,
           messages: Array.isArray(t.messages)
             ? t.messages.map((m: any) => ({
               id: m.id,
@@ -135,11 +480,66 @@ export function ContactUsPage() {
         };
       });
       const nonGeneral = mapped.filter((t) => (t.category as string) !== 'GENERAL');
-      const active = nonGeneral.filter((t) => t.status !== 'RESOLVED');
+
+      // Enforce Zone Scoping: Super Admin retains Global View across all zones; Zone Admin is strictly scoped to assigned zone
+      const zoneScoped = isZoneAdmin && assignedZoneId
+        ? nonGeneral.filter((t) =>
+            isEnquiryInZone(
+              t,
+              assignedZoneId,
+              assignedZoneName,
+              effectiveCityName,
+              restaurantsData?.items || [],
+              adminOrders || [],
+              deliveryPartnersData?.items || [],
+              customersData?.customers || []
+            )
+          )
+        : nonGeneral;
+
+      const active = zoneScoped.filter((t) => t.status !== 'RESOLVED');
       setEnquiries(active);
-      setHistory(nonGeneral);
+      setHistory(zoneScoped);
     }
-  }, [apiTickets]);
+  }, [
+    apiTickets,
+    isZoneAdmin,
+    assignedZoneId,
+    assignedZoneName,
+    effectiveCityName,
+    restaurantsData,
+    adminOrders,
+    deliveryPartnersData,
+    customersData,
+  ]);
+
+  useEffect(() => {
+    if (selectedEnquiry && isZoneAdmin && assignedZoneId) {
+      const allowed = isEnquiryInZone(
+        selectedEnquiry,
+        assignedZoneId,
+        assignedZoneName,
+        effectiveCityName,
+        restaurantsData?.items || [],
+        adminOrders || [],
+        deliveryPartnersData?.items || [],
+        customersData?.customers || []
+      );
+      if (!allowed) {
+        setSelectedEnquiry(null);
+      }
+    }
+  }, [
+    selectedEnquiry,
+    isZoneAdmin,
+    assignedZoneId,
+    assignedZoneName,
+    effectiveCityName,
+    restaurantsData,
+    adminOrders,
+    deliveryPartnersData,
+    customersData,
+  ]);
 
   useEffect(() => {
     if (selectedEnquiry && activeTicketMessages && activeTicketMessages.length > 0) {
@@ -312,11 +712,62 @@ export function ContactUsPage() {
       {/* Header & Quick Action */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: '0 0 4px 0' }}>
-            Contact Us & Support Operations Desk
-          </h1>
-          <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>
-            Manage customer, restaurant & delivery partner enquiries with direct message replies and resolution tracking
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>
+              Contact Us & Support Operations Desk
+            </h1>
+            {isSuperAdmin ? (
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  backgroundColor: '#F0FDF4',
+                  color: '#166534',
+                  border: '1px solid #BBF7D0',
+                  padding: '4px 10px',
+                  borderRadius: 9999,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+                title="Super Admin: Unrestricted global view across all operational zones"
+              >
+                <span>👑</span>
+                <span>Global View (All Zones)</span>
+              </span>
+            ) : isZoneAdmin && (effectiveZoneName || assignedZoneId) ? (
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  backgroundColor: '#F8FAFC',
+                  color: '#1E293B',
+                  border: '1px solid #E2E8F0',
+                  padding: '4px 10px',
+                  borderRadius: 9999,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+                title={`Assigned Operating Territory: ${effectiveZoneName || assignedZoneId}`}
+              >
+                <span>📍</span>
+                <span>{effectiveZoneName || assignedZoneId}</span>
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: '#22C55E',
+                  }}
+                />
+              </span>
+            ) : null}
+          </div>
+          <p style={{ fontSize: 14, color: '#6B7280', margin: '4px 0 0 0' }}>
+            {isZoneAdmin
+              ? `Displaying support enquiries, tickets & messages restricted to ${effectiveZoneName || assignedZoneId}`
+              : 'Manage customer, restaurant & delivery partner enquiries with direct message replies and resolution tracking across all zones'}
           </p>
         </div>
 

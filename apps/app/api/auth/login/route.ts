@@ -143,7 +143,145 @@ export async function POST(request: Request) {
   const normalizedEmail = email.toLowerCase();
   const demo = DEMO_ACCOUNTS[normalizedEmail];
 
-  // 1. Check if user exists in ADMIN_USERS_STORE (provisioned by Super Admin)
+  // 1. First, attempt live authentication against backend (https://api.foodie.kwiko.org)
+  try {
+    const primaryUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/auth/login`;
+    const payload = JSON.stringify({
+      email,
+      password,
+      deviceInfo: body.deviceInfo ?? 'Admin Panel',
+    });
+    const headers = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    };
+
+    const { response: upstream, error: fetchErr } = await safeFetch(primaryUrl, {
+      method: 'POST',
+      headers,
+      body: payload,
+      timeoutMs: 4000,
+    });
+
+    if (!fetchErr && upstream && upstream.ok) {
+      const envelope = (await upstream.json()) as {
+        success?: boolean;
+        data?: {
+          accessToken?: string;
+          refreshToken?: string;
+          userId?: string;
+          userType?: string;
+          role?: string | null;
+          assignedZoneId?: string | null;
+          assignedZoneName?: string | null;
+          fullName?: string | null;
+        } | null;
+        error?: { code?: string; message?: string; fields?: unknown } | null;
+        meta?: {
+          timestamp?: string;
+          requestId?: string;
+          pagination?: unknown;
+        } | null;
+      };
+
+      const meta = envelope?.meta ?? {
+        timestamp: new Date().toISOString(),
+        requestId: crypto.randomUUID(),
+        pagination: null,
+      };
+
+      if (
+        envelope?.success &&
+        envelope.data?.accessToken &&
+        envelope.data?.refreshToken &&
+        envelope.data.userId &&
+        envelope.data.userType === 'ADMIN' &&
+        envelope.data.role
+      ) {
+        const userRole = envelope.data.role;
+
+        // Cross-zone validation if expectedZoneId provided
+        if (body.expectedZoneId && userRole !== 'SUPER_ADMIN') {
+          const expected = body.expectedZoneId.trim().toLowerCase();
+          const actual = (envelope.data.assignedZoneId || '').trim().toLowerCase();
+          const isEquivalent =
+            actual === expected ||
+            ((actual.includes('bangalore') || actual.includes('bengaluru')) && (expected.includes('bangalore') || expected.includes('bengaluru'))) ||
+            ((actual.includes('tumkur') || actual.includes('tumakuru')) && (expected.includes('tumkur') || expected.includes('tumakuru')));
+
+          if (actual && !isEquivalent) {
+            return NextResponse.json({
+              success: false,
+              data: null,
+              error: {
+                code: 'FORBIDDEN',
+                message: `Cross-zone authentication denied: This account belongs to '${envelope.data.assignedZoneName || envelope.data.assignedZoneId}' and cannot sign in as a different zone admin.`,
+                fields: null,
+              },
+              meta,
+            }, { status: 403 });
+          }
+        }
+
+        const effectiveZoneId = (body.expectedZoneId && userRole !== 'SUPER_ADMIN')
+          ? body.expectedZoneId
+          : (envelope.data.assignedZoneId || null);
+
+        const response = NextResponse.json(
+          {
+            success: true,
+            data: {
+              userId: envelope.data.userId,
+              userType: 'ADMIN',
+              role: userRole,
+              fullName: envelope.data.fullName || 'Admin User',
+              assignedZoneId: userRole === 'SUPER_ADMIN' ? null : effectiveZoneId,
+              assignedZoneName: userRole === 'SUPER_ADMIN' ? null : (envelope.data.assignedZoneName || null),
+            },
+            error: null,
+            meta,
+          },
+          { status: upstream.status },
+        );
+        applyAuthCookies(response, request, {
+          accessToken: envelope.data.accessToken,
+          refreshToken: envelope.data.refreshToken,
+        });
+
+        response.cookies.set('foodie_user_role', userRole, {
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 86400,
+        });
+
+        if (effectiveZoneId && userRole !== 'SUPER_ADMIN') {
+          response.cookies.set('foodie_user_assigned_zone', effectiveZoneId, {
+            path: '/',
+            sameSite: 'lax',
+            maxAge: 86400,
+          });
+          response.cookies.set('foodie_active_zone_id', effectiveZoneId, {
+            path: '/',
+            sameSite: 'lax',
+            maxAge: 86400,
+          });
+          if (envelope.data.assignedZoneName) {
+            response.cookies.set('foodie_active_zone_name', envelope.data.assignedZoneName, {
+              path: '/',
+              sameSite: 'lax',
+              maxAge: 86400,
+            });
+          }
+        }
+
+        return response;
+      }
+    }
+  } catch {
+    // Upstream offline or error, continue to local store fallback
+  }
+
+  // 2. Check if user exists in ADMIN_USERS_STORE (provisioned by Super Admin or in unit tests)
   const globalAny = global as unknown as Record<string, unknown>;
   if (!globalAny.ADMIN_USERS_STORE) {
     globalAny.ADMIN_USERS_STORE = getDefaultAdminUsers();
@@ -286,285 +424,81 @@ export async function POST(request: Request) {
     }
   }
 
-  try {
-    const primaryUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/auth/login`;
-    const payload = JSON.stringify({
-      email,
-      password,
-      deviceInfo: body.deviceInfo ?? 'Admin Panel',
+  if (demo && (password === 'ChangeMe@123' || password === 'Admin@12345' || password === 'admin' || password === 'password' || password === 'BlrSecure@2026' || password === 'TmkSecure@2026')) {
+    const assignedZoneId = body.expectedZoneId || demo.assignedZoneId || null;
+    const assignedZoneName = demo.assignedZoneName || null;
+
+    const response = NextResponse.json(
+      {
+        success: true,
+        data: {
+          userId: demo.userId,
+          userType: 'ADMIN',
+          role: demo.role,
+          assignedZoneId,
+          assignedZoneName,
+        },
+        error: null,
+        meta: {
+          timestamp: new Date().toISOString(),
+          requestId: crypto.randomUUID(),
+          pagination: null,
+        },
+      },
+      { status: 200 },
+    );
+    applyAuthCookies(response, request, {
+      accessToken: `demo-admin-${demo.tokenKey}-token`,
+      refreshToken: `demo-refresh-${demo.tokenKey}-token`,
     });
-    const headers = {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    };
 
-    const { response: upstream, error: fetchErr } = await safeFetch(primaryUrl, {
-      method: 'POST',
-      headers,
-      body: payload,
-      timeoutMs: 2000,
+    response.cookies.set('foodie_user_role', demo.role, {
+      path: '/',
+      sameSite: 'lax',
+      maxAge: 86400,
     });
 
-    if (!fetchErr && upstream && upstream.ok) {
-      const envelope = (await upstream.json()) as {
-        success?: boolean;
-        data?: {
-          accessToken?: string;
-          refreshToken?: string;
-          userId?: string;
-          userType?: string;
-          role?: string | null;
-          assignedZoneId?: string | null;
-          assignedZoneName?: string | null;
-          fullName?: string | null;
-        } | null;
-        error?: { code?: string; message?: string; fields?: unknown } | null;
-        meta?: {
-          timestamp?: string;
-          requestId?: string;
-          pagination?: unknown;
-        } | null;
-      };
+    if (assignedZoneId) {
+      response.cookies.set('foodie_user_assigned_zone', assignedZoneId, {
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 86400,
+      });
+      response.cookies.set('foodie_active_zone_id', assignedZoneId, {
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 86400,
+      });
+      response.cookies.set('foodie_active_zone_name', assignedZoneName || assignedZoneId, {
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 86400,
+      });
+    } else {
+      response.cookies.delete('foodie_user_assigned_zone');
+    }
 
-      const meta = envelope?.meta ?? {
+    return response;
+  }
+
+  const response = NextResponse.json(
+    {
+      success: false,
+      data: null,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Invalid email or password.',
+        fields: null,
+      },
+      meta: {
         timestamp: new Date().toISOString(),
         requestId: crypto.randomUUID(),
         pagination: null,
-      };
-
-      if (
-        envelope?.success &&
-        envelope.data?.accessToken &&
-        envelope.data?.refreshToken &&
-        envelope.data.userId &&
-        envelope.data.userType === 'ADMIN' &&
-        envelope.data.role
-      ) {
-        const response = NextResponse.json(
-          {
-            success: true,
-            data: {
-              userId: envelope.data.userId,
-              userType: 'ADMIN',
-              role: envelope.data.role,
-              fullName: envelope.data.fullName || 'Admin User',
-              assignedZoneId: envelope.data.role === 'SUPER_ADMIN' ? null : (envelope.data.assignedZoneId || null),
-              assignedZoneName: envelope.data.role === 'SUPER_ADMIN' ? null : (envelope.data.assignedZoneName || null),
-            },
-            error: null,
-            meta,
-          },
-          { status: upstream.status },
-        );
-        applyAuthCookies(response, request, {
-          accessToken: envelope.data.accessToken,
-          refreshToken: envelope.data.refreshToken,
-        });
-
-        response.cookies.set('foodie_user_role', envelope.data.role, {
-          path: '/',
-          sameSite: 'lax',
-          maxAge: 86400,
-        });
-
-        if (envelope.data.assignedZoneId && envelope.data.role !== 'SUPER_ADMIN') {
-          response.cookies.set('foodie_user_assigned_zone', envelope.data.assignedZoneId, {
-            path: '/',
-            sameSite: 'lax',
-            maxAge: 86400,
-          });
-          response.cookies.set('foodie_active_zone_id', envelope.data.assignedZoneId, {
-            path: '/',
-            sameSite: 'lax',
-            maxAge: 86400,
-          });
-          if (envelope.data.assignedZoneName) {
-            response.cookies.set('foodie_active_zone_name', envelope.data.assignedZoneName, {
-              path: '/',
-              sameSite: 'lax',
-              maxAge: 86400,
-            });
-          }
-        }
-
-        return response;
-      }
-    }
-
-    // If upstream returns 401 or non-OK, check if this is a known admin role
-    if (demo && (password === 'ChangeMe@123' || password === 'Admin@12345' || password === 'admin' || password === 'password')) {
-      let realToken = `demo-admin-${demo.tokenKey}-token`;
-      let realRefresh = `demo-refresh-${demo.tokenKey}-token`;
-
-      try {
-        const devLoginRes = await safeFetch(`${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ email: 'admin@foodie.local', password: 'ChangeMe@123', deviceInfo: 'Foodie Admin Dev' }),
-          timeoutMs: 1000,
-        });
-        if (devLoginRes.response && devLoginRes.response.ok) {
-          const devJson = await devLoginRes.response.json();
-          if (devJson?.data?.accessToken) {
-            realToken = devJson.data.accessToken;
-            realRefresh = devJson.data.refreshToken || realRefresh;
-          }
-        }
-      } catch {}
-
-      const assignedZoneId = demo.assignedZoneId || null;
-      const assignedZoneName = demo.assignedZoneName || null;
-
-      const effectiveAssignedZoneId = body.expectedZoneId || assignedZoneId;
-
-      const response = NextResponse.json(
-        {
-          success: true,
-          data: {
-            userId: demo.userId,
-            userType: 'ADMIN',
-            role: demo.role,
-            assignedZoneId: effectiveAssignedZoneId,
-            assignedZoneName,
-          },
-          error: null,
-          meta: {
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-            pagination: null,
-          },
-        },
-        { status: 200 },
-      );
-      applyAuthCookies(response, request, {
-        accessToken: realToken,
-        refreshToken: realRefresh,
-      });
-
-      response.cookies.set('foodie_user_role', demo.role, {
-        path: '/',
-        sameSite: 'lax',
-        maxAge: 86400,
-      });
-
-      if (effectiveAssignedZoneId) {
-        response.cookies.set('foodie_user_assigned_zone', effectiveAssignedZoneId, {
-          path: '/',
-          sameSite: 'lax',
-          maxAge: 86400,
-        });
-        response.cookies.set('foodie_active_zone_id', effectiveAssignedZoneId, {
-          path: '/',
-          sameSite: 'lax',
-          maxAge: 86400,
-        });
-        response.cookies.set('foodie_active_zone_name', assignedZoneName || effectiveAssignedZoneId, {
-          path: '/',
-          sameSite: 'lax',
-          maxAge: 86400,
-        });
-      } else {
-        response.cookies.delete('foodie_user_assigned_zone');
-      }
-
-      return response;
-    }
-
-    const response = NextResponse.json(
-      {
-        success: false,
-        data: null,
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Invalid email or password.',
-          fields: null,
-        },
-        meta: {
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-          pagination: null,
-        },
       },
-      { status: 401 },
-    );
-    clearAuthCookies(response, request);
-    return response;
-  } catch {
-    if (demo && (password === 'ChangeMe@123' || password === 'Admin@12345' || password === 'admin' || password === 'password' || password === 'BlrSecure@2026' || password === 'TmkSecure@2026')) {
-      const assignedZoneId = body.expectedZoneId || demo.assignedZoneId || null;
-      const assignedZoneName = demo.assignedZoneName || null;
-
-      const response = NextResponse.json(
-        {
-          success: true,
-          data: {
-            userId: demo.userId,
-            userType: 'ADMIN',
-            role: demo.role,
-            assignedZoneId,
-            assignedZoneName,
-          },
-          error: null,
-          meta: {
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-            pagination: null,
-          },
-        },
-        { status: 200 },
-      );
-      applyAuthCookies(response, request, {
-        accessToken: `demo-admin-${demo.tokenKey}-token`,
-        refreshToken: `demo-refresh-${demo.tokenKey}-token`,
-      });
-
-      response.cookies.set('foodie_user_role', demo.role, {
-        path: '/',
-        sameSite: 'lax',
-        maxAge: 86400,
-      });
-
-      if (assignedZoneId) {
-        response.cookies.set('foodie_user_assigned_zone', assignedZoneId, {
-          path: '/',
-          sameSite: 'lax',
-          maxAge: 86400,
-        });
-        response.cookies.set('foodie_active_zone_id', assignedZoneId, {
-          path: '/',
-          sameSite: 'lax',
-          maxAge: 86400,
-        });
-        response.cookies.set('foodie_active_zone_name', assignedZoneName || assignedZoneId, {
-          path: '/',
-          sameSite: 'lax',
-          maxAge: 86400,
-        });
-      } else {
-        response.cookies.delete('foodie_user_assigned_zone');
-      }
-
-      return response;
-    }
-
-    const response = NextResponse.json(
-      {
-        success: false,
-        data: null,
-        error: {
-          code: 'NETWORK_ERROR',
-          message: 'Backend server unreachable. Please verify system status.',
-          fields: null,
-        },
-        meta: {
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-          pagination: null,
-        },
-      },
-      { status: 503 },
-    );
-    clearAuthCookies(response, request);
-    return response;
-  }
+    },
+    { status: 401 },
+  );
+  clearAuthCookies(response, request);
+  return response;
 }
+
