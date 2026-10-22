@@ -92,10 +92,10 @@ export async function GET(request: Request) {
       email = 'darkstore@foodie.local';
     }
 
-    if (assignedZoneId && assignedZoneId !== 'ALL') {
-      if (role === 'SUPER_ADMIN') {
-        role = 'OPS';
-      }
+    if (role === 'SUPER_ADMIN') {
+      assignedZoneId = null;
+      assignedZoneName = null;
+    } else if (assignedZoneId && assignedZoneId !== 'ALL') {
       if (!assignedZoneName) {
         assignedZoneName = assignedZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone';
       }

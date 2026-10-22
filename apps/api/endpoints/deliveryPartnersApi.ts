@@ -47,6 +47,8 @@ export interface DeliveryShift {
   endTime: string;
   durationHours?: string;
   status: string;
+  zoneId?: string;
+  zoneName?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -55,6 +57,17 @@ export interface CreateShiftRequest {
   shiftName: string;
   startTime: string;
   endTime: string;
+  zoneId?: string;
+  zoneName?: string;
+}
+
+export interface UpdateShiftRequest {
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  status?: string;
+  zoneId?: string;
+  zoneName?: string;
 }
 
 export const deliveryPartnersApi = baseApi.injectEndpoints({
@@ -139,8 +152,13 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'Admin', id: 'DELIVERY_PRICING' }],
     }),
-    getAdminShifts: builder.query<DeliveryShift[], void>({
-      query: () => '/api/bff/admin/shifts',
+    getAdminShifts: builder.query<DeliveryShift[], { zoneId?: string } | void>({
+      query: (params) => {
+        if (params && params.zoneId && params.zoneId !== 'ALL') {
+          return `/api/bff/admin/shifts?zoneId=${encodeURIComponent(params.zoneId)}`;
+        }
+        return '/api/bff/admin/shifts';
+      },
       transformResponse: (response: any): DeliveryShift[] => {
         const raw = response?.data || response;
         if (Array.isArray(raw)) return raw;
@@ -154,6 +172,14 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
         url: '/api/bff/admin/shifts',
         method: 'POST',
         body,
+      }),
+      invalidatesTags: [{ type: 'Admin', id: 'SHIFT_LIST' }],
+    }),
+    updateDeliveryShift: builder.mutation<DeliveryShift, { shiftId: string; data: UpdateShiftRequest }>({
+      query: ({ shiftId, data }) => ({
+        url: `/api/bff/admin/shifts/${shiftId}`,
+        method: 'PUT',
+        body: data,
       }),
       invalidatesTags: [{ type: 'Admin', id: 'SHIFT_LIST' }],
     }),
@@ -175,5 +201,6 @@ export const {
   useUpdateDeliveryPricingMutation,
   useGetAdminShiftsQuery,
   useCreateDeliveryShiftMutation,
+  useUpdateDeliveryShiftMutation,
   useDeleteDeliveryShiftMutation,
 } = deliveryPartnersApi;

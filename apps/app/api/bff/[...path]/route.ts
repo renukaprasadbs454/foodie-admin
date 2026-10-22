@@ -2992,7 +2992,16 @@ function syncShiftsToDisk(backendShifts: any[]) {
     if (s && (s.shiftId || s.id)) map.set(s.shiftId || s.id, s);
   }
   for (const s of backendShifts) {
-    if (s && (s.shiftId || s.id)) map.set(s.shiftId || s.id, s);
+    const id = s.shiftId || s.id;
+    if (!id) continue;
+    const existing = map.get(id);
+    map.set(id, {
+      ...existing,
+      ...s,
+      shiftId: id,
+      zoneId: existing?.zoneId || s.zoneId || null,
+      zoneName: existing?.zoneName || s.zoneName || null,
+    });
   }
   saveDiskShifts(Array.from(map.values()));
 }
@@ -3012,23 +3021,99 @@ function getShiftCandidateBaseUrls(): string[] {
   return urls;
 }
 
+function isShiftZoneMatch(shiftZoneId?: string | null, targetZoneId?: string | null): boolean {
+  if (!shiftZoneId || !targetZoneId) return false;
+  const a = shiftZoneId.trim().toLowerCase();
+  const b = targetZoneId.trim().toLowerCase();
+  if (a === b) return true;
+  const normA = a.startsWith('dz-') ? a.substring(3) : a;
+  const normB = b.startsWith('dz-') ? b.substring(3) : b;
+  if (normA === normB) return true;
+  return a.includes(b) || b.includes(a) || normA.includes(normB) || normB.includes(normA);
+}
+
+function resolveBffZoneName(zoneId: string, requestedZoneName?: string): string {
+  if (requestedZoneName && requestedZoneName.trim()) return requestedZoneName.trim();
+  try {
+    const persisted = loadPersistentZonesState();
+    if (Array.isArray(persisted?.dynamicZones)) {
+      const found = persisted.dynamicZones.find((z: any) => isShiftZoneMatch(z.id, zoneId));
+      if (found && (found.zoneName || found.cityName)) {
+        return found.zoneName || found.cityName;
+      }
+    }
+  } catch {}
+  try {
+    const zonesFile = path.join(process.cwd(), 'data', 'location_zones.json');
+    if (fs.existsSync(zonesFile)) {
+      const raw = JSON.parse(fs.readFileSync(zonesFile, 'utf-8'));
+      if (Array.isArray(raw)) {
+        const found = raw.find((z: any) => isShiftZoneMatch(z.id, zoneId));
+        if (found && (found.zoneName || found.cityName)) {
+          return found.zoneName || found.cityName;
+        }
+      }
+    }
+  } catch {}
+  const clean = zoneId.startsWith('dz-') ? zoneId.substring(3) : zoneId;
+  return clean.charAt(0).toUpperCase() + clean.slice(1) + ' Zone';
+}
+
 async function handleAdminShifts(request: Request, targetPath: string, accessToken: string | null) {
   const method = request.method;
   const incomingUrl = new URL(request.url);
   const candidateUrls = getShiftCandidateBaseUrls();
   const token = accessToken || 'demo-admin-token';
 
+  const cookieHeader = request.headers.get('cookie') || '';
+  const cookieRole =
+    cookieHeader.match(/foodie_user_role=([^;]+)/)?.[1] ||
+    cookieHeader.match(/foodie_admin_role=([^;]+)/)?.[1] ||
+    null;
+  const isSuperAdminUser = Boolean(cookieRole && decodeURIComponent(cookieRole).toUpperCase() === 'SUPER_ADMIN');
+  const userAssignedZone = cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1]
+    ? decodeURIComponent(cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)![1])
+    : null;
+
+  const urlZone = incomingUrl.searchParams.get('zoneId');
+  const headerZone = request.headers.get('x-active-zone-id') || request.headers.get('x-zone-id');
+  const cookieZone = cookieHeader.match(/foodie_active_zone_id=([^;]+)/)?.[1]
+    ? decodeURIComponent(cookieHeader.match(/foodie_active_zone_id=([^;]+)/)![1])
+    : null;
+
+  let effectiveZoneId: string | null = null;
+  if (!isSuperAdminUser) {
+    effectiveZoneId =
+      (userAssignedZone && userAssignedZone !== 'ALL' ? userAssignedZone : null) ||
+      (urlZone && urlZone !== 'ALL' ? urlZone : null) ||
+      (headerZone && headerZone !== 'ALL' ? headerZone : null) ||
+      (cookieZone && cookieZone !== 'ALL' ? cookieZone : null) ||
+      null;
+  } else {
+    effectiveZoneId =
+      (urlZone && urlZone !== 'ALL' ? urlZone : null) ||
+      (headerZone && headerZone !== 'ALL' ? headerZone : null) ||
+      (cookieZone && cookieZone !== 'ALL' ? cookieZone : null) ||
+      null;
+  }
+
   // 1. GET Shifts
   if (method === 'GET') {
     for (const baseUrl of candidateUrls) {
       try {
         const url = `${baseUrl.replace(/\/$/, '')}/api/v1/${targetPath}${incomingUrl.search}`;
+        const headers: Record<string, string> = {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        };
+        if (effectiveZoneId && effectiveZoneId !== 'ALL') {
+          headers['X-Active-Zone-Id'] = effectiveZoneId;
+          headers['X-Zone-Id'] = effectiveZoneId;
+        }
+
         const { response: upstream } = await safeFetch(url, {
           method: 'GET',
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
           timeoutMs: 3500,
         });
 
@@ -3037,7 +3122,17 @@ async function handleAdminShifts(request: Request, targetPath: string, accessTok
           const items = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : null);
           if (items) {
             syncShiftsToDisk(items);
-            return NextResponse.json(json, { status: 200 });
+            const allEnriched = loadDiskShifts().filter((s: any) => s.status !== 'DEACTIVATED');
+            let stored = allEnriched;
+            if (effectiveZoneId && effectiveZoneId !== 'ALL') {
+              stored = allEnriched.filter((s: any) => s.zoneId && isShiftZoneMatch(s.zoneId, effectiveZoneId));
+            }
+            return NextResponse.json({
+              success: true,
+              data: stored,
+              error: null,
+              meta: json.meta || { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+            }, { status: 200 });
           }
         }
       } catch {
@@ -3045,8 +3140,13 @@ async function handleAdminShifts(request: Request, targetPath: string, accessTok
       }
     }
 
-    // Fallback to permanent disk storage
-    const stored = loadDiskShifts().filter((s: any) => s.status !== 'DEACTIVATED');
+    // Fallback to permanent disk storage with zone isolation
+    const allStored = loadDiskShifts().filter((s: any) => s.status !== 'DEACTIVATED');
+    let stored = allStored;
+    if (effectiveZoneId && effectiveZoneId !== 'ALL') {
+      stored = allStored.filter((s: any) => s.zoneId && isShiftZoneMatch(s.zoneId, effectiveZoneId));
+    }
+
     return NextResponse.json({
       success: true,
       data: stored,
@@ -3070,6 +3170,14 @@ async function handleAdminShifts(request: Request, targetPath: string, accessTok
     const shiftName = (body?.shiftName || '').trim();
     const startTime = (body?.startTime || '').trim();
     const endTime = (body?.endTime || '').trim();
+
+    let targetZoneId: string;
+    if (!isSuperAdminUser && userAssignedZone) {
+      targetZoneId = userAssignedZone.trim();
+    } else {
+      targetZoneId = (body?.zoneId || effectiveZoneId || 'dz-bangalore').trim();
+    }
+    const targetZoneName = resolveBffZoneName(targetZoneId, body?.zoneName);
 
     if (!shiftName) {
       return NextResponse.json({
@@ -3111,18 +3219,29 @@ async function handleAdminShifts(request: Request, targetPath: string, accessTok
       }, { status: 400 });
     }
 
-    const payload = JSON.stringify({ shiftName, startTime, endTime });
+    const payload = JSON.stringify({
+      shiftName,
+      startTime,
+      endTime,
+      zoneId: targetZoneId,
+      zoneName: targetZoneName,
+    });
 
     for (const baseUrl of candidateUrls) {
       try {
         const url = `${baseUrl.replace(/\/$/, '')}/api/v1/admin/shifts`;
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        };
+        if (targetZoneId) {
+          headers['X-Active-Zone-Id'] = targetZoneId;
+        }
+
         const { response: upstream } = await safeFetch(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
           body: payload,
           timeoutMs: 4000,
         });
@@ -3132,12 +3251,29 @@ async function handleAdminShifts(request: Request, targetPath: string, accessTok
             const json = await upstream.json();
             purgeBffCache('admin/shifts');
             purgeBffCache('delivery/shifts');
-            if (json?.data) {
-              const current = loadDiskShifts();
-              current.unshift(json.data);
-              saveDiskShifts(current);
-            }
-            return NextResponse.json(json, { status: 201 });
+            const created = {
+              ...(json?.data || {}),
+              shiftId: json?.data?.shiftId || json?.data?.id || crypto.randomUUID(),
+              shiftName,
+              startTime,
+              endTime,
+              durationHours: json?.data?.durationHours || calculateShiftDuration(startTime, endTime),
+              status: json?.data?.status || 'ACTIVE',
+              zoneId: targetZoneId,
+              zoneName: targetZoneName,
+              createdAt: json?.data?.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            const current = loadDiskShifts();
+            const filtered = current.filter((s: any) => s.shiftId !== created.shiftId && s.id !== created.shiftId);
+            filtered.unshift(created);
+            saveDiskShifts(filtered);
+            return NextResponse.json({
+              success: true,
+              data: created,
+              error: null,
+              meta: json.meta || { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+            }, { status: 201 });
           }
 
           if (upstream.status === 400 || upstream.status === 409) {
@@ -3152,21 +3288,22 @@ async function handleAdminShifts(request: Request, targetPath: string, accessTok
       }
     }
 
-    // Fallback: persist shift in permanent database storage
+    // Fallback: persist shift in permanent database storage (zone-scoped duplicate check)
     const current = loadDiskShifts();
     const existing = current.find(
       (s: any) =>
         s.shiftName.toLowerCase() === shiftName.toLowerCase() &&
         s.startTime === startTime &&
         s.endTime === endTime &&
-        s.status !== 'DEACTIVATED'
+        s.status !== 'DEACTIVATED' &&
+        isShiftZoneMatch(s.zoneId, targetZoneId)
     );
     if (existing) {
       return NextResponse.json({
         success: false,
         error: {
           code: 'VALIDATION_FAILED',
-          message: `An active shift with name '${shiftName}' (${startTime} – ${endTime}) already exists.`,
+          message: `An active shift with name '${shiftName}' (${startTime} – ${endTime}) already exists in ${targetZoneName}.`,
         },
       }, { status: 400 });
     }
@@ -3179,6 +3316,8 @@ async function handleAdminShifts(request: Request, targetPath: string, accessTok
       endTime,
       durationHours: duration,
       status: 'ACTIVE',
+      zoneId: targetZoneId,
+      zoneName: targetZoneName,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -3196,10 +3335,162 @@ async function handleAdminShifts(request: Request, targetPath: string, accessTok
     }, { status: 201 });
   }
 
-  // 3. DELETE / PUT / PATCH
+  // 3. PUT / PATCH (Update Shift)
+  if (method === 'PUT' || method === 'PATCH') {
+    const shiftIdMatch = targetPath.match(/shifts\/([^/]+)$/);
+    const shiftId = shiftIdMatch ? shiftIdMatch[1] : null;
+    if (!shiftId) {
+      return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Shift ID is required for update.' } }, { status: 400 });
+    }
+
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'VALIDATION_FAILED', message: 'Request body must be valid JSON.' },
+      }, { status: 400 });
+    }
+
+    const current = loadDiskShifts();
+    const shiftIndex = current.findIndex((s: any) => (s.shiftId === shiftId || s.id === shiftId));
+
+    if (!isSuperAdminUser && userAssignedZone) {
+      if (shiftIndex >= 0) {
+        const existingShift = current[shiftIndex];
+        if (existingShift.zoneId && !isShiftZoneMatch(existingShift.zoneId, userAssignedZone)) {
+          return NextResponse.json({
+            success: false,
+            error: {
+              code: 'FORBIDDEN',
+              message: `Unauthorized cross-zone update: You can only edit shifts within your assigned zone '${userAssignedZone}'.`,
+            },
+          }, { status: 403 });
+        }
+      }
+    }
+
+    const shiftName = (body?.shiftName || (shiftIndex >= 0 ? current[shiftIndex].shiftName : '')).trim();
+    const startTime = (body?.startTime || (shiftIndex >= 0 ? current[shiftIndex].startTime : '')).trim();
+    const endTime = (body?.endTime || (shiftIndex >= 0 ? current[shiftIndex].endTime : '')).trim();
+    const status = (body?.status || (shiftIndex >= 0 ? current[shiftIndex].status : 'ACTIVE')).trim();
+
+    let targetZoneId: string;
+    if (!isSuperAdminUser && userAssignedZone) {
+      targetZoneId = userAssignedZone.trim();
+    } else {
+      targetZoneId = (body?.zoneId || (shiftIndex >= 0 ? current[shiftIndex].zoneId : null) || effectiveZoneId || 'dz-bangalore').trim();
+    }
+    const targetZoneName = resolveBffZoneName(targetZoneId, body?.zoneName || (shiftIndex >= 0 ? current[shiftIndex].zoneName : undefined));
+
+    const duration = calculateShiftDuration(startTime, endTime);
+    const payload = JSON.stringify({
+      shiftName,
+      startTime,
+      endTime,
+      status,
+      zoneId: targetZoneId,
+      zoneName: targetZoneName,
+    });
+
+    for (const baseUrl of candidateUrls) {
+      try {
+        const url = `${baseUrl.replace(/\/$/, '')}/api/v1/${targetPath}`;
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        };
+        if (targetZoneId) {
+          headers['X-Active-Zone-Id'] = targetZoneId;
+        }
+
+        const { response: upstream } = await safeFetch(url, {
+          method: 'PUT',
+          headers,
+          body: payload,
+          timeoutMs: 4000,
+        });
+
+        if (upstream && (upstream.ok || upstream.status === 200)) {
+          const json = await upstream.json();
+          purgeBffCache('admin/shifts');
+          purgeBffCache('delivery/shifts');
+          if (shiftIndex >= 0) {
+            current[shiftIndex] = {
+              ...current[shiftIndex],
+              ...(json?.data || {}),
+              shiftName,
+              startTime,
+              endTime,
+              status,
+              durationHours: duration,
+              zoneId: targetZoneId || current[shiftIndex].zoneId,
+              zoneName: targetZoneName || current[shiftIndex].zoneName,
+              updatedAt: new Date().toISOString(),
+            };
+            saveDiskShifts(current);
+            return NextResponse.json({
+              success: true,
+              data: current[shiftIndex],
+              error: null,
+              meta: json.meta || { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+            }, { status: 200 });
+          }
+          return NextResponse.json(json, { status: 200 });
+        }
+      } catch {}
+    }
+
+    // Disk fallback
+    if (shiftIndex >= 0) {
+      current[shiftIndex] = {
+        ...current[shiftIndex],
+        shiftName,
+        startTime,
+        endTime,
+        durationHours: duration,
+        status,
+        zoneId: targetZoneId,
+        zoneName: targetZoneName,
+        updatedAt: new Date().toISOString(),
+      };
+      saveDiskShifts(current);
+      purgeBffCache('admin/shifts');
+      purgeBffCache('delivery/shifts');
+      return NextResponse.json({
+        success: true,
+        data: current[shiftIndex],
+        error: null,
+        meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+      }, { status: 200 });
+    }
+
+    return NextResponse.json({
+      success: false,
+      error: { code: 'RESOURCE_NOT_FOUND', message: `Shift not found with id: ${shiftId}` },
+    }, { status: 404 });
+  }
+
+  // 4. DELETE
   if (method === 'DELETE') {
     const shiftIdMatch = targetPath.match(/shifts\/([^/]+)$/);
     const shiftId = shiftIdMatch ? shiftIdMatch[1] : null;
+
+    const current = loadDiskShifts();
+    if (shiftId && !isSuperAdminUser && userAssignedZone) {
+      const shift = current.find((s: any) => s.shiftId === shiftId || s.id === shiftId);
+      if (shift && shift.zoneId && !isShiftZoneMatch(shift.zoneId, userAssignedZone)) {
+        return NextResponse.json({
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Unauthorized cross-zone delete: You can only delete shifts within your assigned zone '${userAssignedZone}'.`,
+          },
+        }, { status: 403 });
+      }
+    }
 
     for (const baseUrl of candidateUrls) {
       try {
@@ -3213,7 +3504,6 @@ async function handleAdminShifts(request: Request, targetPath: string, accessTok
     }
 
     if (shiftId) {
-      const current = loadDiskShifts();
       const updated = current.filter((s: any) => s.shiftId !== shiftId && s.id !== shiftId);
       saveDiskShifts(updated);
     }

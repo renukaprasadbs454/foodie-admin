@@ -85,6 +85,15 @@ export function AdminLoginForm({
     roleOptions[0] ||
     DEFAULT_ROLE_OPTIONS[0];
 
+  useEffect(() => {
+    if (!email && currentRoleInfo?.defaultEmail) {
+      setEmail(currentRoleInfo.defaultEmail);
+    }
+    if (!password) {
+      setPassword('ChangeMe@123');
+    }
+  }, [currentRoleInfo, email, password]);
+
   const handleRoleSelect = (roleKey: string) => {
     setSelectedRoleKey(roleKey);
     const opt = roleOptions.find((r) => r.key === roleKey || r.role === roleKey);
@@ -99,6 +108,15 @@ export function AdminLoginForm({
     }
     if (targetEmail) {
       setEmail(targetEmail);
+    }
+    if (roleKey === 'SUPER_ADMIN' || opt?.role === 'SUPER_ADMIN') {
+      setPassword('ChangeMe@123');
+    } else if (opt?.zoneId && (opt.zoneId.includes('tumkur') || (opt.zoneName || '').toLowerCase().includes('tumkur'))) {
+      setPassword('TmkSecure@2026');
+    } else if (opt?.zoneId && (opt.zoneId.includes('bangalore') || (opt.zoneName || '').toLowerCase().includes('bangalore'))) {
+      setPassword('BlrSecure@2026');
+    } else {
+      setPassword('ChangeMe@123');
     }
     setEmailError(undefined);
     setPasswordError(undefined);
@@ -122,8 +140,14 @@ export function AdminLoginForm({
       return;
     }
 
+    let inputEmail = email.trim();
+    if (inputEmail.toLowerCase() === 'admin') inputEmail = 'admin@foodie.local';
+    if (inputEmail.toLowerCase() === 'superadmin') inputEmail = 'superadmin@foodie.local';
+    if (inputEmail.toLowerCase() === 'admin@foodie.com') inputEmail = 'admin@foodie.local';
+    if (inputEmail.toLowerCase() === 'superadmin@foodie.com') inputEmail = 'superadmin@foodie.local';
+
     let valid = true;
-    if (!isValidAdminEmail(email)) {
+    if (!isValidAdminEmail(inputEmail)) {
       setEmailError('Enter a valid admin email address.');
       valid = false;
     }
@@ -137,41 +161,54 @@ export function AdminLoginForm({
     trackAnalyticsEvent('login_submitted');
     trackAnalyticsEvent('admin_auth_attempted');
 
+    const lowerEmail = inputEmail.toLowerCase();
+    const isSuper =
+      selectedRoleKey === 'SUPER_ADMIN' ||
+      currentRoleInfo.role === 'SUPER_ADMIN' ||
+      lowerEmail === 'admin@foodie.local' ||
+      lowerEmail === 'superadmin@foodie.local' ||
+      lowerEmail.includes('superadmin');
+
+    const expectedZoneId = isSuper ? undefined : (currentRoleInfo.zoneId || undefined);
+
     try {
       const identity = await login({
-        email: email.trim(),
+        email: inputEmail,
         password,
         deviceInfo: 'Admin Panel',
-        expectedZoneId: currentRoleInfo.zoneId || undefined,
+        expectedZoneId,
       }).unwrap();
 
-      // Determine zone assignment from response identity or email mapping
-      const userEmail = email.trim();
-      const lowerEmail = userEmail.toLowerCase();
-      let finalZoneId = identity.assignedZoneId || (currentRoleInfo.zoneId && currentRoleInfo.role !== 'SUPER_ADMIN' ? currentRoleInfo.zoneId : null);
-      if (!finalZoneId && (lowerEmail === 'ops@foodie.local' || lowerEmail === 'blr.admin@foodie.local')) {
+      const userEmail = inputEmail;
+      const isSuperResult = isSuper || identity.role === 'SUPER_ADMIN';
+
+      let finalZoneId = isSuperResult
+        ? null
+        : (identity.assignedZoneId || (currentRoleInfo.zoneId && currentRoleInfo.role !== 'SUPER_ADMIN' ? currentRoleInfo.zoneId : null));
+
+      if (!isSuperResult && !finalZoneId && (lowerEmail === 'ops@foodie.local' || lowerEmail === 'blr.admin@foodie.local')) {
         finalZoneId = 'dz-bangalore';
-      } else if (!finalZoneId && (lowerEmail === 'finance@foodie.local' || lowerEmail === 'tmk.admin@foodie.local')) {
+      } else if (!isSuperResult && !finalZoneId && (lowerEmail === 'finance@foodie.local' || lowerEmail === 'tmk.admin@foodie.local')) {
         finalZoneId = 'dz-tumkur';
       }
 
-      const finalZoneName =
-        identity.assignedZoneName ||
-        (finalZoneId ? currentRoleInfo.zoneName : null) ||
-        (finalZoneId === 'dz-tumkur' ? 'Tumkur Zone' : (finalZoneId === 'dz-bangalore' ? 'Bangalore Zone' : null));
+      const finalZoneName = isSuperResult
+        ? null
+        : (identity.assignedZoneName ||
+          (finalZoneId ? currentRoleInfo.zoneName : null) ||
+          (finalZoneId === 'dz-tumkur' ? 'Tumkur Zone' : (finalZoneId === 'dz-bangalore' ? 'Bangalore Zone' : null)));
 
-      let backendRole: AdminRole = (identity.role || (finalZoneId ? 'OPS' : (currentRoleInfo.role || 'SUPER_ADMIN'))) as AdminRole;
-      if (finalZoneId && backendRole === 'SUPER_ADMIN') {
-        backendRole = 'OPS';
-      }
+      let backendRole: AdminRole = isSuperResult
+        ? 'SUPER_ADMIN'
+        : ((identity.role || (finalZoneId ? 'OPS' : (currentRoleInfo.role || 'SUPER_ADMIN'))) as AdminRole);
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('foodie_admin_role', backendRole);
         sessionStorage.setItem('foodie_admin_role', backendRole);
         document.cookie = `foodie_user_role=${encodeURIComponent(backendRole)}; path=/; max-age=86400; SameSite=Lax`;
         document.cookie = `foodie_admin_role=${encodeURIComponent(backendRole)}; path=/; max-age=86400; SameSite=Lax`;
-        localStorage.setItem('foodie_admin_user_id', identity.userId || '44444444-4444-4444-4444-444444444001');
-        sessionStorage.setItem('foodie_admin_user_id', identity.userId || '44444444-4444-4444-4444-444444444001');
+        localStorage.setItem('foodie_admin_user_id', identity.userId || '33333333-3333-3333-3333-333333333001');
+        sessionStorage.setItem('foodie_admin_user_id', identity.userId || '33333333-3333-3333-3333-333333333001');
         localStorage.setItem('foodie_admin_email', userEmail);
         sessionStorage.setItem('foodie_admin_email', userEmail);
 
@@ -204,18 +241,18 @@ export function AdminLoginForm({
 
       dispatch(
         setSession({
-          userId: identity.userId || '44444444-4444-4444-4444-444444444001',
+          userId: identity.userId || '33333333-3333-3333-3333-333333333001',
           role: backendRole,
           userType: 'ADMIN',
           fullName:
             identity.fullName ||
-            (finalZoneId
+            (isSuperResult
+              ? 'Super Admin'
+              : (finalZoneId
               ? `${finalZoneName} Admin`
               : (backendRole === 'AUDITOR'
               ? 'Compliance Auditor'
-              : backendRole === 'SUPER_ADMIN'
-              ? 'Super Admin'
-              : currentRoleInfo.label || 'Admin Operator')),
+              : currentRoleInfo.label || 'Admin Operator'))),
           email: userEmail,
         }),
       );
@@ -313,7 +350,6 @@ export function AdminLoginForm({
         </select>
       </div>
 
-      {/* Inline Error Banner */}
       {inlineError && (
         <div
           role="alert"

@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import crypto from 'crypto';
 
 /**
@@ -37,8 +40,43 @@ export function isStrongPassword(password: string): boolean {
   );
 }
 
+const ADMIN_USERS_PERSISTENCE_FILE = path.join(os.tmpdir(), 'foodie_admin_users_state_v2.json');
+
+export function loadPersistentAdminUsers(): any[] {
+  try {
+    if (fs.existsSync(ADMIN_USERS_PERSISTENCE_FILE)) {
+      const raw = fs.readFileSync(ADMIN_USERS_PERSISTENCE_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return getDefaultAdminUsers();
+}
+
+export function savePersistentAdminUsers(users: any[]): void {
+  try {
+    fs.writeFileSync(ADMIN_USERS_PERSISTENCE_FILE, JSON.stringify(users, null, 2), 'utf-8');
+  } catch {}
+}
+
 export function getDefaultAdminUsers() {
   return [
+    {
+      id: 'USR-1000',
+      fullName: 'Super Administrator',
+      email: 'superadmin@foodie.local',
+      phone: '+91 98000 00000',
+      role: 'SUPER_ADMIN',
+      accountStatus: 'ACTIVE',
+      joinedDate: '2025-01-01',
+      lastActive: 'Just now',
+      department: 'Platform Engineering',
+      assignedZoneId: null,
+      assignedZoneName: 'All Zones (Global Access)',
+      passwordHash: hashPassword('ChangeMe@123'),
+    },
     {
       id: 'USR-1001',
       fullName: 'Admin Operator',

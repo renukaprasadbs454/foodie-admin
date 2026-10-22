@@ -70,21 +70,6 @@ export async function GET() {
             }
             return true;
           });
-        for (const u of usersStore) {
-          if (u.assignedZoneId && !isDeleted(u.assignedZoneId, u.assignedZoneName)) {
-            const label = formatZoneAdminLabel(u.assignedZoneName || u.assignedZoneId);
-            if (!combined.some((item: any) => item.label === label || item.zoneId === u.assignedZoneId)) {
-              combined.push({
-                key: `ZONE_ADMIN_${u.assignedZoneId}`,
-                role: u.role || 'OPS',
-                label,
-                zoneId: u.assignedZoneId,
-                zoneName: u.assignedZoneName || u.assignedZoneId,
-                defaultEmail: u.email || null,
-              });
-            }
-          }
-        }
         return NextResponse.json({
           success: true,
           data: combined,

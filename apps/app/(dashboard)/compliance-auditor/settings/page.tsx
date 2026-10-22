@@ -1,8 +1,10 @@
-'use client';
-
-import React from 'react';
+import { Suspense } from 'react';
 import { SettingsPage } from '@/features/settings/pages/SettingsPage';
 
 export default function ComplianceSettingsRoutePage() {
-  return <SettingsPage />;
+  return (
+    <Suspense fallback={<div>Loading settings...</div>}>
+      <SettingsPage />
+    </Suspense>
+  );
 }

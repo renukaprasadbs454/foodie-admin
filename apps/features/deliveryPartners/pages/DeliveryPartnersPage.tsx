@@ -11,9 +11,12 @@ import {
   useRejectDeliveryPartnerKycMutation,
   useGetAdminShiftsQuery,
   useCreateDeliveryShiftMutation,
+  useUpdateDeliveryShiftMutation,
   useDeleteDeliveryShiftMutation,
   type DeliveryShift,
 } from '@/api/endpoints/deliveryPartnersApi';
+import { useGetZonesQuery } from '@/api/endpoints/locationApi';
+import { usePermissions } from '@/context/PermissionContext';
 import {
   isDeliveryPartnerKycEligible,
   type AdminDeliveryPartner,
@@ -79,6 +82,17 @@ function convert24to12(timeStr: string): string {
   h = h % 12;
   if (h === 0) h = 12;
   return `${h.toString().padStart(2, '0')}:${m} ${ampm}`;
+}
+
+function isShiftZoneMatch(shiftZoneId?: string | null, targetZoneId?: string | null): boolean {
+  if (!shiftZoneId || !targetZoneId) return false;
+  const a = shiftZoneId.trim().toLowerCase();
+  const b = targetZoneId.trim().toLowerCase();
+  if (a === b) return true;
+  const normA = a.startsWith('dz-') ? a.substring(3) : a;
+  const normB = b.startsWith('dz-') ? b.substring(3) : b;
+  if (normA === normB) return true;
+  return a.includes(b) || b.includes(a) || normA.includes(normB) || normB.includes(normA);
 }
 
 export function DeliveryPartnersPage() {
@@ -151,17 +165,132 @@ export function DeliveryPartnersPage() {
   const [approveKyc, { isLoading: isApproving }] = useApproveDeliveryPartnerKycMutation();
   const [rejectKyc, { isLoading: isRejecting }] = useRejectDeliveryPartnerKycMutation();
 
-  // Dynamic Shift Management from Backend Database
+  // Session & Zone Territory Management (Permission Context + localStorage persistence)
+  const { profile } = usePermissions();
+  const userStoredRole = typeof window !== 'undefined' ? localStorage.getItem('foodie_admin_role') : null;
+  const isSuperAdmin = Boolean(
+    (profile?.role && profile.role.toUpperCase() === 'SUPER_ADMIN') ||
+    (userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN')
+  );
+  const userAssignedZone =
+    profile?.assignedZoneId ||
+    (typeof window !== 'undefined'
+      ? (localStorage.getItem('foodie_user_assigned_zone') ||
+         sessionStorage.getItem('foodie_user_assigned_zone') ||
+         (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
+      : null);
+  const activeZoneId =
+    !isSuperAdmin && userAssignedZone
+      ? userAssignedZone
+      : (typeof window !== 'undefined'
+          ? (localStorage.getItem('foodie_active_zone_id') ||
+             sessionStorage.getItem('foodie_active_zone_id') ||
+             (typeof document !== 'undefined' ? document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1] : null))
+          : null);
+
+  const { data: dbZones = [] } = useGetZonesQuery();
+  const availableZones = React.useMemo(() => {
+    const rawList = Array.isArray(dbZones)
+      ? dbZones
+      : ((dbZones as any)?.data || (dbZones as any)?.items || []);
+    const list: Array<{ id: string; name: string }> = [];
+    rawList.forEach((z: any) => {
+      if (z && z.id && !list.some((item) => item.id.toLowerCase() === z.id.toLowerCase())) {
+        list.push({ id: z.id, name: z.zoneName || z.cityName || z.name || z.id });
+      }
+    });
+    return list;
+  }, [dbZones]);
+
+  const activeZoneName = React.useMemo(() => {
+    if (profile?.assignedZoneName) return profile.assignedZoneName;
+    if (activeZoneId) {
+      const found = availableZones.find((z) => z.id.toLowerCase() === activeZoneId.toLowerCase());
+      if (found) return found.name;
+    }
+    return (
+      (typeof window !== 'undefined'
+        ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name'))
+        : null) ||
+      activeZoneId ||
+      'Assigned Zone'
+    );
+  }, [profile, activeZoneId, availableZones]);
+
+  const [selectedShiftZone, setSelectedShiftZone] = useState<string>(
+    !isSuperAdmin && activeZoneId ? activeZoneId : (activeZoneId || 'ALL')
+  );
+
+  useEffect(() => {
+    if (!isSuperAdmin && activeZoneId) {
+      setSelectedShiftZone(activeZoneId);
+    }
+  }, [isSuperAdmin, activeZoneId]);
+
+  const [modalShiftZoneId, setModalShiftZoneId] = useState<string>(
+    !isSuperAdmin && activeZoneId ? activeZoneId : (availableZones[0]?.id || 'dz-bangalore')
+  );
+
+  useEffect(() => {
+    if (!isSuperAdmin && activeZoneId) {
+      setModalShiftZoneId(activeZoneId);
+    } else if (selectedShiftZone && selectedShiftZone !== 'ALL') {
+      setModalShiftZoneId(selectedShiftZone);
+    } else if (availableZones.length > 0 && !modalShiftZoneId) {
+      setModalShiftZoneId(availableZones[0].id);
+    }
+  }, [isSuperAdmin, activeZoneId, selectedShiftZone, availableZones]);
+
+  // Dynamic Shift Management from Backend Database using actual zone ID
+  const shiftQueryParam = React.useMemo(() => {
+    if (!isSuperAdmin && activeZoneId) {
+      return { zoneId: activeZoneId };
+    }
+    if (isSuperAdmin && selectedShiftZone && selectedShiftZone !== 'ALL') {
+      return { zoneId: selectedShiftZone };
+    }
+    return undefined;
+  }, [isSuperAdmin, activeZoneId, selectedShiftZone]);
+
   const {
-    data: shifts = [],
+    data: rawShifts = [],
     isLoading: isLoadingShifts,
     isFetching: isFetchingShifts,
     refetch: refetchShifts,
-  } = useGetAdminShiftsQuery();
+  } = useGetAdminShiftsQuery(shiftQueryParam);
+
+  const shifts: DeliveryShift[] = React.useMemo(() => {
+    const targetZone = !isSuperAdmin
+      ? activeZoneId
+      : (selectedShiftZone && selectedShiftZone !== 'ALL' ? selectedShiftZone : null);
+
+    if (!targetZone) {
+      return rawShifts;
+    }
+
+    const cleanTarget = targetZone.trim().toLowerCase();
+    const activeNameClean = (activeZoneName || '').trim().toLowerCase();
+
+    return rawShifts.filter((s: DeliveryShift) => {
+      const idMatch = isShiftZoneMatch(s.zoneId, cleanTarget);
+      const sName = (s.zoneName || '').trim().toLowerCase();
+      const nameMatch = Boolean(
+        sName &&
+          activeNameClean &&
+          (sName === activeNameClean ||
+            sName.includes(activeNameClean) ||
+            activeNameClean.includes(sName))
+      );
+      return idMatch || nameMatch;
+    });
+  }, [rawShifts, isSuperAdmin, selectedShiftZone, activeZoneId, activeZoneName]);
 
   const [createShiftMutation, { isLoading: isSavingShift }] = useCreateDeliveryShiftMutation();
+  const [updateShiftMutation, { isLoading: isUpdatingShift }] = useUpdateDeliveryShiftMutation();
   const [deleteShiftMutation, { isLoading: isDeletingShift }] = useDeleteDeliveryShiftMutation();
   const [shiftToDelete, setShiftToDelete] = useState<DeliveryShift | null>(null);
+  const [editingShift, setEditingShift] = useState<DeliveryShift | null>(null);
+  const [shiftStatus, setShiftStatus] = useState<string>('ACTIVE');
 
   const rawPartners: AdminDeliveryPartner[] =
     (partnersData as any)?.items ??
@@ -186,6 +315,24 @@ export function DeliveryPartnersPage() {
   const showToast = (type: 'success' | 'error', message: string) => {
     setToastMsg({ type, message });
     setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const handleOpenEditShift = (shift: DeliveryShift) => {
+    setShiftFormError(null);
+    setEditingShift(shift);
+    setShiftName(shift.shiftName || '');
+    setStartTime(shift.startTime || '');
+    setEndTime(shift.endTime || '');
+    setShiftStatus(shift.status || 'ACTIVE');
+    setModalShiftZoneId(
+      shift.zoneId ||
+        (!isSuperAdmin && activeZoneId
+          ? activeZoneId
+          : selectedShiftZone !== 'ALL'
+          ? selectedShiftZone
+          : availableZones[0]?.id || 'dz-bangalore')
+    );
+    setIsShiftModalOpen(true);
   };
 
   const handleSaveShift = async (e?: React.FormEvent) => {
@@ -213,15 +360,43 @@ export function DeliveryPartnersPage() {
       return;
     }
 
-    try {
-      await createShiftMutation({
-        shiftName: name,
-        startTime: start,
-        endTime: end,
-      }).unwrap();
+    const finalZoneId = !isSuperAdmin && activeZoneId
+      ? activeZoneId
+      : (modalShiftZoneId || (availableZones[0]?.id || 'dz-bangalore'));
+    const matchedZone = availableZones.find((z) => isShiftZoneMatch(z.id, finalZoneId));
+    const finalZoneName = !isSuperAdmin && activeZoneName
+      ? activeZoneName
+      : (matchedZone
+          ? matchedZone.name
+          : (finalZoneId.startsWith('dz-') ? `${finalZoneId.substring(3).charAt(0).toUpperCase() + finalZoneId.substring(4)} Zone` : finalZoneId));
 
-      showToast('success', `Delivery shift "${name}" saved to database successfully.`);
+    try {
+      if (editingShift && editingShift.shiftId) {
+        await updateShiftMutation({
+          shiftId: editingShift.shiftId,
+          data: {
+            shiftName: name,
+            startTime: start,
+            endTime: end,
+            status: shiftStatus,
+            zoneId: finalZoneId,
+            zoneName: finalZoneName,
+          },
+        }).unwrap();
+        showToast('success', `Delivery shift "${name}" updated for ${finalZoneName} successfully.`);
+      } else {
+        await createShiftMutation({
+          shiftName: name,
+          startTime: start,
+          endTime: end,
+          zoneId: finalZoneId,
+          zoneName: finalZoneName,
+        }).unwrap();
+        showToast('success', `Delivery shift "${name}" saved for ${finalZoneName} successfully.`);
+      }
+
       setIsShiftModalOpen(false);
+      setEditingShift(null);
       setShiftName('');
       setStartTime('');
       setEndTime('');
@@ -342,9 +517,12 @@ export function DeliveryPartnersPage() {
             id="create-shift-button"
             onClick={() => {
               setShiftFormError(null);
+              setEditingShift(null);
               setShiftName('');
               setStartTime('');
               setEndTime('');
+              setShiftStatus('ACTIVE');
+              setModalShiftZoneId(!isSuperAdmin && activeZoneId ? activeZoneId : (selectedShiftZone !== 'ALL' ? selectedShiftZone : (availableZones[0]?.id || 'dz-bangalore')));
               setIsShiftModalOpen(true);
             }}
             style={{
@@ -433,11 +611,21 @@ export function DeliveryPartnersPage() {
 
           <button
             type="button"
+            id="add-another-shift-button"
             onClick={() => {
               setShiftFormError(null);
+              setEditingShift(null);
               setShiftName('');
               setStartTime('');
               setEndTime('');
+              setShiftStatus('ACTIVE');
+              setModalShiftZoneId(
+                !isSuperAdmin && activeZoneId
+                  ? activeZoneId
+                  : selectedShiftZone !== 'ALL'
+                  ? selectedShiftZone
+                  : availableZones[0]?.id || 'dz-bangalore'
+              );
               setIsShiftModalOpen(true);
             }}
             style={{
@@ -458,6 +646,124 @@ export function DeliveryPartnersPage() {
           </button>
         </div>
 
+        {/* Territory Scoped Banner for Zone Admin */}
+        {!isSuperAdmin && (
+          <div
+            style={{
+              backgroundColor: '#F0FDF4',
+              border: '1px solid #BBF7D0',
+              borderRadius: 14,
+              padding: '12px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 4,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#22C55E' }} />
+              <div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#14532D' }}>
+                  Delivery Shifts Territory: {activeZoneName}
+                </span>
+                <span style={{ fontSize: 12, color: '#166534', marginLeft: 8 }}>
+                  (Showing operating shifts configured specifically for your zone)
+                </span>
+              </div>
+            </div>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                backgroundColor: '#DCFCE7',
+                color: '#15803D',
+                padding: '4px 10px',
+                borderRadius: 8,
+                border: '1px solid #86EFAC',
+              }}
+            >
+              Zone Scoped
+            </span>
+          </div>
+        )}
+
+        {/* Territory Selector Filter for Super Admin */}
+        {isSuperAdmin && (
+          <div
+            style={{
+              backgroundColor: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: 14,
+              padding: '12px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+              marginBottom: 4,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#3B82F6' }} />
+              <div>
+                <span id="shift-territory-filter-label" style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>
+                  Delivery Shifts Territory Filter: {selectedShiftZone === 'ALL' ? 'All Delivery Zones (Global View)' : (availableZones.find(z => z.id === selectedShiftZone)?.name || selectedShiftZone)}
+                </span>
+                <span style={{ fontSize: 12, color: '#64748B', marginLeft: 8 }}>
+                  ({selectedShiftZone === 'ALL' ? 'Manage and isolate shifts across all distinct operating delivery zones' : `Filtered specifically to ${availableZones.find(z => z.id === selectedShiftZone)?.name || selectedShiftZone}`})
+                </span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label htmlFor="shift-zone-filter-select" style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
+                Active Zone Filter:
+              </label>
+              <select
+                id="shift-zone-filter-select"
+                value={selectedShiftZone}
+                onChange={(e) => setSelectedShiftZone(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  border: '1px solid #CBD5E1',
+                  backgroundColor: '#FFFFFF',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: '#1E293B',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="ALL">All Delivery Zones (Global View)</option>
+                {availableZones.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.name}
+                  </option>
+                ))}
+              </select>
+              {selectedShiftZone !== 'ALL' && (
+                <button
+                  type="button"
+                  id="reset-shift-zone-filter-button"
+                  onClick={() => setSelectedShiftZone('ALL')}
+                  style={{
+                    fontSize: 11,
+                    padding: '5px 10px',
+                    borderRadius: 6,
+                    backgroundColor: '#E2E8F0',
+                    border: 'none',
+                    color: '#334155',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Shift List Cards */}
         {isLoadingShifts ? (
           <div style={{ fontSize: 13, color: '#9CA3AF', padding: '12px 0' }}>Loading saved shifts from backend database...</div>
@@ -471,9 +777,11 @@ export function DeliveryPartnersPage() {
               backgroundColor: '#F9FAFB',
             }}
           >
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>No Delivery Shifts Found</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>
+              No Delivery Shifts Found {selectedShiftZone !== 'ALL' ? `for ${availableZones.find(z => z.id === selectedShiftZone)?.name || selectedShiftZone}` : ''}
+            </div>
             <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-              Click <strong>+ Create Shift</strong> above to configure operating shifts for your delivery partners.
+              Click <strong>+ Add Another Shift</strong> above to configure operating shifts for delivery partners in this zone.
             </div>
           </div>
         ) : (
@@ -508,6 +816,38 @@ export function DeliveryPartnersPage() {
                     >
                       {s.status}
                     </span>
+                    <button
+                      type="button"
+                      id={`edit-shift-${s.shiftId}`}
+                      onClick={() => handleOpenEditShift(s)}
+                      title={`Edit "${s.shiftName}" shift`}
+                      aria-label={`Edit "${s.shiftName}" shift`}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        borderRadius: 6,
+                        color: '#6B7280',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#EFF6FF';
+                        e.currentTarget.style.color = '#2563EB';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = '#6B7280';
+                      }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                    </button>
                     <button
                       type="button"
                       id={`delete-shift-${s.shiftId}`}
@@ -553,23 +893,39 @@ export function DeliveryPartnersPage() {
                     <strong>{s.startTime}</strong> – <strong>{s.endTime}</strong>
                   </span>
                 </div>
-                {s.durationHours && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 12, color: '#6B7280' }}>Duration:</span>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: '#EA580C',
-                        backgroundColor: '#FFEDD5',
-                        padding: '1px 6px',
-                        borderRadius: 6,
-                      }}
-                    >
-                      {s.durationHours}
-                    </span>
-                  </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                  {s.durationHours ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 12, color: '#6B7280' }}>Duration:</span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: '#EA580C',
+                          backgroundColor: '#FFEDD5',
+                          padding: '1px 6px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        {s.durationHours}
+                      </span>
+                    </div>
+                  ) : <div />}
+                  <span
+                    id={`shift-zone-tag-${s.shiftId}`}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      backgroundColor: '#EFF6FF',
+                      color: '#1D4ED8',
+                      border: '1px solid #BFDBFE',
+                    }}
+                  >
+                    📍 {s.zoneName || (availableZones.find(z => isShiftZoneMatch(z.id, s.zoneId))?.name) || (s.zoneId ? (s.zoneId.startsWith('dz-') ? `${s.zoneId.substring(3).charAt(0).toUpperCase() + s.zoneId.substring(4)} Zone` : s.zoneId) : 'All Zones')}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -1523,10 +1879,12 @@ export function DeliveryPartnersPage() {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 <Text as="h2" variant="heading2" color="#111827" style={{ fontWeight: 800, fontSize: 18 }}>
-                  Create Delivery Shift
+                  {editingShift ? 'Edit Delivery Shift' : 'Create Delivery Shift'}
                 </Text>
                 <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-                  Enter actual shift schedule to permanently persist in the backend database.
+                  {editingShift
+                    ? 'Update shift schedule and status. Changes will persist directly in the backend database.'
+                    : 'Enter actual shift schedule to permanently persist in the backend database.'}
                 </div>
               </div>
               <button
@@ -1572,6 +1930,72 @@ export function DeliveryPartnersPage() {
             )}
 
             <form onSubmit={handleSaveShift} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Target Operating Zone (Zone-Scoped Territory) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label htmlFor="shift-zone-select" style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
+                  Target Delivery Zone <span style={{ color: '#EF4444' }}>*</span>
+                </label>
+                {!isSuperAdmin ? (
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: '1px solid #BBF7D0',
+                      backgroundColor: '#F0FDF4',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#22C55E' }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#166534' }}>
+                        {activeZoneName} ({activeZoneId || 'dz-bangalore'})
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        backgroundColor: '#DCFCE7',
+                        color: '#15803D',
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        border: '1px solid #86EFAC',
+                      }}
+                    >
+                      Locked to Session Zone
+                    </span>
+                  </div>
+                ) : (
+                  <select
+                    id="shift-zone-select"
+                    value={modalShiftZoneId}
+                    onChange={(e) => setModalShiftZoneId(e.target.value)}
+                    required
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: '1px solid #D1D5DB',
+                      fontSize: 14,
+                      outline: 'none',
+                      color: '#111827',
+                      backgroundColor: '#FFFFFF',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                    }}
+                  >
+                    {availableZones.map((z) => (
+                      <option key={z.id} value={z.id}>
+                        {z.name} ({z.id})
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <span style={{ fontSize: 11, color: '#6B7280' }}>
+                  This shift will only affect and display to delivery partners registered in this specific territory.
+                </span>
+              </div>
+
               {/* Shift Name Input */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label htmlFor="shift-name-input" style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
@@ -1599,6 +2023,33 @@ export function DeliveryPartnersPage() {
                   }}
                 />
               </div>
+
+              {/* Shift Status (When Editing) */}
+              {editingShift && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label htmlFor="shift-status-select" style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>
+                    Shift Status <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <select
+                    id="shift-status-select"
+                    value={shiftStatus}
+                    onChange={(e) => setShiftStatus(e.target.value)}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: '1px solid #D1D5DB',
+                      fontSize: 14,
+                      outline: 'none',
+                      color: '#111827',
+                      backgroundColor: '#FFFFFF',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                    }}
+                  >
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                  </select>
+                </div>
+              )}
 
               {/* Start Time & End Time Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -1752,7 +2203,7 @@ export function DeliveryPartnersPage() {
                   type="button"
                   id="cancel-shift-button"
                   onClick={() => setIsShiftModalOpen(false)}
-                  disabled={isSavingShift}
+                  disabled={isSavingShift || isUpdatingShift}
                   style={{
                     padding: '10px 18px',
                     borderRadius: 10,
@@ -1769,29 +2220,31 @@ export function DeliveryPartnersPage() {
                 <button
                   type="submit"
                   id="save-shift-button"
-                  disabled={isSavingShift}
+                  disabled={isSavingShift || isUpdatingShift}
                   style={{
                     padding: '10px 22px',
                     borderRadius: 10,
                     border: 'none',
-                    backgroundColor: isSavingShift ? '#9CA3AF' : '#EA580C',
+                    backgroundColor: isSavingShift || isUpdatingShift ? '#9CA3AF' : '#EA580C',
                     color: '#FFFFFF',
                     fontWeight: 600,
                     fontSize: 13,
-                    cursor: isSavingShift ? 'wait' : 'pointer',
+                    cursor: isSavingShift || isUpdatingShift ? 'wait' : 'pointer',
                     boxShadow: '0 2px 4px rgba(234, 88, 12, 0.25)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
                   }}
                 >
-                  {isSavingShift ? (
+                  {isSavingShift || isUpdatingShift ? (
                     <>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin">
                         <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="10"></circle>
                       </svg>
-                      Saving Shift...
+                      {editingShift ? 'Updating Shift...' : 'Saving Shift...'}
                     </>
+                  ) : editingShift ? (
+                    'Update Shift'
                   ) : (
                     'Save Shift'
                   )}
