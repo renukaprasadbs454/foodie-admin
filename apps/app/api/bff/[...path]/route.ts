@@ -441,6 +441,8 @@ interface SupportEnquiryRecord {
   unreadCount?: number;
   resolvedAt?: string;
   orderId?: string;
+  zoneId?: string;
+  zoneName?: string;
 }
 
 const DEFAULT_SUPPORT_ENQUIRIES: SupportEnquiryRecord[] = [];
@@ -536,14 +538,20 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
   const unresolvedIds = globalAny.SUPPORT_UNRESOLVED_IDS as Set<string>;
   const partnerRepliesMap = globalAny.PARTNER_REPLIES_MAP as Map<string, any[]>;
   const token = accessToken || 'demo-admin-token';
-  const incomingActiveZone = request.headers.get('x-active-zone-id') ||
+  const urlObj = new URL(request.url);
+  const requestedZoneParam = urlObj.searchParams.get('zoneId');
+  const incomingActiveZone = requestedZoneParam ||
+    request.headers.get('x-active-zone-id') ||
     request.headers.get('cookie')?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
 
   // 1. GET /api/bff/admin/support-tickets
   if (request.method === 'GET' && targetPath === 'admin/support-tickets') {
     let backendTickets: any[] = [];
     try {
-      const ticketsRes = await safeFetch(`${backendUrl}/api/v1/admin/support-tickets`, {
+      const queryParam = incomingActiveZone && incomingActiveZone !== 'ALL'
+        ? `?zoneId=${encodeURIComponent(decodeURIComponent(incomingActiveZone))}`
+        : '';
+      const ticketsRes = await safeFetch(`${backendUrl}/api/v1/admin/support-tickets${queryParam}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -676,6 +684,7 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
           status: normalizedStatus,
           priority: t.category === 'DELIVERY' ? 'HIGH' : 'MEDIUM',
           orderId: t.orderId || undefined,
+          zoneId: t.zoneId || undefined,
           messages: mappedMessages,
           unreadCount,
           replyMessage: lastAdminMsg?.message,
@@ -713,19 +722,17 @@ async function handleAdminSupportTickets(request: Request, targetPath: string, a
     ].filter((t) => t.category !== 'GENERAL' && t.id !== 'ENQ-905');
 
     let scopedTickets = mergedList;
-    if (incomingActiveZone) {
-      const lowerZone = decodeURIComponent(incomingActiveZone).toLowerCase();
-      if (lowerZone.includes('tumkur')) {
-        scopedTickets = mergedList.filter((t) => {
-          const text = `${t.restaurantName || ''} ${t.message || ''} ${t.subject || ''} ${t.senderName || ''}`.toLowerCase();
-          return !text.includes('bangalore') && !text.includes('indiranagar') && !text.includes('koramangala');
-        });
-      } else if (lowerZone.includes('bangalore') || lowerZone.includes('bengaluru')) {
-        scopedTickets = mergedList.filter((t) => {
-          const text = `${t.restaurantName || ''} ${t.message || ''} ${t.subject || ''} ${t.senderName || ''}`.toLowerCase();
-          return !text.includes('tumkur') && !text.includes('kyatsandra') && !text.includes('siddaganga');
-        });
-      }
+    if (incomingActiveZone && incomingActiveZone !== 'ALL') {
+      const cleanTargetZone = decodeURIComponent(incomingActiveZone).trim().toLowerCase();
+      const strippedTarget = cleanTargetZone.replace(/^dz-/, '').replace(/-zone$/, '');
+      scopedTickets = mergedList.filter((t) => {
+        if (t.zoneId) {
+          const tz = t.zoneId.trim().toLowerCase();
+          const strippedTz = tz.replace(/^dz-/, '').replace(/-zone$/, '');
+          return tz === cleanTargetZone || strippedTz === strippedTarget || tz.includes(strippedTarget);
+        }
+        return true;
+      });
     }
 
     return NextResponse.json({

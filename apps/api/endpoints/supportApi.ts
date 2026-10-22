@@ -7,6 +7,7 @@ export interface ChatMessage {
   senderName: string;
   message: string;
   timestamp: string;
+  zoneId?: string;
 }
 
 export interface EnquiryRecord {
@@ -24,6 +25,11 @@ export interface EnquiryRecord {
   messages?: ChatMessage[];
   resolvedAt?: string;
   orderId?: string;
+  zoneId?: string;
+  zoneName?: string;
+  restaurantId?: string;
+  restaurantName?: string;
+  unreadCount?: number;
 }
 
 // Backwards compatibility aliases
@@ -32,8 +38,11 @@ export type SupportMessage = ChatMessage;
 
 export const adminSupportApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getAllTickets: builder.query<EnquiryRecord[], void>({
-      query: () => ({ url: '/api/bff/admin/support-tickets' }),
+    getAllTickets: builder.query<EnquiryRecord[], { zoneId?: string } | void>({
+      query: (arg) => ({
+        url: '/api/bff/admin/support-tickets',
+        params: arg && arg.zoneId ? { zoneId: arg.zoneId } : undefined,
+      }),
       transformResponse: (response: any) => {
         if (Array.isArray(response?.data)) return response.data;
         if (Array.isArray(response)) return response;
@@ -50,18 +59,18 @@ export const adminSupportApi = baseApi.injectEndpoints({
       },
       providesTags: (_result, _error, id) => [{ type: 'SupportMessage', id }],
     }),
-    replyToTicket: builder.mutation<ChatMessage, { ticketId: string; message: string; senderName?: string }>({
-      query: ({ ticketId, message, senderName }) => ({
+    replyToTicket: builder.mutation<ChatMessage, { ticketId: string; message: string; senderName?: string; zoneId?: string }>({
+      query: ({ ticketId, message, senderName, zoneId }) => ({
         url: `/api/bff/admin/support-tickets/${ticketId}/reply`,
         method: 'POST',
-        body: { message, senderName: senderName || 'Admin Support' },
+        body: { message, senderName: senderName || 'Admin Support', zoneId },
       }),
       invalidatesTags: (_result, _error, { ticketId }) => [
         { type: 'SupportMessage', id: ticketId },
         'SupportConversation',
       ],
     }),
-    resolveTicket: builder.mutation<EnquiryRecord, string | { id: string; status?: string }>({
+    resolveTicket: builder.mutation<EnquiryRecord, string | { id: string; status?: string; zoneId?: string }>({
       query: (arg) => {
         const id = typeof arg === 'string' ? arg : arg.id;
         const status = typeof arg === 'string' ? 'RESOLVED' : (arg.status || 'RESOLVED');
@@ -88,6 +97,7 @@ export const adminSupportApi = baseApi.injectEndpoints({
       message: string;
       priority?: 'HIGH' | 'MEDIUM' | 'LOW';
       orderId?: string;
+      zoneId?: string;
     }>({
       query: (body) => ({
         url: `/api/bff/admin/support-tickets`,

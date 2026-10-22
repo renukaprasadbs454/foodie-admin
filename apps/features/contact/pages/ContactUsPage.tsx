@@ -71,58 +71,27 @@ function isEnquiryInZone(
   if (!targetZoneId || targetZoneId === 'ALL') return true;
 
   const tzId = targetZoneId.trim().toLowerCase();
+  const tzClean = tzId.replace(/^dz-/, '').replace(/-zone$/, '');
   const tzName = (targetZoneName || '').trim().toLowerCase();
   const tzCity = (targetCityName || '').trim().toLowerCase();
 
-  const isTBlr =
-    tzId.includes('bangalore') ||
-    tzId.includes('bengaluru') ||
-    tzId.includes('blr') ||
-    tzName.includes('bangalore') ||
-    tzName.includes('bengaluru');
-  const isTTmk =
-    tzId.includes('tumkur') ||
-    tzId.includes('tumakuru') ||
-    tzId.includes('tmk') ||
-    tzName.includes('tumkur') ||
-    tzName.includes('tumakuru');
-
-  const zoneKeywords: string[] = [tzId];
-  const strippedId = tzId.replace(/^dz-/, '').replace(/-zone$/, '');
-  if (strippedId && strippedId.length > 2) zoneKeywords.push(strippedId);
-
-  if (tzName) {
-    tzName.split(/\s+/).forEach((w) => {
-      const clean = w.replace(/[^a-z0-9]/g, '');
-      if (clean.length > 2 && clean !== 'zone') zoneKeywords.push(clean);
-    });
-  }
-  if (tzCity) {
-    tzCity.split(/\s+/).forEach((w) => {
-      const clean = w.replace(/[^a-z0-9]/g, '');
-      if (clean.length > 2) zoneKeywords.push(clean);
-    });
-  }
-
-  if (isTBlr) {
-    zoneKeywords.push('bangalore', 'bengaluru', 'blr', 'indiranagar', 'koramangala', 'whitefield', 'domlur');
-  }
-  if (isTTmk) {
-    zoneKeywords.push('tumkur', 'tumakuru', 'tmk', 'kyatsandra', 'siddaganga');
-  }
+  const isZoneMatch = (val?: string | null) => {
+    if (!val) return false;
+    const v = val.trim().toLowerCase();
+    if (v === tzId || v === tzClean) return true;
+    if (tzName && (v === tzName || v.includes(tzName) || tzName.includes(v))) return true;
+    if (tzCity && (v === tzCity || v.includes(tzCity) || tzCity.includes(v))) return true;
+    const cleanV = v.replace(/^dz-/, '').replace(/-zone$/, '');
+    if (cleanV && (cleanV === tzClean || cleanV.includes(tzClean) || tzClean.includes(cleanV))) return true;
+    return false;
+  };
 
   // 1. Direct Zone Properties on Ticket
   if (item.zoneId) {
-    const iz = item.zoneId.toLowerCase();
-    if (iz === tzId || zoneKeywords.some((k) => iz.includes(k))) return true;
-    if (isTBlr && (iz.includes('tumkur') || iz.includes('tmk'))) return false;
-    if (isTTmk && (iz.includes('bangalore') || iz.includes('bengaluru') || iz.includes('blr'))) return false;
+    return isZoneMatch(item.zoneId);
   }
   if (item.zoneName) {
-    const izn = item.zoneName.toLowerCase();
-    if (izn === tzName || zoneKeywords.some((k) => izn.includes(k))) return true;
-    if (isTBlr && (izn.includes('tumkur') || izn.includes('tmk'))) return false;
-    if (isTTmk && (izn.includes('bangalore') || izn.includes('bengaluru') || izn.includes('blr'))) return false;
+    return isZoneMatch(item.zoneName);
   }
 
   // 2. Order Linkage
@@ -137,48 +106,16 @@ function isEnquiryInZone(
             (o.orderCode && o.orderCode.toLowerCase().includes(ordClean))))
     );
     if (order) {
-      const oz = (order.zoneId || '').toLowerCase();
-      const ozn = (order.zoneName || '').toLowerCase();
-      if (oz) {
-        if (oz === tzId || zoneKeywords.some((k) => oz.includes(k))) return true;
-        if (isTBlr && (oz.includes('tumkur') || oz.includes('tmk'))) return false;
-        if (isTTmk && (oz.includes('bangalore') || oz.includes('bengaluru') || oz.includes('blr'))) return false;
+      if (isZoneMatch(order.zoneId) || isZoneMatch(order.zoneName)) return true;
+      if (order.restaurantId) {
+        const rest = restaurants.find(
+          (r: any) => (r.id && r.id === order.restaurantId) || (r.restaurantId && r.restaurantId === order.restaurantId)
+        );
+        if (rest && (isZoneMatch(rest.zoneId) || isZoneMatch(rest.zoneName) || isZoneMatch(rest.address?.city))) {
+          return true;
+        }
       }
-      if (ozn) {
-        if (ozn === tzName || zoneKeywords.some((k) => ozn.includes(k))) return true;
-        if (isTBlr && (ozn.includes('tumkur') || ozn.includes('tmk'))) return false;
-        if (isTTmk && (ozn.includes('bangalore') || ozn.includes('bengaluru') || ozn.includes('blr'))) return false;
-      }
-      const storeName = (order.storeName || '').toLowerCase();
-      if (
-        isTTmk &&
-        (storeName.includes('mayura') ||
-          storeName.includes('meghana') ||
-          storeName.includes('tumkur') ||
-          storeName.includes('rayara') ||
-          storeName.includes('madhuvan') ||
-          storeName.includes('pavithra'))
-      )
-        return true;
-      if (
-        isTBlr &&
-        (storeName.includes('royal') ||
-          storeName.includes('ganesha') ||
-          storeName.includes('empire') ||
-          storeName.includes('raama') ||
-          storeName.includes('bangalore'))
-      )
-        return true;
-      if (isTBlr && (storeName.includes('mayura') || storeName.includes('meghana') || storeName.includes('tumkur')))
-        return false;
-      if (
-        isTTmk &&
-        (storeName.includes('royal') ||
-          storeName.includes('ganesha') ||
-          storeName.includes('empire') ||
-          storeName.includes('raama'))
-      )
-        return false;
+      if (order.zoneId || order.zoneName) return false;
     }
   }
 
@@ -191,105 +128,22 @@ function isEnquiryInZone(
         (item.senderName && r.name && r.name.toLowerCase() === item.senderName.toLowerCase())
     );
     if (rest) {
-      const rz = (rest.zoneId || '').toLowerCase();
-      const rzn = (rest.zoneName || '').toLowerCase();
-      const rc = (rest.address?.city || '').toLowerCase();
-      if (rz) {
-        if (rz === tzId || zoneKeywords.some((k) => rz.includes(k))) return true;
-        if (isTBlr && (rz.includes('tumkur') || rz.includes('tmk'))) return false;
-        if (isTTmk && (rz.includes('bangalore') || rz.includes('bengaluru') || rz.includes('blr'))) return false;
-      }
-      if (rzn) {
-        if (rzn === tzName || zoneKeywords.some((k) => rzn.includes(k))) return true;
-        if (isTBlr && (rzn.includes('tumkur') || rzn.includes('tmk'))) return false;
-        if (isTTmk && (rzn.includes('bangalore') || rzn.includes('bengaluru') || rzn.includes('blr'))) return false;
-      }
-      if (rc && zoneKeywords.some((k) => rc.includes(k))) return true;
+      return isZoneMatch(rest.zoneId) || isZoneMatch(rest.zoneName) || isZoneMatch(rest.address?.city);
     }
-
-    const text = `${item.restaurantName || ''} ${item.senderName || ''} ${item.subject || ''} ${item.message || ''}`.toLowerCase();
-    if (
-      isTTmk &&
-      (text.includes('rayara') ||
-        text.includes('madhuvan') ||
-        text.includes('mayura') ||
-        text.includes('meghana') ||
-        text.includes('tumkur') ||
-        text.includes('pavithra'))
-    )
-      return true;
-    if (
-      isTBlr &&
-      (text.includes('ganesha') ||
-        text.includes('raama') ||
-        text.includes('royal') ||
-        text.includes('gold cafe') ||
-        text.includes('city garden') ||
-        text.includes('shivam cafe') ||
-        text.includes('kalpataru') ||
-        text.includes('malgudi') ||
-        text.includes('rahah') ||
-        text.includes('empire') ||
-        text.includes('bangalore'))
-    )
-      return true;
-    if (
-      isTTmk &&
-      (text.includes('ganesha') ||
-        text.includes('raama') ||
-        text.includes('royal') ||
-        text.includes('gold cafe') ||
-        text.includes('city garden') ||
-        text.includes('shivam cafe') ||
-        text.includes('kalpataru') ||
-        text.includes('malgudi') ||
-        text.includes('rahah') ||
-        text.includes('empire') ||
-        text.includes('bangalore') ||
-        text.includes('indiranagar'))
-    )
-      return false;
-    if (
-      isTBlr &&
-      (text.includes('rayara') ||
-        text.includes('madhuvan') ||
-        text.includes('mayura') ||
-        text.includes('meghana') ||
-        text.includes('tumkur'))
-    )
-      return false;
-    if (zoneKeywords.some((k) => k.length > 3 && text.includes(k))) return true;
-    return isTBlr;
   }
 
   // 4. Category: DELIVERY
   if (item.category === 'DELIVERY') {
-    const text = `${item.senderName || ''} ${item.senderEmail || ''} ${item.subject || ''} ${item.message || ''}`.toLowerCase();
     const dp = deliveryPartners.find(
       (d: any) =>
         (item.senderEmail &&
           (d.userCredentialId === item.senderEmail || d.id === item.senderEmail || d.email === item.senderEmail)) ||
         (item.senderPhone && d.phoneNumber === item.senderPhone) ||
-        (d.fullName && text.includes(d.fullName.toLowerCase()))
+        (d.fullName && item.senderName && d.fullName.toLowerCase() === item.senderName.toLowerCase())
     );
-    if (dp && dp.zone) {
-      const dz = dp.zone.toLowerCase();
-      if (dz === tzId || dz === tzName || zoneKeywords.some((k) => dz.includes(k))) return true;
-      if (isTBlr && (dz.includes('tumkur') || dz.includes('tmk'))) return false;
-      if (isTTmk && (dz.includes('bangalore') || dz.includes('bengaluru') || dz.includes('blr'))) return false;
+    if (dp) {
+      return isZoneMatch(dp.zone) || isZoneMatch(dp.zoneId) || isZoneMatch(dp.zoneName) || isZoneMatch(dp.city);
     }
-
-    if (isTTmk && (text.includes('tumkur') || text.includes('pavan') || text.includes('siddaraju'))) return true;
-    if (isTBlr && (text.includes('bangalore') || text.includes('indiranagar') || text.includes('karishma') || text.includes('ramesh')))
-      return true;
-    if (
-      isTTmk &&
-      (text.includes('karishma') || text.includes('ramesh') || text.includes('indiranagar') || text.includes('koramangala'))
-    )
-      return false;
-    if (isTBlr && (text.includes('tumkur') || text.includes('pavan') || text.includes('siddaraju'))) return false;
-    if (zoneKeywords.some((k) => k.length > 3 && text.includes(k))) return true;
-    return isTBlr;
   }
 
   // 5. Category: CUSTOMER
@@ -301,44 +155,16 @@ function isEnquiryInZone(
         (c.name && item.senderName && c.name.toLowerCase() === item.senderName.toLowerCase())
     );
     if (cust) {
-      const cz = (cust.zoneId || '').toLowerCase();
-      const czn = (cust.zoneName || '').toLowerCase();
-      const cc = (cust.city || '').toLowerCase();
-      if (cz) {
-        if (cz === tzId || zoneKeywords.some((k) => cz.includes(k))) return true;
-        if (isTBlr && (cz.includes('tumkur') || cz.includes('tmk'))) return false;
-        if (isTTmk && (cz.includes('bangalore') || cz.includes('bengaluru') || cz.includes('blr'))) return false;
-      }
-      if (czn) {
-        if (czn === tzName || zoneKeywords.some((k) => czn.includes(k))) return true;
-        if (isTBlr && (czn.includes('tumkur') || czn.includes('tmk'))) return false;
-        if (isTTmk && (czn.includes('bangalore') || czn.includes('bengaluru') || czn.includes('blr'))) return false;
-      }
-      if (cc && zoneKeywords.some((k) => cc.includes(k))) return true;
+      return isZoneMatch(cust.zoneId) || isZoneMatch(cust.zoneName) || isZoneMatch(cust.city);
     }
-
-    const text = `${item.senderName || ''} ${item.subject || ''} ${item.message || ''}`.toLowerCase();
-    if (isTTmk && (text.includes('tumkur') || text.includes('priya') || text.includes('karthik'))) return true;
-    if (
-      isTBlr &&
-      (text.includes('bangalore') ||
-        text.includes('ananya') ||
-        text.includes('rahul') ||
-        text.includes('ord-9821') ||
-        text.includes('indiranagar'))
-    )
-      return true;
-    if (
-      isTTmk &&
-      (text.includes('ananya') || text.includes('ord-9821') || text.includes('indiranagar') || text.includes('koramangala'))
-    )
-      return false;
-    if (isTBlr && (text.includes('tumkur') || text.includes('priya') || text.includes('karthik'))) return false;
-    if (zoneKeywords.some((k) => k.length > 3 && text.includes(k))) return true;
-    return isTBlr;
   }
 
-  return true;
+  // Fallback: Check if enquiry subject, message, or sender explicitly mentions zone name or city
+  const fullText = `${item.subject || ''} ${item.message || ''} ${item.senderName || ''} ${item.restaurantName || ''}`.toLowerCase();
+  if (tzClean && tzClean.length > 2 && fullText.includes(tzClean)) return true;
+  if (tzCity && tzCity.length > 2 && fullText.includes(tzCity)) return true;
+
+  return false;
 }
 
 export function ContactUsPage() {
@@ -373,11 +199,21 @@ export function ContactUsPage() {
           : null)
       : null);
 
-  const hasAssignedZone = Boolean(userAssignedZone && userAssignedZone !== 'ALL');
-  const isSuperAdmin = !hasAssignedZone && Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
-  const isZoneAdmin = !isSuperAdmin && hasAssignedZone;
-  const assignedZoneId = isZoneAdmin ? userAssignedZone : null;
-  const assignedZoneName = isZoneAdmin ? (userAssignedZoneName || userAssignedZone) : null;
+  const isSuperAdmin = Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
+  const resolvedZoneId = !isSuperAdmin
+    ? (userAssignedZone ||
+       (typeof window !== 'undefined'
+         ? localStorage.getItem('foodie_user_assigned_zone') ||
+           sessionStorage.getItem('foodie_user_assigned_zone') ||
+           localStorage.getItem('foodie_active_zone_id') ||
+           sessionStorage.getItem('foodie_active_zone_id') ||
+           (typeof document !== 'undefined' ? document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1] : null)
+         : null))
+    : null;
+  const hasValidZone = Boolean(resolvedZoneId && resolvedZoneId !== 'ALL');
+  const isZoneAdmin = !isSuperAdmin && hasValidZone;
+  const assignedZoneId = isZoneAdmin ? resolvedZoneId : null;
+  const assignedZoneName = isZoneAdmin ? (userAssignedZoneName || assignedZoneId) : null;
 
   // Correlate tickets with backend entity zones
   const { data: dbZones = [] } = useGetZonesQuery();
@@ -406,7 +242,10 @@ export function ContactUsPage() {
   const [history, setHistory] = useState<EnquiryRecord[]>([]);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: apiTickets } = useGetAllTicketsQuery(undefined, { pollingInterval: 2500 });
+  const { data: apiTickets } = useGetAllTicketsQuery(
+    isZoneAdmin && assignedZoneId ? { zoneId: assignedZoneId } : undefined,
+    { pollingInterval: 2500 }
+  );
   const [replyMutation] = useReplyToTicketMutation();
   const [resolveMutation] = useResolveTicketMutation();
   const [createTicketMutation] = useCreateTicketMutation();
@@ -595,6 +434,7 @@ export function ContactUsPage() {
         ticketId: selectedEnquiry.id,
         message: textToSend,
         senderName: 'Admin Support',
+        zoneId: assignedZoneId || selectedEnquiry.zoneId,
       }).unwrap();
       setReplyText('');
       showToast(`Response sent & delivered to live thread!`);
@@ -624,6 +464,7 @@ export function ContactUsPage() {
         subject: newSubject.trim(),
         message: newMessage.trim(),
         priority: newPriority,
+        zoneId: assignedZoneId || undefined,
       }).unwrap();
 
       showToast(`New support ticket ${res?.id || ''} created successfully!`);
