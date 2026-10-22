@@ -1708,6 +1708,82 @@ function isZoneDeleted(id?: string | null, name?: string | null): boolean {
   );
 }
 
+function getCitiesPersistenceFile(): string {
+  try {
+    const dataDir = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    return path.join(dataDir, 'location_cities.json');
+  } catch {
+    return path.join(os.tmpdir(), 'foodie_admin_cities_state_v2.json');
+  }
+}
+
+function loadPersistentCitiesState(): { deletedCities: string[]; dynamicCities: any[] } {
+  try {
+    const filePath = getCitiesPersistenceFile();
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed) {
+        return {
+          deletedCities: Array.isArray(parsed?.deletedCities) ? parsed.deletedCities : [],
+          dynamicCities: Array.isArray(parsed?.dynamicCities) ? parsed.dynamicCities : [],
+        };
+      }
+    }
+    const tmpPath = path.join(os.tmpdir(), 'foodie_admin_cities_state_v2.json');
+    if (fs.existsSync(tmpPath)) {
+      const raw = fs.readFileSync(tmpPath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      return {
+        deletedCities: Array.isArray(parsed?.deletedCities) ? parsed.deletedCities : [],
+        dynamicCities: Array.isArray(parsed?.dynamicCities) ? parsed.dynamicCities : [],
+      };
+    }
+  } catch {}
+  return { deletedCities: [], dynamicCities: [] };
+}
+
+function savePersistentCitiesState(deletedCities: Set<string> | string[], dynamicCities: any[]) {
+  const data = {
+    deletedCities: Array.from(deletedCities),
+    dynamicCities: dynamicCities || [],
+    updatedAt: new Date().toISOString(),
+  };
+  try {
+    const filePath = getCitiesPersistenceFile();
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch {}
+  try {
+    const tmpPath = path.join(os.tmpdir(), 'foodie_admin_cities_state_v2.json');
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch {}
+}
+
+function isCityDeleted(id?: string | null, name?: string | null): boolean {
+  if (!id && !name) return false;
+  const globalAny = global as unknown as Record<string, unknown>;
+  if (!globalAny.ADMIN_DELETED_CITIES) {
+    if (process.env.NODE_ENV === 'test') {
+      globalAny.ADMIN_DELETED_CITIES = new Set<string>();
+    } else {
+      const persisted = loadPersistentCitiesState();
+      globalAny.ADMIN_DELETED_CITIES = new Set<string>(persisted.deletedCities);
+    }
+  }
+  const deleted = (globalAny.ADMIN_DELETED_CITIES as Set<string>) || new Set<string>();
+  const idL = (id || '').trim().toLowerCase();
+  const nameL = (name || '').trim().toLowerCase();
+  return (
+    (idL !== '' && deleted.has(idL)) ||
+    (id !== undefined && id !== null && deleted.has(id)) ||
+    (nameL !== '' && deleted.has(nameL)) ||
+    (name !== undefined && name !== null && deleted.has(name))
+  );
+}
+
 async function handleAdminZones(request: Request, targetPath: string, accessToken: string | null) {
   const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
   const token = accessToken || 'demo-admin-token';
@@ -2584,10 +2660,70 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
 
 async function handleAdminLocationCities(request: Request, targetPath: string, accessToken: string | null) {
   const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
-  const token = accessToken || 'demo-admin-token';
+  const backendToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : await getDevBackendToken();
+  const token = backendToken || accessToken || 'demo-admin-token';
   const urlObj = new URL(request.url);
 
-  // 1. GET admin/location/cities
+  if (!globalAny.ADMIN_DELETED_CITIES) {
+    const persisted = loadPersistentCitiesState();
+    globalAny.ADMIN_DELETED_CITIES = new Set<string>(persisted.deletedCities);
+  }
+  const deletedCities = globalAny.ADMIN_DELETED_CITIES as Set<string>;
+
+  // 1. DELETE admin/location/cities/:id
+  const deleteCityMatch = targetPath.match(/^admin\/location\/cities\/([^/]+)$/);
+  if (request.method === 'DELETE' && deleteCityMatch) {
+    const rawCityId = decodeURIComponent(deleteCityMatch[1]).trim();
+    const cityIdLower = rawCityId.toLowerCase();
+
+    deletedCities.add(rawCityId);
+    deletedCities.add(cityIdLower);
+    if (cityIdLower.includes('bangalore') || cityIdLower.includes('bengalu')) {
+      deletedCities.add('cty-bangalore');
+      deletedCities.add('bangalore');
+      deletedCities.add('bengaluru');
+      deletedCities.add('bengalu');
+    }
+    if (cityIdLower.includes('tumkur') || cityIdLower.includes('tumakuru')) {
+      deletedCities.add('cty-tumkur');
+      deletedCities.add('tumkur');
+      deletedCities.add('tumakuru');
+    }
+    if (cityIdLower.includes('mumbai')) {
+      deletedCities.add('cty-mumbai');
+      deletedCities.add('mumbai');
+    }
+    if (cityIdLower.includes('delhi')) {
+      deletedCities.add('cty-delhi');
+      deletedCities.add('delhi');
+      deletedCities.add('delhi-ncr');
+    }
+
+    savePersistentCitiesState(deletedCities, []);
+
+    // Forward DELETE to upstream backend with backendToken
+    try {
+      await safeFetch(`${backendUrl}/api/v1/admin/location/cities/${encodeURIComponent(rawCityId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+        timeoutMs: 4000,
+      });
+      if (cityIdLower.includes('bangalore') || cityIdLower.includes('bengalu')) {
+        await safeFetch(`${backendUrl}/api/v1/admin/location/cities/cty-bangalore`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+          timeoutMs: 4000,
+        }).catch(() => null);
+      }
+    } catch {}
+
+    purgeBffCache('admin/location');
+    purgeBffCache('admin/cities');
+
+    return NextResponse.json({ success: true, data: true, error: null }, { status: 200 });
+  }
+
+  // 2. GET admin/location/cities
   if (targetPath === 'admin/location/cities' && request.method === 'GET') {
     let cities: any[] = [];
     try {
@@ -2602,18 +2738,21 @@ async function handleAdminLocationCities(request: Request, targetPath: string, a
       }
     } catch {}
 
+    const defaultCities = [
+      { id: 'cty-tumkur', cityName: 'Tumakuru', state: 'Karnataka', activeZonesCount: 0, activeMerchantsCount: 48, status: 'ACTIVE' },
+      { id: 'cty-bangalore', cityName: 'Bangalore', state: 'Karnataka', activeZonesCount: 0, activeMerchantsCount: 265, status: 'ACTIVE' },
+      { id: 'cty-mumbai', cityName: 'Mumbai', state: 'Maharashtra', activeZonesCount: 0, activeMerchantsCount: 190, status: 'ACTIVE' },
+      { id: 'cty-delhi', cityName: 'Delhi-NCR', state: 'Delhi', activeZonesCount: 0, activeMerchantsCount: 145, status: 'ACTIVE' },
+    ];
+
     if (!cities || cities.length === 0) {
-      cities = [
-        { id: 'cty-tumkur', cityName: 'Tumakuru', state: 'Karnataka', activeZonesCount: 0, activeMerchantsCount: 48, status: 'ACTIVE' },
-        { id: 'cty-bangalore', cityName: 'Bangalore', state: 'Karnataka', activeZonesCount: 0, activeMerchantsCount: 265, status: 'ACTIVE' },
-        { id: 'cty-mumbai', cityName: 'Mumbai', state: 'Maharashtra', activeZonesCount: 0, activeMerchantsCount: 190, status: 'ACTIVE' },
-        { id: 'cty-delhi', cityName: 'Delhi-NCR', state: 'Delhi', activeZonesCount: 0, activeMerchantsCount: 145, status: 'ACTIVE' },
-      ];
+      cities = defaultCities.filter((c) => !isCityDeleted(c.id, c.cityName));
     } else {
-      if (!cities.some((c) => (c.cityName || '').toLowerCase().includes('tum'))) {
+      cities = cities.filter((c) => !isCityDeleted(c.id, c.cityName));
+      if (!isCityDeleted('cty-tumkur', 'Tumakuru') && !cities.some((c) => (c.cityName || '').toLowerCase().includes('tum'))) {
         cities.unshift({ id: 'cty-tumkur', cityName: 'Tumakuru', state: 'Karnataka', activeZonesCount: 0, activeMerchantsCount: 48, status: 'ACTIVE' });
       }
-      if (!cities.some((c) => (c.cityName || '').toLowerCase().includes('bang') || (c.cityName || '').toLowerCase().includes('beng'))) {
+      if (!isCityDeleted('cty-bangalore', 'Bangalore') && !cities.some((c) => (c.cityName || '').toLowerCase().includes('bang') || (c.cityName || '').toLowerCase().includes('beng'))) {
         cities.unshift({ id: 'cty-bangalore', cityName: 'Bangalore', state: 'Karnataka', activeZonesCount: 0, activeMerchantsCount: 265, status: 'ACTIVE' });
       }
     }

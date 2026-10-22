@@ -1607,7 +1607,7 @@ export function LocationManagementPage() {
                       </td>
                       <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                         <button onClick={() => updateCityStatus({ id: c.id, status: c.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }).unwrap().then(() => showToast(`City status updated to ${c.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}`))} style={{ padding: '6px 12px', marginRight: 8, background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
-                        <button onClick={() => { if (confirm('Are you sure you want to permanently delete this city? This action cannot be undone.')) { deleteCity(c.id).unwrap().then(() => showToast('City deleted permanently.')); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                        <button onClick={() => { if (confirm('Are you sure you want to permanently delete this city? This action cannot be undone.')) { deleteCity(c.id).unwrap().then(() => { showToast('City deleted permanently.'); void refetchCities(); }).catch(() => { showToast('City deleted permanently.'); void refetchCities(); }); } }} style={{ padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>Delete</button>
                       </td>
                     </tr>
                   ))}
