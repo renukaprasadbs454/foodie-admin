@@ -40,12 +40,32 @@ export function isStrongPassword(password: string): boolean {
   );
 }
 
-const ADMIN_USERS_PERSISTENCE_FILE = path.join(os.tmpdir(), 'foodie_admin_users_state_v2.json');
+function getAdminUsersFile(): string {
+  try {
+    const dataDir = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    return path.join(dataDir, 'admin_users.json');
+  } catch {
+    return path.join(os.tmpdir(), 'foodie_admin_users_state_v2.json');
+  }
+}
 
 export function loadPersistentAdminUsers(): any[] {
   try {
-    if (fs.existsSync(ADMIN_USERS_PERSISTENCE_FILE)) {
-      const raw = fs.readFileSync(ADMIN_USERS_PERSISTENCE_FILE, 'utf-8');
+    const filePath = getAdminUsersFile();
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+    // Also check legacy tmp path if migrating
+    const tmpPath = path.join(os.tmpdir(), 'foodie_admin_users_state_v2.json');
+    if (fs.existsSync(tmpPath)) {
+      const raw = fs.readFileSync(tmpPath, 'utf-8');
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
@@ -57,7 +77,12 @@ export function loadPersistentAdminUsers(): any[] {
 
 export function savePersistentAdminUsers(users: any[]): void {
   try {
-    fs.writeFileSync(ADMIN_USERS_PERSISTENCE_FILE, JSON.stringify(users, null, 2), 'utf-8');
+    const filePath = getAdminUsersFile();
+    fs.writeFileSync(filePath, JSON.stringify(users || [], null, 2), 'utf-8');
+  } catch {}
+  try {
+    const tmpPath = path.join(os.tmpdir(), 'foodie_admin_users_state_v2.json');
+    fs.writeFileSync(tmpPath, JSON.stringify(users || [], null, 2), 'utf-8');
   } catch {}
 }
 

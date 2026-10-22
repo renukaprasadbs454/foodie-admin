@@ -11,6 +11,7 @@ import {
   useUpdateAdminUserRoleMutation,
   useUpdateAdminUserStatusMutation,
   useUpdateAdminUserPasswordMutation,
+  useDeleteAdminUserMutation,
 } from '@/api/endpoints/usersApi';
 import {
   useGetZoneLoginHistoryQuery,
@@ -39,6 +40,7 @@ export function UserManagementStudio() {
   const [updateAdminUserRole] = useUpdateAdminUserRoleMutation();
   const [updateAdminUserStatus] = useUpdateAdminUserStatusMutation();
   const [updateAdminUserPassword] = useUpdateAdminUserPasswordMutation();
+  const [deleteAdminUser] = useDeleteAdminUserMutation();
 
   const [adminPasswords, setAdminPasswords] = useState<Record<string, string>>(() => {
     if (typeof window !== 'undefined') {
@@ -124,6 +126,23 @@ export function UserManagementStudio() {
       showToast(`Failed to reset password for ${selectedUserForPasswordReset.fullName}`);
     } finally {
       setIsResettingPassword(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: AdminUser) => {
+    if (user.role === 'SUPER_ADMIN') {
+      showToast('Super Admin accounts cannot be deleted.');
+      return;
+    }
+    if (typeof window !== 'undefined' && !window.confirm(`Are you sure you want to permanently delete administrator "${user.fullName}" (${user.email})? This action cannot be undone and will permanently wipe their credentials from the database.`)) {
+      return;
+    }
+    try {
+      await deleteAdminUser(user.id).unwrap();
+      showToast(`Administrator "${user.fullName}" and credentials permanently deleted.`);
+      void refetch();
+    } catch (err: any) {
+      showToast(err?.data?.message || `Failed to delete administrator "${user.fullName}".`);
     }
   };
 
@@ -845,6 +864,26 @@ export function UserManagementStudio() {
                           >
                             {user.accountStatus === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
                           </button>
+
+                          {user.role !== 'SUPER_ADMIN' && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUser(user)}
+                              title="Permanently Delete User"
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: 8,
+                                border: '1px solid #FCA5A5',
+                                backgroundColor: '#FEF2F2',
+                                color: '#DC2626',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

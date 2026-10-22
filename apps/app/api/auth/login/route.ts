@@ -7,7 +7,7 @@ import {
 } from 'foodie-shared-web/auth';
 import { ENV } from '@/constants/env';
 import { safeFetch } from '@/lib/networkUtils';
-import { verifyPassword, getDefaultAdminUsers } from '@/lib/adminSecurity';
+import { verifyPassword, getDefaultAdminUsers, loadPersistentAdminUsers } from '@/lib/adminSecurity';
 
 function isSecureRequest(request: Request): boolean {
   const forwardedProto = request.headers.get('x-forwarded-proto');
@@ -335,13 +335,19 @@ export async function POST(request: Request) {
     // Upstream offline or error, continue to local store fallback
   }
 
-  // 2. Check if user exists in ADMIN_USERS_STORE (provisioned by Super Admin or in unit tests)
+  // 2. Check if user exists in ADMIN_USERS_STORE (provisioned by Super Admin or in persistent store)
   const globalAny = global as unknown as Record<string, unknown>;
   if (!globalAny.ADMIN_USERS_STORE) {
-    globalAny.ADMIN_USERS_STORE = getDefaultAdminUsers();
+    globalAny.ADMIN_USERS_STORE = loadPersistentAdminUsers();
   }
-  const usersStore = (globalAny.ADMIN_USERS_STORE as any[]) || [];
-  const matchedUser = usersStore.find((u) => u.email && u.email.toLowerCase() === normalizedEmail);
+  let usersStore = (globalAny.ADMIN_USERS_STORE as any[]) || [];
+  let matchedUser = usersStore.find((u) => u.email && u.email.toLowerCase() === normalizedEmail);
+  if (!matchedUser) {
+    const reloaded = loadPersistentAdminUsers();
+    globalAny.ADMIN_USERS_STORE = reloaded;
+    usersStore = reloaded;
+    matchedUser = usersStore.find((u) => u.email && u.email.toLowerCase() === normalizedEmail);
+  }
 
   if (matchedUser) {
     if (matchedUser.accountStatus === 'SUSPENDED') {

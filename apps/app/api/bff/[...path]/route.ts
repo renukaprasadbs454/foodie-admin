@@ -14,7 +14,7 @@ import {
   setRefundApprovalStatus,
   getRefundApprovalStatus,
 } from '../financialLedgerHelper';
-import { hashPassword, verifyPassword, isStrongPassword, getDefaultAdminUsers } from '@/lib/adminSecurity';
+import { hashPassword, verifyPassword, isStrongPassword, getDefaultAdminUsers, loadPersistentAdminUsers, savePersistentAdminUsers } from '@/lib/adminSecurity';
 
 /**
  * Thin BFF proxy — Blueprint §7.4 / System Design §9.4.
@@ -1632,12 +1632,34 @@ async function handleAdminSettings(request: Request, targetPath: string, accessT
   return NextResponse.json({ success: false, error: { message: 'Method not allowed' } }, { status: 405 });
 }
 
-const ZONES_PERSISTENCE_FILE = path.join(os.tmpdir(), 'foodie_admin_zones_state_v2.json');
+function getZonesPersistenceFile(): string {
+  try {
+    const dataDir = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    return path.join(dataDir, 'location_zones.json');
+  } catch {
+    return path.join(os.tmpdir(), 'foodie_admin_zones_state_v2.json');
+  }
+}
 
 function loadPersistentZonesState(): { deletedZones: string[]; dynamicZones: any[] } {
   try {
-    if (fs.existsSync(ZONES_PERSISTENCE_FILE)) {
-      const raw = fs.readFileSync(ZONES_PERSISTENCE_FILE, 'utf-8');
+    const filePath = getZonesPersistenceFile();
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed) {
+        return {
+          deletedZones: Array.isArray(parsed?.deletedZones) ? parsed.deletedZones : [],
+          dynamicZones: Array.isArray(parsed?.dynamicZones) ? parsed.dynamicZones : [],
+        };
+      }
+    }
+    const tmpPath = path.join(os.tmpdir(), 'foodie_admin_zones_state_v2.json');
+    if (fs.existsSync(tmpPath)) {
+      const raw = fs.readFileSync(tmpPath, 'utf-8');
       const parsed = JSON.parse(raw);
       return {
         deletedZones: Array.isArray(parsed?.deletedZones) ? parsed.deletedZones : [],
@@ -1649,13 +1671,18 @@ function loadPersistentZonesState(): { deletedZones: string[]; dynamicZones: any
 }
 
 function savePersistentZonesState(deletedZones: Set<string> | string[], dynamicZones: any[]) {
+  const data = {
+    deletedZones: Array.from(deletedZones),
+    dynamicZones: dynamicZones || [],
+    updatedAt: new Date().toISOString(),
+  };
   try {
-    const data = {
-      deletedZones: Array.from(deletedZones),
-      dynamicZones: dynamicZones || [],
-      updatedAt: new Date().toISOString(),
-    };
-    fs.writeFileSync(ZONES_PERSISTENCE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    const filePath = getZonesPersistenceFile();
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch {}
+  try {
+    const tmpPath = path.join(os.tmpdir(), 'foodie_admin_zones_state_v2.json');
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
   } catch {}
 }
 
@@ -2336,16 +2363,17 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
     deleted.delete(zoneName);
     savePersistentZonesState(deleted, dynamicZonesStore);
 
+    const backendToken = (token && !token.startsWith('demo-')) ? token : await getDevBackendToken();
     try {
       await safeFetch(`${backendUrl}/api/v1/admin/location/zones`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${backendToken}`,
         },
         body: JSON.stringify(newZone),
-        timeoutMs: 4000,
+        timeoutMs: 6000,
       });
     } catch (e) {
       console.warn('Upstream zone sync warning:', e);
@@ -2492,6 +2520,10 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
     }
 
     // In ADMIN_USERS_STORE: permanently delete any user mapped to this zone so their credentials are removed
+    if (!globalAny.ADMIN_USERS_STORE) {
+      globalAny.ADMIN_USERS_STORE = loadPersistentAdminUsers();
+    }
+    const backendToken = (token && !token.startsWith('demo-')) ? token : await getDevBackendToken();
     if (globalAny.ADMIN_USERS_STORE) {
       const users = globalAny.ADMIN_USERS_STORE as any[];
       for (let i = users.length - 1; i >= 0; i--) {
@@ -2509,29 +2541,30 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
           // Permanently remove credentials
           users.splice(i, 1);
           if (u.id) {
-            safeFetch(`${backendUrl}/api/v1/admin/users/${encodeURIComponent(u.id)}`, {
+            await safeFetch(`${backendUrl}/api/v1/admin/users/${encodeURIComponent(u.id)}`, {
               method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-              timeoutMs: 2000,
+              headers: { Authorization: `Bearer ${backendToken}` },
+              timeoutMs: 4000,
             }).catch(() => null);
           }
         }
       }
       globalAny.ADMIN_USERS_STORE = users;
+      savePersistentAdminUsers(users);
     }
 
     // Forward DELETE to upstream backend
     try {
       await safeFetch(`${backendUrl}/api/v1/admin/location/zones/${encodeURIComponent(rawZoneId)}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-        timeoutMs: 3000,
+        headers: { Authorization: `Bearer ${backendToken}` },
+        timeoutMs: 4000,
       });
       if (zoneIdLower.includes('bangalore') || zoneIdLower.includes('bengalu')) {
         await safeFetch(`${backendUrl}/api/v1/admin/location/zones/dz-bangalore`, {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-          timeoutMs: 3000,
+          headers: { Authorization: `Bearer ${backendToken}` },
+          timeoutMs: 4000,
         }).catch(() => null);
       }
     } catch {}
@@ -3645,7 +3678,7 @@ async function proxy(request: Request, pathSegments: string[]) {
 
 async function handleAdminUsers(request: Request, targetPath: string, accessToken: string | null) {
   if (!globalAny.ADMIN_USERS_STORE) {
-    globalAny.ADMIN_USERS_STORE = getDefaultAdminUsers();
+    globalAny.ADMIN_USERS_STORE = loadPersistentAdminUsers();
   }
   let usersStore = globalAny.ADMIN_USERS_STORE as any[];
 
@@ -3671,6 +3704,50 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
   globalAny.ADMIN_USERS_STORE = cleanUsers;
 
   if (request.method === 'GET' && targetPath === 'admin/users') {
+    const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+    const backendToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : await getDevBackendToken();
+    try {
+      const { response: upstreamRes } = await safeFetch(`${backendUrl}/api/v1/admin/users`, {
+        headers: { Accept: 'application/json', Authorization: `Bearer ${backendToken}` },
+        timeoutMs: 3000,
+      });
+      if (upstreamRes && upstreamRes.ok) {
+        const json = await upstreamRes.json();
+        const upstreamUsers = Array.isArray(json) ? json : (json?.data || []);
+        if (Array.isArray(upstreamUsers) && upstreamUsers.length > 0) {
+          for (const uu of upstreamUsers) {
+            const email = (uu.email || '').trim().toLowerCase();
+            if (!email) continue;
+            const existing = usersStore.find(u => (u.email || '').trim().toLowerCase() === email);
+            if (existing) {
+              if (uu.id) existing.id = uu.id;
+              if (uu.assignedZoneId) existing.assignedZoneId = uu.assignedZoneId;
+              if (uu.assignedZoneName) existing.assignedZoneName = uu.assignedZoneName;
+              if (uu.role) existing.role = uu.role;
+              if (uu.fullName) existing.fullName = uu.fullName;
+              if (uu.phoneNumber) existing.phone = uu.phoneNumber;
+            } else {
+              usersStore.push({
+                id: uu.id || `USR-${Math.floor(1000 + Math.random() * 9000)}`,
+                fullName: uu.fullName || 'Admin User',
+                email: email,
+                phone: uu.phoneNumber || '+91 98000 00000',
+                role: uu.role || 'OPS',
+                accountStatus: 'ACTIVE',
+                joinedDate: new Date().toISOString().split('T')[0],
+                lastActive: 'Active',
+                department: 'Platform Administration',
+                assignedZoneId: uu.assignedZoneId || null,
+                assignedZoneName: uu.assignedZoneName || null,
+                passwordHash: '',
+              });
+            }
+          }
+          savePersistentAdminUsers(usersStore);
+        }
+      }
+    } catch {}
+
     const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => rest);
     return NextResponse.json({
       success: true,
@@ -3741,6 +3818,7 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
         existingUser.passwordHash = passwordHash;
       }
       globalAny.ADMIN_USERS_STORE = usersStore;
+      savePersistentAdminUsers(usersStore);
 
       const { passwordHash: _, ...safeUser } = existingUser;
       return NextResponse.json({
@@ -3780,21 +3858,35 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     };
     usersStore.push(newUser);
     globalAny.ADMIN_USERS_STORE = usersStore;
+    savePersistentAdminUsers(usersStore);
 
     const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
-    safeFetch(`${backendUrl}/api/v1/admin/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken || 'demo-admin-token'}` },
-      body: JSON.stringify({
-        fullName: newUser.fullName,
-        phoneNumber: newUser.phone,
-        email: newUser.email,
-        role: newUser.role,
-        password: rawPassword,
-        assignedZoneId: newUser.assignedZoneId,
-      }),
-      timeoutMs: 1500,
-    }).catch(() => null);
+    const backendToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : await getDevBackendToken();
+    try {
+      const { response: upstreamRes } = await safeFetch(`${backendUrl}/api/v1/admin/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${backendToken}` },
+        body: JSON.stringify({
+          fullName: newUser.fullName,
+          phoneNumber: newUser.phone,
+          email: newUser.email,
+          role: newUser.role,
+          password: rawPassword,
+          assignedZoneId: newUser.assignedZoneId,
+        }),
+        timeoutMs: 6000,
+      });
+      if (upstreamRes && upstreamRes.ok) {
+        const json = await upstreamRes.json();
+        const created = json?.data || json;
+        if (created?.id) {
+          newUser.id = created.id;
+          savePersistentAdminUsers(usersStore);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to sync new user to upstream:', e);
+    }
 
     const { passwordHash: _, ...safeUser } = newUser;
 
@@ -3814,6 +3906,7 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     const targetUser = usersStore.find((u) => u.id === userId || u.id.toLowerCase() === userId.toLowerCase());
     if (targetUser) {
       targetUser.role = body.role || targetUser.role;
+      savePersistentAdminUsers(usersStore);
     }
     const safeTarget = targetUser ? (({ passwordHash: _, ...rest }) => rest)(targetUser) : null;
     return NextResponse.json({
@@ -3832,6 +3925,7 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     const targetUser = usersStore.find((u) => u.id === userId || u.id.toLowerCase() === userId.toLowerCase());
     if (targetUser) {
       targetUser.accountStatus = body.status || (targetUser.accountStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE');
+      savePersistentAdminUsers(usersStore);
     }
     const safeTarget = targetUser ? (({ passwordHash: _, ...rest }) => rest)(targetUser) : null;
     return NextResponse.json({
@@ -3874,12 +3968,14 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
 
     targetUser.passwordHash = hashPassword(rawPassword);
     globalAny.ADMIN_USERS_STORE = usersStore;
+    savePersistentAdminUsers(usersStore);
 
     // Upstream sync if backend is active
     const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+    const backendToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : await getDevBackendToken();
     safeFetch(`${backendUrl}/api/v1/admin/users`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken || 'demo-admin-token'}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${backendToken}` },
       body: JSON.stringify({
         fullName: targetUser.fullName,
         phoneNumber: targetUser.phone,
@@ -3888,7 +3984,7 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
         password: rawPassword,
         assignedZoneId: targetUser.assignedZoneId,
       }),
-      timeoutMs: 1500,
+      timeoutMs: 4000,
     }).catch(() => null);
 
     const safeTarget = (({ passwordHash: _, ...rest }) => rest)(targetUser);
@@ -3909,11 +4005,13 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     if (idx !== -1) {
       const removed = usersStore.splice(idx, 1)[0];
       globalAny.ADMIN_USERS_STORE = usersStore;
+      savePersistentAdminUsers(usersStore);
       const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
-      safeFetch(`${backendUrl}/api/v1/admin/users/${encodeURIComponent(removed.id)}`, {
+      const backendToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : await getDevBackendToken();
+      await safeFetch(`${backendUrl}/api/v1/admin/users/${encodeURIComponent(removed.id)}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken || 'demo-admin-token'}` },
-        timeoutMs: 1500,
+        headers: { Authorization: `Bearer ${backendToken}` },
+        timeoutMs: 4000,
       }).catch(() => null);
     }
     purgeBffCache('admin/users');

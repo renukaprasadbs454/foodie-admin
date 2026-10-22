@@ -58,6 +58,13 @@ export const usersApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Admin', { type: 'Admin', id: 'USERS_LIST' }],
     }),
+    deleteAdminUser: builder.mutation<{ success: boolean }, string>({
+      query: (userId) => ({
+        url: `/api/bff/admin/users/${encodeURIComponent(userId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Admin', { type: 'Admin', id: 'USERS_LIST' }],
+    }),
   }),
 });
 
@@ -67,4 +74,5 @@ export const {
   useUpdateAdminUserRoleMutation,
   useUpdateAdminUserStatusMutation,
   useUpdateAdminUserPasswordMutation,
+  useDeleteAdminUserMutation,
 } = usersApi;
