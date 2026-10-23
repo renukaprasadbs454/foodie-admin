@@ -25,19 +25,9 @@ export interface CityDto {
     status: string;
 }
 
-export interface UnserviceableRequestDto {
-    id: string;
-    restaurantName: string;
-    contactPerson: string;
-    contactEmail: string;
-    contactPhone: string;
-    address: string;
-    cityName: string;
-    latitude: number;
-    longitude: number;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-    createdAt: string;
-}
+import type { RequestSource, UnserviceableRequestDto } from '../../features/location/types';
+export type { RequestSource, UnserviceableRequestDto };
+export { inferRequestSource, getRequesterDisplayName, getRequestedArea } from '../../features/location/types';
 
 export interface ServiceAreaDto {
     id: string;

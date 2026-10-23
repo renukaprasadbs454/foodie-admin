@@ -239,7 +239,13 @@ export function ReviewsPage() {
 
   const showRestaurantRating = reviewSubTab !== 'DELIVERY_RATINGS';
   const showDeliveryRating = reviewSubTab !== 'RESTAURANT_RATINGS';
-  const tableColSpan = 4 + (showRestaurantRating ? 1 : 0) + (showDeliveryRating ? 1 : 0);
+  const showDeliveryPartner = reviewSubTab !== 'RESTAURANT_RATINGS';
+  const tableColSpan =
+    1 +
+    (showRestaurantRating ? 1 : 0) +
+    (showDeliveryRating ? 1 : 0) +
+    (showDeliveryPartner ? 1 : 0) +
+    2;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -363,14 +369,18 @@ export function ReviewsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
                 <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
-                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Customer & Store</th>
+                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {reviewSubTab === 'DELIVERY_RATINGS' ? 'Customer' : 'Customer & Store'}
+                  </th>
                   {showRestaurantRating && (
                     <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Restaurant Rating</th>
                   )}
                   {showDeliveryRating && (
                     <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Partner Rating</th>
                   )}
-                  <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Partner</th>
+                  {showDeliveryPartner && (
+                    <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Partner</th>
+                  )}
                   <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
                   <th style={{ padding: '14px 20px', color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Review Moderation</th>
                 </tr>
@@ -399,7 +409,9 @@ export function ReviewsPage() {
                       <tr key={r.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                         <td style={{ padding: '16px 20px' }}>
                           <div style={{ fontWeight: 600, color: '#111827' }}>{r.customerName}</div>
-                          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{r.restaurantName}</div>
+                          {reviewSubTab !== 'DELIVERY_RATINGS' && (
+                            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{r.restaurantName}</div>
+                          )}
                         </td>
                         {showRestaurantRating && (
                           <td style={{ padding: '16px 20px', maxWidth: 320 }}>
@@ -438,15 +450,20 @@ export function ReviewsPage() {
                                     "{parsed.deliveryComment}"
                                   </div>
                                 ) : null}
+                                {r.createdAt ? (
+                                  <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>{r.createdAt}</div>
+                                ) : null}
                               </>
                             ) : (
                               <span style={{ color: '#9CA3AF', fontSize: 13, fontStyle: 'italic' }}>Not rated</span>
                             )}
                           </td>
                         )}
-                        <td style={{ padding: '16px 20px', fontSize: 13, color: '#111827', fontWeight: 500 }}>
-                          {r.deliveryManName}
-                        </td>
+                        {showDeliveryPartner && (
+                          <td style={{ padding: '16px 20px', fontSize: 13, color: '#111827', fontWeight: 500 }}>
+                            {r.deliveryManName}
+                          </td>
+                        )}
                       <td style={{ padding: '16px 20px' }}>
                         <span
                           style={{

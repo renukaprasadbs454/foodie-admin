@@ -53,6 +53,9 @@ function getAdminUsersFile(): string {
 }
 
 export function loadPersistentAdminUsers(): any[] {
+  if (process.env.NODE_ENV === 'test') {
+    return getDefaultAdminUsers();
+  }
   try {
     const filePath = getAdminUsersFile();
     if (fs.existsSync(filePath)) {
@@ -76,6 +79,9 @@ export function loadPersistentAdminUsers(): any[] {
 }
 
 export function savePersistentAdminUsers(users: any[]): void {
+  if (process.env.NODE_ENV === 'test') {
+    return;
+  }
   try {
     const filePath = getAdminUsersFile();
     fs.writeFileSync(filePath, JSON.stringify(users || [], null, 2), 'utf-8');
