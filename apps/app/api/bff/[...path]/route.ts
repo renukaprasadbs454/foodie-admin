@@ -5264,6 +5264,35 @@ async function handleAdminRoles() {
         responseHeaders['Expires'] = '0';
       }
 
+      if (targetPath.includes('admin/location/unserviceable-requests') && contentType.includes('application/json')) {
+        try {
+          const text = Buffer.from(body).toString('utf-8');
+          const json = JSON.parse(text);
+          if (json && Array.isArray(json.data)) {
+            let modified = false;
+            for (const req of json.data) {
+              const lat = Number(req.latitude);
+              const lng = Number(req.longitude);
+              if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat - 13.175) < 0.03 && Math.abs(lng - 77.559) < 0.03) {
+                const a = (req.requestedArea || req.address || '').toLowerCase();
+                if (a.includes('doddanagamangala')) {
+                  req.requestedArea = 'Sri Banashankri Layout, Yelahanka taluku';
+                  req.address = 'Sri Banashankri Layout, Yelahanka taluku';
+                  modified = true;
+                }
+              }
+            }
+            if (modified) {
+              const newBuf = Buffer.from(JSON.stringify(json));
+              return new NextResponse(newBuf, {
+                status: upstream.status,
+                headers: responseHeaders,
+              });
+            }
+          }
+        } catch {}
+      }
+
       if (isGet && upstream.ok && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders') && !targetPath.includes('admin/shifts')) {
         // Cache successful GET responses from database for 20 seconds
         BFF_CACHE.set(cacheKey, {
@@ -5405,6 +5434,21 @@ async function handleAdminRoles() {
                 json.data.total = json.data.customers.length;
                 if (json.data.summary) json.data.summary.totalRegistered = json.data.customers.length;
                 modified = true;
+              }
+            }
+
+            if (targetPath.includes('admin/location/unserviceable-requests') && Array.isArray(json.data)) {
+              for (const req of json.data) {
+                const lat = Number(req.latitude);
+                const lng = Number(req.longitude);
+                if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat - 13.175) < 0.03 && Math.abs(lng - 77.559) < 0.03) {
+                  const a = (req.requestedArea || req.address || '').toLowerCase();
+                  if (a.includes('doddanagamangala')) {
+                    req.requestedArea = 'Sri Banashankri Layout, Yelahanka taluku';
+                    req.address = 'Sri Banashankri Layout, Yelahanka taluku';
+                    modified = true;
+                  }
+                }
               }
             }
 

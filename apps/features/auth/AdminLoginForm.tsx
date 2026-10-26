@@ -60,7 +60,13 @@ export function AdminLoginForm({
     { key: 'DARKSTORE_ADMIN', role: 'DARKSTORE_ADMIN', label: 'Darkstore Admin', defaultEmail: 'darkstore@foodie.local' },
   ];
 
-  const roleOptions: AdminRoleOption[] = dynamicRoles.length > 0 ? dynamicRoles : DEFAULT_ROLE_OPTIONS;
+  const roleOptions: AdminRoleOption[] = (dynamicRoles.length > 0 ? dynamicRoles : DEFAULT_ROLE_OPTIONS)
+    .filter((r) => {
+      const l = (r.label || '').toLowerCase();
+      const zn = (r.zoneName || '').toLowerCase();
+      const k = (r.key || '').toLowerCase();
+      return !l.includes('customer') && !zn.includes('customer') && !k.includes('customer');
+    });
   const [selectedRoleKey, setSelectedRoleKey] = useState<string>('SUPER_ADMIN');
 
   useEffect(() => {

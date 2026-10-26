@@ -76,9 +76,13 @@ export const authApi = baseApi.injectEndpoints({
         method: 'GET',
       }),
       transformResponse: (response: any) => {
-        if (Array.isArray(response)) return response;
-        if (Array.isArray(response?.data)) return response.data;
-        return [];
+        const raw = Array.isArray(response) ? response : (Array.isArray(response?.data) ? response.data : []);
+        return raw.filter((r: any) => {
+          const l = (r.label || '').toLowerCase();
+          const zn = (r.zoneName || '').toLowerCase();
+          const k = (r.key || '').toLowerCase();
+          return !l.includes('customer') && !zn.includes('customer') && !k.includes('customer');
+        });
       },
       providesTags: ['Auth'],
     }),

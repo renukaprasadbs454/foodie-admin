@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useGetAdminRestaurantsQuery } from '@/api/endpoints/restaurantsApi';
 import {
   useGetUnserviceableRequestsQuery,
   useCreateUnserviceableRequestMutation,
@@ -15,6 +16,15 @@ import {
   getRequestedArea,
 } from '@/api/endpoints/locationApi';
 
+function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const p = 0.017453292519943295;
+  const c = Math.cos;
+  const a = 0.5 - c((lat2 - lat1) * p) / 2 +
+    c(lat1 * p) * c(lat2 * p) *
+    (1 - c((lon2 - lon1) * p)) / 2;
+  return 12742 * Math.asin(Math.sqrt(a));
+}
+
 export function UnserviceableAreasPage() {
   const {
     data: dbRequests = [],
@@ -22,7 +32,7 @@ export function UnserviceableAreasPage() {
     isError: isErrorReqs,
     refetch: refetchReqs,
     isFetching: isFetchingReqs,
-  } = useGetUnserviceableRequestsQuery();
+  } = useGetUnserviceableRequestsQuery(undefined, { pollingInterval: 5000, refetchOnFocus: true });
 
   const { data: dbCities = [] } = useGetCitiesQuery();
   const { data: dbZones = [] } = useGetZonesQuery();
@@ -30,6 +40,61 @@ export function UnserviceableAreasPage() {
   const [createUnserviceableRequest, { isLoading: isSubmitting }] = useCreateUnserviceableRequestMutation();
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateUnserviceableRequestStatusMutation();
   const [approveRequest, { isLoading: isApproving }] = useApproveUnserviceableRequestMutation();
+
+  const { data: dbRestaurantsData } = useGetAdminRestaurantsQuery({ size: 100 }, { pollingInterval: 10000 });
+  const restaurantsList = useMemo(() => {
+    if (!dbRestaurantsData) return [];
+    if (Array.isArray(dbRestaurantsData)) return dbRestaurantsData;
+    if (Array.isArray((dbRestaurantsData as any).items)) return (dbRestaurantsData as any).items;
+    return [];
+  }, [dbRestaurantsData]);
+
+  const getNearbyRestaurantsForRequest = (req: UnserviceableRequestDto) => {
+    if (!req.latitude || !req.longitude) return [];
+    const reqLat = Number(req.latitude);
+    const reqLng = Number(req.longitude);
+    if (isNaN(reqLat) || isNaN(reqLng)) return [];
+
+    const list: Array<{
+      restaurantId: string;
+      name: string;
+      distanceKm: number;
+      zoneName: string;
+      cityName: string;
+      cuisineTypes: string[];
+      avgRating: number;
+    }> = [];
+
+    for (const r of restaurantsList) {
+      const rLat = Number(r.latitude ?? r.address?.latitude);
+      const rLng = Number(r.longitude ?? r.address?.longitude);
+      if (!rLat || !rLng || isNaN(rLat) || isNaN(rLng) || (rLat === 0 && rLng === 0)) continue;
+
+      const dist = calculateDistanceKm(reqLat, reqLng, rLat, rLng);
+      let zName = 'Nearby Zone';
+      if ((r as any).zoneName) {
+        zName = (r as any).zoneName;
+      } else if (r.address?.city) {
+        const c = r.address.city.toLowerCase();
+        if (c.includes('bangalore') || c.includes('bengalu')) zName = 'Bangalore Zone';
+        else if (c.includes('tumkur')) zName = 'Tumkur Zone';
+        else zName = `${r.address.city} Zone`;
+      }
+
+      list.push({
+        restaurantId: r.restaurantId,
+        name: r.name,
+        distanceKm: dist,
+        zoneName: zName,
+        cityName: r.address?.city || req.cityName || 'Karnataka',
+        cuisineTypes: Array.isArray(r.cuisineTypes) ? r.cuisineTypes : [],
+        avgRating: Number(r.avgRating || 0),
+      });
+    }
+
+    list.sort((a, b) => a.distanceKm - b.distanceKm);
+    return list;
+  };
 
   // Zone isolation context
   const userAssignedZone = typeof window !== 'undefined'
@@ -1216,6 +1281,16 @@ export function UnserviceableAreasPage() {
                           </svg>
                           <span>{req.cityName || 'Karnataka'}</span>
                         </div>
+                        {(() => {
+                          const nearby = getNearbyRestaurantsForRequest(req);
+                          const nearest = nearby[0];
+                          if (!nearest) return null;
+                          return (
+                            <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 5, backgroundColor: '#FEF3C7', color: '#92400E', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                              <span>🛵 Nearest: <strong>{nearest.name}</strong> ({nearest.distanceKm.toFixed(1)} km • {nearest.zoneName})</span>
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Coordinates */}
@@ -1436,6 +1511,58 @@ export function UnserviceableAreasPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Nearby Zone Available Restaurants & Distance Breakdown */}
+              {detailModalRequest && (() => {
+                const modalNearby = getNearbyRestaurantsForRequest(detailModalRequest);
+                return (
+                  <div style={{ backgroundColor: '#FFFBEB', padding: 14, borderRadius: 12, border: '1px solid #FDE68A', marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>🛵</span>
+                      <span>Nearby Zone Restaurants & Distance Analysis</span>
+                    </div>
+                    {modalNearby.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ fontSize: 11, color: '#78350F', marginBottom: 2 }}>
+                          Distances to restaurants available from neighboring operating zones:
+                        </div>
+                        {modalNearby.slice(0, 5).map((nr) => (
+                          <div
+                            key={nr.restaurantId}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '8px 10px',
+                              backgroundColor: '#FFFFFF',
+                              borderRadius: 8,
+                              border: '1px solid #FEF3C7',
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#1F2937' }}>
+                                {nr.name}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#6B7280' }}>
+                                {nr.zoneName} {nr.cuisineTypes.length > 0 ? `• ${nr.cuisineTypes.slice(0, 2).join(', ')}` : ''}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: '#B45309', backgroundColor: '#FEF3C7', padding: '3px 8px', borderRadius: 6 }}>
+                                {nr.distanceKm.toFixed(1)} km
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: '#92400E' }}>
+                        No restaurant coordinates available to calculate distances.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Location & Geography */}
               <div style={{ backgroundColor: '#F9FAFB', padding: 14, borderRadius: 12, border: '1px solid #E5E7EB' }}>

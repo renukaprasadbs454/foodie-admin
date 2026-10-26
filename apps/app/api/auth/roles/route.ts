@@ -11,6 +11,14 @@ export interface AdminRoleOption {
   defaultEmail?: string | null;
 }
 
+
+function isCustomerDedicatedRole(label?: string | null, zoneName?: string | null, key?: string | null): boolean {
+  const l = (label || '').toLowerCase();
+  const zn = (zoneName || '').toLowerCase();
+  const k = (key || '').toLowerCase();
+  return l.includes('customer') || zn.includes('customer') || k.includes('customer');
+}
+
 function formatZoneAdminLabel(zoneName: string): string {
   if (!zoneName || !zoneName.trim()) {
     return 'Zone Admin';
@@ -63,6 +71,7 @@ export async function GET() {
             return r;
           })
           .filter((r: any) => {
+            if (isCustomerDedicatedRole(r.label, r.zoneName, r.key)) return false;
             if (r.zoneId && isDeleted(r.zoneId, r.zoneName)) return false;
             if (r.key && r.key.startsWith('ZONE_ADMIN_')) {
               const rawZId = r.key.replace(/^ZONE_ADMIN_/, '');
@@ -112,7 +121,7 @@ export async function GET() {
 
   // Collect any custom zones created in ADMIN_USERS_STORE
   for (const u of usersStore) {
-    if (u.assignedZoneId && !isDeleted(u.assignedZoneId, u.assignedZoneName)) {
+    if (u.assignedZoneId && !isDeleted(u.assignedZoneId, u.assignedZoneName) && !isCustomerDedicatedRole(null, u.assignedZoneName, u.assignedZoneId)) {
       const cleanId = u.assignedZoneId.trim().toLowerCase();
       if (!zonesMap.has(cleanId)) {
         zonesMap.set(cleanId, {
@@ -126,7 +135,7 @@ export async function GET() {
   // Collect from dynamic zones created by Super Admin
   const dynamicZones = (globalAny.ADMIN_DYNAMIC_ZONES as any[]) || [];
   for (const dz of dynamicZones) {
-    if (dz.id && !isDeleted(dz.id, dz.zoneName)) {
+    if (dz.id && !isDeleted(dz.id, dz.zoneName) && !isCustomerDedicatedRole(null, dz.zoneName, dz.id)) {
       const cleanId = dz.id.trim().toLowerCase();
       if (!zonesMap.has(cleanId)) {
         zonesMap.set(cleanId, {
@@ -140,7 +149,7 @@ export async function GET() {
   // Collect from location history if available
   const loginHistory = (globalAny.ADMIN_ZONE_LOGIN_HISTORY as any[]) || [];
   for (const h of loginHistory) {
-    if (h.zoneId && !isDeleted(h.zoneId, h.zoneName)) {
+    if (h.zoneId && !isDeleted(h.zoneId, h.zoneName) && !isCustomerDedicatedRole(null, h.zoneName, h.zoneId)) {
       const cleanId = h.zoneId.trim().toLowerCase();
       if (!zonesMap.has(cleanId)) {
         zonesMap.set(cleanId, {
@@ -173,6 +182,7 @@ export async function GET() {
 
   // Dynamic Zone Admins in format "[Zone Name] Admin"
   for (const z of sortedZones) {
+    if (isCustomerDedicatedRole(z.zoneName, z.zoneName, z.id)) continue;
     const userForZone = usersStore.find(
       (u) => u.assignedZoneId && u.assignedZoneId.toLowerCase() === z.id.toLowerCase()
     );

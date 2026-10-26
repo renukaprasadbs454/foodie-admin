@@ -53,7 +53,7 @@ export function LocationManagementPage() {
   const [updateCityStatus] = useUpdateCityStatusMutation();
   const [deleteCity] = useDeleteCityMutation();
 
-  const { data: dbUnserviceableRequests = [], isLoading: isLoadingReqs, isError: isErrorReqs, refetch: refetchReqs } = useGetUnserviceableRequestsQuery();
+  const { data: dbUnserviceableRequests = [], isLoading: isLoadingReqs, isError: isErrorReqs, refetch: refetchReqs } = useGetUnserviceableRequestsQuery(undefined, { pollingInterval: 5000, refetchOnFocus: true });
   const [createUnserviceableRequest] = useCreateUnserviceableRequestMutation();
   const [approveUnserviceableRequest] = useApproveUnserviceableRequestMutation();
 
