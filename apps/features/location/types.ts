@@ -17,6 +17,30 @@ export interface UnserviceableRequestDto {
   requestedArea?: string;
   zoneId?: string;
   zoneName?: string;
+  distanceFromZoneKm?: number;
+  restaurantId?: string;
+  deliveryPartnerId?: string;
+  submittedDocuments?: string[] | string;
+}
+
+export function getSubmittedDocumentsList(req: UnserviceableRequestDto): string[] {
+  if (!req.submittedDocuments) return [];
+  if (Array.isArray(req.submittedDocuments)) {
+    return req.submittedDocuments.map((d) => String(d).trim()).filter(Boolean);
+  }
+  if (typeof req.submittedDocuments === 'string') {
+    return req.submittedDocuments
+      .split(',')
+      .map((d) => d.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+export function formatDocumentName(doc: string): string {
+  if (!doc) return '';
+  const clean = doc.replace(/[_-]/g, ' ').trim().toLowerCase();
+  return clean.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export function inferRequestSource(req: UnserviceableRequestDto): RequestSource {

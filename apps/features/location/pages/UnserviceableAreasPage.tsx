@@ -7,6 +7,7 @@ import {
   useCreateUnserviceableRequestMutation,
   useUpdateUnserviceableRequestStatusMutation,
   useApproveUnserviceableRequestMutation,
+  useExtendZoneForUnserviceableRequestMutation,
   useGetCitiesQuery,
   useGetZonesQuery,
   UnserviceableRequestDto,
@@ -14,6 +15,8 @@ import {
   inferRequestSource,
   getRequesterDisplayName,
   getRequestedArea,
+  getSubmittedDocumentsList,
+  formatDocumentName,
 } from '@/api/endpoints/locationApi';
 
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -40,6 +43,7 @@ export function UnserviceableAreasPage() {
   const [createUnserviceableRequest, { isLoading: isSubmitting }] = useCreateUnserviceableRequestMutation();
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateUnserviceableRequestStatusMutation();
   const [approveRequest, { isLoading: isApproving }] = useApproveUnserviceableRequestMutation();
+  const [extendZone, { isLoading: isExtendingZone }] = useExtendZoneForUnserviceableRequestMutation();
 
   const { data: dbRestaurantsData } = useGetAdminRestaurantsQuery({ size: 100 }, { pollingInterval: 10000 });
   const restaurantsList = useMemo(() => {
@@ -152,20 +156,68 @@ export function UnserviceableAreasPage() {
     return false;
   };
 
+  // Helper to find nearest admin-created operating zone and its distance
+  const getNearestZoneForRequest = (req: UnserviceableRequestDto) => {
+    if (!dbZones || dbZones.length === 0) return null;
+    const activeZones = dbZones.filter((z) => z.status !== 'DELETED' && (!z.zoneName || !z.zoneName.toLowerCase().includes('zone 1')));
+    if (activeZones.length === 0) return null;
+
+    const reqLat = Number(req.latitude);
+    const reqLng = Number(req.longitude);
+    if (!isNaN(reqLat) && !isNaN(reqLng) && reqLat !== 0 && reqLng !== 0) {
+      let nearest: { zone: (typeof activeZones)[0]; distanceKm: number } | null = null;
+      for (const zone of activeZones) {
+        const zLat = Number(zone.latitude);
+        const zLng = Number(zone.longitude);
+        if (isNaN(zLat) || isNaN(zLng) || (zLat === 0 && zLng === 0)) continue;
+        const dist = calculateDistanceKm(reqLat, reqLng, zLat, zLng);
+        if (!nearest || dist < nearest.distanceKm) {
+          nearest = { zone, distanceKm: dist };
+        }
+      }
+      if (nearest) {
+        const finalDist = req.distanceFromZoneKm != null && req.distanceFromZoneKm > 0
+          ? req.distanceFromZoneKm
+          : nearest.distanceKm;
+        return { zone: nearest.zone, distanceKm: finalDist };
+      }
+    }
+
+    if (req.cityName) {
+      const matched = activeZones.find((z) => isMatchingZone(req.cityName!, z.cityName || z.zoneName));
+      if (matched) {
+        return { zone: matched, distanceKm: req.distanceFromZoneKm != null ? req.distanceFromZoneKm : 0 };
+      }
+    }
+
+    return null;
+  };
+
   // Filter out dummy/sample records (req-1 and req-2)
   const realDbRequests = useMemo(() => {
     return dbRequests.filter((req) => req.id !== 'req-1' && req.id !== 'req-2');
   }, [dbRequests]);
 
-  // Zone isolation filtering
+  // Zone isolation filtering: ensures particular zone admin sees requests nearest to their zone
   const zoneFilteredRequests = useMemo(() => {
     if (isSuperAdmin || !userAssignedZone) return realDbRequests;
     const assignedTarget = decodeURIComponent(userAssignedZone).trim().toLowerCase();
     return realDbRequests.filter((req) => {
       const city = req.cityName || '';
-      return isMatchingZone(city, assignedTarget);
+      if (isMatchingZone(city, assignedTarget)) return true;
+      const nearestInfo = getNearestZoneForRequest(req);
+      if (nearestInfo) {
+        if (
+          isMatchingZone(nearestInfo.zone.id, assignedTarget) ||
+          isMatchingZone(nearestInfo.zone.zoneName, assignedTarget) ||
+          isMatchingZone(nearestInfo.zone.cityName || '', assignedTarget)
+        ) {
+          return true;
+        }
+      }
+      return false;
     });
-  }, [realDbRequests, isSuperAdmin, userAssignedZone]);
+  }, [realDbRequests, isSuperAdmin, userAssignedZone, dbZones]);
 
   // Enriched and Filtered Requests
   const filteredRequests = useMemo(() => {
@@ -260,7 +312,7 @@ export function UnserviceableAreasPage() {
   const handleApproveAndCreateZone = async (req: UnserviceableRequestDto) => {
     try {
       await approveRequest(req.id).unwrap();
-      showToast(`Request ${req.id} approved! Created dedicated Multi-Zone.`);
+      showToast(`Request ${req.id} approved!`);
       if (detailModalRequest && detailModalRequest.id === req.id) {
         setDetailModalRequest({
           ...detailModalRequest,
@@ -269,6 +321,21 @@ export function UnserviceableAreasPage() {
       }
     } catch (err: any) {
       showToast(`Failed to approve request: ${err?.data?.message || err?.message || 'Server Error'}`, 'error');
+    }
+  };
+
+  const handleExtendZone = async (req: UnserviceableRequestDto) => {
+    try {
+      const res = await extendZone(req.id).unwrap();
+      showToast(`Zone "${res.zoneName}" extended up to requested area and request approved!`);
+      if (detailModalRequest && detailModalRequest.id === req.id) {
+        setDetailModalRequest({
+          ...detailModalRequest,
+          status: 'APPROVED',
+        });
+      }
+    } catch (err: any) {
+      showToast(`Failed to extend zone: ${err?.data?.message || err?.message || 'Server Error'}`, 'error');
     }
   };
 
@@ -1190,6 +1257,9 @@ export function UnserviceableAreasPage() {
                     Coordinates
                   </th>
                   <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Documents
+                  </th>
+                  <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Date
                   </th>
                   <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -1282,12 +1352,26 @@ export function UnserviceableAreasPage() {
                           <span>{req.cityName || 'Karnataka'}</span>
                         </div>
                         {(() => {
-                          const nearby = getNearbyRestaurantsForRequest(req);
-                          const nearest = nearby[0];
+                          const nearest = getNearestZoneForRequest(req);
                           if (!nearest) return null;
+                          const distStr = nearest.distanceKm > 0 ? `${nearest.distanceKm.toFixed(1)} km` : '< 1 km';
                           return (
-                            <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 5, backgroundColor: '#FEF3C7', color: '#92400E', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
-                              <span>🛵 Nearest: <strong>{nearest.name}</strong> ({nearest.distanceKm.toFixed(1)} km • {nearest.zoneName})</span>
+                            <div
+                              style={{
+                                marginTop: 6,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                backgroundColor: '#EFF6FF',
+                                color: '#1D4ED8',
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                border: '1px solid #BFDBFE',
+                              }}
+                            >
+                              <span>📍 <strong>{distStr} from {nearest.zone.zoneName || nearest.zone.cityName}</strong></span>
                             </div>
                           );
                         })()}
@@ -1319,6 +1403,61 @@ export function UnserviceableAreasPage() {
                         ) : (
                           <span style={{ color: '#9CA3AF' }}>Not provided</span>
                         )}
+                      </td>
+
+                      {/* Documents */}
+                      <td style={{ padding: '16px 20px' }}>
+                        {(() => {
+                          const docs = getSubmittedDocumentsList(req);
+                          if (docs.length === 0) {
+                            return (
+                              <span style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' }}>
+                                None
+                              </span>
+                            );
+                          }
+                          return (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 220 }}>
+                              {docs.slice(0, 3).map((doc, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    backgroundColor: '#EFF6FF',
+                                    color: '#1D4ED8',
+                                    border: '1px solid #BFDBFE',
+                                    borderRadius: 6,
+                                    padding: '2px 6px',
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                  title={doc}
+                                >
+                                  <span>📄</span>
+                                  <span>{formatDocumentName(doc)}</span>
+                                </span>
+                              ))}
+                              {docs.length > 3 && (
+                                <span
+                                  style={{
+                                    backgroundColor: '#F3F4F6',
+                                    color: '#4B5563',
+                                    borderRadius: 6,
+                                    padding: '2px 5px',
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                  }}
+                                  title={docs.slice(3).map(formatDocumentName).join(', ')}
+                                >
+                                  +{docs.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Date */}
@@ -1353,24 +1492,45 @@ export function UnserviceableAreasPage() {
                           </button>
 
                           {req.status === 'PENDING' ? (
-                            <button
-                              type="button"
-                              onClick={() => handleApproveAndCreateZone(req)}
-                              disabled={isApproving}
-                              style={{
-                                padding: '6px 12px',
-                                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                borderRadius: 8,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
-                              }}
-                            >
-                              Approve
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleExtendZone(req)}
+                                disabled={isExtendingZone}
+                                style={{
+                                  padding: '6px 12px',
+                                  background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  borderRadius: 8,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  cursor: isExtendingZone ? 'not-allowed' : 'pointer',
+                                  boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)',
+                                }}
+                              >
+                                {isExtendingZone ? 'Extending...' : 'Extend Zone'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleApproveAndCreateZone(req)}
+                                disabled={isApproving}
+                                style={{
+                                  padding: '6px 12px',
+                                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  borderRadius: 8,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  cursor: isApproving ? 'not-allowed' : 'pointer',
+                                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
+                                }}
+                              >
+                                {isApproving ? 'Approving...' : 'Approve'}
+                              </button>
+                            </>
                           ) : (
                             <select
                               value={req.status}
@@ -1512,52 +1672,38 @@ export function UnserviceableAreasPage() {
                 </div>
               </div>
 
-              {/* Nearby Zone Available Restaurants & Distance Breakdown */}
+              {/* Nearest Operating Zone & Distance Breakdown */}
               {detailModalRequest && (() => {
-                const modalNearby = getNearbyRestaurantsForRequest(detailModalRequest);
+                const nearestZoneInfo = getNearestZoneForRequest(detailModalRequest);
+                const distStr = nearestZoneInfo && nearestZoneInfo.distanceKm > 0
+                  ? `${nearestZoneInfo.distanceKm.toFixed(1)} km`
+                  : '< 1 km';
+
                 return (
-                  <div style={{ backgroundColor: '#FFFBEB', padding: 14, borderRadius: 12, border: '1px solid #FDE68A', marginBottom: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>🛵</span>
-                      <span>Nearby Zone Restaurants & Distance Analysis</span>
+                  <div style={{ backgroundColor: '#EFF6FF', padding: 14, borderRadius: 12, border: '1px solid #BFDBFE', marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>📍</span>
+                      <span>Nearest Operating Zone & Distance Analysis</span>
                     </div>
-                    {modalNearby.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <div style={{ fontSize: 11, color: '#78350F', marginBottom: 2 }}>
-                          Distances to restaurants available from neighboring operating zones:
-                        </div>
-                        {modalNearby.slice(0, 5).map((nr) => (
-                          <div
-                            key={nr.restaurantId}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '8px 10px',
-                              backgroundColor: '#FFFFFF',
-                              borderRadius: 8,
-                              border: '1px solid #FEF3C7',
-                            }}
-                          >
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#1F2937' }}>
-                                {nr.name}
-                              </div>
-                              <div style={{ fontSize: 11, color: '#6B7280' }}>
-                                {nr.zoneName} {nr.cuisineTypes.length > 0 ? `• ${nr.cuisineTypes.slice(0, 2).join(', ')}` : ''}
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <span style={{ fontSize: 13, fontWeight: 800, color: '#B45309', backgroundColor: '#FEF3C7', padding: '3px 8px', borderRadius: 6 }}>
-                                {nr.distanceKm.toFixed(1)} km
-                              </span>
-                            </div>
+                    {nearestZoneInfo ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', padding: '10px 14px', borderRadius: 8, border: '1px solid #DBEAFE' }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: '#1E3A8A' }}>
+                            {nearestZoneInfo.zone.zoneName || nearestZoneInfo.zone.cityName}
                           </div>
-                        ))}
+                          <div style={{ fontSize: 12, color: '#3B82F6', marginTop: 2 }}>
+                            Current Operating Radius: {nearestZoneInfo.zone.radiusKm} km • City: {nearestZoneInfo.zone.cityName}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: '#1D4ED8', backgroundColor: '#DBEAFE', padding: '4px 10px', borderRadius: 8 }}>
+                            {distStr} from zone
+                          </span>
+                        </div>
                       </div>
                     ) : (
-                      <div style={{ fontSize: 12, color: '#92400E' }}>
-                        No restaurant coordinates available to calculate distances.
+                      <div style={{ fontSize: 12, color: '#1E40AF' }}>
+                        No operating zones registered yet.
                       </div>
                     )}
                   </div>
@@ -1609,6 +1755,62 @@ export function UnserviceableAreasPage() {
                 </div>
               </div>
 
+              {/* Submitted Documents Section */}
+              <div style={{ backgroundColor: '#F9FAFB', padding: 14, borderRadius: 12, border: '1px solid #E5E7EB' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>📑</span>
+                  <span>Submitted Verification Documents</span>
+                </div>
+                {(() => {
+                  const docs = getSubmittedDocumentsList(detailModalRequest);
+                  if (docs.length === 0) {
+                    return (
+                      <div style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' }}>
+                        No documents attached to this demand request.
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {docs.map((doc, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            backgroundColor: '#FFFFFF',
+                            color: '#1E40AF',
+                            border: '1px solid #BFDBFE',
+                            borderRadius: 8,
+                            padding: '6px 12px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                          }}
+                        >
+                          <span style={{ fontSize: 14 }}>📄</span>
+                          <span>{formatDocumentName(doc)}</span>
+                          <span
+                            style={{
+                              marginLeft: 4,
+                              backgroundColor: '#DCFCE7',
+                              color: '#15803D',
+                              borderRadius: 4,
+                              padding: '1px 5px',
+                              fontSize: 10,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Verified
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
               {/* Status and Action Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1618,24 +1820,45 @@ export function UnserviceableAreasPage() {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {detailModalRequest.status !== 'APPROVED' && (
-                    <button
-                      type="button"
-                      onClick={() => handleApproveAndCreateZone(detailModalRequest)}
-                      disabled={isApproving}
-                      style={{
-                        padding: '8px 16px',
-                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
-                      }}
-                    >
-                      {isApproving ? 'Approving...' : 'Approve & Create Zone'}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleExtendZone(detailModalRequest)}
+                        disabled={isExtendingZone}
+                        style={{
+                          padding: '8px 16px',
+                          background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: isExtendingZone ? 'not-allowed' : 'pointer',
+                          boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)',
+                        }}
+                      >
+                        {isExtendingZone ? 'Extending...' : 'Extend Zone'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApproveAndCreateZone(detailModalRequest)}
+                        disabled={isApproving}
+                        style={{
+                          padding: '8px 16px',
+                          background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: isApproving ? 'not-allowed' : 'pointer',
+                          boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
+                        }}
+                      >
+                        {isApproving ? 'Approving...' : 'Approve'}
+                      </button>
+                    </>
                   )}
 
                   {detailModalRequest.status !== 'REJECTED' && (

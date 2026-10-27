@@ -3,6 +3,8 @@ import {
   inferRequestSource,
   getRequesterDisplayName,
   getRequestedArea,
+  getSubmittedDocumentsList,
+  formatDocumentName,
   UnserviceableRequestDto,
 } from '../features/location/types';
 
@@ -123,6 +125,38 @@ describe('Unserviceable Areas Feature', () => {
       expect(inferRequestSource(restReq)).toBe('RESTAURANT');
       expect(getRequesterDisplayName(restReq)).toBe('Pavithra Thatte Idli');
       expect(getRequestedArea(restReq)).toBe('Kyatsandra Main Road');
+    });
+
+    it('correctly parses submitted documents from array or string and formats names', () => {
+      const reqWithArray: UnserviceableRequestDto = {
+        id: 'req-docs1',
+        restaurantName: 'Cafe Coffee Day',
+        contactPerson: 'Arun',
+        contactEmail: 'arun@ccd.com',
+        contactPhone: '+919999999999',
+        address: 'MG Road',
+        cityName: 'Bangalore',
+        latitude: 12.9716,
+        longitude: 77.5946,
+        status: 'PENDING',
+        createdAt: '2026-10-23T12:00:00Z',
+        submittedDocuments: ['FSSAI_CERTIFICATE', 'PAN_CARD', 'GST_CERTIFICATE'],
+      };
+      expect(getSubmittedDocumentsList(reqWithArray)).toEqual(['FSSAI_CERTIFICATE', 'PAN_CARD', 'GST_CERTIFICATE']);
+      expect(formatDocumentName('FSSAI_CERTIFICATE')).toBe('Fssai Certificate');
+      expect(formatDocumentName('pan_card')).toBe('Pan Card');
+
+      const reqWithString: UnserviceableRequestDto = {
+        ...reqWithArray,
+        submittedDocuments: 'DRIVING_LICENSE, VEHICLE_RC, AADHAAR_CARD',
+      };
+      expect(getSubmittedDocumentsList(reqWithString)).toEqual(['DRIVING_LICENSE', 'VEHICLE_RC', 'AADHAAR_CARD']);
+
+      const reqEmpty: UnserviceableRequestDto = {
+        ...reqWithArray,
+        submittedDocuments: undefined,
+      };
+      expect(getSubmittedDocumentsList(reqEmpty)).toEqual([]);
     });
   });
 });

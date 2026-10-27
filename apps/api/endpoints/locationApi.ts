@@ -27,7 +27,7 @@ export interface CityDto {
 
 import type { RequestSource, UnserviceableRequestDto } from '../../features/location/types';
 export type { RequestSource, UnserviceableRequestDto };
-export { inferRequestSource, getRequesterDisplayName, getRequestedArea } from '../../features/location/types';
+export { inferRequestSource, getRequesterDisplayName, getRequestedArea, getSubmittedDocumentsList, formatDocumentName } from '../../features/location/types';
 
 export interface ServiceAreaDto {
     id: string;
@@ -148,6 +148,13 @@ export const locationApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ['UnserviceableRequest', 'LocationZone', 'City'],
         }),
+        extendZoneForUnserviceableRequest: builder.mutation<LocationZoneDto, string>({
+            query: (requestId) => ({
+                url: `/api/bff/admin/location/unserviceable-requests/${requestId}/extend-zone`,
+                method: 'POST',
+            }),
+            invalidatesTags: ['UnserviceableRequest', 'LocationZone', 'City'],
+        }),
         getServiceAreas: builder.query<ServiceAreaDto[], void>({
             query: () => `/api/bff/admin/location/service-areas`,
             providesTags: ['ServiceArea'],
@@ -219,6 +226,7 @@ export const {
     useCreateUnserviceableRequestMutation,
     useUpdateUnserviceableRequestStatusMutation,
     useApproveUnserviceableRequestMutation,
+    useExtendZoneForUnserviceableRequestMutation,
     useGetServiceAreasQuery,
     useCreateServiceAreaMutation,
     useDeleteServiceAreaMutation,
