@@ -5252,6 +5252,9 @@ async function handleAdminRoles() {
       const contentType = upstream.headers.get('Content-Type') ?? 'application/json';
       const responseHeaders: Record<string, string> = {
         'Content-Type': contentType,
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': '*',
       };
       const disposition = upstream.headers.get('Content-Disposition');
       if (disposition) {
@@ -5275,7 +5278,7 @@ async function handleAdminRoles() {
               const lng = Number(req.longitude);
               if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat - 13.175) < 0.03 && Math.abs(lng - 77.559) < 0.03) {
                 const a = (req.requestedArea || req.address || '').toLowerCase();
-                if (a.includes('doddanagamangala')) {
+                if (a.includes('doddanagamangala') || a.includes('locating') || !a.trim()) {
                   req.requestedArea = 'Sri Banashankri Layout, Yelahanka taluku';
                   req.address = 'Sri Banashankri Layout, Yelahanka taluku';
                   modified = true;

@@ -141,15 +141,18 @@ export function getRequesterDisplayName(req: UnserviceableRequestDto): string {
 }
 
 export function getRequestedArea(req: UnserviceableRequestDto): string {
-  const addr = req.requestedArea || req.address || '';
+  let addr = req.requestedArea || req.address || '';
   if (req.latitude && req.longitude) {
     const lat = Number(req.latitude);
     const lng = Number(req.longitude);
     if (Math.abs(lat - 13.175) < 0.03 && Math.abs(lng - 77.559) < 0.03) {
-      if (addr.toLowerCase().includes('doddanagamangala')) {
+      if (addr.toLowerCase().includes('doddanagamangala') || addr.toLowerCase().includes('locating') || !addr.trim()) {
         return 'Sri Banashankri Layout, Yelahanka taluku';
       }
     }
   }
-  return addr || 'Unspecified Area';
+  if (addr.includes(' • ')) {
+    addr = addr.split(' • ').slice(1).join(' • ');
+  }
+  return addr.trim() || 'Unspecified Area';
 }

@@ -1361,26 +1361,49 @@ export function UnserviceableAreasPage() {
                           <span>{req.cityName || 'Karnataka'}</span>
                         </div>
                         {(() => {
-                          const nearest = getNearestZoneForRequest(req);
-                          if (!nearest) return null;
-                          const distStr = nearest.distanceKm > 0 ? `${nearest.distanceKm.toFixed(1)} km` : '< 1 km';
+                          const nearbyRests = getNearbyRestaurantsForRequest(req);
+                          const nearestRest = nearbyRests[0];
+                          const nearestZone = getNearestZoneForRequest(req);
+                          const distZoneStr = nearestZone && nearestZone.distanceKm > 0 ? `${nearestZone.distanceKm.toFixed(1)} km` : '< 1 km';
                           return (
-                            <div
-                              style={{
-                                marginTop: 6,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                backgroundColor: '#EFF6FF',
-                                color: '#1D4ED8',
-                                padding: '3px 8px',
-                                borderRadius: 6,
-                                fontSize: 11,
-                                fontWeight: 700,
-                                border: '1px solid #BFDBFE',
-                              }}
-                            >
-                              <span>📍 <strong>{distStr} from {nearest.zone.zoneName || nearest.zone.cityName}</strong></span>
+                            <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              {nearestRest && (
+                                <div
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    backgroundColor: '#FEF3C7',
+                                    color: '#92400E',
+                                    padding: '3px 8px',
+                                    borderRadius: 6,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    border: '1px solid #FDE68A',
+                                  }}
+                                  title={`Nearest available restaurant from nearby zone: ${nearestRest.name} (${nearestRest.distanceKm.toFixed(1)} km in ${nearestRest.zoneName})`}
+                                >
+                                  <span>🛵 <strong>Nearest: {nearestRest.name} ({nearestRest.distanceKm.toFixed(1)} km • {nearestRest.zoneName})</strong></span>
+                                </div>
+                              )}
+                              {nearestZone && (
+                                <div
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    backgroundColor: '#EFF6FF',
+                                    color: '#1D4ED8',
+                                    padding: '3px 8px',
+                                    borderRadius: 6,
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    border: '1px solid #BFDBFE',
+                                  }}
+                                >
+                                  <span>📍 <strong>Zone: {distZoneStr} from {nearestZone.zone.zoneName || nearestZone.zone.cityName}</strong></span>
+                                </div>
+                              )}
                             </div>
                           );
                         })()}
@@ -1746,6 +1769,61 @@ export function UnserviceableAreasPage() {
                     ) : (
                       <div style={{ fontSize: 12, color: '#1E40AF' }}>
                         No operating zones registered yet.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Nearby Zone Restaurants & Distance Analysis */}
+              {detailModalRequest && (() => {
+                const nearbyRests = getNearbyRestaurantsForRequest(detailModalRequest);
+                return (
+                  <div style={{ backgroundColor: '#FFFBEB', padding: 14, borderRadius: 12, border: '1px solid #FCD34D', marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>🛵</span>
+                        <span>Restaurants Available From Nearby Zones & Distances</span>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: '#FEF3C7', color: '#B45309', padding: '2px 8px', borderRadius: 8 }}>
+                        {nearbyRests.length} nearby
+                      </span>
+                    </div>
+
+                    {nearbyRests.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                        {nearbyRests.slice(0, 5).map((nr) => (
+                          <div
+                            key={nr.restaurantId}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              backgroundColor: '#FFFFFF',
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              border: '1px solid #FDE68A',
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                                {nr.name}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#78350F', marginTop: 1 }}>
+                                {nr.zoneName} • {nr.cuisineTypes.slice(0, 2).join(', ') || 'Multi-cuisine'}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: '#B45309', backgroundColor: '#FEF3C7', padding: '3px 8px', borderRadius: 6 }}>
+                                {nr.distanceKm.toFixed(1)} km
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: '#92400E' }}>
+                        No operating restaurants found within 50 km.
                       </div>
                     )}
                   </div>
