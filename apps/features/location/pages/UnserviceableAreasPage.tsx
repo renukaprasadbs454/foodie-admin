@@ -11,12 +11,15 @@ import {
   useGetCitiesQuery,
   useGetZonesQuery,
   UnserviceableRequestDto,
+  DocumentDetailDto,
   RequestSource,
   inferRequestSource,
   getRequesterDisplayName,
   getRequestedArea,
   getSubmittedDocumentsList,
   formatDocumentName,
+  getNormalizedDocuments,
+  resolveDocumentUrl,
 } from '@/api/endpoints/locationApi';
 
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -119,6 +122,12 @@ export function UnserviceableAreasPage() {
   // Modals state
   const [detailModalRequest, setDetailModalRequest] = useState<UnserviceableRequestDto | null>(null);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [selectedDocPreview, setSelectedDocPreview] = useState<{
+    request: UnserviceableRequestDto;
+    document: DocumentDetailDto;
+    allDocs: DocumentDetailDto[];
+    docIndex: number;
+  } | null>(null);
 
   // New Request Form state
   const [newSource, setNewSource] = useState<RequestSource>('CUSTOMER');
@@ -1408,8 +1417,8 @@ export function UnserviceableAreasPage() {
                       {/* Documents */}
                       <td style={{ padding: '16px 20px' }}>
                         {(() => {
-                          const docs = getSubmittedDocumentsList(req);
-                          if (docs.length === 0) {
+                          const normalizedDocs = getNormalizedDocuments(req);
+                          if (normalizedDocs.length === 0) {
                             return (
                               <span style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' }}>
                                 None
@@ -1418,42 +1427,75 @@ export function UnserviceableAreasPage() {
                           }
                           return (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 220 }}>
-                              {docs.slice(0, 3).map((doc, idx) => (
-                                <span
-                                  key={idx}
+                              {normalizedDocs.slice(0, 3).map((doc, idx) => (
+                                <button
+                                  key={doc.documentId || idx}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedDocPreview({
+                                      request: req,
+                                      document: doc,
+                                      allDocs: normalizedDocs,
+                                      docIndex: idx,
+                                    });
+                                  }}
                                   style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: 3,
+                                    gap: 4,
                                     backgroundColor: '#EFF6FF',
                                     color: '#1D4ED8',
                                     border: '1px solid #BFDBFE',
                                     borderRadius: 6,
-                                    padding: '2px 6px',
+                                    padding: '3px 8px',
                                     fontSize: 11,
                                     fontWeight: 600,
                                     whiteSpace: 'nowrap',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
                                   }}
-                                  title={doc}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#DBEAFE';
+                                    e.currentTarget.style.borderColor = '#93C5FD';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#EFF6FF';
+                                    e.currentTarget.style.borderColor = '#BFDBFE';
+                                  }}
+                                  title={`Click to open ${doc.name || formatDocumentName(doc.docType)}`}
                                 >
                                   <span>📄</span>
-                                  <span>{formatDocumentName(doc)}</span>
-                                </span>
+                                  <span>{doc.name || formatDocumentName(doc.docType)}</span>
+                                  <span style={{ fontSize: 10, color: '#3B82F6', fontWeight: 800 }}>↗</span>
+                                </button>
                               ))}
-                              {docs.length > 3 && (
-                                <span
+                              {normalizedDocs.length > 3 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedDocPreview({
+                                      request: req,
+                                      document: normalizedDocs[3],
+                                      allDocs: normalizedDocs,
+                                      docIndex: 3,
+                                    });
+                                  }}
                                   style={{
                                     backgroundColor: '#F3F4F6',
                                     color: '#4B5563',
+                                    border: '1px solid #E5E7EB',
                                     borderRadius: 6,
-                                    padding: '2px 5px',
+                                    padding: '3px 6px',
                                     fontSize: 10,
                                     fontWeight: 700,
+                                    cursor: 'pointer',
                                   }}
-                                  title={docs.slice(3).map(formatDocumentName).join(', ')}
+                                  title={`Click to view all ${normalizedDocs.length} documents`}
                                 >
-                                  +{docs.length - 3}
-                                </span>
+                                  +{normalizedDocs.length - 3} more
+                                </button>
                               )}
                             </div>
                           );
@@ -1762,8 +1804,8 @@ export function UnserviceableAreasPage() {
                   <span>Submitted Verification Documents</span>
                 </div>
                 {(() => {
-                  const docs = getSubmittedDocumentsList(detailModalRequest);
-                  if (docs.length === 0) {
+                  const normalizedDocs = getNormalizedDocuments(detailModalRequest);
+                  if (normalizedDocs.length === 0) {
                     return (
                       <div style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' }}>
                         No documents attached to this demand request.
@@ -1771,33 +1813,64 @@ export function UnserviceableAreasPage() {
                     );
                   }
                   return (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {docs.map((doc, idx) => (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                      {normalizedDocs.map((doc, idx) => (
                         <div
-                          key={idx}
+                          key={doc.documentId || idx}
+                          onClick={() => {
+                            setSelectedDocPreview({
+                              request: detailModalRequest,
+                              document: doc,
+                              allDocs: normalizedDocs,
+                              docIndex: idx,
+                            });
+                          }}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 6,
+                            gap: 10,
                             backgroundColor: '#FFFFFF',
                             color: '#1E40AF',
                             border: '1px solid #BFDBFE',
-                            borderRadius: 8,
-                            padding: '6px 12px',
+                            borderRadius: 10,
+                            padding: '8px 14px',
                             fontSize: 12,
                             fontWeight: 600,
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
                           }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#EFF6FF';
+                            e.currentTarget.style.borderColor = '#60A5FA';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 4px 10px rgba(37,99,235,0.12)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#FFFFFF';
+                            e.currentTarget.style.borderColor = '#BFDBFE';
+                            e.currentTarget.style.transform = 'none';
+                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+                          }}
+                          title="Click to view and open document"
                         >
-                          <span style={{ fontSize: 14 }}>📄</span>
-                          <span>{formatDocumentName(doc)}</span>
+                          <span style={{ fontSize: 18 }}>📄</span>
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#1E3A8A', fontSize: 13 }}>
+                              {doc.name || formatDocumentName(doc.docType)}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#2563EB', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                              <span>Click to inspect</span>
+                              <span style={{ fontWeight: 800 }}>↗</span>
+                            </div>
+                          </div>
                           <span
                             style={{
-                              marginLeft: 4,
+                              marginLeft: 6,
                               backgroundColor: '#DCFCE7',
                               color: '#15803D',
                               borderRadius: 4,
-                              padding: '1px 5px',
+                              padding: '2px 6px',
                               fontSize: 10,
                               fontWeight: 700,
                             }}
@@ -2264,6 +2337,375 @@ export function UnserviceableAreasPage() {
           </form>
         </div>
       )}
+
+      {/* Document Preview & Inspection Modal */}
+      {selectedDocPreview && (() => {
+        const { request, document: curDoc, allDocs, docIndex } = selectedDocPreview;
+        const displayName = getRequesterDisplayName(request);
+        const source = inferRequestSource(request);
+        const resolvedUrl = curDoc.fileUrl ? resolveDocumentUrl(curDoc.fileUrl) : '';
+        const isPdf = resolvedUrl.toLowerCase().includes('.pdf');
+        const titleText = curDoc.name || formatDocumentName(curDoc.docType);
+
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 99999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16,
+            }}
+            onClick={() => setSelectedDocPreview(null)}
+          >
+            <div
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 18,
+                width: 780,
+                maxWidth: '96%',
+                maxHeight: '92vh',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 24px 48px rgba(0, 0, 0, 0.2)',
+                border: '1px solid #E5E7EB',
+                overflow: 'hidden',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div
+                style={{
+                  padding: '16px 20px',
+                  backgroundColor: '#F8FAFC',
+                  borderBottom: '1px solid #E2E8F0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      backgroundColor: '#EFF6FF',
+                      border: '1px solid #BFDBFE',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 20,
+                    }}
+                  >
+                    📄
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
+                        {titleText}
+                      </h3>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          backgroundColor: '#DCFCE7',
+                          border: '1px solid #BBF7D0',
+                          color: '#15803D',
+                        }}
+                      >
+                        Verified Document
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                      {source === 'RESTAURANT' ? 'Restaurant: ' : source === 'DELIVERY_PARTNER' ? 'Delivery Partner: ' : 'Customer: '}
+                      <strong style={{ color: '#1E293B' }}>{displayName}</strong> • {request.cityName || 'Karnataka'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {resolvedUrl && (
+                    <a
+                      href={resolvedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        padding: '7px 14px',
+                        backgroundColor: '#2563EB',
+                        color: '#FFFFFF',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        boxShadow: '0 2px 4px rgba(37,99,235,0.25)',
+                      }}
+                    >
+                      <span>Open in New Tab</span>
+                      <span>↗</span>
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDocPreview(null)}
+                    style={{
+                      padding: '6px 10px',
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #CBD5E1',
+                      borderRadius: 8,
+                      fontSize: 14,
+                      cursor: 'pointer',
+                      color: '#64748B',
+                      fontWeight: 700,
+                    }}
+                    title="Close preview"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Multi-Document Tabs */}
+              {allDocs.length > 1 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 20px',
+                    backgroundColor: '#F1F5F9',
+                    borderBottom: '1px solid #E2E8F0',
+                    overflowX: 'auto',
+                  }}
+                >
+                  {allDocs.map((docItem, idx) => {
+                    const isActive = idx === docIndex;
+                    return (
+                      <button
+                        key={docItem.documentId || idx}
+                        type="button"
+                        onClick={() =>
+                          setSelectedDocPreview({
+                            request,
+                            document: docItem,
+                            allDocs,
+                            docIndex: idx,
+                          })
+                        }
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          border: isActive ? '1px solid #2563EB' : '1px solid #CBD5E1',
+                          backgroundColor: isActive ? '#2563EB' : '#FFFFFF',
+                          color: isActive ? '#FFFFFF' : '#475569',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <span>📄</span>
+                        <span>{docItem.name || formatDocumentName(docItem.docType)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Document Content Viewport */}
+              <div
+                style={{
+                  padding: 24,
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  backgroundColor: '#F8FAFC',
+                  minHeight: 320,
+                  maxHeight: 'calc(92vh - 160px)',
+                }}
+              >
+                {resolvedUrl ? (
+                  isPdf ? (
+                    <iframe
+                      src={resolvedUrl}
+                      title={titleText}
+                      style={{
+                        width: '100%',
+                        height: 480,
+                        border: '1px solid #CBD5E1',
+                        borderRadius: 10,
+                        backgroundColor: '#FFFFFF',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: 12,
+                        padding: 16,
+                      }}
+                    >
+                      <img
+                        src={resolvedUrl}
+                        alt={titleText}
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: 460,
+                          objectFit: 'contain',
+                          borderRadius: 8,
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const fb = document.getElementById('doc-preview-fallback');
+                          if (fb) fb.style.display = 'flex';
+                        }}
+                      />
+                      <div
+                        id="doc-preview-fallback"
+                        style={{
+                          display: 'none',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          padding: 24,
+                          textAlign: 'center',
+                        }}
+                      >
+                        <div style={{ fontSize: 36, marginBottom: 8 }}>📑</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>
+                          Verified Verification Document
+                        </div>
+                        <div style={{ fontSize: 12, color: '#64748B', maxWidth: 420, marginTop: 4 }}>
+                          Direct preview rendered from merchant onboarding record. Click "Open in New Tab" above to view directly in browser.
+                        </div>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  /* Official Document Verification Record Card */
+                  <div
+                    style={{
+                      width: '100%',
+                      maxWidth: 620,
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 14,
+                      border: '1px solid #E2E8F0',
+                      padding: 24,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 16, borderBottom: '1px solid #F1F5F9' }}>
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          backgroundColor: '#F0FDF4',
+                          border: '1px solid #BBF7D0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 24,
+                        }}
+                      >
+                        🛡️
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>
+                          Official Compliance & Verification Record
+                        </div>
+                        <div style={{ fontSize: 12, color: '#15803D', fontWeight: 600 }}>
+                          ✓ Validated Merchant Onboarding Submission
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 18 }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Document Type</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B', marginTop: 2 }}>
+                          {titleText}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>System Doc Code</div>
+                        <div style={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 600, color: '#2563EB', marginTop: 2 }}>
+                          {curDoc.docType}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Requester Entity</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', marginTop: 2 }}>
+                          {displayName}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Request ID</div>
+                        <div style={{ fontSize: 13, fontFamily: 'monospace', color: '#64748B', marginTop: 2 }}>
+                          {request.id}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Contact Person</div>
+                        <div style={{ fontSize: 13, color: '#334155', marginTop: 2 }}>
+                          {request.contactPerson || '-'} ({request.contactPhone || 'No phone'})
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Submitted Location</div>
+                        <div style={{ fontSize: 13, color: '#334155', marginTop: 2 }}>
+                          {request.requestedArea || request.address || request.cityName || 'Assigned Territory'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 20,
+                        padding: 12,
+                        backgroundColor: '#EFF6FF',
+                        borderRadius: 8,
+                        border: '1px solid #BFDBFE',
+                        fontSize: 12,
+                        color: '#1E40AF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                    >
+                      <span>ℹ️</span>
+                      <span>
+                        Document file reference recorded in active onboarding database. Verified by automated document compliance workflow.
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

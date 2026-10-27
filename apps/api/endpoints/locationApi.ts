@@ -25,9 +25,17 @@ export interface CityDto {
     status: string;
 }
 
-import type { RequestSource, UnserviceableRequestDto } from '../../features/location/types';
-export type { RequestSource, UnserviceableRequestDto };
-export { inferRequestSource, getRequesterDisplayName, getRequestedArea, getSubmittedDocumentsList, formatDocumentName } from '../../features/location/types';
+import type { RequestSource, UnserviceableRequestDto, DocumentDetailDto } from '../../features/location/types';
+export type { RequestSource, UnserviceableRequestDto, DocumentDetailDto };
+export {
+  inferRequestSource,
+  getRequesterDisplayName,
+  getRequestedArea,
+  getSubmittedDocumentsList,
+  formatDocumentName,
+  getNormalizedDocuments,
+  resolveDocumentUrl,
+} from '../../features/location/types';
 
 export interface ServiceAreaDto {
     id: string;

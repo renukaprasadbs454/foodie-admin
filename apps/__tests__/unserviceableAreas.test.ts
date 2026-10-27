@@ -5,6 +5,8 @@ import {
   getRequestedArea,
   getSubmittedDocumentsList,
   formatDocumentName,
+  getNormalizedDocuments,
+  resolveDocumentUrl,
   UnserviceableRequestDto,
 } from '../features/location/types';
 
@@ -157,6 +159,39 @@ describe('Unserviceable Areas Feature', () => {
         submittedDocuments: undefined,
       };
       expect(getSubmittedDocumentsList(reqEmpty)).toEqual([]);
+    });
+
+    it('correctly normalizes document details and resolves URLs for preview modal', () => {
+      const reqWithDetails: UnserviceableRequestDto = {
+        id: 'req-norm1',
+        restaurantName: 'Empire Restaurant',
+        contactPerson: 'Shakeel',
+        contactEmail: 'shakeel@empire.com',
+        contactPhone: '+919876543219',
+        address: 'Indiranagar',
+        cityName: 'Bangalore',
+        latitude: 12.9784,
+        longitude: 77.6408,
+        status: 'PENDING',
+        createdAt: '2026-10-23T12:00:00Z',
+        documentDetails: [
+          {
+            documentId: 'doc-1',
+            docType: 'FSSAI_CERTIFICATE',
+            name: 'FSSAI License',
+            fileUrl: '/api/v1/storage/restaurants/r1/documents/fssai.pdf',
+          },
+        ],
+      };
+
+      const normalized = getNormalizedDocuments(reqWithDetails);
+      expect(normalized).toHaveLength(1);
+      expect(normalized[0].docType).toBe('FSSAI_CERTIFICATE');
+      expect(normalized[0].fileUrl).toBe('/api/bff/storage/restaurants/r1/documents/fssai.pdf');
+
+      expect(resolveDocumentUrl('https://example.com/doc.pdf')).toBe('https://example.com/doc.pdf');
+      expect(resolveDocumentUrl('/api/v1/storage/path/to/file.jpg')).toBe('/api/bff/storage/path/to/file.jpg');
+      expect(resolveDocumentUrl('restaurants/123/file.png')).toBe('/api/bff/storage/restaurants/123/file.png');
     });
   });
 });
