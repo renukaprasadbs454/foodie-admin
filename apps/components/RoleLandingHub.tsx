@@ -11,93 +11,26 @@ export function RoleLandingHub() {
   const reduxRole = useAppSelector(selectAdminRole);
 
   const activeRole = profile?.role || reduxRole;
-  if (!activeRole) return null;
+  if (
+    !activeRole ||
+    activeRole === 'SUPER_ADMIN' ||
+    !(
+      activeRole === 'FINANCE_ADMIN' ||
+      activeRole === 'FINANCE' ||
+      activeRole === 'OPERATIONS_ADMIN' ||
+      activeRole === 'OPS' ||
+      activeRole === 'RESTAURANT_MANAGER' ||
+      activeRole === 'SUPPORT_AGENT' ||
+      activeRole === 'SUPPORT' ||
+      activeRole === 'AUDITOR'
+    )
+  ) {
+    return null;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* ------------------ ROLE SPECIFIC HOME SECTIONS ------------------ */}
-
-      {/* 1. SUPER_ADMIN LANDING SECTION */}
-      {(activeRole === 'SUPER_ADMIN' || activeRole === 'SUPER_ADMIN') && (
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 20,
-            padding: 24,
-            border: '1px solid #E5E7EB',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.01em' }}>
-                Super Admin Control & Role Management Center
-              </h2>
-              <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0 0' }}>
-                Full system administration, user role assignment, permission configuration, and high-risk action overrides.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <Link
-                href="/roles"
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 10,
-                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                  color: '#FFFFFF',
-                  fontWeight: 600,
-                  fontSize: 13,
-                  textDecoration: 'none',
-                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
-                }}
-              >
-                Manage Roles & Permissions →
-              </Link>
-              <Link
-                href="/users"
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 10,
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid #E5E7EB',
-                  color: '#111827',
-                  fontWeight: 600,
-                  fontSize: 13,
-                  textDecoration: 'none',
-                }}
-              >
-                Provision Admin Users
-              </Link>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14, paddingTop: 8 }}>
-            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>SYSTEM ROLES</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 4 }}>6 Configured</div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Super, Finance, Ops, Manager, Support, Auditor</div>
-            </div>
-            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>GRANULAR PERMISSIONS</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 4 }}>28+ Enforced</div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Strict backend security & SpEL guards</div>
-            </div>
-            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>HIGH-RISK APPROVALS</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 4 }}>2-Step Workflow</div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Settlement release & ledger adjustments</div>
-            </div>
-            <div style={{ padding: 16, borderRadius: 14, backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>AUDIT TELEMETRY</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 4 }}>Append-Only</div>
-              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Immutable compliance logging</div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 2. FINANCE_ADMIN LANDING SECTION */}
       {(activeRole === 'FINANCE_ADMIN' || activeRole === 'FINANCE') && (

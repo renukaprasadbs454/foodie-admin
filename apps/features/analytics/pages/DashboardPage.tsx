@@ -29,6 +29,7 @@ import { TopPerformersWidget } from '../components/TopPerformersWidget';
 
 import {
   defaultDateRange,
+  getDashboardPresetRange,
   validateDateRange,
   type AnalyticsDateRange,
 } from '../types';
@@ -69,8 +70,8 @@ export function DashboardPage() {
 
   const allowed = canAccessAnalyticsSummary(role);
 
-  const [draft, setDraft] = useState<AnalyticsDateRange>(() => defaultDateRange());
-  const [applied, setApplied] = useState<AnalyticsDateRange>(() => defaultDateRange());
+  const [draft, setDraft] = useState<AnalyticsDateRange>(() => getDashboardPresetRange('Last 7 Days'));
+  const [applied, setApplied] = useState<AnalyticsDateRange>(() => getDashboardPresetRange('Last 7 Days'));
   const [rangeError, setRangeError] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     message: string;
@@ -275,30 +276,21 @@ export function DashboardPage() {
               }}
             >
               {applied.dateFrom} to {applied.dateTo}
+              {query.isFetching ? ' (Updating...)' : ''}
             </span>
           </div>
 
           {/* Preset shortcuts */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[
-              { label: 'Today', days: 0 },
-              { label: 'Yesterday', days: 1, offset: 1 },
-              { label: 'Last 7 Days', days: 6 },
-              { label: 'Last 30 Days', days: 29 },
-              { label: 'This Month', days: 30 },
+              { label: 'Today' },
+              { label: 'Yesterday' },
+              { label: 'Last 7 Days' },
+              { label: 'Last 30 Days' },
+              { label: 'This Month' },
             ].map((preset) => {
-              const now = new Date();
-              const to = new Date();
-              const from = new Date();
-              if (preset.offset) {
-                to.setDate(now.getDate() - preset.offset);
-                from.setDate(now.getDate() - preset.offset);
-              } else {
-                from.setDate(now.getDate() - preset.days);
-              }
-              const fromStr = from.toISOString().split('T')[0];
-              const toStr = to.toISOString().split('T')[0];
-              const isPresetActive = applied.dateFrom === fromStr && applied.dateTo === toStr;
+              const range = getDashboardPresetRange(preset.label);
+              const isPresetActive = applied.dateFrom === range.dateFrom && applied.dateTo === range.dateTo;
 
               return (
                 <button
@@ -306,11 +298,11 @@ export function DashboardPage() {
                   type="button"
                   onClick={() => {
                     setRangeError(null);
-                    setDraft({ dateFrom: fromStr, dateTo: toStr });
-                    setApplied({ dateFrom: fromStr, dateTo: toStr });
+                    setDraft(range);
+                    setApplied(range);
                     trackAnalyticsEvent('date_range_changed', {
-                      dateFrom: fromStr,
-                      dateTo: toStr,
+                      dateFrom: range.dateFrom,
+                      dateTo: range.dateTo,
                       screen: 'dashboard',
                       preset: preset.label,
                     });
@@ -384,22 +376,24 @@ export function DashboardPage() {
       ) : query.isLoading && !query.data ? (
         <DashboardKpiSkeleton />
       ) : (
-        <KpiGrid
-          summary={
-            query.data ?? {
-              totalOrders: 0,
-              totalRevenue: 0,
-              activeRestaurants: 0,
-              activeDeliveryPartners: 0,
-              newCustomers: 0,
-              avgOrderValue: 0,
+        <div style={{ opacity: query.isFetching ? 0.75 : 1, transition: 'opacity 0.2s ease' }}>
+          <KpiGrid
+            summary={
+              query.data ?? {
+                totalOrders: 0,
+                totalRevenue: 0,
+                activeRestaurants: 0,
+                activeDeliveryPartners: 0,
+                newCustomers: 0,
+                avgOrderValue: 0,
+              }
             }
-          }
-        />
+          />
+        </div>
       )}
 
       {/* 3. Recharts Gross Marketplace Volume & Admin Earnings Graph */}
-      <SalesAnalyticsChart />
+      <SalesAnalyticsChart range={applied} />
 
       {/* 4. Top Performing Restaurants & Popular Food Items */}
       <TopPerformersWidget

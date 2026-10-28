@@ -208,3 +208,270 @@ export function validateRefundForm(
     body: { amount, reason: trimmed },
   };
 }
+
+export type TransactionDateFilter =
+  | 'ALL'
+  | 'TODAY'
+  | 'THIS_WEEK'
+  | 'THIS_MONTH'
+  | 'THIS_YEAR'
+  | 'CUSTOM';
+
+function parseTransactionTimestamp(raw?: string | number): number | null {
+  if (typeof raw === 'number') {
+    return isNaN(raw) ? null : raw;
+  }
+  if (!raw || typeof raw !== 'string') return null;
+  const str = raw.trim();
+  let parsed = new Date(str).getTime();
+  if (!isNaN(parsed)) return parsed;
+  if (str.includes(' ')) {
+    parsed = new Date(str.replace(' ', 'T')).getTime();
+    if (!isNaN(parsed)) return parsed;
+  }
+  return null;
+}
+
+export function filterTransactionsByDateRange(
+  transactions: PaymentTransactionRecord[],
+  filter: TransactionDateFilter,
+  customStartDate?: string,
+  customEndDate?: string,
+  referenceDate: Date = new Date(),
+): PaymentTransactionRecord[] {
+  if (!Array.isArray(transactions) || transactions.length === 0) {
+    return [];
+  }
+  if (filter === 'ALL') {
+    return transactions;
+  }
+
+  const refYear = referenceDate.getFullYear();
+  const refMonth = referenceDate.getMonth();
+  const refDate = referenceDate.getDate();
+  const refDay = referenceDate.getDay();
+
+  let rangeStart: number | null = null;
+  let rangeEnd: number | null = null;
+
+  switch (filter) {
+    case 'TODAY': {
+      rangeStart = new Date(refYear, refMonth, refDate, 0, 0, 0, 0).getTime();
+      rangeEnd = new Date(refYear, refMonth, refDate, 23, 59, 59, 999).getTime();
+      break;
+    }
+    case 'THIS_WEEK': {
+      // Current week starting Monday and ending Sunday
+      const diffToMonday = refDay === 0 ? 6 : refDay - 1;
+      rangeStart = new Date(refYear, refMonth, refDate - diffToMonday, 0, 0, 0, 0).getTime();
+      rangeEnd = new Date(refYear, refMonth, refDate - diffToMonday + 6, 23, 59, 59, 999).getTime();
+      break;
+    }
+    case 'THIS_MONTH': {
+      // Current calendar month: 1st day to last day of month
+      rangeStart = new Date(refYear, refMonth, 1, 0, 0, 0, 0).getTime();
+      rangeEnd = new Date(refYear, refMonth + 1, 0, 23, 59, 59, 999).getTime();
+      break;
+    }
+    case 'THIS_YEAR': {
+      // Current calendar year: Jan 1 to Dec 31
+      rangeStart = new Date(refYear, 0, 1, 0, 0, 0, 0).getTime();
+      rangeEnd = new Date(refYear, 11, 31, 23, 59, 59, 999).getTime();
+      break;
+    }
+    case 'CUSTOM': {
+      if (customStartDate && customStartDate.trim()) {
+        const parts = customStartDate.trim().split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10);
+          const d = parseInt(parts[2], 10);
+          if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            rangeStart = new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+          }
+        } else {
+          const parsed = new Date(customStartDate);
+          if (!isNaN(parsed.getTime())) {
+            rangeStart = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 0, 0, 0, 0).getTime();
+          }
+        }
+      }
+
+      if (customEndDate && customEndDate.trim()) {
+        const parts = customEndDate.trim().split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10);
+          const d = parseInt(parts[2], 10);
+          if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            rangeEnd = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
+          }
+        } else {
+          const parsed = new Date(customEndDate);
+          if (!isNaN(parsed.getTime())) {
+            rangeEnd = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 23, 59, 59, 999).getTime();
+          }
+        }
+      }
+
+      // If user hasn't specified start or end date yet in Custom mode, show all transactions
+      if (rangeStart === null && rangeEnd === null) {
+        return transactions;
+      }
+      break;
+    }
+  }
+
+  return transactions.filter((tx) => {
+    const time = parseTransactionTimestamp(tx.createdAt || tx.updatedAt);
+    if (time === null) return false;
+    if (rangeStart !== null && time < rangeStart) return false;
+    if (rangeEnd !== null && time > rangeEnd) return false;
+    return true;
+  });
+}
+
+export type PaymentDateFilter =
+  | 'ALL'
+  | 'TODAY'
+  | 'YESTERDAY'
+  | 'THIS_WEEK'
+  | 'THIS_MONTH'
+  | 'THIS_YEAR'
+  | 'CUSTOM';
+
+export function parseRecordTimestamp(raw?: string | number | null): number | null {
+  if (typeof raw === 'number') {
+    return isNaN(raw) ? null : raw;
+  }
+  if (!raw || typeof raw !== 'string') return null;
+  const str = raw.trim();
+  if (!str) return null;
+
+  // Handle YYYY-MM-DD format directly to avoid UTC day boundary shift
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0, 0).getTime();
+  }
+
+  let parsed = new Date(str).getTime();
+  if (!isNaN(parsed)) return parsed;
+  if (str.includes(' ')) {
+    parsed = new Date(str.replace(' ', 'T')).getTime();
+    if (!isNaN(parsed)) return parsed;
+  }
+  return null;
+}
+
+export function filterRecordsByDateRange<T>(
+  records: T[],
+  filter: PaymentDateFilter,
+  timestampExtractor: (item: T) => string | number | null | undefined,
+  customStartDate?: string,
+  customEndDate?: string,
+  referenceDate: Date = new Date(),
+): T[] {
+  if (!Array.isArray(records) || records.length === 0) {
+    return [];
+  }
+  if (filter === 'ALL') {
+    return records;
+  }
+
+  const refYear = referenceDate.getFullYear();
+  const refMonth = referenceDate.getMonth();
+  const refDate = referenceDate.getDate();
+  const refDay = referenceDate.getDay();
+
+  let rangeStart: number | null = null;
+  let rangeEnd: number | null = null;
+
+  switch (filter) {
+    case 'TODAY': {
+      rangeStart = new Date(refYear, refMonth, refDate, 0, 0, 0, 0).getTime();
+      rangeEnd = new Date(refYear, refMonth, refDate, 23, 59, 59, 999).getTime();
+      break;
+    }
+    case 'YESTERDAY': {
+      rangeStart = new Date(refYear, refMonth, refDate - 1, 0, 0, 0, 0).getTime();
+      rangeEnd = new Date(refYear, refMonth, refDate - 1, 23, 59, 59, 999).getTime();
+      break;
+    }
+    case 'THIS_WEEK': {
+      // Monday through the current day
+      const diffToMonday = refDay === 0 ? 6 : refDay - 1;
+      rangeStart = new Date(refYear, refMonth, refDate - diffToMonday, 0, 0, 0, 0).getTime();
+      rangeEnd = new Date(refYear, refMonth, refDate, 23, 59, 59, 999).getTime();
+      break;
+    }
+    case 'THIS_MONTH': {
+      // First day of current month through current day
+      rangeStart = new Date(refYear, refMonth, 1, 0, 0, 0, 0).getTime();
+      rangeEnd = new Date(refYear, refMonth, refDate, 23, 59, 59, 999).getTime();
+      break;
+    }
+    case 'THIS_YEAR': {
+      // January 1 through current day
+      rangeStart = new Date(refYear, 0, 1, 0, 0, 0, 0).getTime();
+      rangeEnd = new Date(refYear, refMonth, refDate, 23, 59, 59, 999).getTime();
+      break;
+    }
+    case 'CUSTOM': {
+      if (customStartDate && customStartDate.trim()) {
+        const parts = customStartDate.trim().split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10);
+          const d = parseInt(parts[2], 10);
+          if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            rangeStart = new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+          }
+        } else {
+          const parsed = new Date(customStartDate);
+          if (!isNaN(parsed.getTime())) {
+            rangeStart = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 0, 0, 0, 0).getTime();
+          }
+        }
+      }
+
+      if (customEndDate && customEndDate.trim()) {
+        const parts = customEndDate.trim().split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10);
+          const d = parseInt(parts[2], 10);
+          if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            rangeEnd = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
+          }
+        } else {
+          const parsed = new Date(customEndDate);
+          if (!isNaN(parsed.getTime())) {
+            rangeEnd = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 23, 59, 59, 999).getTime();
+          }
+        }
+      }
+
+      if (rangeStart !== null && rangeEnd !== null && rangeStart > rangeEnd) {
+        const temp = rangeStart;
+        rangeStart = new Date(new Date(rangeEnd).setHours(0, 0, 0, 0)).getTime();
+        rangeEnd = new Date(new Date(temp).setHours(23, 59, 59, 999)).getTime();
+      }
+
+      if (rangeStart === null && rangeEnd === null) {
+        return records;
+      }
+      break;
+    }
+  }
+
+  return records.filter((item) => {
+    const rawTime = timestampExtractor(item);
+    const time = parseRecordTimestamp(rawTime);
+    if (time === null) return false;
+    if (rangeStart !== null && time < rangeStart) return false;
+    if (rangeEnd !== null && time > rangeEnd) return false;
+    return true;
+  });
+}
+
+

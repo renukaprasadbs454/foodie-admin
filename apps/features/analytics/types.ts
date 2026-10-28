@@ -66,6 +66,39 @@ export function defaultDateRange(now = new Date()): AnalyticsDateRange {
   };
 }
 
+export function formatLocalDate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getDashboardPresetRange(label: string, now = new Date()): AnalyticsDateRange {
+  const todayStr = formatLocalDate(now);
+
+  if (label === 'Today') {
+    return { dateFrom: todayStr, dateTo: todayStr };
+  }
+  if (label === 'Yesterday') {
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const yestStr = formatLocalDate(yesterday);
+    return { dateFrom: yestStr, dateTo: yestStr };
+  }
+  if (label === 'Last 7 Days') {
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+    return { dateFrom: formatLocalDate(from), dateTo: todayStr };
+  }
+  if (label === 'Last 30 Days') {
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+    return { dateFrom: formatLocalDate(from), dateTo: todayStr };
+  }
+  if (label === 'This Month') {
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { dateFrom: formatLocalDate(from), dateTo: todayStr };
+  }
+  return { dateFrom: todayStr, dateTo: todayStr };
+}
+
 export function formatMoneyInr(value: number | string | null | undefined): string {
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n)) return '₹—';

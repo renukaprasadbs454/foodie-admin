@@ -4267,6 +4267,20 @@ async function handleAdminRoles() {
     return handleAdminRoles();
   }
 
+  const isZoneEquiv = (zA?: string | null, zB?: string | null) => {
+    if (!zA || !zB) return false;
+    const a = decodeURIComponent(zA).trim().toLowerCase();
+    const b = decodeURIComponent(zB).trim().toLowerCase();
+    if (a === b || a.includes(b) || b.includes(a)) return true;
+    const isABlr = a.includes('bangalore') || a.includes('bengaluru') || a.includes('blr');
+    const isBBlr = b.includes('bangalore') || b.includes('bengaluru') || b.includes('blr');
+    if (isABlr && isBBlr) return true;
+    const isATmk = a.includes('tumkur') || a.includes('tumakuru') || a.includes('tmk');
+    const isBTmk = b.includes('tumkur') || b.includes('tumakuru') || b.includes('tmk');
+    if (isATmk && isBTmk) return true;
+    return false;
+  };
+
   // Early cross-zone validation: non-super-admins cannot mutate other zones
   const incomingReqUrl = new URL(request.url);
   const userAssignedZoneCookieEarly = cookieHeader?.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
@@ -4291,8 +4305,7 @@ async function handleAdminRoles() {
 
     if (explicitTargetZone) {
       const cleanTarget = decodeURIComponent(explicitTargetZone).trim().toLowerCase();
-      const cleanAssigned = earlyAssignedZoneId.trim().toLowerCase();
-      if (cleanTarget === 'all' || cleanTarget !== cleanAssigned) {
+      if (cleanTarget === 'all' || !isZoneEquiv(explicitTargetZone, earlyAssignedZoneId)) {
         return NextResponse.json({
           success: false,
           data: null,
@@ -4306,7 +4319,7 @@ async function handleAdminRoles() {
     }
 
     const cookieZone = request.headers.get('cookie')?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
-    if (cookieZone && decodeURIComponent(cookieZone).trim().toLowerCase() !== earlyAssignedZoneId.trim().toLowerCase()) {
+    if (cookieZone && !isZoneEquiv(cookieZone, earlyAssignedZoneId)) {
       if (request.method !== 'GET' && request.method !== 'HEAD') {
         return NextResponse.json({
           success: false,
@@ -4505,8 +4518,7 @@ async function handleAdminRoles() {
 
     if (explicitZone) {
       const cleanExplicit = decodeURIComponent(explicitZone).trim().toLowerCase();
-      const cleanAssigned = userAssignedZoneId.trim().toLowerCase();
-      if (cleanExplicit === 'all' || cleanExplicit !== cleanAssigned) {
+      if (cleanExplicit === 'all' || !isZoneEquiv(explicitZone, userAssignedZoneId)) {
         return NextResponse.json({
           success: false,
           data: null,
@@ -4521,20 +4533,6 @@ async function handleAdminRoles() {
 
     const anyTargetZone = explicitZone ||
       request.headers.get('cookie')?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
-
-    const isZoneEquiv = (zA?: string | null, zB?: string | null) => {
-      if (!zA || !zB) return false;
-      const a = decodeURIComponent(zA).trim().toLowerCase();
-      const b = decodeURIComponent(zB).trim().toLowerCase();
-      if (a === b || a.includes(b) || b.includes(a)) return true;
-      const isABlr = a.includes('bangalore') || a.includes('bengaluru') || a.includes('blr');
-      const isBBlr = b.includes('bangalore') || b.includes('bengaluru') || b.includes('blr');
-      if (isABlr && isBBlr) return true;
-      const isATmk = a.includes('tumkur') || a.includes('tumakuru') || a.includes('tmk');
-      const isBTmk = b.includes('tumkur') || b.includes('tumakuru') || b.includes('tmk');
-      if (isATmk && isBTmk) return true;
-      return false;
-    };
 
     if (anyTargetZone && !isZoneEquiv(anyTargetZone, userAssignedZoneId)) {
       if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -4632,8 +4630,8 @@ async function handleAdminRoles() {
 
   if (isGet) {
     const cached = BFF_CACHE.get(cacheKey);
-    // Let location, orders, and shifts requests stay live without stale cache
-    if (cached && Date.now() < cached.expiresAt && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders') && !targetPath.includes('admin/shifts')) {
+    // Let location, orders, shifts, and analytics requests stay live without stale cache
+    if (cached && Date.now() < cached.expiresAt && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders') && !targetPath.includes('admin/shifts') && !targetPath.includes('analytics')) {
       return new NextResponse(cached.body as BodyInit, {
         status: cached.status,
         headers: {
@@ -4641,6 +4639,215 @@ async function handleAdminRoles() {
           'X-Cache': 'HIT',
         },
       });
+    }
+
+    if (targetPath === 'analytics/dashboard-summary' && isGet) {
+      const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
+      const effectiveZone = incomingActiveZone ? decodeURIComponent(incomingActiveZone) : (!isSuperAdmin && userAssignedZoneId ? userAssignedZoneId : null);
+
+      let normalizedZone: string | null = null;
+      if (effectiveZone) {
+        const clean = effectiveZone.trim().toLowerCase();
+        if (clean !== 'all' && clean !== '') {
+          if (clean.includes('tumkur') || clean.includes('tumakuru') || clean.includes('tmk')) {
+            normalizedZone = 'dz-tumkur-zone';
+          } else if (clean.includes('bangalore') || clean.includes('bengaluru') || clean.includes('blr')) {
+            normalizedZone = 'dz-bengaluru-zone';
+          } else {
+            normalizedZone = effectiveZone;
+          }
+        }
+      }
+
+      const authHeaders: Record<string, string> = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${upstreamToken}`,
+      };
+      if (normalizedZone) {
+        authHeaders['X-Active-Zone-Id'] = normalizedZone;
+      }
+
+      const summaryUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/analytics/dashboard-summary${incomingUrl.search}`;
+      const dailySalesUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/analytics/daily-sales${incomingUrl.search}`;
+
+      const [sumRes, dailyRes] = await Promise.all([
+        safeFetch(summaryUrl, { method: 'GET', headers: authHeaders, timeoutMs: 8000 }),
+        safeFetch(dailySalesUrl, { method: 'GET', headers: authHeaders, timeoutMs: 8000 }),
+      ]);
+
+      let summaryData: any = null;
+      if (sumRes.response && sumRes.response.ok) {
+        try {
+          const json = await sumRes.response.json();
+          summaryData = json.data;
+        } catch {}
+      }
+
+      let dailyPoints: any[] = [];
+      if (dailyRes.response && dailyRes.response.ok) {
+        try {
+          const json = await dailyRes.response.json();
+          if (Array.isArray(json.data)) dailyPoints = json.data;
+        } catch {}
+      }
+
+      if (summaryData) {
+        const dailyRevenueSum = dailyPoints.reduce((acc: number, p: any) => acc + Number(p.revenue || 0), 0);
+        const dailyOrdersSum = dailyPoints.reduce((acc: number, p: any) => acc + Number(p.orderCount || 0), 0);
+
+        let finalRevenue = Number(summaryData.totalRevenue || 0);
+        if (finalRevenue <= 0 && dailyRevenueSum > 0) {
+          finalRevenue = dailyRevenueSum;
+        } else if (dailyRevenueSum > finalRevenue) {
+          finalRevenue = dailyRevenueSum;
+        }
+
+        let finalOrders = Number(summaryData.totalOrders || 0);
+        if (finalOrders === 0 && dailyOrdersSum > 0) {
+          finalOrders = dailyOrdersSum;
+        }
+
+        let finalAov = Number(summaryData.avgOrderValue || 0);
+        if ((finalAov <= 0 || finalAov < (finalRevenue / (finalOrders || 1))) && finalOrders > 0) {
+          finalAov = Math.round((finalRevenue / finalOrders) * 100) / 100;
+        }
+
+        const enrichedSummary = {
+          totalOrders: finalOrders,
+          totalRevenue: finalRevenue,
+          activeRestaurants: Number(summaryData.activeRestaurants || 0),
+          activeDeliveryPartners: Number(summaryData.activeDeliveryPartners || 0),
+          newCustomers: Number(summaryData.newCustomers || 0),
+          avgOrderValue: finalAov,
+        };
+
+        return NextResponse.json({
+          success: true,
+          data: enrichedSummary,
+          error: null,
+          meta: {
+            timestamp: new Date().toISOString(),
+            requestId: crypto.randomUUID(),
+            pagination: null,
+          },
+        }, { status: 200 });
+      }
+
+      if (sumRes.response && sumRes.response.status === 404 && normalizedZone) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            totalOrders: 0,
+            totalRevenue: 0,
+            activeRestaurants: 0,
+            activeDeliveryPartners: 0,
+            newCustomers: 0,
+            avgOrderValue: 0,
+          },
+          error: null,
+          meta: {
+            timestamp: new Date().toISOString(),
+            requestId: crypto.randomUUID(),
+            pagination: null,
+          },
+        }, { status: 200 });
+      }
+    }
+
+    if (targetPath === 'analytics/daily-sales' && isGet) {
+      const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
+      const effectiveZone = incomingActiveZone ? decodeURIComponent(incomingActiveZone) : (!isSuperAdmin && userAssignedZoneId ? userAssignedZoneId : null);
+
+      let normalizedZone: string | null = null;
+      if (effectiveZone) {
+        const clean = effectiveZone.trim().toLowerCase();
+        if (clean !== 'all' && clean !== '') {
+          if (clean.includes('tumkur') || clean.includes('tumakuru') || clean.includes('tmk')) {
+            normalizedZone = 'dz-tumkur-zone';
+          } else if (clean.includes('bangalore') || clean.includes('bengaluru') || clean.includes('blr')) {
+            normalizedZone = 'dz-bengaluru-zone';
+          } else {
+            normalizedZone = effectiveZone;
+          }
+        }
+      }
+
+      const authHeaders: Record<string, string> = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${upstreamToken}`,
+      };
+      if (normalizedZone) {
+        authHeaders['X-Active-Zone-Id'] = normalizedZone;
+      }
+
+      const dailySalesUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/analytics/daily-sales${incomingUrl.search}`;
+      const { response: upstream } = await safeFetch(dailySalesUrl, {
+        method: 'GET',
+        headers: authHeaders,
+        timeoutMs: 8000,
+      });
+
+      if (upstream && upstream.ok) {
+        const json = await upstream.json();
+        return NextResponse.json(json, { status: 200 });
+      }
+
+      if (upstream && upstream.status === 404 && normalizedZone) {
+        return NextResponse.json({
+          success: true,
+          data: [],
+          error: null,
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+        }, { status: 200 });
+      }
+    }
+
+    if (targetPath === 'analytics/order-status-metrics' && isGet) {
+      const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
+      const effectiveZone = incomingActiveZone ? decodeURIComponent(incomingActiveZone) : (!isSuperAdmin && userAssignedZoneId ? userAssignedZoneId : null);
+
+      let normalizedZone: string | null = null;
+      if (effectiveZone) {
+        const clean = effectiveZone.trim().toLowerCase();
+        if (clean !== 'all' && clean !== '') {
+          if (clean.includes('tumkur') || clean.includes('tumakuru') || clean.includes('tmk')) {
+            normalizedZone = 'dz-tumkur-zone';
+          } else if (clean.includes('bangalore') || clean.includes('bengaluru') || clean.includes('blr')) {
+            normalizedZone = 'dz-bengaluru-zone';
+          } else {
+            normalizedZone = effectiveZone;
+          }
+        }
+      }
+
+      const authHeaders: Record<string, string> = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${upstreamToken}`,
+      };
+      if (normalizedZone) {
+        authHeaders['X-Active-Zone-Id'] = normalizedZone;
+      }
+
+      const statusMetricsUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/analytics/order-status-metrics${incomingUrl.search}`;
+      const { response: upstream } = await safeFetch(statusMetricsUrl, {
+        method: 'GET',
+        headers: authHeaders,
+        timeoutMs: 8000,
+      });
+
+      if (upstream && upstream.ok) {
+        const json = await upstream.json();
+        return NextResponse.json(json, { status: 200 });
+      }
+
+      if (upstream && upstream.status === 404 && normalizedZone) {
+        return NextResponse.json({
+          success: true,
+          data: [],
+          error: null,
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+        }, { status: 200 });
+      }
     }
 
     if (targetPath === 'admin/orders' && isGet) {
@@ -5499,6 +5706,37 @@ async function handleAdminRoles() {
 
     // Graceful fallback for GET endpoints when backend is unreachable or returns 404/500/502/503
     if (request.method === 'GET') {
+      if (targetPath.includes('analytics/dashboard-summary')) {
+        return NextResponse.json(
+          {
+            success: true,
+            data: {
+              totalOrders: 0,
+              totalRevenue: 0,
+              activeRestaurants: 0,
+              activeDeliveryPartners: 0,
+              newCustomers: 0,
+              avgOrderValue: 0,
+            },
+            error: null,
+            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+          },
+          { status: 200 }
+        );
+      }
+
+      if (targetPath.includes('analytics/daily-sales') || targetPath.includes('analytics/order-status-metrics')) {
+        return NextResponse.json(
+          {
+            success: true,
+            data: [],
+            error: null,
+            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+          },
+          { status: 200 }
+        );
+      }
+
       if (targetPath.includes('admin/reviews/stats')) {
         return NextResponse.json(
           {

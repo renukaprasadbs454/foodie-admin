@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_17_PAYMENT_LIST } from '@/constants/gaps';
@@ -16,8 +16,14 @@ import type {
   PayoutRecord,
   RestaurantSettlementRecord,
   CancelledOrderRefundRequest,
+  TransactionDateFilter,
+  PaymentDateFilter,
 } from '../types';
-import { calculatePaymentSplit } from '../types';
+import {
+  calculatePaymentSplit,
+  filterTransactionsByDateRange,
+  filterRecordsByDateRange,
+} from '../types';
 
 import {
   useCalculateSplitMutation,
@@ -57,6 +63,170 @@ const DEFAULT_COMMISSION_CONFIG: CommissionConfig = {
   platformFixedFee: 40,         // ₹40
 };
 
+interface PaymentTabDateFilterBarProps {
+  idPrefix: string;
+  filter: PaymentDateFilter;
+  onFilterChange: (f: PaymentDateFilter) => void;
+  customStartDate: string;
+  onStartDateChange: (val: string) => void;
+  customEndDate: string;
+  onEndDateChange: (val: string) => void;
+  onReset: () => void;
+}
+
+function PaymentTabDateFilterBar({
+  idPrefix,
+  filter,
+  onFilterChange,
+  customStartDate,
+  onStartDateChange,
+  customEndDate,
+  onEndDateChange,
+  onReset,
+}: PaymentTabDateFilterBarProps) {
+  const options: { key: PaymentDateFilter; label: string }[] = [
+    { key: 'ALL', label: 'All Records' },
+    { key: 'TODAY', label: 'Today' },
+    { key: 'YESTERDAY', label: 'Yesterday' },
+    { key: 'THIS_WEEK', label: 'This Week' },
+    { key: 'THIS_MONTH', label: 'This Month' },
+    { key: 'THIS_YEAR', label: 'This Year' },
+    { key: 'CUSTOM', label: 'Custom Date Range' },
+  ];
+
+  return (
+    <div
+      style={{
+        padding: '12px 20px',
+        backgroundColor: '#F9FAFB',
+        borderBottom: '1px solid #E5E7EB',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 12,
+      }}
+    >
+      {/* Filter Pills */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#6B7280' }}>Date Range:</span>
+        {options.map((opt) => {
+          const isActive = filter === opt.key;
+          return (
+            <button
+              key={opt.key}
+              id={`${idPrefix}-filter-${opt.key.toLowerCase()}`}
+              type="button"
+              onClick={() => onFilterChange(opt.key)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: isActive ? '1px solid #2196F3' : '1px solid #E5E7EB',
+                backgroundColor: isActive ? '#E3F2FD' : '#FFFFFF',
+                color: isActive ? '#2196F3' : '#6B7280',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Custom Date Range Selectors */}
+      {filter === 'CUSTOM' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <label htmlFor={`${idPrefix}-start-date`} style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+              From:
+            </label>
+            <input
+              id={`${idPrefix}-start-date`}
+              type="date"
+              value={customStartDate}
+              onChange={(e) => onStartDateChange(e.target.value)}
+              style={{
+                padding: '5px 10px',
+                borderRadius: 8,
+                border: '1px solid #E5E7EB',
+                backgroundColor: '#FFFFFF',
+                fontSize: 12,
+                color: '#111827',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <label htmlFor={`${idPrefix}-end-date`} style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+              To:
+            </label>
+            <input
+              id={`${idPrefix}-end-date`}
+              type="date"
+              value={customEndDate}
+              onChange={(e) => onEndDateChange(e.target.value)}
+              style={{
+                padding: '5px 10px',
+                borderRadius: 8,
+                border: '1px solid #E5E7EB',
+                backgroundColor: '#FFFFFF',
+                fontSize: 12,
+                color: '#111827',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {(customStartDate || customEndDate) && (
+            <button
+              id={`${idPrefix}-clear-dates`}
+              type="button"
+              onClick={() => {
+                onStartDateChange('');
+                onEndDateChange('');
+              }}
+              style={{
+                padding: '5px 10px',
+                borderRadius: 8,
+                border: '1px solid #E5E7EB',
+                backgroundColor: '#FFFFFF',
+                fontSize: 11,
+                fontWeight: 600,
+                color: '#6B7280',
+                cursor: 'pointer',
+              }}
+            >
+              Clear Dates
+            </button>
+          )}
+
+          <button
+            id={`${idPrefix}-reset-to-all`}
+            type="button"
+            onClick={onReset}
+            style={{
+              padding: '5px 10px',
+              borderRadius: 8,
+              border: '1px solid #BFDBFE',
+              backgroundColor: '#EFF6FF',
+              fontSize: 11,
+              fontWeight: 600,
+              color: '#2196F3',
+              cursor: 'pointer',
+            }}
+          >
+            Reset to All
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PaymentsPage() {
   const { tokens } = useTheme();
   const activeModule = useAppSelector(selectActiveModule);
@@ -89,6 +259,131 @@ export function PaymentsPage() {
   // Local State
   const [commissionConfig, setCommissionConfig] = useState<CommissionConfig>(DEFAULT_COMMISSION_CONFIG);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Transactions Date Filter State
+  const [txDateFilter, setTxDateFilter] = useState<TransactionDateFilter>('ALL');
+  const [txCustomStartDate, setTxCustomStartDate] = useState<string>('');
+  const [txCustomEndDate, setTxCustomEndDate] = useState<string>('');
+
+  const handleResetDateFilter = () => {
+    setTxDateFilter('ALL');
+    setTxCustomStartDate('');
+    setTxCustomEndDate('');
+  };
+
+  const filteredTransactions = useMemo(() => {
+    return filterTransactionsByDateRange(
+      serverTransactions,
+      txDateFilter,
+      txCustomStartDate,
+      txCustomEndDate
+    );
+  }, [serverTransactions, txDateFilter, txCustomStartDate, txCustomEndDate]);
+
+  // Master Order Settlements Date Filter State
+  const [settlementDateFilter, setSettlementDateFilter] = useState<PaymentDateFilter>('ALL');
+  const [settlementCustomStartDate, setSettlementCustomStartDate] = useState<string>('');
+  const [settlementCustomEndDate, setSettlementCustomEndDate] = useState<string>('');
+
+  const handleResetSettlementFilter = () => {
+    setSettlementDateFilter('ALL');
+    setSettlementCustomStartDate('');
+    setSettlementCustomEndDate('');
+  };
+
+  const filteredSettlements = useMemo(() => {
+    return filterRecordsByDateRange(
+      serverSettlements,
+      settlementDateFilter,
+      (s) => s.settledAt,
+      settlementCustomStartDate,
+      settlementCustomEndDate
+    );
+  }, [serverSettlements, settlementDateFilter, settlementCustomStartDate, settlementCustomEndDate]);
+
+  // Restaurant Order Settlements Date Filter State
+  const [restSettlementDateFilter, setRestSettlementDateFilter] = useState<PaymentDateFilter>('ALL');
+  const [restSettlementCustomStartDate, setRestSettlementCustomStartDate] = useState<string>('');
+  const [restSettlementCustomEndDate, setRestSettlementCustomEndDate] = useState<string>('');
+
+  const handleResetRestSettlementFilter = () => {
+    setRestSettlementDateFilter('ALL');
+    setRestSettlementCustomStartDate('');
+    setRestSettlementCustomEndDate('');
+  };
+
+  const filteredRestaurantSettlements = useMemo(() => {
+    return filterRecordsByDateRange(
+      restaurantSettlements,
+      restSettlementDateFilter,
+      (rs) => rs.paidAt || rs.periodEnd || rs.periodStart,
+      restSettlementCustomStartDate,
+      restSettlementCustomEndDate
+    );
+  }, [restaurantSettlements, restSettlementDateFilter, restSettlementCustomStartDate, restSettlementCustomEndDate]);
+
+  // Audit Ledger Date Filter State
+  const [ledgerDateFilter, setLedgerDateFilter] = useState<PaymentDateFilter>('ALL');
+  const [ledgerCustomStartDate, setLedgerCustomStartDate] = useState<string>('');
+  const [ledgerCustomEndDate, setLedgerCustomEndDate] = useState<string>('');
+
+  const handleResetLedgerFilter = () => {
+    setLedgerDateFilter('ALL');
+    setLedgerCustomStartDate('');
+    setLedgerCustomEndDate('');
+  };
+
+  const filteredLedger = useMemo(() => {
+    return filterRecordsByDateRange(
+      serverLedger,
+      ledgerDateFilter,
+      (l) => l.createdAt,
+      ledgerCustomStartDate,
+      ledgerCustomEndDate
+    );
+  }, [serverLedger, ledgerDateFilter, ledgerCustomStartDate, ledgerCustomEndDate]);
+
+  // Restaurant Wallet Payouts Date Filter State
+  const [restPayoutDateFilter, setRestPayoutDateFilter] = useState<PaymentDateFilter>('ALL');
+  const [restPayoutCustomStartDate, setRestPayoutCustomStartDate] = useState<string>('');
+  const [restPayoutCustomEndDate, setRestPayoutCustomEndDate] = useState<string>('');
+
+  const handleResetRestPayoutFilter = () => {
+    setRestPayoutDateFilter('ALL');
+    setRestPayoutCustomStartDate('');
+    setRestPayoutCustomEndDate('');
+  };
+
+  const filteredRestaurantPayouts = useMemo(() => {
+    return filterRecordsByDateRange(
+      restaurantPayouts,
+      restPayoutDateFilter,
+      (p) => p.createdAt || p.updatedAt,
+      restPayoutCustomStartDate,
+      restPayoutCustomEndDate
+    );
+  }, [restaurantPayouts, restPayoutDateFilter, restPayoutCustomStartDate, restPayoutCustomEndDate]);
+
+  // Delivery Partner Payouts Date Filter State
+  const [delivPayoutDateFilter, setDelivPayoutDateFilter] = useState<PaymentDateFilter>('ALL');
+  const [delivPayoutCustomStartDate, setDelivPayoutCustomStartDate] = useState<string>('');
+  const [delivPayoutCustomEndDate, setDelivPayoutCustomEndDate] = useState<string>('');
+
+  const handleResetDelivPayoutFilter = () => {
+    setDelivPayoutDateFilter('ALL');
+    setDelivPayoutCustomStartDate('');
+    setDelivPayoutCustomEndDate('');
+  };
+
+  const filteredDeliveryPayouts = useMemo(() => {
+    return filterRecordsByDateRange(
+      deliveryPayouts,
+      delivPayoutDateFilter,
+      (p) => p.createdAt || p.updatedAt,
+      delivPayoutCustomStartDate,
+      delivPayoutCustomEndDate
+    );
+  }, [deliveryPayouts, delivPayoutDateFilter, delivPayoutCustomStartDate, delivPayoutCustomEndDate]);
 
   // Cancelled Orders Online Refund State
   const [refundSearchTerm, setRefundSearchTerm] = useState('');
@@ -679,7 +974,7 @@ export function PaymentsPage() {
             boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
           }}
         >
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <Text as="h2" variant="heading3" color="#111827" style={{ margin: 0, fontWeight: 700 }}>
                 Real Payment Transactions Database
@@ -689,9 +984,147 @@ export function PaymentsPage() {
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3', backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '4px 10px', borderRadius: 20 }}>
-              {serverTransactions.length} Transactions Recorded
+              {txDateFilter === 'ALL'
+                ? `${serverTransactions.length} Transactions Recorded`
+                : `${filteredTransactions.length} of ${serverTransactions.length} Filtered`}
             </span>
           </div>
+
+          {/* Date Filter Bar */}
+          <div
+            style={{
+              padding: '12px 20px',
+              backgroundColor: '#F9FAFB',
+              borderBottom: '1px solid #E5E7EB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            {/* Filter Pills */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6B7280' }}>Date Range:</span>
+              {[
+                { key: 'ALL' as const, label: 'All Transactions' },
+                { key: 'TODAY' as const, label: 'Today' },
+                { key: 'THIS_WEEK' as const, label: 'This Week' },
+                { key: 'THIS_MONTH' as const, label: 'This Month' },
+                { key: 'THIS_YEAR' as const, label: 'This Year' },
+                { key: 'CUSTOM' as const, label: 'Custom Date Range' },
+              ].map((opt) => {
+                const isActive = txDateFilter === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setTxDateFilter(opt.key)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: isActive ? '1px solid #2196F3' : '1px solid #E5E7EB',
+                      backgroundColor: isActive ? '#E3F2FD' : '#FFFFFF',
+                      color: isActive ? '#2196F3' : '#6B7280',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Date Range Selectors */}
+            {txDateFilter === 'CUSTOM' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label htmlFor="tx-start-date" style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                    From:
+                  </label>
+                  <input
+                    id="tx-start-date"
+                    type="date"
+                    value={txCustomStartDate}
+                    onChange={(e) => setTxCustomStartDate(e.target.value)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 12,
+                      color: '#111827',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label htmlFor="tx-end-date" style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                    To:
+                  </label>
+                  <input
+                    id="tx-end-date"
+                    type="date"
+                    value={txCustomEndDate}
+                    onChange={(e) => setTxCustomEndDate(e.target.value)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 12,
+                      color: '#111827',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                {(txCustomStartDate || txCustomEndDate) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTxCustomStartDate('');
+                      setTxCustomEndDate('');
+                    }}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#6B7280',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Clear Dates
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleResetDateFilter}
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: 8,
+                    border: '1px solid #BFDBFE',
+                    backgroundColor: '#EFF6FF',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#2196F3',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Reset to All
+                </button>
+              </div>
+            )}
+          </div>
+
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
@@ -715,8 +1148,35 @@ export function PaymentsPage() {
                   <tr>
                     <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#6B7280' }}>No payment transactions found in database.</td>
                   </tr>
+                ) : filteredTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '36px 24px', textAlign: 'center', color: '#6B7280' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                        No transactions found for the selected date range.
+                      </div>
+                      <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14 }}>
+                        Try adjusting your date range or clear the filter to see all transactions.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetDateFilter}
+                        style={{
+                          padding: '6px 16px',
+                          borderRadius: 20,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          backgroundColor: '#E3F2FD',
+                          color: '#2196F3',
+                          border: '1px solid #BFDBFE',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset to All Transactions
+                      </button>
+                    </td>
+                  </tr>
                 ) : (
-                  serverTransactions.map((tx: PaymentTransactionRecord) => (
+                  filteredTransactions.map((tx: PaymentTransactionRecord) => (
                     <tr key={tx.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#111827', fontFamily: 'monospace' }}>
                         {tx.id}
@@ -784,9 +1244,23 @@ export function PaymentsPage() {
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3', backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '4px 10px', borderRadius: 20 }}>
-              {serverSettlements.length} Settlements
+              {settlementDateFilter === 'ALL'
+                ? `${serverSettlements.length} Settlements`
+                : `${filteredSettlements.length} of ${serverSettlements.length} Filtered`}
             </span>
           </div>
+
+          {/* Date Filter Bar */}
+          <PaymentTabDateFilterBar
+            idPrefix="settlements"
+            filter={settlementDateFilter}
+            onFilterChange={setSettlementDateFilter}
+            customStartDate={settlementCustomStartDate}
+            onStartDateChange={setSettlementCustomStartDate}
+            customEndDate={settlementCustomEndDate}
+            onEndDateChange={setSettlementCustomEndDate}
+            onReset={handleResetSettlementFilter}
+          />
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
@@ -811,8 +1285,35 @@ export function PaymentsPage() {
                   <tr>
                     <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#6B7280' }}>No settlement records available.</td>
                   </tr>
+                ) : filteredSettlements.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '36px 24px', textAlign: 'center', color: '#6B7280' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                        No settlements found for the selected date range.
+                      </div>
+                      <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14 }}>
+                        Try adjusting your date range or clear the filter to see all settlements.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetSettlementFilter}
+                        style={{
+                          padding: '6px 16px',
+                          borderRadius: 20,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          backgroundColor: '#E3F2FD',
+                          color: '#2196F3',
+                          border: '1px solid #BFDBFE',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset to All Records
+                      </button>
+                    </td>
+                  </tr>
                 ) : (
-                  serverSettlements.map((s: PaymentSettlementRecord) => (
+                  filteredSettlements.map((s: PaymentSettlementRecord) => (
                     <tr key={s.id || s.settlementId} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ fontWeight: 700, color: '#111827' }}>{s.orderNumber || s.orderId}</div>
@@ -894,9 +1395,23 @@ export function PaymentsPage() {
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3', backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '4px 10px', borderRadius: 20 }}>
-              {serverLedger.length} Ledger Entries
+              {ledgerDateFilter === 'ALL'
+                ? `${serverLedger.length} Ledger Entries`
+                : `${filteredLedger.length} of ${serverLedger.length} Filtered`}
             </span>
           </div>
+
+          {/* Date Filter Bar */}
+          <PaymentTabDateFilterBar
+            idPrefix="ledger"
+            filter={ledgerDateFilter}
+            onFilterChange={setLedgerDateFilter}
+            customStartDate={ledgerCustomStartDate}
+            onStartDateChange={setLedgerCustomStartDate}
+            customEndDate={ledgerCustomEndDate}
+            onEndDateChange={setLedgerCustomEndDate}
+            onReset={handleResetLedgerFilter}
+          />
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
@@ -921,8 +1436,35 @@ export function PaymentsPage() {
                   <tr>
                     <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#6B7280' }}>No ledger entries recorded yet.</td>
                   </tr>
+                ) : filteredLedger.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '36px 24px', textAlign: 'center', color: '#6B7280' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                        No ledger entries found for the selected date range.
+                      </div>
+                      <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14 }}>
+                        Try adjusting your date range or clear the filter to see all entries.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetLedgerFilter}
+                        style={{
+                          padding: '6px 16px',
+                          borderRadius: 20,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          backgroundColor: '#E3F2FD',
+                          color: '#2196F3',
+                          border: '1px solid #BFDBFE',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset to All Records
+                      </button>
+                    </td>
+                  </tr>
                 ) : (
-                  serverLedger.map((l: LedgerEntryRecord) => (
+                  filteredLedger.map((l: LedgerEntryRecord) => (
                     <tr key={l.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '14px 16px', fontWeight: 700, fontFamily: 'monospace', color: '#111827' }}>
                         {l.id}
@@ -990,9 +1532,23 @@ export function PaymentsPage() {
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3', backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '4px 10px', borderRadius: 20 }}>
-              {restaurantSettlements.length} Store Payout Records
+              {restSettlementDateFilter === 'ALL'
+                ? `${restaurantSettlements.length} Store Payout Records`
+                : `${filteredRestaurantSettlements.length} of ${restaurantSettlements.length} Filtered`}
             </span>
           </div>
+
+          {/* Date Filter Bar */}
+          <PaymentTabDateFilterBar
+            idPrefix="rest-settlements"
+            filter={restSettlementDateFilter}
+            onFilterChange={setRestSettlementDateFilter}
+            customStartDate={restSettlementCustomStartDate}
+            onStartDateChange={setRestSettlementCustomStartDate}
+            customEndDate={restSettlementCustomEndDate}
+            onEndDateChange={setRestSettlementCustomEndDate}
+            onReset={handleResetRestSettlementFilter}
+          />
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
@@ -1018,8 +1574,35 @@ export function PaymentsPage() {
                   <tr>
                     <td colSpan={9} style={{ padding: 24, textAlign: 'center', color: '#6B7280' }}>No restaurant settlement payout records found.</td>
                   </tr>
+                ) : filteredRestaurantSettlements.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} style={{ padding: '36px 24px', textAlign: 'center', color: '#6B7280' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                        No restaurant settlement payout records found for the selected date range.
+                      </div>
+                      <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14 }}>
+                        Try adjusting your date range or clear the filter to see all store payouts.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetRestSettlementFilter}
+                        style={{
+                          padding: '6px 16px',
+                          borderRadius: 20,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          backgroundColor: '#E3F2FD',
+                          color: '#2196F3',
+                          border: '1px solid #BFDBFE',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset to All Records
+                      </button>
+                    </td>
+                  </tr>
                 ) : (
-                  restaurantSettlements.map((rs: RestaurantSettlementRecord) => (
+                  filteredRestaurantSettlements.map((rs: RestaurantSettlementRecord) => (
                     <tr key={rs.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: '#111827', fontFamily: 'monospace' }}>
                         {rs.id}
@@ -1112,9 +1695,23 @@ export function PaymentsPage() {
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3', backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '4px 10px', borderRadius: 20 }}>
-              {restaurantPayouts.length} Requested Payouts
+              {restPayoutDateFilter === 'ALL'
+                ? `${restaurantPayouts.length} Requested Payouts`
+                : `${filteredRestaurantPayouts.length} of ${restaurantPayouts.length} Filtered`}
             </span>
           </div>
+
+          {/* Date Filter Bar */}
+          <PaymentTabDateFilterBar
+            idPrefix="rest-payouts"
+            filter={restPayoutDateFilter}
+            onFilterChange={setRestPayoutDateFilter}
+            customStartDate={restPayoutCustomStartDate}
+            onStartDateChange={setRestPayoutCustomStartDate}
+            customEndDate={restPayoutCustomEndDate}
+            onEndDateChange={setRestPayoutCustomEndDate}
+            onReset={handleResetRestPayoutFilter}
+          />
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
@@ -1123,10 +1720,10 @@ export function PaymentsPage() {
                   <th style={{ padding: '12px 16px', width: 40 }}>
                     <input
                       type="checkbox"
-                      checked={restaurantPayouts.length > 0 && selectedRestPayouts.size === restaurantPayouts.length}
+                      checked={filteredRestaurantPayouts.length > 0 && selectedRestPayouts.size === filteredRestaurantPayouts.length}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedRestPayouts(new Set(restaurantPayouts.map((p: PayoutRecord) => p.id)));
+                          setSelectedRestPayouts(new Set(filteredRestaurantPayouts.map((p: PayoutRecord) => p.id)));
                         } else {
                           setSelectedRestPayouts(new Set());
                         }
@@ -1152,8 +1749,35 @@ export function PaymentsPage() {
                   <tr>
                     <td colSpan={9} style={{ padding: 24, textAlign: 'center', color: '#6B7280' }}>No restaurant payout records.</td>
                   </tr>
+                ) : filteredRestaurantPayouts.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} style={{ padding: '36px 24px', textAlign: 'center', color: '#6B7280' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                        No restaurant payout records found for the selected date range.
+                      </div>
+                      <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14 }}>
+                        Try adjusting your date range or clear the filter to see all payout requests.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetRestPayoutFilter}
+                        style={{
+                          padding: '6px 16px',
+                          borderRadius: 20,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          backgroundColor: '#E3F2FD',
+                          color: '#2196F3',
+                          border: '1px solid #BFDBFE',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset to All Records
+                      </button>
+                    </td>
+                  </tr>
                 ) : (
-                  [...restaurantPayouts].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((p: PayoutRecord) => (
+                  [...filteredRestaurantPayouts].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((p: PayoutRecord) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '14px 16px' }}>
                         <input
@@ -1298,9 +1922,23 @@ export function PaymentsPage() {
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3', backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '4px 10px', borderRadius: 20 }}>
-              {deliveryPayouts.length} Requested Payouts
+              {delivPayoutDateFilter === 'ALL'
+                ? `${deliveryPayouts.length} Requested Payouts`
+                : `${filteredDeliveryPayouts.length} of ${deliveryPayouts.length} Filtered`}
             </span>
           </div>
+
+          {/* Date Filter Bar */}
+          <PaymentTabDateFilterBar
+            idPrefix="deliv-payouts"
+            filter={delivPayoutDateFilter}
+            onFilterChange={setDelivPayoutDateFilter}
+            customStartDate={delivPayoutCustomStartDate}
+            onStartDateChange={setDelivPayoutCustomStartDate}
+            customEndDate={delivPayoutCustomEndDate}
+            onEndDateChange={setDelivPayoutCustomEndDate}
+            onReset={handleResetDelivPayoutFilter}
+          />
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
@@ -1309,10 +1947,10 @@ export function PaymentsPage() {
                   <th style={{ padding: '12px 16px', width: 40 }}>
                     <input
                       type="checkbox"
-                      checked={deliveryPayouts.length > 0 && selectedDelivPayouts.size === deliveryPayouts.length}
+                      checked={filteredDeliveryPayouts.length > 0 && selectedDelivPayouts.size === filteredDeliveryPayouts.length}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedDelivPayouts(new Set(deliveryPayouts.map(p => p.id)));
+                          setSelectedDelivPayouts(new Set(filteredDeliveryPayouts.map(p => p.id)));
                         } else {
                           setSelectedDelivPayouts(new Set());
                         }
@@ -1338,8 +1976,35 @@ export function PaymentsPage() {
                   <tr>
                     <td colSpan={9} style={{ padding: 24, textAlign: 'center', color: '#6B7280' }}>No delivery partner payout records.</td>
                   </tr>
+                ) : filteredDeliveryPayouts.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} style={{ padding: '36px 24px', textAlign: 'center', color: '#6B7280' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                        No delivery partner payout records found for the selected date range.
+                      </div>
+                      <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14 }}>
+                        Try adjusting your date range or clear the filter to see all driver payout requests.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetDelivPayoutFilter}
+                        style={{
+                          padding: '6px 16px',
+                          borderRadius: 20,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          backgroundColor: '#E3F2FD',
+                          color: '#2196F3',
+                          border: '1px solid #BFDBFE',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset to All Records
+                      </button>
+                    </td>
+                  </tr>
                 ) : (
-                  [...deliveryPayouts].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((p: PayoutRecord) => (
+                  [...filteredDeliveryPayouts].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((p: PayoutRecord) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '14px 16px' }}>
                         <input

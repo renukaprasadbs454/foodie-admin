@@ -1154,11 +1154,8 @@ export function SettingsPage() {
             { id: 'tax-gst', label: 'Tax / GST', zoneScoped: true },
             { id: 'payment-settings', label: 'Payment Settings', zoneScoped: true },
             { id: 'app-settings', label: 'App Settings & Operations', zoneScoped: true },
-            { id: 'page-setup', label: 'Page Setup', zoneScoped: false },
             { id: 'social-media', label: 'Social Media', zoneScoped: false },
-            { id: 'admin-users', label: 'Admin Users', zoneScoped: false },
             { id: 'roles-permissions', label: 'Roles & Permissions', zoneScoped: false },
-            { id: 'security', label: 'Security', zoneScoped: false },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
