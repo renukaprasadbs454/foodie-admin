@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev apps",
-    "dev:admin": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev apps",
+    "dev": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev apps -p 3100",
+    "dev:admin": "cross-env NODE_OPTIONS=\"--dns-result-order=ipv4first\" next dev apps -p 3100",
     "build": "next build apps && node scripts/prepare-hostinger.js",
-    "start": "next start apps",
+    "start": "next start apps -p 3100",
     "typecheck": "tsc -p apps/tsconfig.json --noEmit",
     "lint": "next lint apps",
     "test": "jest --config apps/jest.config.js"

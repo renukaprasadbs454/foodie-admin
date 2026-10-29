@@ -5,8 +5,17 @@ import type {
   OverrideOrderStatusBody,
 } from '../../features/orders/types';
 
+export interface OnlineDeliveryPartner {
+  id: string;
+  name: string;
+  phoneNumber: string;
+  isOnline: boolean;
+  vehicleType?: string;
+  zone?: string;
+}
+
 /**
- * Orders RTK — P2-ADM-04 (GET list, GET by id + admin override-status).
+ * Orders RTK — P2-ADM-04 (GET list, GET by id + admin override-status + assign delivery partner).
  */
 export const ordersApi = baseApi.injectEndpoints({
   overrideExisting: true,
@@ -86,6 +95,8 @@ export const ordersApi = baseApi.injectEndpoints({
             status: status as OrderItemRecord['status'],
             createdAt: item.createdAt || '',
             zoneId: item.zoneId || item.zone?.id || item.assignedZoneId || undefined,
+            assignedDeliveryPartnerId: item.assignedDeliveryPartnerId || null,
+            assignedDeliveryPartnerName: item.assignedDeliveryPartnerName || null,
           };
         });
       },
@@ -124,6 +135,44 @@ export const ordersApi = baseApi.injectEndpoints({
         { type: 'Admin', id: 'ORDER' },
       ],
     }),
+    getOnlineDeliveryPartners: builder.query<OnlineDeliveryPartner[], void>({
+      query: () => '/api/admin/delivery-partners?status=online',
+      transformResponse: (response: any) => {
+        const raw = Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.data?.items)
+          ? response.data.items
+          : Array.isArray(response?.items)
+          ? response.items
+          : Array.isArray(response)
+          ? response
+          : [];
+        return raw.map((p: any) => ({
+          id: String(p.id || p.partnerId || ''),
+          name: p.fullName || p.name || 'Delivery Partner',
+          phoneNumber: p.phoneNumber || p.phone || '—',
+          isOnline: p.isOnline !== false,
+          vehicleType: p.vehicleType,
+          zone: p.zone || p.zoneName,
+        }));
+      },
+      providesTags: [{ type: 'Admin', id: 'DELIVERY_LIST' }],
+    }),
+    assignDeliveryPartner: builder.mutation<
+      { success: boolean; message?: string; data?: any },
+      { orderId: string; deliveryPartnerId: string }
+    >({
+      query: ({ orderId, deliveryPartnerId }) => ({
+        url: `/api/admin/orders/${orderId}/assign-delivery-partner`,
+        method: 'POST',
+        body: { deliveryPartnerId },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: 'Order', id: arg.orderId },
+        { type: 'Order', id: 'LIST' },
+        { type: 'Admin', id: 'ORDER' },
+      ],
+    }),
   }),
 });
 
@@ -132,5 +181,6 @@ export const {
   useGetOrderQuery,
   useLazyGetOrderQuery,
   useOverrideOrderStatusMutation,
+  useGetOnlineDeliveryPartnersQuery,
+  useAssignDeliveryPartnerMutation,
 } = ordersApi;
-

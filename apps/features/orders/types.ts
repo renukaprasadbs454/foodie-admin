@@ -33,6 +33,8 @@ export interface OrderItemRecord {
   createdAt: string;
   zoneId?: string;
   zoneName?: string;
+  assignedDeliveryPartnerId?: string | null;
+  assignedDeliveryPartnerName?: string | null;
 }
 
 export type OrderItem = {
@@ -71,6 +73,9 @@ export type AdminOrder = {
   orderStatusEvents?: OrderStatusEvent[] | null;
   paymentMethod?: string | null;
   paymentStatus?: string | null;
+  assignedDeliveryPartnerId?: string | null;
+  assignedDeliveryPartnerName?: string | null;
+  assignedDeliveryPartnerPhone?: string | null;
 };
 
 export type OverrideOrderStatusBody = {
@@ -103,22 +108,28 @@ export function validateOverrideReason(
 }
 
 export function validateOverrideBody(
-  targetStatus: string,
+  status: string,
   reason: string,
 ): { ok: true; body: OverrideOrderStatusBody } | { ok: false; message: string } {
-  if (!isOrderStatus(targetStatus)) {
-    return { ok: false, message: 'Select a valid target status.' };
+  if (!isOrderStatus(status)) {
+    return { ok: false, message: 'Invalid order status selected.' };
   }
-  const reasonResult = validateOverrideReason(reason);
-  if (!reasonResult.ok) return reasonResult;
+  const reasonCheck = validateOverrideReason(reason);
+  if (!reasonCheck.ok) {
+    return reasonCheck;
+  }
   return {
     ok: true,
-    body: { targetStatus, reason: reasonResult.reason },
+    body: {
+      targetStatus: status,
+      reason: reasonCheck.reason,
+    },
   };
 }
 
-export function formatMoneyInr(value: number | string | null | undefined): string {
-  const n = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(n)) return '₹—';
-  return `₹${n.toFixed(2)}`;
+export function formatMoneyInr(amount: number | string | undefined | null): string {
+  if (amount == null || amount === '') return '₹0.00';
+  const num = typeof amount === 'number' ? amount : Number(amount);
+  if (isNaN(num)) return '₹0.00';
+  return `₹${num.toFixed(2)}`;
 }

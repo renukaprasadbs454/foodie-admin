@@ -4850,6 +4850,99 @@ async function handleAdminRoles() {
       }
     }
 
+    if (targetPath.includes('admin/orders') && targetPath.includes('assign-delivery-partner')) {
+      const parts = targetPath.split('/');
+      const orderId = parts[parts.indexOf('orders') + 1] || parts[2];
+      let body: any = {};
+      try {
+        body = await request.json();
+      } catch {}
+      const deliveryPartnerId = body?.deliveryPartnerId;
+      if (!deliveryPartnerId) {
+        return NextResponse.json(
+          { success: false, error: { code: 'VALIDATION_FAILED', message: 'deliveryPartnerId is required.' } },
+          { status: 400 }
+        );
+      }
+      const { assignDeliveryPartnerToOrder } = await import('@/lib/deliveryAssignmentStore');
+      const assignment = await assignDeliveryPartnerToOrder(orderId, deliveryPartnerId, accessToken, body);
+      return NextResponse.json(
+        {
+          success: true,
+          message: `Order assigned successfully to delivery partner ${assignment.deliveryPartnerName}.`,
+          data: {
+            orderId: assignment.orderId,
+            orderNumber: assignment.orderNumber,
+            assignedDeliveryPartnerId: assignment.deliveryPartnerId,
+            assignedDeliveryPartnerName: assignment.deliveryPartnerName,
+            assignedDeliveryPartnerPhone: assignment.deliveryPartnerPhone,
+            status: 'ASSIGNED',
+            assignedAt: assignment.assignedAt,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        },
+        { status: 200 }
+      );
+    }
+
+    if (targetPath === 'admin/delivery-partners' && isGet && incomingUrl.searchParams.get('status')?.toLowerCase() === 'online') {
+      const { getOnlineDeliveryPartners } = await import('@/lib/deliveryAssignmentStore');
+      const partners = await getOnlineDeliveryPartners(accessToken);
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Online delivery partners fetched successfully.',
+          data: partners,
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        },
+        { status: 200 }
+      );
+    }
+
+    if (targetPath.startsWith('orders/') && isGet) {
+      const orderId = targetPath.split('/')[1];
+      const { getOrderAssignment } = await import('@/lib/deliveryAssignmentStore');
+      const assignment = getOrderAssignment(orderId);
+
+      const detailUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/orders/${orderId}`;
+      const { response: upstream } = await safeFetch(detailUrl, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        timeoutMs: 4000,
+      });
+
+      if (upstream && upstream.ok) {
+        try {
+          const json = await upstream.json();
+          const data = json.data || json;
+          if (assignment) {
+            data.assignedDeliveryPartnerId = assignment.deliveryPartnerId;
+            data.assignedDeliveryPartnerName = assignment.deliveryPartnerName;
+            data.assignedDeliveryPartnerPhone = assignment.deliveryPartnerPhone;
+            data.status = assignment.status;
+          }
+          return NextResponse.json({ success: true, data }, { status: 200 });
+        } catch {}
+      } else if (assignment) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            orderId: assignment.orderId,
+            orderNumber: assignment.orderNumber,
+            status: assignment.status,
+            assignedDeliveryPartnerId: assignment.deliveryPartnerId,
+            assignedDeliveryPartnerName: assignment.deliveryPartnerName,
+            assignedDeliveryPartnerPhone: assignment.deliveryPartnerPhone,
+            totalAmount: assignment.totalAmount,
+            items: assignment.items,
+          },
+        }, { status: 200 });
+      }
+    }
+
     if (targetPath === 'admin/orders' && isGet) {
       const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
       const effectiveZone = incomingActiveZone ? decodeURIComponent(incomingActiveZone) : (!isSuperAdmin && userAssignedZoneId ? userAssignedZoneId : null);
