@@ -70,7 +70,7 @@ if (!globalAny.ADMIN_SUSPENDED_DELIVERY_PARTNERS) {
   globalAny.ADMIN_SUSPENDED_DELIVERY_PARTNERS = initialMap;
 }
 
-async function handleSuspendDeliveryPartner(request: Request, targetPath: string, accessToken: string) {
+async function handleSuspendDeliveryPartner(request: Request, targetPath: string, accessToken: string | null) {
   const parts = targetPath.split('/');
   const suspendIdx = parts.indexOf('suspend');
   const partnerId = suspendIdx > 0 ? parts[suspendIdx - 1] : '';
