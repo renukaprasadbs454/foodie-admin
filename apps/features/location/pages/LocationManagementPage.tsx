@@ -1282,7 +1282,7 @@ export function LocationManagementPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
                   <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
-                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Restaurant & Location</th>
+                    <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Live Requested Location</th>
                     <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Person</th>
                     <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Map Coordinates</th>
                     <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Submitted Date</th>
@@ -1294,8 +1294,15 @@ export function LocationManagementPage() {
                   {unserviceableRequests.map((req) => (
                     <tr key={req.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 600, color: '#111827' }}>{req.restaurantName}</div>
-                        <div style={{ fontSize: 11, color: '#6B7280' }}>{req.address}, {req.cityName}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontWeight: 600, color: '#111827' }}>{req.address || req.restaurantName}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, backgroundColor: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: 4 }}>
+                            📍 Live
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                          {req.cityName} • {req.restaurantName}
+                        </div>
                       </td>
                       <td style={{ padding: '16px 20px' }}>
                         <div style={{ fontWeight: 600, color: '#111827' }}>{req.contactPerson}</div>

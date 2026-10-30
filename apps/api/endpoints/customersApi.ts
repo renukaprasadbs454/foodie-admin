@@ -1,5 +1,5 @@
 import { baseApi } from '../baseApi';
-import type { CustomerProfile, SupportTicket, TicketStatus } from '../../features/customers/types/customerTypes';
+import type { CustomerProfile, SupportTicket, TicketStatus, CustomerDetailResponse } from '../../features/customers/types/customerTypes';
 
 export interface CustomerSummary {
   totalRegistered: number;
@@ -174,6 +174,37 @@ export const customersApi = baseApi.injectEndpoints({
       providesTags: [{ type: 'Admin', id: 'SUPPORT_TICKETS' }],
       keepUnusedDataFor: 180,
     }),
+    
+    getCustomerDetails: builder.query<CustomerDetailResponse, string>({
+      query: (id) => '/api/bff/admin/customers/' + encodeURIComponent(id),
+      transformResponse: (res: any) => (res && typeof res === 'object' && 'data' in res ? res.data : res),
+      providesTags: (_res, _err, id) => [
+        { type: 'Admin', id: 'CUSTOMERS' },
+        { type: 'Admin', id: 'CUSTOMER_' + id },
+      ],
+      keepUnusedDataFor: 60,
+    }),
+    updateCustomerCod: builder.mutation<{ id: string; isCodDisabled: boolean; message: string }, { id: string; isCodDisabled: boolean; reason?: string }>({
+      query: ({ id, isCodDisabled, reason }) => ({
+        url: '/api/bff/admin/customers/' + encodeURIComponent(id) + '/cod',
+        method: 'PATCH',
+        body: { isCodDisabled, reason },
+      }),
+      transformResponse: (res: any) => (res && typeof res === 'object' && 'data' in res ? res.data : res),
+      invalidatesTags: (_res, _err, { id }) => [
+        { type: 'Admin', id: 'CUSTOMERS' },
+        { type: 'Admin', id: 'CUSTOMER_' + id },
+      ],
+    }),
+    deleteCustomer: builder.mutation<{ id: string; deleted: boolean; message: string }, { id: string; reason?: string }>({
+      query: ({ id, reason }) => ({
+        url: '/api/bff/admin/customers/' + encodeURIComponent(id),
+        method: 'DELETE',
+        body: { reason },
+      }),
+      transformResponse: (res: any) => (res && typeof res === 'object' && 'data' in res ? res.data : res),
+      invalidatesTags: [{ type: 'Admin', id: 'CUSTOMERS' }],
+    }),
     updateTicketStatus: builder.mutation<SupportTicket, UpdateTicketStatusRequest>({
       query: ({ id, status, agentNotes }) => ({
         url: `/api/bff/admin/support-tickets/${id}/status`,
@@ -193,4 +224,7 @@ export const {
   useUpdateCustomerStatusMutation,
   useGetSupportTicketsQuery,
   useUpdateTicketStatusMutation,
+  useGetCustomerDetailsQuery,
+  useUpdateCustomerCodMutation,
+  useDeleteCustomerMutation,
 } = customersApi;

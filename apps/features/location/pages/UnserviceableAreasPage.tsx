@@ -1260,7 +1260,7 @@ export function UnserviceableAreasPage() {
                     Requester / Contact
                   </th>
                   <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Requested Area & City
+                    Live Requested Location & Nearby Zone Restaurants
                   </th>
                   <th style={{ padding: '14px 20px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Coordinates
@@ -1348,60 +1348,95 @@ export function UnserviceableAreasPage() {
                         )}
                       </td>
 
-                      {/* Area & City */}
-                      <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 600, color: '#111827' }}>
-                          {area}
+                      {/* Area & City + Nearby Zone Restaurants with Distances */}
+                      <td style={{ padding: '16px 20px', minWidth: 280 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700, color: '#111827', fontSize: 13 }}>
+                            {area}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              backgroundColor: '#DCFCE7',
+                              color: '#15803D',
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                            }}
+                            title="Live location verified from device GPS/coordinates"
+                          >
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#16A34A' }} />
+                            Live Location
+                          </span>
                         </div>
-                        <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ fontSize: 12, color: '#4B5563', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                             <circle cx="12" cy="10" r="3" />
                           </svg>
                           <span>{req.cityName || 'Karnataka'}</span>
+                          {req.latitude && req.longitude && (
+                            <span style={{ color: '#9CA3AF', fontSize: 11 }}>
+                              • ({req.latitude.toFixed(4)}, {req.longitude.toFixed(4)})
+                            </span>
+                          )}
                         </div>
+
                         {(() => {
                           const nearbyRests = getNearbyRestaurantsForRequest(req);
-                          const nearestRest = nearbyRests[0];
                           const nearestZone = getNearestZoneForRequest(req);
                           const distZoneStr = nearestZone && nearestZone.distanceKm > 0 ? `${nearestZone.distanceKm.toFixed(1)} km` : '< 1 km';
+
                           return (
-                            <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                              {nearestRest && (
-                                <div
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 5,
-                                    backgroundColor: '#FEF3C7',
-                                    color: '#92400E',
-                                    padding: '3px 8px',
-                                    borderRadius: 6,
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    border: '1px solid #FDE68A',
-                                  }}
-                                  title={`Nearest available restaurant from nearby zone: ${nearestRest.name} (${nearestRest.distanceKm.toFixed(1)} km in ${nearestRest.zoneName})`}
-                                >
-                                  <span>🛵 <strong>Nearest: {nearestRest.name} ({nearestRest.distanceKm.toFixed(1)} km • {nearestRest.zoneName})</strong></span>
-                                </div>
-                              )}
+                            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: '#92400E', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span>🛵</span>
+                                <span>Nearby Zone Restaurants ({nearbyRests.length} Available):</span>
+                              </div>
+
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                {nearbyRests.slice(0, 3).map((nr) => (
+                                  <div
+                                    key={nr.restaurantId}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      backgroundColor: '#FEF3C7',
+                                      border: '1px solid #FDE68A',
+                                      borderRadius: 6,
+                                      padding: '3px 8px',
+                                      fontSize: 11,
+                                    }}
+                                  >
+                                    <span style={{ fontWeight: 700, color: '#92400E' }}>
+                                      {nr.name} <span style={{ fontWeight: 500, color: '#78350F' }}>({nr.zoneName})</span>
+                                    </span>
+                                    <span style={{ fontWeight: 800, color: '#B45309', marginLeft: 8 }}>
+                                      {nr.distanceKm.toFixed(1)} km
+                                    </span>
+                                  </div>
+                                ))}
+
+                                {nearbyRests.length > 3 && (
+                                  <span style={{ fontSize: 10, color: '#B45309', fontWeight: 600 }}>
+                                    +{nearbyRests.length - 3} more restaurants in nearby zones
+                                  </span>
+                                )}
+
+                                {nearbyRests.length === 0 && (
+                                  <span style={{ fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' }}>
+                                    No operating restaurants found within 50 km.
+                                  </span>
+                                )}
+                              </div>
+
                               {nearestZone && (
-                                <div
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 5,
-                                    backgroundColor: '#EFF6FF',
-                                    color: '#1D4ED8',
-                                    padding: '3px 8px',
-                                    borderRadius: 6,
-                                    fontSize: 11,
-                                    fontWeight: 600,
-                                    border: '1px solid #BFDBFE',
-                                  }}
-                                >
-                                  <span>📍 <strong>Zone: {distZoneStr} from {nearestZone.zone.zoneName || nearestZone.zone.cityName}</strong></span>
+                                <div style={{ marginTop: 2, fontSize: 10, color: '#1D4ED8', fontWeight: 600 }}>
+                                  📍 Nearest Zone Center: {distZoneStr} from {nearestZone.zone.zoneName || nearestZone.zone.cityName}
                                 </div>
                               )}
                             </div>

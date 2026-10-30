@@ -17,6 +17,11 @@ export interface CustomerProfile {
   zoneName?: string;
   city?: string;
   orders?: any[];
+  isCodDisabled?: boolean;
+  suspensionReason?: string | null;
+  totalOrdersDelivered?: number;
+  totalOrdersCancelled?: number;
+  avgOrderValue?: number;
 }
 
 export type TicketCategory = 'MISSING_ITEM' | 'COLD_FOOD' | 'REFUND_REQUEST' | 'DELIVERY_DELAY' | 'OTHER';
@@ -44,4 +49,82 @@ export function calculateCustomerLtvBadge(totalSpend: number): { tier: string; c
   if (totalSpend >= 500) return { tier: 'GOLD', color: '#0369A1', bg: '#F4F4F5' };
   if (totalSpend >= 200) return { tier: 'SILVER', color: '#0369A1', bg: '#F4F4F5' };
   return { tier: 'BRONZE', color: '#0284C7', bg: '#F4F4F5' };
+}
+
+
+export interface CustomerAddressItem {
+  id: string;
+  title: string;
+  name?: string;
+  phone?: string;
+  streetAddress: string;
+  apartment?: string;
+  landmark?: string;
+  city: string;
+  state?: string;
+  postalCode: string;
+  latitude?: number;
+  longitude?: number;
+  isDefault: boolean;
+  zoneId?: string;
+}
+
+export interface CustomerOrderItem {
+  id: string;
+  orderNumber: string;
+  restaurantName: string;
+  restaurantId?: string;
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  deliveryAddress?: string;
+}
+
+export interface CustomerPaymentItem {
+  id: string;
+  orderId: string;
+  orderNumber?: string;
+  amount: number;
+  paymentMethod: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface CustomerComplaintItem {
+  id: string;
+  subject: string;
+  category: string;
+  status: string;
+  priority?: string;
+  orderId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CustomerReviewItem {
+  id: string;
+  restaurantName: string;
+  restaurantId?: string;
+  orderId?: string;
+  restaurantRating: number;
+  deliveryRating?: number;
+  comment?: string;
+  createdAt: string;
+}
+
+export interface CustomerDetailResponse {
+  customer: CustomerProfile & {
+    isCodDisabled?: boolean;
+    suspensionReason?: string | null;
+    totalOrdersDelivered?: number;
+    totalOrdersCancelled?: number;
+    avgOrderValue?: number;
+  };
+  addresses: CustomerAddressItem[];
+  orders: CustomerOrderItem[];
+  payments: CustomerPaymentItem[];
+  complaints: CustomerComplaintItem[];
+  reviews: CustomerReviewItem[];
 }

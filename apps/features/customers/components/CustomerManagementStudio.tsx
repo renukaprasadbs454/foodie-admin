@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { CustomerProfile, SupportTicket, AccountStatus, TicketStatus } from '../types/customerTypes';
 import { calculateCustomerLtvBadge } from '../types/customerTypes';
 import {
@@ -22,6 +23,7 @@ import {
 import { formatMoneyInr } from '../../analytics/types';
 
 export function CustomerManagementStudio() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'DIRECTORY' | 'TICKETS'>('DIRECTORY');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -865,7 +867,7 @@ export function CustomerManagementStudio() {
                         <td style={{ padding: '14px 16px' }}>
                           <div
                             style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-                            onClick={() => setSelectedCustomerForDetails(cust)}
+                            onClick={() => router.push('/customers/' + cust.id)}
                           >
                             <div
                               style={{
@@ -948,7 +950,7 @@ export function CustomerManagementStudio() {
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
                             <button
                               type="button"
-                              onClick={() => setSelectedCustomerForDetails(cust)}
+                              onClick={() => router.push('/customers/' + cust.id)}
                               style={{
                                 padding: '5px 10px',
                                 borderRadius: 8,
