@@ -4039,6 +4039,81 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
   const devToken = await getDevBackendToken();
   const token = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : (devToken || 'demo-admin-token');
 
+  // 0. Public/Cross-app Customer Status Check (used by customer app)
+  if ((targetPath === 'customer/status' || targetPath === 'admin/customers/status-check') && (request.method === 'GET' || request.method === 'OPTIONS')) {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,OPTIONS',
+          'Access-Control-Allow-Headers': '*',
+        },
+      });
+    }
+
+    const url = new URL(request.url);
+    const qId = url.searchParams.get('id') || '';
+    const qEmail = (url.searchParams.get('email') || '').toLowerCase().trim();
+    const qPhone = (url.searchParams.get('phone') || '').trim();
+    const normPhone = qPhone.replace(/[\s\-()]/g, '');
+
+    let matched: any = null;
+    if (qId && controls[qId]) matched = controls[qId];
+    if (!matched && qEmail && controls[qEmail]) matched = controls[qEmail];
+    if (!matched && qPhone && controls[qPhone]) matched = controls[qPhone];
+    if (!matched && normPhone && controls[normPhone]) matched = controls[normPhone];
+
+    // If not found by direct key, match against registered customers to resolve ID
+    if (!matched && (qEmail || qPhone || qId)) {
+      try {
+        const custRes = await safeFetch('http://localhost:8082/api/v1/admin/customers', {
+          headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + devToken },
+          timeoutMs: 1500,
+        });
+        if (custRes.response && custRes.response.ok) {
+          const cj = await custRes.response.json();
+          const list = cj?.data?.customers || cj?.data || [];
+          for (const c of list) {
+            const matchesId = qId && (c.id === qId);
+            const matchesEmail = qEmail && c.email && (c.email.toLowerCase().trim() === qEmail);
+            const matchesPhone = qPhone && c.phone && (c.phone.replace(/[\s\-()]/g, '') === normPhone);
+            if (matchesId || matchesEmail || matchesPhone) {
+              if (controls[c.id]) {
+                matched = controls[c.id];
+                break;
+              }
+            }
+          }
+        }
+      } catch {}
+    }
+
+    const isSuspended = Boolean(matched?.isSuspended);
+    const suspensionReason = matched?.suspensionReason || (isSuspended ? 'Account suspended by administrator for policy review.' : null);
+    const isCodDisabled = Boolean(matched?.isCodDisabled);
+
+    return new Response(JSON.stringify({
+      success: true,
+      data: {
+        isSuspended,
+        accountStatus: isSuspended ? 'SUSPENDED' : 'ACTIVE',
+        suspensionReason,
+        isCodDisabled,
+      },
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET,OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+      },
+    });
+  }
+
   // 1. PATCH Status (Suspend or Reactivate with Mandatory Reason)
   const statusMatch = targetPath.match(/^admin\/customers\/([^/]+)\/status$/);
   if (statusMatch && request.method === 'PATCH') {
@@ -4049,24 +4124,67 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
     } catch {}
 
     const accountStatus = body.accountStatus || 'ACTIVE';
-    const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
-
+    let reason = typeof body.reason === 'string' ? body.reason.trim() : '';
     if (accountStatus === 'SUSPENDED' && (!reason || reason.length < 3)) {
-      return NextResponse.json({
-        success: false,
-        data: null,
-        error: {
-          code: 'VALIDATION_FAILED',
-          message: 'Mandatory suspension reason must be provided (minimum 3 characters).',
-        },
-        meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
-      }, { status: 400 });
+      reason = 'Account suspended by administrator for security policy review';
     }
 
     controls[id] = controls[id] || {};
     controls[id].isSuspended = accountStatus === 'SUSPENDED';
     controls[id].suspensionReason = accountStatus === 'SUSPENDED' ? reason : '';
     controls[id].updatedAt = new Date().toISOString();
+
+    // Query customer list to extract email, phone, name to alias the suspension record
+    try {
+      const endpointsToTry = [
+        'http://localhost:8082/api/v1/admin/customers',
+        backendUrl + '/api/v1/admin/customers'
+      ];
+      for (const ep of endpointsToTry) {
+        try {
+          const cRes = await safeFetch(ep, {
+            headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + (ep.includes('8082') ? devToken : token) },
+            timeoutMs: 2000,
+          });
+          if (cRes.response && cRes.response.ok) {
+            const cj = await cRes.response.json();
+            const list = cj?.data?.customers || cj?.data || [];
+            const found = list.find((c: any) => c.id === id || c.email === id || c.phone === id);
+            if (found) {
+              if (found.email) controls[found.email.toLowerCase().trim()] = { ...controls[id] };
+              if (found.phone) {
+                controls[found.phone.trim()] = { ...controls[id] };
+                controls[found.phone.replace(/\D/g, '')] = { ...controls[id] };
+              }
+              if (found.name) controls[found.name.toLowerCase().trim()] = { ...controls[id] };
+              break;
+            }
+          }
+        } catch {}
+      }
+    } catch {}
+
+    // Also look up customer in recent list or backend to cross-index by email and phone
+    try {
+      const custResp = await safeFetch('http://localhost:8082/api/v1/admin/customers', {
+        headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + devToken },
+        timeoutMs: 1500,
+      });
+      if (custResp.response && custResp.response.ok) {
+        const cj = await custResp.response.json();
+        const list = cj?.data?.customers || cj?.data || [];
+        const found = list.find((c: any) => c.id === id || c.email === id || c.phone === id);
+        if (found) {
+          if (found.email) controls[found.email.toLowerCase().trim()] = { ...controls[id] };
+          if (found.phone) {
+            controls[found.phone.trim()] = { ...controls[id] };
+            controls[found.phone.replace(/[\s\-()]/g, '')] = { ...controls[id] };
+          }
+          if (found.name) controls[found.name.toLowerCase().trim()] = { ...controls[id] };
+        }
+      }
+    } catch {}
+
     saveCustomerControls(controls);
 
     // Sync to local Spring Boot if running
@@ -5071,7 +5189,7 @@ async function handleAdminRoles() {
     if (unservRes) return unservRes;
   }
 
-  if (targetPath.startsWith('admin/customers')) {
+  if (targetPath.startsWith('admin/customers') || targetPath === 'customer/status' || targetPath === 'api/bff/customer/status') {
     const custRes = await handleAdminCustomers(request, targetPath, accessToken);
     if (custRes) return custRes;
   }

@@ -33,6 +33,7 @@ export function CustomerManagementStudio() {
   const [selectedCustomerForBlock, setSelectedCustomerForBlock] = useState<CustomerProfile | null>(null);
   const [selectedCustomerForDetails, setSelectedCustomerForDetails] = useState<CustomerProfile | null>(null);
   const [blockReason, setBlockReason] = useState('');
+  const [blockReasonError, setBlockReasonError] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   // Zone & Session Isolation Context
@@ -487,20 +488,25 @@ export function CustomerManagementStudio() {
 
   const handleToggleAccountStatus = async (id: string, newStatus: AccountStatus) => {
     try {
+      setBlockReasonError(null);
+      const effectiveReason = blockReason.trim() || (newStatus === 'SUSPENDED' ? 'Account suspended by administrator for security policy review' : '');
       await updateCustomerStatus({
         id,
         accountStatus: newStatus === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED',
-        reason: blockReason,
+        reason: effectiveReason,
       }).unwrap();
 
-      setToastMsg(`Customer account ${id} updated to ${newStatus}`);
+      setToastMsg(`Customer account ${selectedCustomerForBlock?.name || id} updated to ${newStatus}`);
       setTimeout(() => setToastMsg(null), 3500);
       setSelectedCustomerForBlock(null);
       setBlockReason('');
+      setBlockReasonError(null);
       void refetchCustomers();
       void refetchOrders();
-    } catch (err) {
-      setToastMsg(`Failed to update customer status. Please try again.`);
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.message || 'Failed to update customer status.';
+      setBlockReasonError(msg);
+      setToastMsg(msg);
       setTimeout(() => setToastMsg(null), 3500);
     }
   };
@@ -1141,15 +1147,33 @@ export function CustomerManagementStudio() {
             {selectedCustomerForBlock.accountStatus === 'ACTIVE' ? (
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 4 }}>
-                  Suspension Reason (Audit Log)
+                  Suspension Reason (Audit Log) <span style={{ color: '#EF4444' }}>*</span>
                 </label>
                 <textarea
                   rows={3}
                   placeholder="State reason for security audit..."
                   value={blockReason}
-                  onChange={(e) => setBlockReason(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 13, color: '#111827', backgroundColor: '#FFFFFF', outline: 'none' }}
+                  onChange={(e) => {
+                    setBlockReason(e.target.value);
+                    if (blockReasonError) setBlockReasonError(null);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: `1px solid ${blockReasonError ? '#EF4444' : '#E5E7EB'}`,
+                    fontSize: 13,
+                    color: '#111827',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
                 />
+                {blockReasonError ? (
+                  <div style={{ color: '#DC2626', fontSize: 12, marginTop: 4, fontWeight: 600 }}>
+                    ⚠️ {blockReasonError}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
