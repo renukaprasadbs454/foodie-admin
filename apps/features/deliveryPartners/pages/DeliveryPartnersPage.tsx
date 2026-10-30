@@ -9,6 +9,7 @@ import {
   useGetAdminDeliveryPartnersQuery,
   useApproveDeliveryPartnerKycMutation,
   useRejectDeliveryPartnerKycMutation,
+  useSuspendDeliveryPartnerMutation,
   useGetAdminShiftsQuery,
   useCreateDeliveryShiftMutation,
   useUpdateDeliveryShiftMutation,
@@ -101,10 +102,12 @@ export function DeliveryPartnersPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'VERIFIED' | 'PENDING' | 'REJECTED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'VERIFIED' | 'PENDING' | 'REJECTED' | 'SUSPENDED'>('ALL');
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [rejectModalPartner, setRejectModalPartner] = useState<AdminDeliveryPartner | null>(null);
   const [rejectReason, setRejectReason] = useState('Documents incomplete or unreadable');
+  const [suspendModalPartner, setSuspendModalPartner] = useState<AdminDeliveryPartner | null>(null);
+  const [suspendReason, setSuspendReason] = useState('Account suspended by Admin. Verification review in progress.');
 
   // Document Preview Modal State
   const [selectedDocPreview, setSelectedDocPreview] = useState<{
@@ -164,6 +167,7 @@ export function DeliveryPartnersPage() {
 
   const [approveKyc, { isLoading: isApproving }] = useApproveDeliveryPartnerKycMutation();
   const [rejectKyc, { isLoading: isRejecting }] = useRejectDeliveryPartnerKycMutation();
+  const [suspendPartner, { isLoading: isSuspending }] = useSuspendDeliveryPartnerMutation();
 
   // Session & Zone Territory Management (Permission Context + localStorage persistence)
   const { profile } = usePermissions();
@@ -292,6 +296,32 @@ export function DeliveryPartnersPage() {
   const [editingShift, setEditingShift] = useState<DeliveryShift | null>(null);
   const [shiftStatus, setShiftStatus] = useState<string>('ACTIVE');
 
+  const [localSuspendedPartnerIds, setLocalSuspendedPartnerIds] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = localStorage.getItem('foodie_suspended_partners');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const updateLocalSuspended = (partnerId: string, isSuspended: boolean) => {
+    setLocalSuspendedPartnerIds((prev) => {
+      const set = new Set(prev.map((id) => id.toLowerCase()));
+      if (isSuspended) {
+        set.add(partnerId.toLowerCase());
+      } else {
+        set.delete(partnerId.toLowerCase());
+      }
+      const updated = Array.from(set);
+      try {
+        localStorage.setItem('foodie_suspended_partners', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
   const rawPartners: AdminDeliveryPartner[] =
     (partnersData as any)?.items ??
     (partnersData as any)?.data?.items ??
@@ -302,14 +332,43 @@ export function DeliveryPartnersPage() {
     (allPartnersData as any)?.data?.items ??
     (Array.isArray(allPartnersData) ? allPartnersData : rawPartners);
 
+  const applySuspensionToPartner = (p: AdminDeliveryPartner): AdminDeliveryPartner => {
+    if (!p) return p;
+    const isSuspendedLocally = localSuspendedPartnerIds.some(
+      (id) => id.toLowerCase() === (p.id || '').toLowerCase()
+    );
+    if (isSuspendedLocally || p.kycStatus === 'SUSPENDED') {
+      return {
+        ...p,
+        kycStatus: 'SUSPENDED',
+        isOnline: false,
+      };
+    }
+    return p;
+  };
+
+  const processedRawPartners = rawPartners.map(applySuspensionToPartner);
+  const processedRawAllPartners = rawAllPartners.map(applySuspensionToPartner);
+
   // Enforce KYC visibility rule: must have zone selected & all 3 documents uploaded
-  const partners: AdminDeliveryPartner[] = rawPartners.filter(isDeliveryPartnerKycEligible);
-  const allPartners: AdminDeliveryPartner[] = rawAllPartners.filter(isDeliveryPartnerKycEligible);
+  let partners: AdminDeliveryPartner[] = processedRawPartners.filter(isDeliveryPartnerKycEligible);
+  const allPartners: AdminDeliveryPartner[] = processedRawAllPartners.filter(isDeliveryPartnerKycEligible);
+
+  if (statusFilter === 'SUSPENDED') {
+    partners = allPartners.filter((p) => p.kycStatus === 'SUSPENDED');
+  } else if (statusFilter === 'VERIFIED') {
+    partners = partners.filter((p) => p.kycStatus === 'VERIFIED');
+  } else if (statusFilter === 'PENDING') {
+    partners = partners.filter((p) => p.kycStatus === 'PENDING');
+  } else if (statusFilter === 'REJECTED') {
+    partners = partners.filter((p) => p.kycStatus === 'REJECTED');
+  }
 
   // Dynamic Dashboard Counts
   const totalFleetCount = allPartners.length;
   const currentlyOnlineCount = allPartners.filter((p) => p.isOnline).length;
   const pendingKycCount = allPartners.filter((p) => p.kycStatus === 'PENDING').length;
+  const suspendedCount = allPartners.filter((p) => p.kycStatus === 'SUSPENDED').length;
   const verifiedCount = allPartners.filter((p) => p.kycStatus === 'VERIFIED').length;
 
   const showToast = (type: 'success' | 'error', message: string) => {
@@ -432,6 +491,7 @@ export function DeliveryPartnersPage() {
 
   const handleApproveKyc = async (partner: AdminDeliveryPartner) => {
     try {
+      updateLocalSuspended(partner.id, false);
       await approveKyc(partner.id).unwrap();
       showToast('success', `KYC for "${partner.fullName}" approved successfully.`);
       if (selectedDocPreview && selectedDocPreview.partner.id === partner.id) {
@@ -450,6 +510,7 @@ export function DeliveryPartnersPage() {
   const handleConfirmRejectKyc = async () => {
     if (!rejectModalPartner) return;
     try {
+      updateLocalSuspended(rejectModalPartner.id, false);
       await rejectKyc({
         partnerId: rejectModalPartner.id,
         reason: rejectReason.trim() || 'Documents invalid or incomplete',
@@ -467,6 +528,31 @@ export function DeliveryPartnersPage() {
       refetch();
     } catch (err: any) {
       showToast('error', err?.data?.error?.message ?? 'Failed to reject KYC.');
+    }
+  };
+
+  const handleConfirmSuspendPartner = async () => {
+    if (!suspendModalPartner) return;
+    const partnerId = suspendModalPartner.id;
+    updateLocalSuspended(partnerId, true);
+    try {
+      await suspendPartner({
+        partnerId,
+        reason: suspendReason.trim() || 'Account suspended by Admin. Verification review in progress.',
+      }).unwrap();
+      showToast('success', `Delivery partner "${suspendModalPartner.fullName}" suspended. Status set to SUSPENDED.`);
+      if (selectedDocPreview && selectedDocPreview.partner.id === partnerId) {
+        setSelectedDocPreview({
+          ...selectedDocPreview,
+          partner: { ...selectedDocPreview.partner, kycStatus: 'SUSPENDED', isOnline: false },
+          document: { ...selectedDocPreview.document, verificationStatus: 'PENDING' },
+        });
+      }
+      setSuspendModalPartner(null);
+      setSuspendReason('Account suspended by Admin. Verification review in progress.');
+      refetch();
+    } catch (err: any) {
+      showToast('error', err?.data?.error?.message ?? err?.data?.message ?? 'Failed to suspend delivery partner.');
     }
   };
 
@@ -552,7 +638,473 @@ export function DeliveryPartnersPage() {
         </div>
       </div>
 
-      {/* Active Delivery Shifts Section */}
+      {/* 1. Delivery Partner List (First Section) */}
+{/* Dynamic Overview KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            padding: '22px 24px',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <Text as="span" variant="caption" color="#6B7280" style={{ fontWeight: 600, fontSize: 13 }}>
+            Total Registered Fleet
+          </Text>
+          <Text as="h2" variant="heading1" color="#111827" style={{ marginTop: 8, fontWeight: 800 }}>
+            {isLoading ? '...' : totalFleetCount}
+          </Text>
+        </div>
+
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            padding: '22px 24px',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <Text as="span" variant="caption" color="#6B7280" style={{ fontWeight: 600, fontSize: 13 }}>
+            Currently Online
+          </Text>
+          <Text as="h2" variant="heading1" color="#22C55E" style={{ marginTop: 8, fontWeight: 800 }}>
+            {isLoading ? '...' : currentlyOnlineCount}
+          </Text>
+        </div>
+
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            padding: '22px 24px',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <Text as="span" variant="caption" color="#6B7280" style={{ fontWeight: 600, fontSize: 13 }}>
+            Pending KYC Reviews
+          </Text>
+          <Text as="h2" variant="heading1" color="#F59E0B" style={{ marginTop: 8, fontWeight: 800 }}>
+            {isLoading ? '...' : pendingKycCount}
+          </Text>
+        </div>
+
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            padding: '22px 24px',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <Text as="span" variant="caption" color="#6B7280" style={{ fontWeight: 600, fontSize: 13 }}>
+            Verified Drivers
+          </Text>
+          <Text as="h2" variant="heading1" color="#2196F3" style={{ marginTop: 8, fontWeight: 800 }}>
+            {isLoading ? '...' : verifiedCount}
+          </Text>
+        </div>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          padding: '16px 20px',
+          borderRadius: 20,
+          border: '1px solid #E5E7EB',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 16,
+        }}
+      >
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {(
+            [
+              { key: 'ALL', label: `All Fleet (${totalFleetCount})` },
+              { key: 'VERIFIED', label: `Verified (${verifiedCount})` },
+              { key: 'PENDING', label: `Pending KYC (${pendingKycCount})` },
+              { key: 'SUSPENDED', label: `Suspended (${suspendedCount})` },
+              { key: 'REJECTED', label: 'Rejected' },
+            ] as const
+          ).map((tab) => {
+            const isActive = statusFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setStatusFilter(tab.key)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 10,
+                  border: isActive ? '1px solid #BFDBFE' : '1px solid #E5E7EB',
+                  background: isActive ? '#E3F2FD' : '#FFFFFF',
+                  color: isActive ? '#2196F3' : '#6B7280',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search by Name, Phone, Vehicle No..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: '9px 16px',
+            borderRadius: 10,
+            border: '1px solid #E5E7EB',
+            width: 320,
+            maxWidth: '100%',
+            fontSize: 13,
+            outline: 'none',
+            color: '#111827',
+            backgroundColor: '#FFFFFF',
+          }}
+        />
+      </div>
+
+      {/* Dynamic Delivery Partners Table */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 20,
+          border: '1px solid #E5E7EB',
+          overflow: 'hidden',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+        }}
+      >
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+          <thead>
+            <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <th style={{ padding: '14px 20px' }}>Deliveryman Name</th>
+              <th style={{ padding: '14px 20px' }}>Contact Phone</th>
+              <th style={{ padding: '14px 20px' }}>Vehicle & Zone</th>
+              <th style={{ padding: '14px 20px' }}>Documents & KYC</th>
+              <th style={{ padding: '14px 20px' }}>Live Availability</th>
+              <th style={{ padding: '14px 20px' }}>Cash in Hand</th>
+              <th style={{ padding: '14px 20px' }}>KYC Status</th>
+              <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr>
+                <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center', color: '#6B7280' }}>
+                  Loading dynamic delivery partner database records...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center', color: '#EF4444' }}>
+                  Unable to fetch delivery partners from server. Please verify backend is running.
+                </td>
+              </tr>
+            ) : partners.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ padding: '48px 20px', textAlign: 'center', color: '#6B7280' }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>
+                    No delivery partners found
+                  </div>
+                  <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                    {searchQuery
+                      ? `No partners matching "${searchQuery}" in ${statusFilter} tab`
+                      : 'Delivery partners will appear here automatically when employees register'}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              partners.map((p) => {
+                const docs = p.documents || (p as any).docs || [];
+                const docCount = docs.length;
+                return (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s' }}>
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ fontWeight: 700, color: '#111827' }}>{p.fullName || 'Unnamed Partner'}</div>
+                      <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace' }}>
+                        ID: {p.id.slice(0, 8)}...
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#374151' }}>
+                      {p.phoneNumber || '—'}
+                    </td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ fontWeight: 600, color: '#111827' }}>
+                        {p.vehicleType || 'BIKE'} {p.vehicleNumber ? `• ${p.vehicleNumber}` : ''}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#6B7280' }}>{p.zone || 'Downtown Central'}</div>
+                    </td>
+                    <td style={{ padding: '16px 20px' }}>
+                      {docCount > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {docs.map((d: any, dIdx: number) => {
+                            const status = d.verificationStatus || d.status || 'PENDING';
+                            const docUrl = resolveDocumentUrl(d);
+                            const key = d.documentId || d.id || `${p.id}-doc-${d.docType || dIdx}`;
+                            const isVerified = status === 'VERIFIED';
+                            const isRejected = status === 'REJECTED';
+
+                            const statusBg = isVerified ? '#DCFCE7' : isRejected ? '#FEE2E2' : '#E3F2FD';
+                            const statusBorder = isVerified ? '#BBF7D0' : isRejected ? '#FECACA' : '#BFDBFE';
+                            const statusColor = isVerified ? '#15803D' : isRejected ? '#B91C1C' : '#2196F3';
+
+                            return (
+                              <div
+                                key={key}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: 8,
+                                  backgroundColor: '#F9FAFB',
+                                  border: '1px solid #E5E7EB',
+                                  borderRadius: 8,
+                                  padding: '4px 8px',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsDocLoading(true);
+                                    setDocLoadError(false);
+                                    setSelectedDocPreview({ partner: p, document: d, docIndex: dIdx });
+                                  }}
+                                  title="Click to preview document in modal"
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: 0,
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    color: '#2196F3',
+                                    fontWeight: 600,
+                                    fontSize: 12,
+                                  }}
+                                >
+                                  <span style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                                    {d.docType || 'DOCUMENT'}
+                                  </span>
+                                </button>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsDocLoading(true);
+                                      setDocLoadError(false);
+                                      setSelectedDocPreview({ partner: p, document: d, docIndex: dIdx });
+                                    }}
+                                    title="Click to view document"
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      padding: '2px 6px',
+                                      borderRadius: 4,
+                                      backgroundColor: statusBg,
+                                      border: `1px solid ${statusBorder}`,
+                                      color: statusColor,
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    {status}
+                                  </button>
+
+                                  {docUrl && (
+                                    <a
+                                      href={docUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title="Open original file in new browser tab"
+                                      onClick={(e) => e.stopPropagation()}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: 4,
+                                        backgroundColor: '#E3F2FD',
+                                        border: '1px solid #BFDBFE',
+                                        color: '#2196F3',
+                                        fontSize: 11,
+                                        textDecoration: 'none',
+                                      }}
+                                    >
+                                      ↗
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' }}>
+                          No documents uploaded
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          padding: '4px 10px',
+                          borderRadius: 20,
+                          backgroundColor: p.isOnline ? '#DCFCE7' : '#F3F4F6',
+                          color: p.isOnline ? '#15803D' : '#6B7280',
+                          border: `1px solid ${p.isOnline ? '#BBF7D0' : '#E5E7EB'}`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            backgroundColor: p.isOnline ? '#22C55E' : '#9CA3AF',
+                          }}
+                        />
+                        {p.isOnline ? 'ONLINE' : 'OFFLINE'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px 20px', fontWeight: 700, color: '#111827' }}>
+                      ₹{p.cashInHand ?? 0}
+                    </td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <span
+                        style={{
+                          backgroundColor:
+                            p.kycStatus === 'VERIFIED'
+                              ? '#DCFCE7'
+                              : p.kycStatus === 'REJECTED'
+                                ? '#FEE2E2'
+                                : p.kycStatus === 'SUSPENDED'
+                                  ? '#FEF3C7'
+                                  : '#FEF3C7',
+                          color:
+                            p.kycStatus === 'VERIFIED'
+                              ? '#15803D'
+                              : p.kycStatus === 'REJECTED'
+                                ? '#B91C1C'
+                                : p.kycStatus === 'SUSPENDED'
+                                  ? '#B45309'
+                                  : '#B45309',
+                          border:
+                            p.kycStatus === 'VERIFIED'
+                              ? '1px solid #BBF7D0'
+                              : p.kycStatus === 'REJECTED'
+                                ? '1px solid #FECACA'
+                                : p.kycStatus === 'SUSPENDED'
+                                  ? '1px solid #FDE68A'
+                                  : '1px solid #FDE68A',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          padding: '4px 10px',
+                          borderRadius: 20,
+                          display: 'inline-block',
+                        }}
+                      >
+                        {p.kycStatus}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                        {p.kycStatus !== 'VERIFIED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleApproveKyc(p)}
+                            disabled={isApproving}
+                            style={{
+                              padding: '6px 14px',
+                              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: isApproving ? 'wait' : 'pointer',
+                              boxShadow: '0 2px 4px rgba(33, 150, 243, 0.2)',
+                            }}
+                          >
+                            Approve KYC
+                          </button>
+                        )}
+                        {p.kycStatus === 'VERIFIED' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSuspendReason('Account suspended by Admin. Verification review in progress.');
+                              setSuspendModalPartner(p);
+                            }}
+                            disabled={isSuspending}
+                            title="Suspend account and set verification status to SUSPENDED"
+                            style={{
+                              padding: '6px 14px',
+                              backgroundColor: '#FEF3C7',
+                              color: '#B45309',
+                              border: '1px solid #FDE68A',
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: isSuspending ? 'wait' : 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FDE68A')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FEF3C7')}
+                          >
+                            Suspend
+                          </button>
+                        )}
+                        {p.kycStatus !== 'REJECTED' && (
+                          <button
+                            type="button"
+                            onClick={() => setRejectModalPartner(p)}
+                            disabled={isRejecting}
+                            style={{
+                              padding: '6px 14px',
+                              backgroundColor: '#FEE2E2',
+                              color: '#B91C1C',
+                              border: '1px solid #FECACA',
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: isRejecting ? 'wait' : 'pointer',
+                            }}
+                          >
+                            Reject
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 2. Delivery Fleet Management – My Shifts (Second Section) */}
       <div
         style={{
           backgroundColor: '#FFFFFF',
@@ -588,7 +1140,7 @@ export function DeliveryPartnersPage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Text as="h3" variant="heading2" color="#111827" style={{ fontWeight: 700, fontSize: 16 }}>
-                  Active Delivery Shifts
+                  Delivery Fleet Management – My Shifts
                 </Text>
                 <span
                   style={{
@@ -609,7 +1161,48 @@ export function DeliveryPartnersPage() {
             </div>
           </div>
 
-          <button
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              id="create-shift-section-button"
+              onClick={() => {
+                setShiftFormError(null);
+                setEditingShift(null);
+                setShiftName('');
+                setStartTime('');
+                setEndTime('');
+                setShiftStatus('ACTIVE');
+                setModalShiftZoneId(
+                  !isSuperAdmin && activeZoneId
+                    ? activeZoneId
+                    : selectedShiftZone !== 'ALL'
+                    ? selectedShiftZone
+                    : availableZones[0]?.id || 'dz-bangalore'
+                );
+                setIsShiftModalOpen(true);
+              }}
+              style={{
+                padding: '6px 14px',
+                backgroundColor: '#EA580C',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 1px 3px rgba(234, 88, 12, 0.25)',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Create Shift</span>
+            </button>
+            <button
             type="button"
             id="add-another-shift-button"
             onClick={() => {
@@ -644,6 +1237,7 @@ export function DeliveryPartnersPage() {
           >
             <span>+ Add Another Shift</span>
           </button>
+          </div>
         </div>
 
         {/* Territory Scoped Banner for Zone Admin */}
@@ -932,442 +1526,10 @@ export function DeliveryPartnersPage() {
         )}
       </div>
 
-      {/* Delivery Partner Pricing Rules Card */}
+      {/* 3. Delivery Partner Payout Structure & Incentives & 4. Formula & Interactive Payout Simulator */}
       <DeliveryPricingSettingsCard />
 
-      {/* Dynamic Overview KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            padding: '22px 24px',
-            borderRadius: 20,
-            border: '1px solid #E5E7EB',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
-          }}
-        >
-          <Text as="span" variant="caption" color="#6B7280" style={{ fontWeight: 600, fontSize: 13 }}>
-            Total Registered Fleet
-          </Text>
-          <Text as="h2" variant="heading1" color="#111827" style={{ marginTop: 8, fontWeight: 800 }}>
-            {isLoading ? '...' : totalFleetCount}
-          </Text>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            padding: '22px 24px',
-            borderRadius: 20,
-            border: '1px solid #E5E7EB',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
-          }}
-        >
-          <Text as="span" variant="caption" color="#6B7280" style={{ fontWeight: 600, fontSize: 13 }}>
-            Currently Online
-          </Text>
-          <Text as="h2" variant="heading1" color="#22C55E" style={{ marginTop: 8, fontWeight: 800 }}>
-            {isLoading ? '...' : currentlyOnlineCount}
-          </Text>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            padding: '22px 24px',
-            borderRadius: 20,
-            border: '1px solid #E5E7EB',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
-          }}
-        >
-          <Text as="span" variant="caption" color="#6B7280" style={{ fontWeight: 600, fontSize: 13 }}>
-            Pending KYC Reviews
-          </Text>
-          <Text as="h2" variant="heading1" color="#F59E0B" style={{ marginTop: 8, fontWeight: 800 }}>
-            {isLoading ? '...' : pendingKycCount}
-          </Text>
-        </div>
-
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            padding: '22px 24px',
-            borderRadius: 20,
-            border: '1px solid #E5E7EB',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
-          }}
-        >
-          <Text as="span" variant="caption" color="#6B7280" style={{ fontWeight: 600, fontSize: 13 }}>
-            Verified Drivers
-          </Text>
-          <Text as="h2" variant="heading1" color="#2196F3" style={{ marginTop: 8, fontWeight: 800 }}>
-            {isLoading ? '...' : verifiedCount}
-          </Text>
-        </div>
-      </div>
-
-      {/* Filter Toolbar */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          padding: '16px 20px',
-          borderRadius: 20,
-          border: '1px solid #E5E7EB',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 16,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {(
-            [
-              { key: 'ALL', label: `All Fleet (${totalFleetCount})` },
-              { key: 'VERIFIED', label: `Verified (${verifiedCount})` },
-              { key: 'PENDING', label: `Pending KYC (${pendingKycCount})` },
-              { key: 'REJECTED', label: 'Rejected' },
-            ] as const
-          ).map((tab) => {
-            const isActive = statusFilter === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setStatusFilter(tab.key)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 10,
-                  border: isActive ? '1px solid #BFDBFE' : '1px solid #E5E7EB',
-                  background: isActive ? '#E3F2FD' : '#FFFFFF',
-                  color: isActive ? '#2196F3' : '#6B7280',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <input
-          type="text"
-          placeholder="Search by Name, Phone, Vehicle No..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{
-            padding: '9px 16px',
-            borderRadius: 10,
-            border: '1px solid #E5E7EB',
-            width: 320,
-            maxWidth: '100%',
-            fontSize: 13,
-            outline: 'none',
-            color: '#111827',
-            backgroundColor: '#FFFFFF',
-          }}
-        />
-      </div>
-
-      {/* Dynamic Delivery Partners Table */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: 20,
-          border: '1px solid #E5E7EB',
-          overflow: 'hidden',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
-        }}
-      >
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-          <thead>
-            <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              <th style={{ padding: '14px 20px' }}>Deliveryman Name</th>
-              <th style={{ padding: '14px 20px' }}>Contact Phone</th>
-              <th style={{ padding: '14px 20px' }}>Vehicle & Zone</th>
-              <th style={{ padding: '14px 20px' }}>Documents & KYC</th>
-              <th style={{ padding: '14px 20px' }}>Live Availability</th>
-              <th style={{ padding: '14px 20px' }}>Cash in Hand</th>
-              <th style={{ padding: '14px 20px' }}>KYC Status</th>
-              <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center', color: '#6B7280' }}>
-                  Loading dynamic delivery partner database records...
-                </td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td colSpan={8} style={{ padding: '40px 20px', textAlign: 'center', color: '#EF4444' }}>
-                  Unable to fetch delivery partners from server. Please verify backend is running.
-                </td>
-              </tr>
-            ) : partners.length === 0 ? (
-              <tr>
-                <td colSpan={8} style={{ padding: '48px 20px', textAlign: 'center', color: '#6B7280' }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>
-                    No delivery partners found
-                  </div>
-                  <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-                    {searchQuery
-                      ? `No partners matching "${searchQuery}" in ${statusFilter} tab`
-                      : 'Delivery partners will appear here automatically when employees register'}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              partners.map((p) => {
-                const docs = p.documents || (p as any).docs || [];
-                const docCount = docs.length;
-                return (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 700, color: '#111827' }}>{p.fullName || 'Unnamed Partner'}</div>
-                      <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace' }}>
-                        ID: {p.id.slice(0, 8)}...
-                      </div>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 600, color: '#374151' }}>
-                      {p.phoneNumber || '—'}
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 600, color: '#111827' }}>
-                        {p.vehicleType || 'BIKE'} {p.vehicleNumber ? `• ${p.vehicleNumber}` : ''}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#6B7280' }}>{p.zone || 'Downtown Central'}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      {docCount > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {docs.map((d: any, dIdx: number) => {
-                            const status = d.verificationStatus || d.status || 'PENDING';
-                            const docUrl = resolveDocumentUrl(d);
-                            const key = d.documentId || d.id || `${p.id}-doc-${d.docType || dIdx}`;
-                            const isVerified = status === 'VERIFIED';
-                            const isRejected = status === 'REJECTED';
-
-                            const statusBg = isVerified ? '#DCFCE7' : isRejected ? '#FEE2E2' : '#E3F2FD';
-                            const statusBorder = isVerified ? '#BBF7D0' : isRejected ? '#FECACA' : '#BFDBFE';
-                            const statusColor = isVerified ? '#15803D' : isRejected ? '#B91C1C' : '#2196F3';
-
-                            return (
-                              <div
-                                key={key}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: 8,
-                                  backgroundColor: '#F9FAFB',
-                                  border: '1px solid #E5E7EB',
-                                  borderRadius: 8,
-                                  padding: '4px 8px',
-                                  transition: 'all 0.15s ease',
-                                }}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsDocLoading(true);
-                                    setDocLoadError(false);
-                                    setSelectedDocPreview({ partner: p, document: d, docIndex: dIdx });
-                                  }}
-                                  title="Click to preview document in modal"
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: 0,
-                                    cursor: 'pointer',
-                                    textAlign: 'left',
-                                    color: '#2196F3',
-                                    fontWeight: 600,
-                                    fontSize: 12,
-                                  }}
-                                >
-                                  <span style={{ textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                                    {d.docType || 'DOCUMENT'}
-                                  </span>
-                                </button>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setIsDocLoading(true);
-                                      setDocLoadError(false);
-                                      setSelectedDocPreview({ partner: p, document: d, docIndex: dIdx });
-                                    }}
-                                    title="Click to view document"
-                                    style={{
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      padding: '2px 6px',
-                                      borderRadius: 4,
-                                      backgroundColor: statusBg,
-                                      border: `1px solid ${statusBorder}`,
-                                      color: statusColor,
-                                      cursor: 'pointer',
-                                    }}
-                                  >
-                                    {status}
-                                  </button>
-
-                                  {docUrl && (
-                                    <a
-                                      href={docUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      title="Open original file in new browser tab"
-                                      onClick={(e) => e.stopPropagation()}
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: 20,
-                                        height: 20,
-                                        borderRadius: 4,
-                                        backgroundColor: '#E3F2FD',
-                                        border: '1px solid #BFDBFE',
-                                        color: '#2196F3',
-                                        fontSize: 11,
-                                        textDecoration: 'none',
-                                      }}
-                                    >
-                                      ↗
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' }}>
-                          No documents uploaded
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          padding: '4px 10px',
-                          borderRadius: 20,
-                          backgroundColor: p.isOnline ? '#DCFCE7' : '#F3F4F6',
-                          color: p.isOnline ? '#15803D' : '#6B7280',
-                          border: `1px solid ${p.isOnline ? '#BBF7D0' : '#E5E7EB'}`,
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: '50%',
-                            backgroundColor: p.isOnline ? '#22C55E' : '#9CA3AF',
-                          }}
-                        />
-                        {p.isOnline ? 'ONLINE' : 'OFFLINE'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 700, color: '#111827' }}>
-                      ₹{p.cashInHand ?? 0}
-                    </td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span
-                        style={{
-                          backgroundColor:
-                            p.kycStatus === 'VERIFIED'
-                              ? '#DCFCE7'
-                              : p.kycStatus === 'REJECTED'
-                                ? '#FEE2E2'
-                                : '#FEF3C7',
-                          color:
-                            p.kycStatus === 'VERIFIED'
-                              ? '#15803D'
-                              : p.kycStatus === 'REJECTED'
-                                ? '#B91C1C'
-                                : '#B45309',
-                          border:
-                            p.kycStatus === 'VERIFIED'
-                              ? '1px solid #BBF7D0'
-                              : p.kycStatus === 'REJECTED'
-                                ? '1px solid #FECACA'
-                                : '1px solid #FDE68A',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          padding: '4px 10px',
-                          borderRadius: 20,
-                          display: 'inline-block',
-                        }}
-                      >
-                        {p.kycStatus}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                        {p.kycStatus !== 'VERIFIED' && (
-                          <button
-                            type="button"
-                            onClick={() => handleApproveKyc(p)}
-                            disabled={isApproving}
-                            style={{
-                              padding: '6px 14px',
-                              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: 8,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: isApproving ? 'wait' : 'pointer',
-                              boxShadow: '0 2px 4px rgba(33, 150, 243, 0.2)',
-                            }}
-                          >
-                            Approve KYC
-                          </button>
-                        )}
-                        {p.kycStatus !== 'REJECTED' && (
-                          <button
-                            type="button"
-                            onClick={() => setRejectModalPartner(p)}
-                            disabled={isRejecting}
-                            style={{
-                              padding: '6px 14px',
-                              backgroundColor: '#FEE2E2',
-                              color: '#B91C1C',
-                              border: '1px solid #FECACA',
-                              borderRadius: 8,
-                              fontSize: 12,
-                              fontWeight: 600,
-                              cursor: isRejecting ? 'wait' : 'pointer',
-                            }}
-                          >
-                            Reject
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Document Preview Modal */}
+{/* Document Preview Modal */}
       {selectedDocPreview && (() => {
         const partner = selectedDocPreview.partner;
         const docs = partner.documents || (partner as any).docs || [];
@@ -1701,6 +1863,28 @@ export function DeliveryPartnersPage() {
                       Approve Partner KYC
                     </button>
                   )}
+                  {partner.kycStatus === 'VERIFIED' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSuspendReason('Account suspended by Admin. Verification review in progress.');
+                        setSuspendModalPartner(partner);
+                      }}
+                      disabled={isSuspending}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#FEF3C7',
+                        color: '#B45309',
+                        border: '1px solid #FDE68A',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: isSuspending ? 'wait' : 'pointer',
+                      }}
+                    >
+                      Suspend Partner
+                    </button>
+                  )}
                   {partner.kycStatus !== 'REJECTED' && (
                     <button
                       type="button"
@@ -1834,6 +2018,121 @@ export function DeliveryPartnersPage() {
                 }}
               >
                 {isRejecting ? 'Rejecting...' : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suspend Delivery Partner Confirmation Modal */}
+      {suspendModalPartner && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(17, 24, 39, 0.6)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              width: 460,
+              maxWidth: '92%',
+              padding: 24,
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
+              border: '1px solid #E5E7EB',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    backgroundColor: '#FEF3C7',
+                    color: '#B45309',
+                    fontSize: 16,
+                  }}
+                >
+                  ⚠️
+                </span>
+                <Text as="h2" variant="heading2" color="#111827" style={{ fontWeight: 700 }}>
+                  Suspend Delivery Partner
+                </Text>
+              </div>
+              <div style={{ fontSize: 13, color: '#6B7280', marginTop: 8, lineHeight: 1.5 }}>
+                Suspending account for <strong style={{ color: '#111827' }}>{suspendModalPartner.fullName}</strong>. Their verification status will be set to <strong style={{ color: '#B45309' }}>SUSPENDED</strong> and they will be taken offline until reviewed and re-approved by Admin.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Reason for Suspension</label>
+              <textarea
+                value={suspendReason}
+                onChange={(e) => setSuspendReason(e.target.value)}
+                rows={3}
+                placeholder="Specify reason for suspension..."
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #E5E7EB',
+                  fontSize: 13,
+                  outline: 'none',
+                  resize: 'none',
+                  color: '#111827',
+                  backgroundColor: '#FFFFFF',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => setSuspendModalPartner(null)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #E5E7EB',
+                  backgroundColor: '#FFFFFF',
+                  color: '#475569',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSuspendPartner}
+                disabled={isSuspending}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  border: 'none',
+                  backgroundColor: '#D97706',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: isSuspending ? 'wait' : 'pointer',
+                  boxShadow: '0 2px 4px rgba(217, 119, 6, 0.25)',
+                }}
+              >
+                {isSuspending ? 'Suspending...' : 'Confirm Suspension'}
               </button>
             </div>
           </div>

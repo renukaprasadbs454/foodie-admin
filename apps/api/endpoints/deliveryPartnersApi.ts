@@ -140,6 +140,18 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
         { type: 'Admin', id: 'DELIVERY' },
       ],
     }),
+    suspendDeliveryPartner: builder.mutation<DeliveryPartnerProfile, { partnerId: string; reason?: string }>({
+      query: ({ partnerId, reason }) => ({
+        url: `/api/bff/admin/delivery-partners/${partnerId}/suspend`,
+        method: 'PATCH',
+        body: { reason },
+      }),
+      invalidatesTags: (_result, _error, { partnerId }) => [
+        { type: 'Delivery', id: partnerId },
+        { type: 'Admin', id: 'DELIVERY_LIST' },
+        { type: 'Admin', id: 'DELIVERY' },
+      ],
+    }),
     getDeliveryPricing: builder.query<DeliveryPricingConfig, void>({
       query: () => '/api/bff/admin/delivery-pricing',
       providesTags: [{ type: 'Admin', id: 'DELIVERY_PRICING' }],
@@ -197,6 +209,7 @@ export const {
   useGetAdminDeliveryPartnersQuery,
   useApproveDeliveryPartnerKycMutation,
   useRejectDeliveryPartnerKycMutation,
+  useSuspendDeliveryPartnerMutation,
   useGetDeliveryPricingQuery,
   useUpdateDeliveryPricingMutation,
   useGetAdminShiftsQuery,

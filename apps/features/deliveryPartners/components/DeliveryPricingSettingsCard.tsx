@@ -735,12 +735,15 @@ export function DeliveryPricingSettingsCard() {
     }
   };
 
+  const effectiveMinPrice = isMinPriceValid ? parsedMinPrice : currentConfig.minPrice;
+  const effectiveMoneyPerKm = isMoneyPerKmValid ? parsedMoneyPerKm : currentConfig.moneyPerKm;
+
   const calculatePayout = (distKm: number): { payout: number; appliedRule: 'MIN_PRICE' | 'PER_KM' } => {
-    const feeByKm = distKm * currentConfig.moneyPerKm;
-    if (feeByKm > currentConfig.minPrice) {
+    const feeByKm = distKm * effectiveMoneyPerKm;
+    if (feeByKm > effectiveMinPrice) {
       return { payout: feeByKm, appliedRule: 'PER_KM' };
     }
-    return { payout: currentConfig.minPrice, appliedRule: 'MIN_PRICE' };
+    return { payout: effectiveMinPrice, appliedRule: 'MIN_PRICE' };
   };
 
   const handleUpdateDistance = (index: number, newKm: number) => {
@@ -760,8 +763,10 @@ export function DeliveryPricingSettingsCard() {
   const customResult = calculatePayout(customTestKm);
 
   return (
-    <div
-      className="pricing-card-responsive"
+    <>
+      {/* 3. Delivery Partner Payout Structure & Incentives (Third Section) */}
+      <div
+        className="pricing-card-responsive"
       style={{
         backgroundColor: '#FFFFFF',
         borderRadius: 20,
@@ -1652,208 +1657,8 @@ export function DeliveryPricingSettingsCard() {
             </div>
           </div>
 
-          {/* Interactive Payout Simulator Panel */}
-          <div
-            style={{
-              backgroundColor: '#F9FAFB',
-              borderRadius: '16px',
-              padding: '20px 24px',
-              marginBottom: '24px',
-              border: '1px solid #E5E7EB',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-              <div>
-                <div style={{ fontSize: '0.975rem', fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  Formula & Interactive Payout Simulator
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '2px' }}>
-                  Test real-time trip payouts with active rate multipliers
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={handleAddDistanceCard}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #E5E7EB',
-                    backgroundColor: '#FFFFFF',
-                    color: '#111827',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Add Test Distance
-                </button>
-              </div>
-            </div>
-
-            {/* Formula Banner */}
-            <div style={{ fontSize: '0.8125rem', color: '#6B7280', marginBottom: '16px', lineHeight: '1.5' }}>
-              Payout = <code style={{ backgroundColor: '#FFFFFF', padding: '4px 10px', borderRadius: '6px', border: '1px solid #E5E7EB', fontWeight: 700, color: '#2196F3' }}>
-                Max(₹{currentConfig.minPrice.toFixed(2)}, Distance × ₹{currentConfig.moneyPerKm.toFixed(2)}/km)
-              </code>
-            </div>
-
-            {/* Custom Distance Calculator Bar */}
-            <div
-              style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: '12px',
-                padding: '12px 16px',
-                marginBottom: '16px',
-                border: '1px solid #E5E7EB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', fontWeight: 700, color: '#111827' }}>
-                <span>Operator Quick Test:</span>
-                <input
-                  type="number"
-                  min="0.1"
-                  step="0.5"
-                  value={customTestKm}
-                  onChange={(e) => setCustomTestKm(Math.max(0, Number(e.target.value)))}
-                  style={{
-                    width: '70px',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    border: '1px solid #E5E7EB',
-                    fontSize: '0.875rem',
-                    fontWeight: 800,
-                    color: '#111827',
-                    outline: 'none',
-                    textAlign: 'center',
-                    backgroundColor: '#FFFFFF',
-                  }}
-                />
-                <span>km distance</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '0.8125rem', color: '#6B7280' }}>
-                  {customResult.appliedRule === 'PER_KM' ? `(${customTestKm} km × ₹${currentConfig.moneyPerKm.toFixed(2)})` : `(Base Guaranteed)`}
-                </span>
-                <strong style={{ fontSize: '1.125rem', fontWeight: 900, color: '#2196F3' }}>
-                  = ₹{customResult.payout.toFixed(2)}
-                </strong>
-                <span
-                  style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    backgroundColor: '#E3F2FD',
-                    border: '1px solid #BFDBFE',
-                    color: '#2196F3',
-                  }}
-                >
-                  {customResult.appliedRule === 'PER_KM' ? 'Per KM Rate' : 'Base Guaranteed'}
-                </span>
-              </div>
-            </div>
-
-            {/* Editable Grid of Test Distances */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
-              {simDistances.map((dist, idx) => {
-                const { payout, appliedRule } = calculatePayout(dist);
-                const isPerKm = appliedRule === 'PER_KM';
-                return (
-                  <div
-                    key={`sim-${idx}`}
-                    style={{
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: '12px',
-                      padding: '12px 14px',
-                      border: '1px solid #E5E7EB',
-                      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
-                      transition: 'transform 0.15s ease',
-                      position: 'relative',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#6B7280' }}>Trip:</span>
-                        <input
-                          type="number"
-                          min="0.1"
-                          step="0.5"
-                          value={dist}
-                          onChange={(e) => handleUpdateDistance(idx, Math.max(0, Number(e.target.value)))}
-                          style={{
-                            width: '48px',
-                            padding: '2px 4px',
-                            borderRadius: '4px',
-                            border: '1px solid #E5E7EB',
-                            fontSize: '0.75rem',
-                            fontWeight: 800,
-                            color: '#111827',
-                            backgroundColor: '#FFFFFF',
-                            textAlign: 'center',
-                            outline: 'none',
-                          }}
-                        />
-                        <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#6B7280' }}>km</span>
-                      </div>
-
-                      {simDistances.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveDistanceCard(idx)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#EF4444',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            padding: '0 2px',
-                          }}
-                          title="Remove test distance"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: '4px 0' }}>
-                      ₹{payout.toFixed(2)}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span
-                        style={{
-                          fontSize: '0.6875rem',
-                          fontWeight: 700,
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          backgroundColor: '#E3F2FD',
-                          border: '1px solid #BFDBFE',
-                          color: '#2196F3',
-                          display: 'inline-block',
-                        }}
-                      >
-                        {isPerKm ? 'Distance Incentive' : 'Base Guaranteed'}
-                      </span>
-                      <span style={{ fontSize: '0.675rem', color: '#6B7280', fontWeight: 600 }}>
-                        {isPerKm ? `${dist}×₹${currentConfig.moneyPerKm}` : 'Base'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Action Submit Button */}
-          <div className="save-button-container" style={{ display: 'flex', justifyContent: 'flex-end', gap: '14px' }}>
+          {/* Action Submit Button for Payout Structure */}
+          <div className="save-button-container" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', gap: '14px' }}>
             <button
               type="submit"
               disabled={isUpdating}
@@ -1876,11 +1681,219 @@ export function DeliveryPricingSettingsCard() {
                 gap: '8px',
               }}
             >
-              <span>{isUpdating ? 'Saving...' : 'Save Universal Payout Structure'}</span>
+              <span>{isUpdating ? 'Saving...' : selectedZone === 'ALL' ? 'Save Universal Payout Structure' : `Save Payout Structure (${selectedZoneDisplayName})`}</span>
             </button>
           </div>
         </form>
       )}
+    </div>
+
+    {/* 4. Formula & Interactive Payout Simulator (Fourth Section) */}
+    <div
+      className="simulator-card-responsive"
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        border: '1px solid #E5E7EB',
+        padding: '24px 28px',
+        marginBottom: '28px',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+        transition: 'all 0.2s ease',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+        <div>
+          <div style={{ fontSize: '1.125rem', fontWeight: 800, color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            Formula &amp; Interactive Payout Simulator
+          </div>
+          <div style={{ fontSize: '0.8125rem', color: '#6B7280', marginTop: '3px' }}>
+            Test real-time trip payouts with active rate multipliers dynamically configured above
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={handleAddDistanceCard}
+            style={{
+              padding: '7px 14px',
+              borderRadius: '8px',
+              border: '1px solid #E5E7EB',
+              backgroundColor: '#F9FAFB',
+              color: '#111827',
+              fontSize: '0.775rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <span>+ Add Test Distance</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Formula Banner */}
+      <div style={{ fontSize: '0.8125rem', color: '#6B7280', marginBottom: '18px', lineHeight: '1.6' }}>
+        Payout = <code style={{ backgroundColor: '#F3F4F6', padding: '4px 10px', borderRadius: '6px', border: '1px solid #E5E7EB', fontWeight: 700, color: '#2196F3' }}>
+          Max(₹{effectiveMinPrice.toFixed(2)}, Distance × ₹{effectiveMoneyPerKm.toFixed(2)}/km)
+        </code>
+      </div>
+
+      {/* Custom Distance Calculator Bar */}
+      <div
+        style={{
+          backgroundColor: '#F9FAFB',
+          borderRadius: '12px',
+          padding: '14px 18px',
+          marginBottom: '18px',
+          border: '1px solid #E5E7EB',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', fontWeight: 700, color: '#111827' }}>
+          <span>Operator Quick Test:</span>
+          <input
+            type="number"
+            min="0.1"
+            step="0.5"
+            value={customTestKm}
+            onChange={(e) => setCustomTestKm(Math.max(0, Number(e.target.value)))}
+            style={{
+              width: '74px',
+              padding: '5px 8px',
+              borderRadius: '6px',
+              border: '1px solid #D1D5DB',
+              fontSize: '0.875rem',
+              fontWeight: 800,
+              color: '#111827',
+              outline: 'none',
+              textAlign: 'center',
+              backgroundColor: '#FFFFFF',
+            }}
+          />
+          <span>km distance</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '0.8125rem', color: '#6B7280' }}>
+            {customResult.appliedRule === 'PER_KM' ? `(${customTestKm} km × ₹${effectiveMoneyPerKm.toFixed(2)})` : `(Base Guaranteed)`}
+          </span>
+          <strong style={{ fontSize: '1.125rem', fontWeight: 900, color: '#2196F3' }}>
+            = ₹{customResult.payout.toFixed(2)}
+          </strong>
+          <span
+            style={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              padding: '3px 8px',
+              borderRadius: '6px',
+              backgroundColor: '#E3F2FD',
+              border: '1px solid #BFDBFE',
+              color: '#2196F3',
+            }}
+          >
+            {customResult.appliedRule === 'PER_KM' ? 'Distance Incentive' : 'Base Guaranteed'}
+          </span>
+        </div>
+      </div>
+
+      {/* Editable Grid of Test Distances */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
+        {simDistances.map((dist, idx) => {
+          const { payout, appliedRule } = calculatePayout(dist);
+          const isPerKm = appliedRule === 'PER_KM';
+          return (
+            <div
+              key={`sim-${idx}`}
+              style={{
+                backgroundColor: '#F9FAFB',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                border: '1px solid #E5E7EB',
+                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+                transition: 'transform 0.15s ease',
+                position: 'relative',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#6B7280' }}>Trip:</span>
+                  <input
+                    type="number"
+                    min="0.1"
+                    step="0.5"
+                    value={dist}
+                    onChange={(e) => handleUpdateDistance(idx, Math.max(0, Number(e.target.value)))}
+                    style={{
+                      width: '48px',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      border: '1px solid #D1D5DB',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      color: '#111827',
+                      backgroundColor: '#FFFFFF',
+                      textAlign: 'center',
+                      outline: 'none',
+                    }}
+                  />
+                  <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#6B7280' }}>km</span>
+                </div>
+
+                {simDistances.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveDistanceCard(idx)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#EF4444',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      padding: '0 2px',
+                      lineHeight: 1,
+                    }}
+                    title="Remove test distance"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', margin: '4px 0' }}>
+                ₹{payout.toFixed(2)}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span
+                  style={{
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    backgroundColor: '#E3F2FD',
+                    border: '1px solid #BFDBFE',
+                    color: '#2196F3',
+                    display: 'inline-block',
+                  }}
+                >
+                  {isPerKm ? 'Distance Incentive' : 'Base Guaranteed'}
+                </span>
+                <span style={{ fontSize: '0.675rem', color: '#6B7280', fontWeight: 600 }}>
+                  {isPerKm ? `${dist}×₹${effectiveMoneyPerKm}` : 'Base'}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
 
       <style jsx global>{`
         .daily-milestone-ladder-grid {
@@ -1918,6 +1931,6 @@ export function DeliveryPricingSettingsCard() {
           }
         }
       `}</style>
-    </div>
+    </>
   );
 }

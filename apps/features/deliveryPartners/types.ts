@@ -37,7 +37,7 @@ export interface AdminDeliveryPartner {
   vehicleType: string;
   vehicleNumber?: string | null;
   profileImageUrl?: string | null;
-  kycStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  kycStatus: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
   isOnline: boolean;
   cashInHand: number;
   totalDeliveries: number;
@@ -56,7 +56,7 @@ export type DeliverymanRecord = {
   cashInHand: number;
   totalDeliveries: number;
   rating?: number;
-  kycStatus: 'VERIFIED' | 'PENDING' | 'REJECTED';
+  kycStatus: 'VERIFIED' | 'PENDING' | 'REJECTED' | 'SUSPENDED';
   documentType?: string;
   documentNumber?: string;
   documentVerificationStatus?: 'VERIFIED' | 'PENDING' | 'REJECTED';

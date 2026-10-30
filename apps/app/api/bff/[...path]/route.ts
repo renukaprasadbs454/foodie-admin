@@ -42,6 +42,103 @@ if (!globalAny.ADMIN_ZONE_LOGIN_HISTORY) {
 if (!globalAny.ADMIN_DYNAMIC_ZONES) {
   globalAny.ADMIN_DYNAMIC_ZONES = [];
 }
+const SHARED_SUSPENDED_FILE = path.join(os.tmpdir(), 'foodie_suspended_delivery_partners.json');
+
+function readSharedSuspendedPartners(): Record<string, any> {
+  try {
+    if (fs.existsSync(SHARED_SUSPENDED_FILE)) {
+      const data = fs.readFileSync(SHARED_SUSPENDED_FILE, 'utf8');
+      return JSON.parse(data) || {};
+    }
+  } catch {}
+  return {};
+}
+
+function writeSharedSuspendedPartners(map: Record<string, any>) {
+  try {
+    fs.writeFileSync(SHARED_SUSPENDED_FILE, JSON.stringify(map, null, 2), 'utf8');
+  } catch {}
+}
+
+if (!globalAny.ADMIN_SUSPENDED_DELIVERY_PARTNERS) {
+  const initialMap = new Map<string, { reason: string; suspendedAt: string }>();
+  const persisted = readSharedSuspendedPartners();
+  for (const [k, v] of Object.entries(persisted)) {
+    initialMap.set(k.toLowerCase(), v as any);
+    initialMap.set(k, v as any);
+  }
+  globalAny.ADMIN_SUSPENDED_DELIVERY_PARTNERS = initialMap;
+}
+
+async function handleSuspendDeliveryPartner(request: Request, targetPath: string, accessToken: string) {
+  const parts = targetPath.split('/');
+  const suspendIdx = parts.indexOf('suspend');
+  const partnerId = suspendIdx > 0 ? parts[suspendIdx - 1] : '';
+
+  let body: any = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const reason = (body && typeof body.reason === 'string' && body.reason.trim())
+    ? body.reason.trim()
+    : 'Account suspended by Admin. Verification review in progress.';
+
+  const suspendedMap = globalAny.ADMIN_SUSPENDED_DELIVERY_PARTNERS as Map<string, { reason: string; suspendedAt: string }>;
+  if (suspendedMap && partnerId) {
+    suspendedMap.set(partnerId.toLowerCase(), { reason, suspendedAt: new Date().toISOString() });
+    suspendedMap.set(partnerId, { reason, suspendedAt: new Date().toISOString() });
+    const shared = readSharedSuspendedPartners();
+    shared[partnerId.toLowerCase()] = { partnerId, reason, suspendedAt: new Date().toISOString() };
+    shared[partnerId] = { partnerId, reason, suspendedAt: new Date().toISOString() };
+    writeSharedSuspendedPartners(shared);
+  }
+
+  purgeBffCache('admin/delivery');
+  purgeBffCache('delivery');
+  BFF_CACHE.clear();
+
+  try {
+    const upstreamUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/${targetPath}`;
+    const { response: upstream } = await safeFetch(upstreamUrl, {
+      method: request.method,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({ reason }),
+      timeoutMs: 4000,
+    });
+    if (upstream && upstream.ok) {
+      const json = await upstream.json();
+      if (json && json.data) {
+        json.data.kycStatus = 'SUSPENDED';
+        json.data.isOnline = false;
+        json.data.kycRejectionReason = reason;
+      }
+      return NextResponse.json(json, { status: upstream.status });
+    }
+  } catch {}
+
+  return NextResponse.json(
+    {
+      success: true,
+      data: {
+        id: partnerId,
+        kycStatus: 'SUSPENDED',
+        isOnline: false,
+        kycRejectionReason: reason,
+        updatedAt: new Date().toISOString(),
+      },
+      message: 'Delivery partner account suspended successfully. Status set to SUSPENDED.',
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    },
+    { status: 200 }
+  );
+}
 
 async function handleDeliveryPricing(request: Request) {
   const method = request.method;
@@ -5171,6 +5268,30 @@ async function handleAdminRoles() {
     }
   }
 
+  if (targetPath.match(/^(admin\/)?delivery-partners\/[^\/]+\/suspend$/)) {
+    return handleSuspendDeliveryPartner(request, targetPath, accessToken);
+  }
+
+  if (targetPath.includes('kyc-approve') || targetPath.includes('approve-kyc') || targetPath.includes('kyc-reject') || targetPath.includes('reject-kyc')) {
+    const parts = targetPath.split('/');
+    const idx = parts.findIndex((p: string) => p.includes('kyc') || p.includes('approve') || p.includes('reject'));
+    if (idx > 0) {
+      const partnerId = parts[idx - 1];
+      const suspendedMap = globalAny.ADMIN_SUSPENDED_DELIVERY_PARTNERS as Map<string, any>;
+      if (suspendedMap && partnerId) {
+        suspendedMap.delete(partnerId);
+        suspendedMap.delete(partnerId.toLowerCase());
+      }
+      const shared = readSharedSuspendedPartners();
+      delete shared[partnerId];
+      delete shared[partnerId.toLowerCase()];
+      writeSharedSuspendedPartners(shared);
+      purgeBffCache('admin/delivery');
+      purgeBffCache('delivery');
+      BFF_CACHE.clear();
+    }
+  }
+
   if (
     targetPath === 'admin/shifts' ||
     targetPath.startsWith('admin/shifts/') ||
@@ -6369,7 +6490,14 @@ async function handleAdminRoles() {
   }
 
   try {
-    const finalTargetUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/${targetPath}${incomingUrl.search}`;
+    let targetQuery = incomingUrl.search;
+    if (targetPath.startsWith('admin/delivery-partners') && incomingUrl.searchParams.get('status')?.toUpperCase() === 'SUSPENDED') {
+      const sp = new URLSearchParams(incomingUrl.search);
+      sp.delete('status');
+      const q = sp.toString();
+      targetQuery = q ? `?${q}` : '';
+    }
+    const finalTargetUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/${targetPath}${targetQuery}`;
     let { response: upstream, error: fetchErr } = await safeFetch(finalTargetUrl, {
       ...init,
       timeoutMs: 10000,
@@ -6416,7 +6544,7 @@ async function handleAdminRoles() {
 
 // Preserved real live customer location without hardcoded override
 
-      if (isGet && upstream.ok && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders') && !targetPath.includes('admin/shifts')) {
+      if (isGet && upstream.ok && !targetPath.includes('admin/location') && !targetPath.includes('admin/orders') && !targetPath.includes('admin/shifts') && !targetPath.includes('delivery')) {
         // Cache successful GET responses from database for 20 seconds
         BFF_CACHE.set(cacheKey, {
           body,
@@ -6427,136 +6555,239 @@ async function handleAdminRoles() {
         responseHeaders['X-Cache'] = 'MISS';
       }
 
-      if (!isSuperAdmin && userAssignedZoneId && contentType.includes('application/json')) {
+      if (contentType.includes('application/json')) {
         try {
           const text = Buffer.from(body).toString('utf-8');
           const json = JSON.parse(text);
           if (json && json.data) {
-            const cleanAssigned = userAssignedZoneId.trim().toLowerCase();
-            const isMatch = (item: any) => {
-              if (!item || typeof item !== 'object') return true;
+            let modified = false;
 
-              const isATmk = cleanAssigned.includes('tumkur') || cleanAssigned.includes('tumakuru') || cleanAssigned.includes('tmk');
-              const isABlr = cleanAssigned.includes('bangalore') || cleanAssigned.includes('bengaluru') || cleanAssigned.includes('blr');
+            if (!isSuperAdmin && userAssignedZoneId) {
+              const cleanAssigned = userAssignedZoneId.trim().toLowerCase();
+              const isMatch = (item: any) => {
+                if (!item || typeof item !== 'object') return true;
 
-              // 1. Explicit Zone Identifier
-              const z = item.zoneId || item.assignedZoneId || item.zone?.id || item.zoneName || item.zone;
-              if (z && typeof z === 'string') {
-                const cleanZ = z.trim().toLowerCase();
-                if (cleanZ === cleanAssigned || cleanZ.includes(cleanAssigned) || cleanAssigned.includes(cleanZ)) return true;
-                const isZBlr = cleanZ.includes('bangalore') || cleanZ.includes('bengaluru') || cleanZ.includes('blr');
-                if (isZBlr && isABlr) return true;
-                const isZTmk = cleanZ.includes('tumkur') || cleanZ.includes('tumakuru') || cleanZ.includes('tmk');
-                if (isZTmk && isATmk) return true;
-                if ((isZBlr && isATmk) || (isZTmk && isABlr)) return false;
-              }
+                const isATmk = cleanAssigned.includes('tumkur') || cleanAssigned.includes('tumakuru') || cleanAssigned.includes('tmk');
+                const isABlr = cleanAssigned.includes('bangalore') || cleanAssigned.includes('bengaluru') || cleanAssigned.includes('blr');
 
-              // 2. City (from root, address, or deliveryAddress)
-              const city = item.city || item.cityName || item.address?.city || item.deliveryAddress?.city;
-              if (city && typeof city === 'string') {
-                const cleanC = city.trim().toLowerCase();
-                const isCBlr = cleanC.includes('bangalore') || cleanC.includes('bengaluru') || cleanC.includes('blr');
-                if (isCBlr && isABlr) return true;
-                const isCTmk = cleanC.includes('tumkur') || cleanC.includes('tumakuru') || cleanC.includes('tmk');
-                if (isCTmk && isATmk) return true;
-                if ((isCBlr && isATmk) || (isCTmk && isABlr)) return false;
-              }
+                // 1. Explicit Zone Identifier
+                const z = item.zoneId || item.assignedZoneId || item.zone?.id || item.zoneName || item.zone;
+                if (z && typeof z === 'string') {
+                  const cleanZ = z.trim().toLowerCase();
+                  if (cleanZ === cleanAssigned || cleanZ.includes(cleanAssigned) || cleanAssigned.includes(cleanZ)) return true;
+                  const isZBlr = cleanZ.includes('bangalore') || cleanZ.includes('bengaluru') || cleanZ.includes('blr');
+                  if (isZBlr && isABlr) return true;
+                  const isZTmk = cleanZ.includes('tumkur') || cleanZ.includes('tumakuru') || cleanZ.includes('tmk');
+                  if (isZTmk && isATmk) return true;
+                  if ((isZBlr && isATmk) || (isZTmk && isABlr)) return false;
+                }
 
-              // 3. Formatted Address / Lines
-              const addr = item.address?.formattedAddress || item.address?.line1 || item.deliveryAddress?.formattedAddress || item.deliveryAddress?.addressLine1;
-              if (addr && typeof addr === 'string') {
-                const cleanA = addr.trim().toLowerCase();
-                const isAddrBlr = cleanA.includes('bangalore') || cleanA.includes('bengaluru') || cleanA.includes('blr');
-                if (isAddrBlr && isABlr) return true;
-                const isAddrTmk = cleanA.includes('tumkur') || cleanA.includes('tumakuru') || cleanA.includes('tmk');
-                if (isAddrTmk && isATmk) return true;
-                if ((isAddrBlr && isATmk) || (isAddrTmk && isABlr)) return false;
-              }
+                // 2. City (from root, address, or deliveryAddress)
+                const city = item.city || item.cityName || item.address?.city || item.deliveryAddress?.city;
+                if (city && typeof city === 'string') {
+                  const cleanC = city.trim().toLowerCase();
+                  const isCBlr = cleanC.includes('bangalore') || cleanC.includes('bengaluru') || cleanC.includes('blr');
+                  if (isCBlr && isABlr) return true;
+                  const isCTmk = cleanC.includes('tumkur') || cleanC.includes('tumakuru') || cleanC.includes('tmk');
+                  if (isCTmk && isATmk) return true;
+                  if ((isCBlr && isATmk) || (isCTmk && isABlr)) return false;
+                }
 
-              // 4. Coordinates
-              const lat = item.latitude || item.address?.latitude || item.deliveryAddress?.latitude;
-              const lng = item.longitude || item.address?.longitude || item.deliveryAddress?.longitude;
-              if (lat != null && lng != null) {
-                const nLat = Number(lat);
-                const nLng = Number(lng);
-                if (!isNaN(nLat) && !isNaN(nLng)) {
-                  if (nLat > 13.2 && nLat < 13.5 && nLng > 77.0 && nLng < 77.3) {
+                // 3. Formatted Address / Lines
+                const addr = item.address?.formattedAddress || item.address?.line1 || item.deliveryAddress?.formattedAddress || item.deliveryAddress?.addressLine1;
+                if (addr && typeof addr === 'string') {
+                  const cleanA = addr.trim().toLowerCase();
+                  const isAddrBlr = cleanA.includes('bangalore') || cleanA.includes('bengaluru') || cleanA.includes('blr');
+                  if (isAddrBlr && isABlr) return true;
+                  const isAddrTmk = cleanA.includes('tumkur') || cleanA.includes('tumakuru') || cleanA.includes('tmk');
+                  if (isAddrTmk && isATmk) return true;
+                  if ((isAddrBlr && isATmk) || (isAddrTmk && isABlr)) return false;
+                }
+
+                // 4. Coordinates
+                const lat = item.latitude || item.address?.latitude || item.deliveryAddress?.latitude;
+                const lng = item.longitude || item.address?.longitude || item.deliveryAddress?.longitude;
+                if (lat != null && lng != null) {
+                  const nLat = Number(lat);
+                  const nLng = Number(lng);
+                  if (!isNaN(nLat) && !isNaN(nLng)) {
+                    if (nLat > 13.2 && nLat < 13.5 && nLng > 77.0 && nLng < 77.3) {
+                      return isATmk;
+                    }
+                    if (nLat > 12.8 && nLat < 13.1 && nLng > 77.4 && nLng < 77.8) {
+                      return isABlr;
+                    }
+                  }
+                }
+
+                // 5. Store / Restaurant Name
+                const store = item.storeName || item.restaurantName || (item.restaurant && (item.restaurant.name || item.restaurant.storeName));
+                if (store && typeof store === 'string') {
+                  const cleanS = store.trim().toLowerCase();
+                  if (cleanS.includes('tumkur') || cleanS.includes('pavithra') || cleanS.includes('thatte')) {
                     return isATmk;
                   }
-                  if (nLat > 12.8 && nLat < 13.1 && nLng > 77.4 && nLng < 77.8) {
+                  if (cleanS.includes('bangalore') || cleanS.includes('bengaluru') || cleanS.includes('empire') || cleanS.includes('meghana')) {
                     return isABlr;
                   }
                 }
-              }
 
-              // 5. Store / Restaurant Name
-              const store = item.storeName || item.restaurantName || (item.restaurant && (item.restaurant.name || item.restaurant.storeName));
-              if (store && typeof store === 'string') {
-                const cleanS = store.trim().toLowerCase();
-                if (cleanS.includes('tumkur') || cleanS.includes('pavithra') || cleanS.includes('thatte')) {
-                  return isATmk;
+                // 6. Customer / Contact Name
+                const name = item.name || item.fullName || item.customerName;
+                if (name && typeof name === 'string') {
+                  const cleanN = name.trim().toLowerCase();
+                  if (cleanN.includes('tumkur') || cleanN.includes('pavithra') || cleanN.includes('thatte')) return isATmk;
+                  if (cleanN.includes('bangalore') || cleanN.includes('bengaluru') || cleanN.includes('empire') || cleanN.includes('meghana')) return isABlr;
+                  if (cleanN.includes('priya') || cleanN.includes('karthik')) return isATmk;
+                  if (cleanN.includes('ananya') || cleanN.includes('rahul')) return isABlr;
                 }
-                if (cleanS.includes('bangalore') || cleanS.includes('bengaluru') || cleanS.includes('empire') || cleanS.includes('meghana')) {
-                  return isABlr;
+
+                // Retain items returned by backend for zone-scoped queries
+                return true;
+              };
+
+              // Single item detail check
+              if (json.data && !Array.isArray(json.data) && !json.data.items && !json.data.content && !json.data.customers) {
+                const singleZone = json.data.zoneId || json.data.assignedZoneId || json.data.zone?.id;
+                if (singleZone && typeof singleZone === 'string' && !isMatch({ zoneId: singleZone })) {
+                  return NextResponse.json({
+                    success: false,
+                    data: null,
+                    error: {
+                      code: 'FORBIDDEN',
+                      message: `Cross-zone access denied: Resource belongs to another operating zone.`,
+                    },
+                    meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+                  }, { status: 403 });
                 }
               }
 
-              // 6. Customer / Contact Name
-              const name = item.name || item.fullName || item.customerName;
-              if (name && typeof name === 'string') {
-                const cleanN = name.trim().toLowerCase();
-                if (cleanN.includes('tumkur') || cleanN.includes('pavithra') || cleanN.includes('thatte')) return isATmk;
-                if (cleanN.includes('bangalore') || cleanN.includes('bengaluru') || cleanN.includes('empire') || cleanN.includes('meghana')) return isABlr;
-                if (cleanN.includes('priya') || cleanN.includes('karthik')) return isATmk;
-                if (cleanN.includes('ananya') || cleanN.includes('rahul')) return isABlr;
-              }
-
-              // Retain items returned by backend for zone-scoped queries
-              return true;
-            };
-
-            // Single item detail check
-            if (json.data && !Array.isArray(json.data) && !json.data.items && !json.data.content && !json.data.customers) {
-              const singleZone = json.data.zoneId || json.data.assignedZoneId || json.data.zone?.id;
-              if (singleZone && typeof singleZone === 'string' && !isMatch({ zoneId: singleZone })) {
-                return NextResponse.json({
-                  success: false,
-                  data: null,
-                  error: {
-                    code: 'FORBIDDEN',
-                    message: `Cross-zone access denied: Resource belongs to another operating zone.`,
-                  },
-                  meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
-                }, { status: 403 });
+              if (Array.isArray(json.data)) {
+                const origLen = json.data.length;
+                json.data = json.data.filter(isMatch);
+                if (json.data.length !== origLen) modified = true;
+              } else if (json.data.items && Array.isArray(json.data.items)) {
+                const origLen = json.data.items.length;
+                json.data.items = json.data.items.filter(isMatch);
+                if (json.data.items.length !== origLen) {
+                  if (json.data.pagination) json.data.pagination.totalItems = json.data.items.length;
+                  modified = true;
+                }
+              } else if (json.data.content && Array.isArray(json.data.content)) {
+                const origLen = json.data.content.length;
+                json.data.content = json.data.content.filter(isMatch);
+                if (json.data.content.length !== origLen) {
+                  json.data.totalElements = json.data.content.length;
+                  modified = true;
+                }
+              } else if (json.data.customers && Array.isArray(json.data.customers)) {
+                const origLen = json.data.customers.length;
+                json.data.customers = json.data.customers.filter(isMatch);
+                if (json.data.customers.length !== origLen) {
+                  json.data.total = json.data.customers.length;
+                  if (json.data.summary) json.data.summary.totalRegistered = json.data.customers.length;
+                  modified = true;
+                }
               }
             }
 
-            let modified = false;
-            if (Array.isArray(json.data)) {
-              const origLen = json.data.length;
-              json.data = json.data.filter(isMatch);
-              if (json.data.length !== origLen) modified = true;
-            } else if (json.data.items && Array.isArray(json.data.items)) {
-              const origLen = json.data.items.length;
-              json.data.items = json.data.items.filter(isMatch);
-              if (json.data.items.length !== origLen) {
-                if (json.data.pagination) json.data.pagination.totalItems = json.data.items.length;
-                modified = true;
-              }
-            } else if (json.data.content && Array.isArray(json.data.content)) {
-              const origLen = json.data.content.length;
-              json.data.content = json.data.content.filter(isMatch);
-              if (json.data.content.length !== origLen) {
-                json.data.totalElements = json.data.content.length;
-                modified = true;
-              }
-            } else if (json.data.customers && Array.isArray(json.data.customers)) {
-              const origLen = json.data.customers.length;
-              json.data.customers = json.data.customers.filter(isMatch);
-              if (json.data.customers.length !== origLen) {
-                json.data.total = json.data.customers.length;
-                if (json.data.summary) json.data.summary.totalRegistered = json.data.customers.length;
-                modified = true;
+            if (json && json.data) {
+              const suspendedMap = globalAny.ADMIN_SUSPENDED_DELIVERY_PARTNERS as Map<string, any>;
+              if (suspendedMap && suspendedMap.size > 0) {
+                const applySuspension = (item: any) => {
+                  if (item && item.id) {
+                    const idStr = String(item.id).toLowerCase();
+                    let isSuspended = false;
+                    let info: any = null;
+                    for (const [k, v] of suspendedMap.entries()) {
+                      if (k.toLowerCase() === idStr) {
+                        isSuspended = true;
+                        info = v;
+                        break;
+                      }
+                    }
+                    if (isSuspended) {
+                      item.kycStatus = 'SUSPENDED';
+                      item.isOnline = false;
+                      if (info?.reason) item.kycRejectionReason = info.reason;
+                      if (Array.isArray(item.documents)) {
+                        item.documents.forEach((d: any) => {
+                          d.verificationStatus = 'PENDING';
+                        });
+                      }
+                      modified = true;
+                    }
+                  }
+                };
+
+                if (targetPath.includes('delivery-partners')) {
+                  if (Array.isArray(json.data.items)) {
+                    json.data.items.forEach(applySuspension);
+                  } else if (Array.isArray(json.data)) {
+                    json.data.forEach(applySuspension);
+                  } else if (json.data.id) {
+                    applySuspension(json.data);
+                  }
+
+                  const reqStatus = incomingUrl.searchParams.get('status')?.toUpperCase();
+                  if (reqStatus && reqStatus !== 'ALL') {
+                    const filterStatus = (item: any) => item && item.kycStatus === reqStatus;
+                    if (Array.isArray(json.data.items)) {
+                      json.data.items = json.data.items.filter(filterStatus);
+                      if (json.data.pagination) {
+                        json.data.pagination.totalElements = json.data.items.length;
+                        json.data.pagination.totalPages = Math.max(1, Math.ceil(json.data.items.length / (json.data.pagination.size || 50)));
+                      }
+                      modified = true;
+                    } else if (Array.isArray(json.data)) {
+                      json.data = json.data.filter(filterStatus);
+                      modified = true;
+                    }
+                  }
+                }
+
+                if (targetPath.includes('delivery') && targetPath.includes('stats')) {
+                  const count = suspendedMap.size;
+                  if (typeof json.data.pendingKyc === 'number') {
+                    json.data.pendingKyc = json.data.pendingKyc + count;
+                  }
+                  if (typeof json.data.verified === 'number') {
+                    json.data.verified = Math.max(0, json.data.verified - count);
+                  }
+                  if (typeof json.data.suspended === 'number') {
+                    json.data.suspended = json.data.suspended + count;
+                  } else {
+                    json.data.suspended = count;
+                  }
+                  modified = true;
+                }
+
+                if (targetPath.includes('delivery/me') || targetPath.includes('delivery/profile')) {
+                  const partnerId = json.data.partnerId || json.data.id;
+                  if (partnerId) {
+                    const idStr = String(partnerId).toLowerCase();
+                    let isSuspended = false;
+                    let suspInfo: any = null;
+                    for (const [k, v] of suspendedMap.entries()) {
+                      if (k.toLowerCase() === idStr) {
+                        isSuspended = true;
+                        suspInfo = v;
+                        break;
+                      }
+                    }
+                    if (isSuspended) {
+                      json.data.kycStatus = 'PENDING';
+                      json.data.isOnline = false;
+                      if (suspInfo?.reason) json.data.kycRejectionReason = suspInfo.reason;
+                      if (Array.isArray(json.data.documents)) {
+                        json.data.documents.forEach((d: any) => {
+                          d.verificationStatus = 'PENDING';
+                        });
+                      }
+                      modified = true;
+                    }
+                  }
+                }
               }
             }
 
