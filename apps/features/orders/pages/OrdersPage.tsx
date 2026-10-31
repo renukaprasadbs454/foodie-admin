@@ -13,6 +13,7 @@ import {
 } from '@/api/endpoints/ordersApi';
 import type { OrderItemRecord } from '@/features/orders/types';
 import { formatRelativeFromNow } from '@/shared/utils/date';
+import { CustomerFullDetailsDrawer } from '@/features/customers/components/CustomerFullDetailsDrawer';
 
 export type { OrderItemRecord };
 
@@ -60,6 +61,11 @@ export function OrdersPage() {
 
   const [searchUuid, setSearchUuid] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
+  const [selectedCustomerForDrawer, setSelectedCustomerForDrawer] = useState<{
+    id?: string | null;
+    name?: string | null;
+    phone?: string | null;
+  } | null>(null);
 
   const { profile } = usePermissions();
   const assignedZoneId = profile?.assignedZoneId || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone')) : null);
@@ -280,9 +286,15 @@ export function OrdersPage() {
                 return (
                   <tr
                     key={order.id}
-                    style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s ease' }}
+                    className="hover:bg-gray-50"
+                    style={{
+                      borderBottom: '1px solid #F3F4F6',
+                      transition: 'background-color 0.15s ease',
+                      cursor: 'pointer',
+                    }}
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9FAFB')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    onClick={() => router.push(`/orders/${order.id}`)}
                   >
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ fontWeight: 600, color: '#2196F3', fontFamily: 'monospace', fontSize: 12 }}>
@@ -290,9 +302,34 @@ export function OrdersPage() {
                       </div>
                       <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{displayCreatedAt}</div>
                     </td>
-                    <td style={{ padding: '14px 20px' }}>
-                      <div style={{ fontWeight: 600, color: '#111827' }}>{order.customerName}</div>
-                      <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{order.customerPhone}</div>
+                    <td
+                      style={{ padding: '14px 20px', cursor: 'pointer' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCustomerForDrawer({
+                          id: (order as any).customerId,
+                          name: order.customerName,
+                          phone: order.customerPhone,
+                        });
+                      }}
+                      title={`Click to view customer details for ${order.customerName}`}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          color: '#111827',
+                          display: 'inline-block',
+                          borderBottom: '1px dashed #9CA3AF',
+                          transition: 'color 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = '#059669')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = '#111827')}
+                      >
+                        {order.customerName}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#4B5563', marginTop: 3 }}>
+                        {order.customerPhone || 'N/A'}
+                      </div>
                     </td>
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ fontWeight: 600, color: '#111827' }}>{order.storeName}</div>
@@ -310,7 +347,7 @@ export function OrdersPage() {
                               color: order.zoneId.toLowerCase().includes('tumkur') ? '#9D174D' : '#1D4ED8',
                             }}
                           >
-                            📍 {order.zoneId.toLowerCase().includes('tumkur') ? 'Tumkur' : 'Bangalore'}
+                            {order.zoneId.toLowerCase().includes('tumkur') ? 'Tumkur' : 'Bangalore'}
                           </span>
                         )}
                       </div>
@@ -407,7 +444,8 @@ export function OrdersPage() {
                         <button
                           type="button"
                           disabled={isOverriding}
-                          onClick={async () => {
+                          onClick={async (e) => {
+                            e.stopPropagation();
                             try {
                               await overrideOrderStatus({
                                 orderId: order.id,
@@ -438,7 +476,10 @@ export function OrdersPage() {
                       )}
                       <button
                         type="button"
-                        onClick={() => router.push(`/orders/${order.id}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/orders/${order.id}`);
+                        }}
                         style={{
                           padding: '6px 14px',
                           background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
@@ -461,6 +502,16 @@ export function OrdersPage() {
           </tbody>
         </table>
       </div>
+
+      {selectedCustomerForDrawer && (
+        <CustomerFullDetailsDrawer
+          open={Boolean(selectedCustomerForDrawer)}
+          customerId={selectedCustomerForDrawer.id}
+          customerName={selectedCustomerForDrawer.name}
+          customerPhone={selectedCustomerForDrawer.phone}
+          onClose={() => setSelectedCustomerForDrawer(null)}
+        />
+      )}
     </div>
   );
 }

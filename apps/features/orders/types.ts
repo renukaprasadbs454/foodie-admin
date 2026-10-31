@@ -23,6 +23,7 @@ export interface OrderItemRecord {
   orderCode?: string;
   customerName: string;
   customerPhone: string;
+  customerId?: string;
   storeName: string;
   module: string;
   itemsSummary: string;
@@ -73,6 +74,16 @@ export type AdminOrder = {
   orderStatusEvents?: OrderStatusEvent[] | null;
   paymentMethod?: string | null;
   paymentStatus?: string | null;
+  deliveryPartnerId?: string | null;
+  deliveryPartnerName?: string | null;
+  deliveryPartnerPhone?: string | null;
+  assignedDeliveryPartner?: {
+    id?: string | null;
+    fullName?: string | null;
+    name?: string | null;
+    phoneNumber?: string | null;
+    phone?: string | null;
+  } | null;
   assignedDeliveryPartnerId?: string | null;
   assignedDeliveryPartnerName?: string | null;
   assignedDeliveryPartnerPhone?: string | null;

@@ -138,17 +138,31 @@ export async function getOnlineDeliveryPartners(accessToken?: string | null): Pr
 
     if (response && response.ok) {
       const json = await response.json();
-      const list: any[] = Array.isArray(json.data)
-        ? json.data
+      const list: any[] = Array.isArray(json.data?.partners)
+        ? json.data.partners
         : Array.isArray(json.data?.items)
-        ? json.data.items
+        ? json.data?.items
+        : Array.isArray(json.data)
+        ? json.data
+        : Array.isArray(json.partners)
+        ? json.partners
         : Array.isArray(json.items)
         ? json.items
+        : Array.isArray(json)
+        ? json
         : [];
 
       if (list.length > 0) {
         return list
-          .filter((p) => p.isOnline !== false)
+          .filter((p) => {
+            return (
+              p.isOnline === true ||
+              p.online === true ||
+              p.isAvailable === true ||
+              String(p.onlineStatus).toUpperCase() === 'ONLINE' ||
+              (p.isOnline !== false && p.online !== false && p.isAvailable !== false)
+            );
+          })
           .map((p) => ({
             id: String(p.id || p.partnerId || ''),
             fullName: p.fullName || p.name || 'Delivery Partner',

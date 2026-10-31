@@ -22,6 +22,7 @@ import { toUnwrappedApiError } from '@/features/restaurants/lib/apiError';
 import { OrderDetailSkeleton } from '../components/OrderDetailSkeleton';
 import { OverrideStatusModal } from '../components/OverrideStatusModal';
 import { AssignDeliveryPartnerModal } from '../components/AssignDeliveryPartnerModal';
+import { CustomerFullDetailsDrawer } from '@/features/customers/components/CustomerFullDetailsDrawer';
 import { formatMoneyInr, type OrderStatus } from '../types';
 
 type Props = {
@@ -29,7 +30,7 @@ type Props = {
 };
 
 /**
- * P2-ADM-04 order detail — GET /orders/{id} + POST override-status + Assign Delivery Partner.
+ * P2-ADM-04 order detail — GET /api/admin/orders/:id + POST override-status + Assign Delivery Partner.
  */
 export function OrderDetailsPage({ orderId }: Props) {
   const { tokens } = useTheme();
@@ -45,7 +46,14 @@ export function OrderDetailsPage({ orderId }: Props) {
 
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [assignedPartnerName, setAssignedPartnerName] = useState<string | null>(null);
+  const [isCustomerDrawerOpen, setIsCustomerDrawerOpen] = useState(false);
+
+  // Immediate state update upon assignment
+  const [assignedPartnerInfo, setAssignedPartnerInfo] = useState<{
+    id: string;
+    name: string;
+    phone: string;
+  } | null>(null);
   const [assignedStatus, setAssignedStatus] = useState<string | null>(null);
 
   const [toast, setToast] = useState<{
@@ -92,9 +100,46 @@ export function OrderDetailsPage({ orderId }: Props) {
   };
 
   const data = orderQuery.data;
-  const currentAssignedDP =
-    assignedPartnerName || data?.assignedDeliveryPartnerName || null;
-  const currentStatusDisplay = assignedStatus || data?.status;
+
+  // 1. Check Assignment Status: check if deliveryPartnerId or assignedDeliveryPartner is present
+  const assignedFromData = (data?.deliveryPartnerId || data?.assignedDeliveryPartner || data?.assignedDeliveryPartnerId)
+    ? {
+        id: (data?.deliveryPartnerId || data?.assignedDeliveryPartner?.id || data?.assignedDeliveryPartnerId) as string,
+        name: (data?.deliveryPartnerName || data?.assignedDeliveryPartner?.fullName || data?.assignedDeliveryPartner?.name || data?.assignedDeliveryPartnerName || 'Delivery Partner') as string,
+        phone: (data?.deliveryPartnerPhone || data?.assignedDeliveryPartner?.phoneNumber || data?.assignedDeliveryPartner?.phone || data?.assignedDeliveryPartnerPhone || '') as string,
+      }
+    : null;
+
+  const currentAssignedPartner = assignedPartnerInfo || assignedFromData;
+  const isAssigned = Boolean(currentAssignedPartner?.id || currentAssignedPartner?.name);
+
+  // Status checks:
+  // - Show Assign Delivery Partner button when order status is READY, READY_FOR_PICKUP, WAITING_FOR_DELIVERY_PARTNER, PREPARING, CONFIRMED.
+  // - Only hide button when status is CANCELLED, DELIVERED, COMPLETED, REFUNDED.
+  // - If already assigned, show Assigned to badge with Re-assign Partner button (unless terminal/cancelled).
+  // - If CANCELLED, hide both assign and assigned badge completely.
+  const rawStatus = String(data?.status || assignedStatus || '').trim().toUpperCase();
+  const isCancelled = ['CANCELLED', 'CANCELED'].includes(rawStatus);
+  const isHiddenStatus = ['CANCELLED', 'CANCELED', 'DELIVERED', 'COMPLETED', 'REFUNDED', 'REJECTED'].includes(rawStatus);
+
+  const currentStatusDisplay = isHiddenStatus
+    ? (data?.status || rawStatus)
+    : (isAssigned ? 'ASSIGNED' : (assignedStatus || data?.status));
+
+  const isAssignableStatus = [
+    'READY',
+    'READY_FOR_PICKUP',
+    'WAITING_FOR_DELIVERY_PARTNER',
+    'PREPARING',
+    'CONFIRMED',
+    'PENDING',
+    'PLACED',
+    'ACCEPTED',
+  ].includes(rawStatus);
+
+  const canShowAssignedBadge = isAssigned && !isCancelled;
+  const canShowReassign = isAssigned && !isHiddenStatus;
+  const canShowAssign = !isAssigned && !isHiddenStatus && isAssignableStatus;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -152,34 +197,9 @@ export function OrderDetailsPage({ orderId }: Props) {
                   Order ID: {data.orderId}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                {currentAssignedDP ? (
-                  <span
-                    style={{
-                      backgroundColor: '#ECFDF5',
-                      border: '1px solid #A7F3D0',
-                      color: '#065F46',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      padding: '5px 14px',
-                      borderRadius: 20,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: '50%',
-                        backgroundColor: '#10B981',
-                      }}
-                    />
-                    Assigned to: {currentAssignedDP}
-                  </span>
-                ) : null}
 
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                {/* Status Badge */}
                 <span
                   style={{
                     backgroundColor: currentStatusDisplay === 'ASSIGNED' ? '#ECFDF5' : '#E3F2FD',
@@ -194,29 +214,79 @@ export function OrderDetailsPage({ orderId }: Props) {
                   Status: {currentStatusDisplay}
                 </span>
 
-                {/* Assign Delivery Partner Button */}
-                <button
-                  type="button"
-                  aria-label="Assign Delivery Partner"
-                  disabled={!isConnected}
-                  onClick={() => setAssignModalOpen(true)}
-                  style={{
-                    padding: '8px 18px',
-                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: 10,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: isConnected ? 'pointer' : 'not-allowed',
-                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  Assign Delivery Partner
-                </button>
+                {/* 
+                    - If ALREADY ASSIGNED: show Assigned to badge with Re-assign Partner button (unless CANCELLED).
+                    - If NOT ASSIGNED: show Assign button when status is READY, READY_FOR_PICKUP, WAITING_FOR_DELIVERY_PARTNER, PREPARING, CONFIRMED.
+                    - If CANCELLED: hide both assign and assigned badge completely.
+                    - Only hide button when status is CANCELLED, DELIVERED, COMPLETED, REFUNDED.
+                */}
+                {canShowAssignedBadge && currentAssignedPartner ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                    <span
+                      data-testid="assigned-partner-header-badge"
+                      style={{
+                        backgroundColor: '#ECFDF5',
+                        border: '1px solid #A7F3D0',
+                        color: '#065F46',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        padding: '6px 14px',
+                        borderRadius: 20,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      Assigned to: {currentAssignedPartner.name}{currentAssignedPartner.phone ? ` — ${currentAssignedPartner.phone}` : ''}
+                    </span>
+                    {canShowReassign ? (
+                      <button
+                        type="button"
+                        aria-label="Re-assign Partner"
+                        disabled={!isConnected}
+                        onClick={() => setAssignModalOpen(true)}
+                        style={{
+                          padding: '4px 12px',
+                          backgroundColor: '#F3F4F6',
+                          color: '#374151',
+                          border: '1px solid #D1D5DB',
+                          borderRadius: 8,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          cursor: isConnected ? 'pointer' : 'not-allowed',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        Re-assign Partner
+                      </button>
+                    ) : null}
+                  </div>
+                ) : canShowAssign ? (
+                  <button
+                    type="button"
+                    aria-label="Assign Delivery Partner"
+                    disabled={!isConnected}
+                    onClick={() => setAssignModalOpen(true)}
+                    style={{
+                      padding: '8px 18px',
+                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: 10,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: isConnected ? 'pointer' : 'not-allowed',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    Assign Delivery Partner
+                  </button>
+                ) : null}
 
                 {canOverride ? (
                   <button
@@ -250,10 +320,26 @@ export function OrderDetailsPage({ orderId }: Props) {
               <div style={{ backgroundColor: '#F9FAFB', padding: '16px', borderRadius: 14, border: '1px solid #E5E7EB' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>STORE & CUSTOMER</div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginTop: 4 }}>{data.restaurantId ?? 'Store ID: —'}</div>
-                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>Customer: {data.customerId ?? '—'}</div>
-                {currentAssignedDP ? (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: '#059669',
+                    marginTop: 4,
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    borderBottom: '1px dashed #A7F3D0',
+                  }}
+                  onClick={() => setIsCustomerDrawerOpen(true)}
+                  title="Click to view full customer profile"
+                >
+                  <span>Customer: {data.customerId ?? 'View Profile'}</span>
+                </div>
+                {currentAssignedPartner ? (
                   <div style={{ fontSize: 12, fontWeight: 600, color: '#047857', marginTop: 4 }}>
-                    Delivery Partner: {currentAssignedDP}
+                    Delivery Partner: {currentAssignedPartner.name}{currentAssignedPartner.phone ? ` — ${currentAssignedPartner.phone}` : ''}
                   </div>
                 ) : null}
               </div>
@@ -416,14 +502,24 @@ export function OrderDetailsPage({ orderId }: Props) {
         </>
       ) : null}
 
+      <CustomerFullDetailsDrawer
+        open={isCustomerDrawerOpen}
+        customerId={data?.customerId}
+        onClose={() => setIsCustomerDrawerOpen(false)}
+      />
       <AssignDeliveryPartnerModal
         open={assignModalOpen}
         orderId={orderId}
         orderNumber={data?.orderNumber}
-        currentAssignedPartnerName={currentAssignedDP}
+        currentAssignedPartnerName={currentAssignedPartner?.name}
+        currentAssignedPartnerPhone={currentAssignedPartner?.phone}
         onClose={() => setAssignModalOpen(false)}
         onAssigned={(partner) => {
-          setAssignedPartnerName(partner.name);
+          setAssignedPartnerInfo({
+            id: partner.id,
+            name: partner.name,
+            phone: partner.phoneNumber,
+          });
           setAssignedStatus('ASSIGNED');
           setToast({
             message: `Assigned to: ${partner.name}. Order status updated to ASSIGNED.`,

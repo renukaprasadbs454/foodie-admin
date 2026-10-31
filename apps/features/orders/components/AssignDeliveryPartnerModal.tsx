@@ -12,6 +12,7 @@ type Props = {
   orderId: string;
   orderNumber?: string;
   currentAssignedPartnerName?: string | null;
+  currentAssignedPartnerPhone?: string | null;
   onClose: () => void;
   onAssigned: (partner: OnlineDeliveryPartner) => void;
 };
@@ -21,6 +22,7 @@ export function AssignDeliveryPartnerModal({
   orderId,
   orderNumber,
   currentAssignedPartnerName,
+  currentAssignedPartnerPhone,
   onClose,
   onAssigned,
 }: Props) {
@@ -41,7 +43,41 @@ export function AssignDeliveryPartnerModal({
 
   if (!open) return null;
 
-  const selectedPartner = partners.find((p) => p.id === selectedPartnerId);
+  // Robust parsing: handles data.data, data.partners, data.items, data, partners, or direct array
+  const rawList: any[] = Array.isArray(partners)
+    ? partners
+    : Array.isArray((partners as any)?.data?.partners)
+    ? (partners as any).data.partners
+    : Array.isArray((partners as any)?.data?.items)
+    ? (partners as any).data.items
+    : Array.isArray((partners as any)?.data)
+    ? (partners as any).data
+    : Array.isArray((partners as any)?.partners)
+    ? (partners as any).partners
+    : Array.isArray((partners as any)?.items)
+    ? (partners as any).items
+    : [];
+
+  const onlinePartners: OnlineDeliveryPartner[] = rawList
+    .map((p: any) => {
+      const isOnline =
+        p.isOnline === true ||
+        p.online === true ||
+        p.isAvailable === true ||
+        String(p.onlineStatus).toUpperCase() === 'ONLINE' ||
+        (p.isOnline !== false && p.online !== false && p.isAvailable !== false);
+      return {
+        id: String(p.id || p.partnerId || ''),
+        name: p.fullName || p.name || 'Delivery Partner',
+        phoneNumber: p.phoneNumber || p.phone || '',
+        isOnline,
+        vehicleType: p.vehicleType,
+        zone: p.zone || p.zoneName,
+      };
+    })
+    .filter((p) => p.isOnline);
+
+  const selectedPartner = onlinePartners.find((p) => p.id === selectedPartnerId);
 
   const handleAssign = async () => {
     if (!selectedPartnerId) {
@@ -56,7 +92,7 @@ export function AssignDeliveryPartnerModal({
         deliveryPartnerId: selectedPartnerId,
       }).unwrap();
 
-      const chosen = partners.find((p) => p.id === selectedPartnerId);
+      const chosen = onlinePartners.find((p) => p.id === selectedPartnerId);
       if (chosen) {
         onAssigned(chosen);
       }
@@ -93,7 +129,7 @@ export function AssignDeliveryPartnerModal({
           borderRadius: 20,
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
           width: '100%',
-          maxWidth: 480,
+          maxWidth: 500,
           border: '1px solid #E5E7EB',
           overflow: 'hidden',
           display: 'flex',
@@ -168,10 +204,8 @@ export function AssignDeliveryPartnerModal({
                 gap: 8,
               }}
             >
-              
               <span>
-                Currently assigned to: <strong>{currentAssignedPartnerName}</strong>. Selecting a
-                new partner will reassign this order.
+                Currently assigned to: <strong>{currentAssignedPartnerName}{currentAssignedPartnerPhone ? ` — ${currentAssignedPartnerPhone}` : ''}</strong>. Selecting a new partner will re-assign this order.
               </span>
             </div>
           ) : null}
@@ -251,8 +285,9 @@ export function AssignDeliveryPartnerModal({
                   Retry
                 </button>
               </div>
-            ) : partners.length === 0 ? (
+            ) : onlinePartners.length === 0 ? (
               <div
+                data-testid="no-online-partners-msg"
                 style={{
                   padding: '20px',
                   backgroundColor: '#FFFBEB',
@@ -263,40 +298,114 @@ export function AssignDeliveryPartnerModal({
                   textAlign: 'center',
                 }}
               >
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>No Delivery Partners Online</div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>No delivery partners online currently</div>
                 <div style={{ fontSize: 12, color: '#B45309' }}>
                   There are currently no active delivery partners available for instant assignment.
                 </div>
               </div>
             ) : (
-              <select
-                id="delivery-partner-select"
-                aria-label="Delivery Partner Selection"
-                value={selectedPartnerId}
-                onChange={(e) => {
-                  setSelectedPartnerId(e.target.value);
-                  setErrorMessage(null);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  border: '1px solid #D1D5DB',
-                  fontSize: 13,
-                  color: '#111827',
-                  backgroundColor: '#FFFFFF',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 500,
-                }}
-              >
-                <option value="">— Select an Online Delivery Partner —</option>
-                {partners.map((partner) => (
-                  <option key={partner.id} value={partner.id}>
-                    {partner.name} — {partner.phoneNumber}
-                  </option>
-                ))}
-              </select>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Standard Select dropdown */}
+                <select
+                  id="delivery-partner-select"
+                  aria-label="Delivery Partner Selection"
+                  value={selectedPartnerId}
+                  onChange={(e) => {
+                    setSelectedPartnerId(e.target.value);
+                    setErrorMessage(null);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    border: '1px solid #D1D5DB',
+                    fontSize: 13,
+                    color: '#111827',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                  }}
+                >
+                  <option value="">— Select an Online Delivery Partner —</option>
+                  {onlinePartners.map((partner) => (
+                    <option key={partner.id} value={partner.id}>
+                      🟢 {partner.name} — {partner.phoneNumber}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Visual List showing Full Name — Phone Number + green ONLINE dot */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    maxHeight: 180,
+                    overflowY: 'auto',
+                    border: '1px solid #F3F4F6',
+                    borderRadius: 10,
+                    padding: 6,
+                    backgroundColor: '#FAFAFA',
+                  }}
+                >
+                  {onlinePartners.map((p) => {
+                    const isSelected = p.id === selectedPartnerId;
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => {
+                          setSelectedPartnerId(p.id);
+                          setErrorMessage(null);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                          border: isSelected ? '1.5px solid #10B981' : '1px solid #E5E7EB',
+                          backgroundColor: isSelected ? '#ECFDF5' : '#FFFFFF',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              backgroundColor: '#10B981',
+                              display: 'inline-block',
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span style={{ fontSize: 13, fontWeight: isSelected ? 700 : 500, color: '#111827' }}>
+                            {p.name} — {p.phoneNumber}
+                          </span>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: '#059669',
+                            backgroundColor: '#D1FAE5',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: '#10B981' }} />
+                          ONLINE
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
 
@@ -307,14 +416,14 @@ export function AssignDeliveryPartnerModal({
                 backgroundColor: '#F0FDF4',
                 border: '1px solid #BBF7D0',
                 borderRadius: 12,
-                padding: '14px 16px',
+                padding: '12px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}
             >
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#166534' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>
                   {selectedPartner.name}
                 </div>
                 <div style={{ fontSize: 12, color: '#15803D', marginTop: 2 }}>
@@ -337,7 +446,7 @@ export function AssignDeliveryPartnerModal({
                   borderRadius: 20,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4,
+                  gap: 5,
                 }}
               >
                 <span
@@ -409,4 +518,3 @@ export function AssignDeliveryPartnerModal({
     </div>
   );
 }
-

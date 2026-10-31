@@ -5902,8 +5902,9 @@ async function handleAdminRoles() {
       );
     }
 
-    if (targetPath.startsWith('orders/') && isGet) {
-      const orderId = targetPath.split('/')[1];
+    if ((targetPath.startsWith('orders/') || (targetPath.startsWith('admin/orders/') && !targetPath.includes('assign-delivery-partner') && !targetPath.includes('override-status'))) && isGet && targetPath !== 'admin/orders') {
+      const parts = targetPath.split('/');
+      const orderId = parts[parts.length - 1];
       const { getOrderAssignment } = await import('@/lib/deliveryAssignmentStore');
       const assignment = getOrderAssignment(orderId);
 
@@ -5922,10 +5923,20 @@ async function handleAdminRoles() {
           const json = await upstream.json();
           const data = json.data || json;
           if (assignment) {
+            data.deliveryPartnerId = assignment.deliveryPartnerId;
+            data.deliveryPartnerName = assignment.deliveryPartnerName;
+            data.deliveryPartnerPhone = assignment.deliveryPartnerPhone;
             data.assignedDeliveryPartnerId = assignment.deliveryPartnerId;
             data.assignedDeliveryPartnerName = assignment.deliveryPartnerName;
             data.assignedDeliveryPartnerPhone = assignment.deliveryPartnerPhone;
-            data.status = assignment.status;
+            data.assignedDeliveryPartner = {
+              id: assignment.deliveryPartnerId,
+              fullName: assignment.deliveryPartnerName,
+              name: assignment.deliveryPartnerName,
+              phoneNumber: assignment.deliveryPartnerPhone,
+              phone: assignment.deliveryPartnerPhone,
+            };
+            data.status = assignment.status || 'ASSIGNED';
           }
           return NextResponse.json({ success: true, data }, { status: 200 });
         } catch {}

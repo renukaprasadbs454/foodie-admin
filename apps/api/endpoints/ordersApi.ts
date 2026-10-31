@@ -86,6 +86,7 @@ export const ordersApi = baseApi.injectEndpoints({
             orderCode: item.orderCode || item.orderNumber || '',
             customerName: item.customerName || 'Customer',
             customerPhone: item.customerPhone || '',
+            customerId: item.customerId ? String(item.customerId) : undefined,
             storeName: item.storeName || item.restaurantName || 'Restaurant',
             module: item.module || 'General Dining',
             itemsSummary: summary,
@@ -113,7 +114,33 @@ export const ordersApi = baseApi.injectEndpoints({
             ],
     }),
     getOrder: builder.query<AdminOrder, string>({
-      query: (orderId) => `/api/bff/orders/${orderId}`,
+      query: (orderId) => `/api/admin/orders/${orderId}`,
+      transformResponse: (response: any) => {
+        const data = response && typeof response === 'object' && 'data' in response ? response.data : response;
+        if (!data) return data;
+        const dpId = data.deliveryPartnerId || data.assignedDeliveryPartner?.id || data.assignedDeliveryPartnerId || null;
+        const dpName = data.deliveryPartnerName || data.assignedDeliveryPartner?.fullName || data.assignedDeliveryPartner?.name || data.assignedDeliveryPartnerName || null;
+        const dpPhone = data.deliveryPartnerPhone || data.assignedDeliveryPartner?.phoneNumber || data.assignedDeliveryPartner?.phone || data.assignedDeliveryPartnerPhone || null;
+        const rawStatus = String(data.status || '').toUpperCase();
+        const isTerminal = ['CANCELLED', 'CANCELED', 'DELIVERED', 'COMPLETED', 'REFUNDED', 'REJECTED'].includes(rawStatus);
+        return {
+          ...data,
+          deliveryPartnerId: dpId,
+          deliveryPartnerName: dpName,
+          deliveryPartnerPhone: dpPhone,
+          assignedDeliveryPartnerId: dpId,
+          assignedDeliveryPartnerName: dpName,
+          assignedDeliveryPartnerPhone: dpPhone,
+          assignedDeliveryPartner: dpId ? {
+            id: dpId,
+            fullName: dpName || 'Delivery Partner',
+            name: dpName || 'Delivery Partner',
+            phoneNumber: dpPhone || '',
+            phone: dpPhone || '',
+          } : null,
+          status: (dpId && !isTerminal) ? 'ASSIGNED' : data.status,
+        };
+      },
       providesTags: (_result, _error, id) => [
         { type: 'Order', id },
         { type: 'Admin', id: 'ORDER' },
@@ -138,10 +165,14 @@ export const ordersApi = baseApi.injectEndpoints({
     getOnlineDeliveryPartners: builder.query<OnlineDeliveryPartner[], void>({
       query: () => '/api/admin/delivery-partners?status=online',
       transformResponse: (response: any) => {
-        const raw = Array.isArray(response?.data)
-          ? response.data
+        const raw = Array.isArray(response?.data?.partners)
+          ? response.data.partners
           : Array.isArray(response?.data?.items)
           ? response.data.items
+          : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.partners)
+          ? response.partners
           : Array.isArray(response?.items)
           ? response.items
           : Array.isArray(response)
@@ -151,7 +182,12 @@ export const ordersApi = baseApi.injectEndpoints({
           id: String(p.id || p.partnerId || ''),
           name: p.fullName || p.name || 'Delivery Partner',
           phoneNumber: p.phoneNumber || p.phone || '—',
-          isOnline: p.isOnline !== false,
+          isOnline:
+            p.isOnline === true ||
+            p.online === true ||
+            p.isAvailable === true ||
+            String(p.onlineStatus).toUpperCase() === 'ONLINE' ||
+            (p.isOnline !== false && p.online !== false && p.isAvailable !== false),
           vehicleType: p.vehicleType,
           zone: p.zone || p.zoneName,
         }));
