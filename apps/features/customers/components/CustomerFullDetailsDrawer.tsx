@@ -120,7 +120,7 @@ export function CustomerFullDetailsDrawer({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px 16px',
+        padding: '0',
       }}
       role="dialog"
       aria-modal="true"
@@ -142,17 +142,17 @@ export function CustomerFullDetailsDrawer({
       <div
         style={{
           position: 'relative',
-          width: '100%',
-          maxWidth: '640px',
-          maxHeight: '90vh',
+          width: '100vw',
+          height: '100vh',
+          maxWidth: '100vw',
+          maxHeight: '100vh',
+          borderRadius: 0,
           backgroundColor: '#FFFFFF',
-          borderRadius: 16,
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+          boxShadow: 'none',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
           zIndex: 51,
-          animation: 'modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -163,55 +163,85 @@ export function CustomerFullDetailsDrawer({
           }
         `}</style>
 
-        {/* Drawer Header */}
+        {/* Full Screen Header */}
         <div
           style={{
-            padding: '20px 24px',
+            padding: '16px 32px',
             borderBottom: '1px solid #E5E7EB',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: '#FAFAFA',
+            backgroundColor: '#FFFFFF',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+            zIndex: 10,
           }}
         >
-          <div>
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>
-              Customer Full Details
-            </h2>
-            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
-              Live customer profile and address book from database
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: '1px solid #E5E7EB',
+                backgroundColor: '#FFFFFF',
+                color: '#374151',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+            >
+              <span>←</span>
+              <span>Back to Orders</span>
+            </button>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>
+                Customer Full Details
+              </h2>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+                Live customer profile and address book from database
+              </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close customer details drawer"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              border: '1px solid #E5E7EB',
-              backgroundColor: '#FFFFFF',
-              color: '#4B5563',
-              fontSize: 16,
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#F3F4F6';
-              e.currentTarget.style.color = '#111827';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#FFFFFF';
-              e.currentTarget.style.color = '#4B5563';
-            }}
-          >
-            &times;
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close customer details"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                border: '1px solid #E5E7EB',
+                backgroundColor: '#FFFFFF',
+                color: '#4B5563',
+                fontSize: 18,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#FEE2E2';
+                e.currentTarget.style.color = '#DC2626';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#FFFFFF';
+                e.currentTarget.style.color = '#4B5563';
+              }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Status Toast */}
@@ -240,7 +270,7 @@ export function CustomerFullDetailsDrawer({
         )}
 
         {/* Drawer Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', backgroundColor: '#F9FAFB' }}>
           {isLoading ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6B7280' }}>
               <div
@@ -478,7 +508,7 @@ export function CustomerFullDetailsDrawer({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
                   gap: 12,
                   marginBottom: 20,
                 }}

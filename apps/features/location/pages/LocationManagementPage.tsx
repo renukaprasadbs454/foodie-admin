@@ -198,6 +198,18 @@ export function LocationManagementPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cities]);
 
+  // editingZoneMap scroll lock
+  useEffect(() => {
+    if (editingZoneMap) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [editingZoneMap]);
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
@@ -1174,7 +1186,7 @@ export function LocationManagementPage() {
                           cursor: 'pointer',
                         }}
                       >
-                        Edit Pins ({dz.polygonCoordinates ? dz.polygonCoordinates.split('|').length : 0})
+                        Edit
                       </button>
                       <button onClick={() => updateZoneStatus({ id: dz.id, status: dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }).unwrap().then(() => { showToast(`Zone status updated to ${dz.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'}`); void refetchZones(); })} style={{ padding: '6px 12px', background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>{dz.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</button>
                       {isSuperAdmin && (
@@ -1208,50 +1220,214 @@ export function LocationManagementPage() {
     </div>
       )}
 
-      {/* Existing Zone Map Pins Edit Modal */}
+      {/* Existing Zone Map Pins Edit Modal — Full Screen */}
       {editingZoneMap && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(17, 24, 39, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}>
-          <div style={{ backgroundColor: '#FFFFFF', borderRadius: 20, maxWidth: 900, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid #E5E7EB', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
-                  Boundary Pins â€” {editingZoneMap.zoneName}
-                </h3>
-                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
-                  City: {editingZoneMap.cityName} | Center Lat: {editingZoneMap.latitude}, Lng: {editingZoneMap.longitude}
-                </div>
-              </div>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            backgroundColor: '#F8FAFC',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          {/* Full Screen Top Header Bar */}
+          <div
+            style={{
+              padding: '16px 32px',
+              backgroundColor: '#FFFFFF',
+              borderBottom: '1px solid #E5E7EB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              zIndex: 10,
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <button
                 type="button"
                 onClick={() => setEditingZoneMap(null)}
-                style={{ padding: '6px 14px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, fontWeight: 600, cursor: 'pointer', color: '#374151' }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 16px',
+                  backgroundColor: '#F3F4F6',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  color: '#374151',
+                  transition: 'background 0.15s ease',
+                }}
               >
-                Close
+                ← Back to Locations
               </button>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+                    Edit Delivery Zone Boundary: {editingZoneMap.zoneName}
+                  </h2>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      backgroundColor: editingZoneMap.status === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
+                      color: editingZoneMap.status === 'ACTIVE' ? '#15803D' : '#991B1B',
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                    }}
+                  >
+                    {editingZoneMap.status}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 3 }}>
+                  City: <strong style={{ color: '#374151' }}>{editingZoneMap.cityName}</strong> | Center Coordinates: <strong style={{ color: '#374151' }}>{editingZoneMap.latitude}, {editingZoneMap.longitude}</strong> | Coverage Radius: <strong style={{ color: '#374151' }}>{editingZoneMap.radiusKm} KM</strong>
+                </div>
+              </div>
             </div>
 
-            <GoogleMapsPolygonPinPicker
-              centerLat={editingZoneMap.latitude}
-              centerLng={editingZoneMap.longitude}
-              radiusKm={editingZoneMap.radiusKm}
-              polygonString={editingZoneMap.polygonCoordinates}
-              onChangePolygon={(str) => {
-                setEditingZoneMap((prev) => (prev ? { ...prev, polygonCoordinates: str } : null));
-              }}
-              title={`Pin Picker â€” ${editingZoneMap.zoneName}`}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setEditingZoneMap(null)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  color: '#4B5563',
+                }}
+              >
+                Cancel
+              </button>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
               <button
                 type="button"
                 onClick={() => {
+                  const updatedZone = editingZoneMap;
                   setEditingZoneMap(null);
-                  showToast(`Map pin coordinates updated for ${editingZoneMap.zoneName}!`);
+                  showToast(`Map pin coordinates updated for ${updatedZone.zoneName}!`);
                 }}
-                style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}
+                style={{
+                  padding: '8px 20px',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
+                }}
               >
                 Save Map Pins & Close
               </button>
+            </div>
+          </div>
+
+          {/* Full Screen Scrollable Body */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '24px 32px',
+              backgroundColor: '#F8FAFC',
+            }}
+          >
+            <div
+              style={{
+                maxWidth: 1400,
+                margin: '0 auto',
+                backgroundColor: '#FFFFFF',
+                borderRadius: 16,
+                border: '1px solid #E5E7EB',
+                padding: '24px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 20,
+              }}
+            >
+              <GoogleMapsPolygonPinPicker
+                centerLat={editingZoneMap.latitude}
+                centerLng={editingZoneMap.longitude}
+                radiusKm={editingZoneMap.radiusKm}
+                polygonString={editingZoneMap.polygonCoordinates}
+                onChangePolygon={(str) => {
+                  setEditingZoneMap((prev) => (prev ? { ...prev, polygonCoordinates: str } : null));
+                }}
+                title={`Interactive Pin Picker — ${editingZoneMap.zoneName}`}
+                mapHeight={540}
+              />
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingTop: 16,
+                  borderTop: '1px solid #E5E7EB',
+                }}
+              >
+                <div style={{ fontSize: 13, color: '#6B7280' }}>
+                  Click anywhere on the map to add boundary pins or use the Auto presets to define the polygon delivery boundary.
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setEditingZoneMap(null)}
+                    style={{
+                      padding: '10px 18px',
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: 8,
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      color: '#4B5563',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updatedZone = editingZoneMap;
+                      setEditingZoneMap(null);
+                      showToast(`Map pin coordinates updated for ${updatedZone.zoneName}!`);
+                    }}
+                    style={{
+                      padding: '10px 22px',
+                      background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: 8,
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
+                    }}
+                  >
+                    Save Map Pins & Close
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

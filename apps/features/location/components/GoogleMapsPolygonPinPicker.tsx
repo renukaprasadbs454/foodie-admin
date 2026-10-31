@@ -33,6 +33,7 @@ interface GoogleMapsPolygonPinPickerProps {
     polygonString: string;
     onChangePolygon: (newPolygonStr: string) => void;
     title?: string;
+    mapHeight?: number | string;
 }
 
 export function GoogleMapsPolygonPinPicker({
@@ -42,6 +43,7 @@ export function GoogleMapsPolygonPinPicker({
     polygonString,
     onChangePolygon,
     title = 'Google Maps Interactive Polygon Pin Picker',
+    mapHeight = 420,
 }: GoogleMapsPolygonPinPickerProps) {
     const mapDivRef = React.useRef<HTMLDivElement>(null);
     const mapRef = React.useRef<any>(null);
@@ -342,7 +344,7 @@ export function GoogleMapsPolygonPinPicker({
 
             {/* Google Map */}
             <div
-                style={{ position: 'relative', height: 420, borderRadius: 14, overflow: 'hidden', border: '1px solid #E5E7EB' }}
+                style={{ position: 'relative', height: mapHeight, borderRadius: 14, overflow: 'hidden', border: '1px solid #E5E7EB' }}
             >
                 {/* Loading spinner */}
                 {!mapReady && !mapLoadError && (

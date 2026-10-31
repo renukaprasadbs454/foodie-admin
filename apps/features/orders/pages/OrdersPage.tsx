@@ -9,7 +9,6 @@ import { selectActiveModule } from '@/store/moduleSlice';
 import { OrderOperationalPipeline } from '@/features/analytics/components/OrderOperationalPipeline';
 import {
   useGetAdminOrdersQuery,
-  useOverrideOrderStatusMutation,
 } from '@/api/endpoints/ordersApi';
 import type { OrderItemRecord } from '@/features/orders/types';
 import { formatRelativeFromNow } from '@/shared/utils/date';
@@ -80,8 +79,6 @@ export function OrdersPage() {
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
-
-  const [overrideOrderStatus, { isLoading: isOverriding }] = useOverrideOrderStatusMutation();
 
   useEffect(() => {
     trackAnalyticsEvent('admin_orders_viewed', {
@@ -229,13 +226,12 @@ export function OrdersPage() {
               <th style={{ padding: '14px 20px' }}>Amount & Pay</th>
               <th style={{ padding: '14px 20px' }}>Payment Status</th>
               <th style={{ padding: '14px 20px' }}>Status</th>
-              <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={8} style={{ padding: 40, textAlign: 'center', color: '#6B7280' }}>
+                <td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#6B7280' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                     <span
                       style={{
@@ -254,7 +250,7 @@ export function OrdersPage() {
               </tr>
             ) : isError ? (
               <tr>
-                <td colSpan={8} style={{ padding: 32, textAlign: 'center', color: '#B91C1C' }}>
+                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#B91C1C' }}>
                   <span>Failed to load orders from backend. </span>
                   <button
                     type="button"
@@ -275,7 +271,7 @@ export function OrdersPage() {
               </tr>
             ) : filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ padding: 32, textAlign: 'center', color: '#6B7280' }}>
+                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#6B7280' }}>
                   No orders found matching the selected filter.
                 </td>
               </tr>
@@ -438,62 +434,6 @@ export function OrdersPage() {
                       >
                         {order.status === 'READY_FOR_PICKUP' ? 'READY FOR PICKUP' : order.status.replace(/_/g, ' ')}
                       </span>
-                    </td>
-                    <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                      {order.status === 'PREPARING' && (
-                        <button
-                          type="button"
-                          disabled={isOverriding}
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            try {
-                              await overrideOrderStatus({
-                                orderId: order.id,
-                                body: {
-                                  targetStatus: 'READY_FOR_PICKUP',
-                                  reason: 'Marked ready by operator from dispatch center',
-                                },
-                              }).unwrap();
-                            } catch (err) {
-                              console.error('Failed to mark order ready:', err);
-                            }
-                          }}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#F5F7FA',
-                            color: '#2196F3',
-                            border: '1px solid #E5E7EB',
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: isOverriding ? 'not-allowed' : 'pointer',
-                            marginRight: 8,
-                            opacity: isOverriding ? 0.7 : 1,
-                          }}
-                        >
-                          Mark Ready
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/orders/${order.id}`);
-                        }}
-                        style={{
-                          padding: '6px 14px',
-                          background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
-                        }}
-                      >
-                        Manage Order
-                      </button>
                     </td>
                   </tr>
                 );
