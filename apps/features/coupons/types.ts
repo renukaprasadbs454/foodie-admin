@@ -45,6 +45,112 @@ export type DeactivateCouponResult = {
   isActive: boolean;
 };
 
+export interface PromotionBanner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  ctaText?: string;
+  ctaType?: string;
+  ctaTarget?: string;
+  status: 'ACTIVE' | 'DEACTIVATED' | 'DRAFT' | 'ARCHIVED';
+  displayOrder: number;
+  startsAt?: string;
+  endsAt?: string;
+  targetZoneIds?: string[];
+  targetZoneNames?: string[];
+  isAllZones?: boolean;
+  couponId?: string;
+  campaignId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreatePromotionBannerBody {
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  ctaText?: string;
+  ctaType?: string;
+  ctaTarget?: string;
+  status?: string;
+  displayOrder: number;
+  startsAt?: string;
+  endsAt?: string;
+  targetZoneIds?: string[];
+  targetZoneNames?: string[];
+  isAllZones?: boolean;
+  couponId?: string;
+  campaignId?: string;
+}
+
+export function isZoneMatching(bannerTargetZone: string, customerZone: string): boolean {
+  if (!bannerTargetZone || !customerZone) return false;
+  const cleanTarget = bannerTargetZone.trim().toLowerCase();
+  const cleanCustomer = customerZone.trim().toLowerCase();
+  if (cleanTarget === 'all' || cleanCustomer === 'all') return true;
+  if (cleanTarget === cleanCustomer) return true;
+
+  const isTargetBlr = cleanTarget.includes('bangalore') || cleanTarget.includes('bengaluru') || cleanTarget.includes('blr');
+  const isCustomerBlr = cleanCustomer.includes('bangalore') || cleanCustomer.includes('bengaluru') || cleanCustomer.includes('blr');
+  if (isTargetBlr && isCustomerBlr) return true;
+
+  const isTargetTmk = cleanTarget.includes('tumkur') || cleanTarget.includes('tumakuru') || cleanTarget.includes('tmk');
+  const isCustomerTmk = cleanCustomer.includes('tumkur') || cleanCustomer.includes('tumakuru') || cleanCustomer.includes('tmk');
+  if (isTargetTmk && isCustomerTmk) return true;
+
+  return false;
+}
+
+export function filterBannersForCustomer(
+  banners: PromotionBanner[],
+  customerZoneId?: string | null,
+  now: Date = new Date()
+): PromotionBanner[] {
+  const currentTime = now.getTime();
+
+  return banners.filter((banner) => {
+    // 1. Must be active
+    if (banner.status !== 'ACTIVE') return false;
+
+    // 2. Expiry check
+    if (banner.endsAt) {
+      const endTime = new Date(banner.endsAt).getTime();
+      if (!isNaN(endTime) && currentTime > endTime) return false;
+    }
+
+    // 3. Start time check
+    if (banner.startsAt) {
+      const startTime = new Date(banner.startsAt).getTime();
+      if (!isNaN(startTime) && currentTime < startTime) return false;
+    }
+
+    // 4. Zone Targeting check
+    // If banner targets All Zones (or has empty/undefined targetZoneIds for legacy global banners)
+    const isGlobal =
+      banner.isAllZones === true ||
+      !banner.targetZoneIds ||
+      banner.targetZoneIds.length === 0 ||
+      banner.targetZoneIds.includes('ALL');
+
+    if (isGlobal) {
+      return true;
+    }
+
+    // If customer zone is unknown/unassigned, only show global banners
+    if (!customerZoneId) {
+      return false;
+    }
+
+    // Check if customer's zone matches any assigned target zone
+    const targetIds = banner.targetZoneIds || [];
+    const targetNames = banner.targetZoneNames || [];
+    const allTargets = [...targetIds, ...targetNames];
+
+    return allTargets.some((target) => isZoneMatching(target, customerZoneId));
+  });
+}
+
 const CODE_RE = /^[A-Z0-9_]{3,30}$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

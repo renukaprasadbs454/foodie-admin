@@ -1881,6 +1881,459 @@ function isCityDeleted(id?: string | null, name?: string | null): boolean {
   );
 }
 
+function getBannersPersistenceFile(): string {
+  const dataDir = path.join(process.cwd(), 'data');
+  if (fs.existsSync(dataDir)) {
+    return path.join(dataDir, 'promotional_banners.json');
+  }
+  return path.join(os.tmpdir(), 'foodie_admin_banners_v1.json');
+}
+
+function getDefaultInitialBanners(): any[] {
+  return [
+    {
+      id: 'banner-hubballi-promo-01',
+      title: 'Hubballi offer card',
+      subtitle: 'Testing zone promo',
+      imageUrl: 'auto-generated',
+      ctaText: 'EXPLORE NOW',
+      ctaType: 'OPEN_COUPON',
+      ctaTarget: 'WELCOME50',
+      status: 'ACTIVE',
+      displayOrder: 1,
+      targetZoneIds: ['dz-hubballi'],
+      targetZoneNames: ['Hubballi Zone'],
+      isAllZones: false,
+      createdAt: '2026-10-30T10:00:00.000Z',
+    },
+    {
+      id: 'banner-weekend-special-02',
+      title: 'Weekend special offer',
+      subtitle: 'upto 50% offer',
+      imageUrl: 'auto-generated',
+      ctaText: 'EXPLORE NOW',
+      ctaType: 'OPEN_COUPON',
+      ctaTarget: 'WELCOME50',
+      status: 'ACTIVE',
+      displayOrder: 2,
+      targetZoneIds: ['ALL'],
+      targetZoneNames: ['All Zones'],
+      isAllZones: true,
+      createdAt: '2026-10-30T11:00:00.000Z',
+    },
+    {
+      id: 'banner-bangalore-weekend-03',
+      title: 'Bangalore Weekend Feast',
+      subtitle: 'Exclusive discounts across Bangalore restaurants',
+      imageUrl: 'auto-generated',
+      ctaText: 'ORDER NOW',
+      ctaType: 'OPEN_COUPON',
+      ctaTarget: 'BLR50',
+      status: 'ACTIVE',
+      displayOrder: 3,
+      targetZoneIds: ['dz-bangalore'],
+      targetZoneNames: ['Bangalore Zone'],
+      isAllZones: false,
+      createdAt: '2026-10-30T12:00:00.000Z',
+    },
+    {
+      id: 'banner-tumkur-bites-04',
+      title: 'Tumkur Express Bites',
+      subtitle: 'Flat ₹50 off on breakfast in Tumkur',
+      imageUrl: 'auto-generated',
+      ctaText: 'GRAB OFFER',
+      ctaType: 'OPEN_COUPON',
+      ctaTarget: 'TMK50',
+      status: 'ACTIVE',
+      displayOrder: 4,
+      targetZoneIds: ['dz-tumkur'],
+      targetZoneNames: ['Tumkur Zone'],
+      isAllZones: false,
+      createdAt: '2026-10-30T13:00:00.000Z',
+    },
+    {
+      id: 'banner-festival-global-05',
+      title: 'Mega Foodie Festival',
+      subtitle: 'Available across all operational zones',
+      imageUrl: 'auto-generated',
+      ctaText: 'EXPLORE',
+      ctaType: 'OPEN_COUPON',
+      ctaTarget: 'FESTIVAL',
+      status: 'ACTIVE',
+      displayOrder: 5,
+      targetZoneIds: ['ALL'],
+      targetZoneNames: ['All Zones'],
+      isAllZones: true,
+      createdAt: '2026-10-30T14:00:00.000Z',
+    },
+  ];
+}
+
+function loadPersistentBannersState(): any[] {
+  try {
+    const filePath = getBannersPersistenceFile();
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed?.banners) && parsed.banners.length > 0) return parsed.banners;
+    }
+    const tmpPath = path.join(os.tmpdir(), 'foodie_admin_banners_v1.json');
+    if (fs.existsSync(tmpPath)) {
+      const raw = fs.readFileSync(tmpPath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed?.banners) && parsed.banners.length > 0) return parsed.banners;
+    }
+  } catch {}
+  return getDefaultInitialBanners();
+}
+
+function savePersistentBannersState(banners: any[]) {
+  try {
+    const filePath = getBannersPersistenceFile();
+    fs.writeFileSync(filePath, JSON.stringify(banners, null, 2), 'utf-8');
+  } catch {}
+  try {
+    const tmpPath = path.join(os.tmpdir(), 'foodie_admin_banners_v1.json');
+    fs.writeFileSync(tmpPath, JSON.stringify(banners, null, 2), 'utf-8');
+  } catch {}
+}
+
+async function handleBanners(request: Request, targetPath: string, accessToken: string | null) {
+  const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+  const devToken = await getDevBackendToken();
+  const token = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : (devToken || 'demo-admin-token');
+  const incomingUrl = new URL(request.url);
+
+  if (!globalAny.MOCK_BANNERS || !Array.isArray(globalAny.MOCK_BANNERS) || globalAny.MOCK_BANNERS.length === 0) {
+    globalAny.MOCK_BANNERS = loadPersistentBannersState();
+  }
+  const bannersStore = globalAny.MOCK_BANNERS as any[];
+
+  // Helper to resolve zone name from ID
+  const resolveZoneName = (zoneId: string): string => {
+    if (zoneId === 'ALL') return 'All Zones';
+    if (zoneId === 'dz-bangalore') return 'Bangalore Zone';
+    if (zoneId === 'dz-tumkur') return 'Tumkur Zone';
+    if (globalAny.ADMIN_DYNAMIC_ZONES) {
+      const found = (globalAny.ADMIN_DYNAMIC_ZONES as any[]).find((z) => z.id === zoneId || z.zoneName === zoneId);
+      if (found) return found.zoneName;
+    }
+    return zoneId;
+  };
+
+  // Helper to match zone
+  const isTargetMatch = (target: string, customerZone: string): boolean => {
+    if (!target || !customerZone) return false;
+    const t = target.trim().toLowerCase();
+    const c = customerZone.trim().toLowerCase();
+    if (t === 'all' || c === 'all') return true;
+    if (t === c) return true;
+
+    const isTBlr = t.includes('bangalore') || t.includes('bengaluru') || t.includes('blr');
+    const isCBlr = c.includes('bangalore') || c.includes('bengaluru') || c.includes('blr');
+    if (isTBlr && isCBlr) return true;
+
+    const isTTmk = t.includes('tumkur') || t.includes('tumakuru') || t.includes('tmk');
+    const isCTmk = c.includes('tumkur') || c.includes('tumakuru') || c.includes('tmk');
+    if (isTTmk && isCTmk) return true;
+
+    return false;
+  };
+
+  // 1. CUSTOMER ACTIVE BANNERS: GET banners/active or customer/banners
+  if (
+    (targetPath === 'banners/active' || targetPath === 'customer/banners' || targetPath === 'api/bff/banners/active') &&
+    request.method === 'GET'
+  ) {
+    const cookieHeader = request.headers.get('cookie') || '';
+    const qZone = incomingUrl.searchParams.get('zoneId') || incomingUrl.searchParams.get('zone') || '';
+    const headerZone = request.headers.get('x-active-zone-id') || '';
+    const cookieZone = cookieHeader.match(/foodie_active_zone_id=([^;]+)/)?.[1] ||
+      cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] || '';
+    const rawCustomerZone = decodeURIComponent(qZone || headerZone || cookieZone || '').trim();
+
+    const now = Date.now();
+    const activeBanners = bannersStore.filter((banner) => {
+      // Must be ACTIVE (inactive banners must not appear)
+      if (banner.status !== 'ACTIVE') return false;
+
+      // Expiry check
+      if (banner.endsAt) {
+        const end = new Date(banner.endsAt).getTime();
+        if (!isNaN(end) && now > end) return false;
+      }
+      if (banner.startsAt) {
+        const start = new Date(banner.startsAt).getTime();
+        if (!isNaN(start) && now < start) return false;
+      }
+
+      // If banner targets All Zones (or legacy banner with no zone set)
+      const isAll = banner.isAllZones === true ||
+        !banner.targetZoneIds ||
+        banner.targetZoneIds.length === 0 ||
+        banner.targetZoneIds.includes('ALL');
+
+      if (isAll) return true;
+
+      // If customer zone is unknown/unassigned, only show All Zones banners
+      if (!rawCustomerZone) return false;
+
+      // Check specific zone targeting
+      const ids = banner.targetZoneIds || [];
+      const names = banner.targetZoneNames || [];
+      const allTargets = [...ids, ...names];
+
+      return allTargets.some((target) => isTargetMatch(target, rawCustomerZone));
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: activeBanners,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET,OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+      },
+    });
+  }
+
+  // 2. ADMIN GET ALL BANNERS: GET admin/banners
+  if (targetPath === 'admin/banners' && request.method === 'GET') {
+    return NextResponse.json({
+      success: true,
+      data: bannersStore,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  // 3. ADMIN CREATE BANNER: POST admin/banners
+  if (targetPath === 'admin/banners' && request.method === 'POST') {
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
+    }
+
+    const title = (body.title || '').trim();
+    if (!title) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: { code: 'VALIDATION_ERROR', message: 'Banner title is required.' },
+      }, { status: 400 });
+    }
+
+    const rawZoneIds: string[] = Array.isArray(body.targetZoneIds) && body.targetZoneIds.length > 0
+      ? body.targetZoneIds
+      : (body.isAllZones ? ['ALL'] : ['ALL']);
+
+    const isAll = rawZoneIds.includes('ALL');
+    const targetZoneIds = isAll ? ['ALL'] : rawZoneIds;
+    const targetZoneNames = isAll ? ['All Zones'] : targetZoneIds.map(resolveZoneName);
+
+    const newBanner = {
+      id: `banner-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      title,
+      subtitle: (body.subtitle || '').trim(),
+      imageUrl: body.imageUrl || 'auto-generated',
+      ctaText: (body.ctaText || '').trim(),
+      ctaType: body.ctaType || 'OPEN_COUPON',
+      ctaTarget: (body.ctaTarget || '').trim(),
+      status: 'ACTIVE',
+      displayOrder: Number(body.displayOrder || 0),
+      startsAt: body.startsAt || null,
+      endsAt: body.endsAt || null,
+      targetZoneIds,
+      targetZoneNames,
+      isAllZones: isAll,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    bannersStore.unshift(newBanner);
+    savePersistentBannersState(bannersStore);
+
+    // Attempt sync with upstream backend
+    try {
+      await safeFetch(`${backendUrl}/api/v1/admin/banners`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+        timeoutMs: 3000,
+      });
+    } catch {}
+
+    return NextResponse.json({
+      success: true,
+      data: newBanner,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, { status: 201 });
+  }
+
+  // 4. ADMIN UPDATE BANNER: PUT admin/banners/:id
+  const putMatch = targetPath.match(/^admin\/banners\/([^/]+)$/);
+  if (putMatch && request.method === 'PUT') {
+    const bannerId = putMatch[1];
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
+    }
+
+    const index = bannersStore.findIndex((b) => b.id === bannerId);
+    if (index === -1) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: { code: 'NOT_FOUND', message: 'Banner not found' },
+      }, { status: 404 });
+    }
+
+    const existing = bannersStore[index];
+    const isAll = body.targetZoneIds
+      ? body.targetZoneIds.includes('ALL')
+      : (body.isAllZones !== undefined ? body.isAllZones : existing.isAllZones);
+
+    const targetZoneIds = body.targetZoneIds
+      ? (isAll ? ['ALL'] : body.targetZoneIds)
+      : existing.targetZoneIds;
+
+    const targetZoneNames = isAll ? ['All Zones'] : targetZoneIds.map(resolveZoneName);
+
+    const updated = {
+      ...existing,
+      title: body.title !== undefined ? String(body.title).trim() : existing.title,
+      subtitle: body.subtitle !== undefined ? String(body.subtitle).trim() : existing.subtitle,
+      imageUrl: body.imageUrl || existing.imageUrl,
+      ctaText: body.ctaText !== undefined ? String(body.ctaText).trim() : existing.ctaText,
+      ctaType: body.ctaType || existing.ctaType,
+      ctaTarget: body.ctaTarget !== undefined ? String(body.ctaTarget).trim() : existing.ctaTarget,
+      status: body.status || existing.status,
+      displayOrder: body.displayOrder !== undefined ? Number(body.displayOrder) : existing.displayOrder,
+      startsAt: body.startsAt !== undefined ? body.startsAt : existing.startsAt,
+      endsAt: body.endsAt !== undefined ? body.endsAt : existing.endsAt,
+      targetZoneIds,
+      targetZoneNames,
+      isAllZones: isAll,
+      updatedAt: new Date().toISOString(),
+    };
+
+    bannersStore[index] = updated;
+    savePersistentBannersState(bannersStore);
+
+    // Attempt sync with upstream backend
+    try {
+      await safeFetch(`${backendUrl}/api/v1/admin/banners/${bannerId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+        timeoutMs: 3000,
+      });
+    } catch {}
+
+    return NextResponse.json({
+      success: true,
+      data: updated,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, { status: 200 });
+  }
+
+  // 5. ADMIN ACTIVATE BANNER: PATCH admin/banners/:id/activate
+  const activateMatch = targetPath.match(/^admin\/banners\/([^/]+)\/activate$/);
+  if (activateMatch && request.method === 'PATCH') {
+    const bannerId = activateMatch[1];
+    const banner = bannersStore.find((b) => b.id === bannerId);
+    if (!banner) {
+      return NextResponse.json({ success: false, data: null, error: { code: 'NOT_FOUND', message: 'Banner not found' } }, { status: 404 });
+    }
+    banner.status = 'ACTIVE';
+    banner.updatedAt = new Date().toISOString();
+    savePersistentBannersState(bannersStore);
+
+    try {
+      await safeFetch(`${backendUrl}/api/v1/admin/banners/${bannerId}/activate`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+        timeoutMs: 3000,
+      });
+    } catch {}
+
+    return NextResponse.json({
+      success: true,
+      data: banner,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, { status: 200 });
+  }
+
+  // 6. ADMIN DEACTIVATE BANNER: PATCH admin/banners/:id/deactivate
+  const deactivateMatch = targetPath.match(/^admin\/banners\/([^/]+)\/deactivate$/);
+  if (deactivateMatch && request.method === 'PATCH') {
+    const bannerId = deactivateMatch[1];
+    const banner = bannersStore.find((b) => b.id === bannerId);
+    if (!banner) {
+      return NextResponse.json({ success: false, data: null, error: { code: 'NOT_FOUND', message: 'Banner not found' } }, { status: 404 });
+    }
+    banner.status = 'DEACTIVATED';
+    banner.updatedAt = new Date().toISOString();
+    savePersistentBannersState(bannersStore);
+
+    try {
+      await safeFetch(`${backendUrl}/api/v1/admin/banners/${bannerId}/deactivate`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+        timeoutMs: 3000,
+      });
+    } catch {}
+
+    return NextResponse.json({
+      success: true,
+      data: banner,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, { status: 200 });
+  }
+
+  // 7. ADMIN DELETE BANNER: DELETE admin/banners/:id
+  const deleteMatch = targetPath.match(/^admin\/banners\/([^/]+)$/);
+  if (deleteMatch && request.method === 'DELETE') {
+    const bannerId = deleteMatch[1];
+    const idx = bannersStore.findIndex((b) => b.id === bannerId);
+    if (idx !== -1) {
+      bannersStore.splice(idx, 1);
+      savePersistentBannersState(bannersStore);
+    }
+
+    try {
+      await safeFetch(`${backendUrl}/api/v1/admin/banners/${bannerId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+        timeoutMs: 3000,
+      });
+    } catch {}
+
+    return NextResponse.json({
+      success: true,
+      data: true,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, { status: 200 });
+  }
+
+  return null;
+}
+
 async function handleAdminZones(request: Request, targetPath: string, accessToken: string | null) {
   const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
   const token = accessToken || 'demo-admin-token';
@@ -5360,6 +5813,16 @@ async function handleAdminRoles() {
 
   if (targetPath.startsWith('admin/users') && targetPath !== 'admin/users/me') {
     return handleAdminUsers(request, targetPath, accessToken);
+  }
+
+  if (
+    targetPath.startsWith('admin/banners') ||
+    targetPath === 'banners/active' ||
+    targetPath.startsWith('banners/') ||
+    targetPath.startsWith('customer/banners')
+  ) {
+    const bannerRes = await handleBanners(request, targetPath, accessToken);
+    if (bannerRes) return bannerRes;
   }
 
 

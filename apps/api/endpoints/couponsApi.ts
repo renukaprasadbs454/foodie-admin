@@ -3,30 +3,11 @@ import type {
   Coupon,
   CreateCouponBody,
   DeactivateCouponResult,
+  PromotionBanner,
+  CreatePromotionBannerBody,
 } from '../../features/coupons/types';
 
-export interface PromotionBanner {
-  id: string;
-  title: string;
-  subtitle?: string;
-  imageUrl: string;
-  ctaText?: string;
-  ctaType?: string;
-  ctaTarget?: string;
-  status: 'ACTIVE' | 'DEACTIVATED' | 'DRAFT' | 'ARCHIVED';
-  displayOrder: number;
-}
-
-export interface CreatePromotionBannerBody {
-  title: string;
-  subtitle?: string;
-  imageUrl: string;
-  ctaText?: string;
-  ctaType?: string;
-  ctaTarget?: string;
-  status?: string;
-  displayOrder: number;
-}
+export type { PromotionBanner, CreatePromotionBannerBody };
 
 /**
  * Coupons RTK — P2-ADM-05 create + deactivate only.
@@ -115,6 +96,15 @@ export const couponsApi = baseApi.injectEndpoints({
       query: () => '/api/bff/admin/banners',
       providesTags: ['Banners'],
     }),
+    getActiveBanners: builder.query<PromotionBanner[], { zoneId?: string } | void>({
+      query: (arg) => {
+        const zoneId = typeof arg === 'object' && arg?.zoneId ? arg.zoneId : undefined;
+        return zoneId
+          ? `/api/bff/banners/active?zoneId=${encodeURIComponent(zoneId)}`
+          : '/api/bff/banners/active';
+      },
+      providesTags: ['Banners'],
+    }),
     createBanner: builder.mutation<PromotionBanner, CreatePromotionBannerBody>({
       query: (body) => ({
         url: '/api/bff/admin/banners',
@@ -160,6 +150,7 @@ export const {
   useDeleteCouponMutation, useActivateCouponMutation, useApproveCouponMutation,
   useRejectCouponMutation,
   useGetBannersQuery,
+  useGetActiveBannersQuery,
   useCreateBannerMutation,
   useUpdateBannerMutation,
   useActivateBannerMutation,

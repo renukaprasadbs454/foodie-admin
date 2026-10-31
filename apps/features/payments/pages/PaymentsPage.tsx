@@ -21,6 +21,7 @@ import type {
 } from '../types';
 import {
   calculatePaymentSplit,
+  calculateSettlementEarnings,
   filterTransactionsByDateRange,
   filterRecordsByDateRange,
 } from '../types';
@@ -72,7 +73,21 @@ interface PaymentTabDateFilterBarProps {
   customEndDate: string;
   onEndDateChange: (val: string) => void;
   onReset: () => void;
+  options?: { key: PaymentDateFilter; label: string }[];
+  onApply?: () => void;
+  rangeError?: string | null;
+  resetButtonLabel?: string;
+  applyButtonLabel?: string;
+  containerStyle?: React.CSSProperties;
 }
+
+const EARNINGS_AND_REFUNDS_DATE_OPTIONS: { key: PaymentDateFilter; label: string }[] = [
+  { key: 'TODAY', label: 'Today' },
+  { key: 'THIS_WEEK', label: 'This Week' },
+  { key: 'THIS_MONTH', label: 'This Month' },
+  { key: 'THIS_YEAR', label: 'This Year' },
+  { key: 'CUSTOM', label: 'Custom Date Range' },
+];
 
 function PaymentTabDateFilterBar({
   idPrefix,
@@ -83,8 +98,14 @@ function PaymentTabDateFilterBar({
   customEndDate,
   onEndDateChange,
   onReset,
+  options: customOptions,
+  onApply,
+  rangeError,
+  resetButtonLabel = 'Reset to All',
+  applyButtonLabel = 'Apply Filter',
+  containerStyle,
 }: PaymentTabDateFilterBarProps) {
-  const options: { key: PaymentDateFilter; label: string }[] = [
+  const options: { key: PaymentDateFilter; label: string }[] = customOptions || [
     { key: 'ALL', label: 'All Records' },
     { key: 'TODAY', label: 'Today' },
     { key: 'YESTERDAY', label: 'Yesterday' },
@@ -105,6 +126,7 @@ function PaymentTabDateFilterBar({
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: 12,
+        ...containerStyle,
       }}
     >
       {/* Filter Pills */}
@@ -115,7 +137,7 @@ function PaymentTabDateFilterBar({
           return (
             <button
               key={opt.key}
-              id={`${idPrefix}-filter-${opt.key.toLowerCase()}`}
+              id={`${idPrefix}-filter-${opt.key.toLowerCase().replace('_', '-')}`}
               type="button"
               onClick={() => onFilterChange(opt.key)}
               style={{
@@ -151,7 +173,7 @@ function PaymentTabDateFilterBar({
               style={{
                 padding: '5px 10px',
                 borderRadius: 8,
-                border: '1px solid #E5E7EB',
+                border: rangeError ? '1px solid #EF4444' : '1px solid #E5E7EB',
                 backgroundColor: '#FFFFFF',
                 fontSize: 12,
                 color: '#111827',
@@ -172,7 +194,7 @@ function PaymentTabDateFilterBar({
               style={{
                 padding: '5px 10px',
                 borderRadius: 8,
-                border: '1px solid #E5E7EB',
+                border: rangeError ? '1px solid #EF4444' : '1px solid #E5E7EB',
                 backgroundColor: '#FFFFFF',
                 fontSize: 12,
                 color: '#111827',
@@ -180,6 +202,27 @@ function PaymentTabDateFilterBar({
               }}
             />
           </div>
+
+          {onApply && (
+            <button
+              id={`${idPrefix}-apply-custom-dates`}
+              type="button"
+              onClick={onApply}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: '1px solid #2196F3',
+                backgroundColor: '#2196F3',
+                color: '#FFFFFF',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {applyButtonLabel}
+            </button>
+          )}
 
           {(customStartDate || customEndDate) && (
             <button
@@ -219,8 +262,22 @@ function PaymentTabDateFilterBar({
               cursor: 'pointer',
             }}
           >
-            Reset to All
+            {resetButtonLabel}
           </button>
+
+          {rangeError && (
+            <span
+              id={`${idPrefix}-range-error`}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#EF4444',
+                marginLeft: 4,
+              }}
+            >
+              {rangeError}
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -460,15 +517,200 @@ export function PaymentsPage() {
   const [selectedRestPayouts, setSelectedRestPayouts] = useState<Set<string>>(new Set());
   const [selectedDelivPayouts, setSelectedDelivPayouts] = useState<Set<string>>(new Set());
 
+  // Admin Earnings Date Filter State (Exclusively for Admin Earnings tab)
+  const [earningsDateFilter, setEarningsDateFilter] = useState<PaymentDateFilter>('THIS_MONTH');
+  const [earningsDraftStartDate, setEarningsDraftStartDate] = useState<string>('');
+  const [earningsDraftEndDate, setEarningsDraftEndDate] = useState<string>('');
+  const [earningsAppliedStartDate, setEarningsAppliedStartDate] = useState<string>('');
+  const [earningsAppliedEndDate, setEarningsAppliedEndDate] = useState<string>('');
+  const [earningsRangeError, setEarningsRangeError] = useState<string | null>(null);
+
+  const handleEarningsPresetChange = (preset: PaymentDateFilter) => {
+    setEarningsDateFilter(preset);
+    setEarningsRangeError(null);
+    if (preset !== 'CUSTOM') {
+      setEarningsDraftStartDate('');
+      setEarningsDraftEndDate('');
+      setEarningsAppliedStartDate('');
+      setEarningsAppliedEndDate('');
+    }
+  };
+
+  const handleApplyEarningsCustomDates = () => {
+    if (earningsDraftStartDate && earningsDraftEndDate && earningsDraftStartDate > earningsDraftEndDate) {
+      setEarningsRangeError('Start date cannot be later than End date.');
+      showToast('Invalid date range: Start date cannot be later than End date.');
+      return;
+    }
+    setEarningsRangeError(null);
+    setEarningsAppliedStartDate(earningsDraftStartDate);
+    setEarningsAppliedEndDate(earningsDraftEndDate);
+  };
+
+  const handleResetEarningsFilter = () => {
+    setEarningsDateFilter('THIS_MONTH');
+    setEarningsDraftStartDate('');
+    setEarningsDraftEndDate('');
+    setEarningsAppliedStartDate('');
+    setEarningsAppliedEndDate('');
+    setEarningsRangeError(null);
+  };
+
+  const earningsFilteredSettlements = useMemo(() => {
+    return filterRecordsByDateRange(
+      serverSettlements,
+      earningsDateFilter,
+      (s) => s.settledAt,
+      earningsAppliedStartDate,
+      earningsAppliedEndDate
+    );
+  }, [serverSettlements, earningsDateFilter, earningsAppliedStartDate, earningsAppliedEndDate]);
+
+  const eligibleEarningsSettlements = useMemo(() => {
+    return earningsFilteredSettlements.filter(
+      (s) => s.settlementStatus !== 'FAILED' && s.settlementStatus !== 'CANCELLED' && s.settlementStatus !== 'REFUNDED'
+    );
+  }, [earningsFilteredSettlements]);
+
+  const totalFoodCommission = useMemo(() => {
+    return eligibleEarningsSettlements.reduce((acc, s) => {
+      return acc + calculateSettlementEarnings(s, commissionConfig).foodCommission;
+    }, 0);
+  }, [eligibleEarningsSettlements, commissionConfig]);
+
+  const totalDeliveryCommission = useMemo(() => {
+    return eligibleEarningsSettlements.reduce((acc, s) => {
+      return acc + calculateSettlementEarnings(s, commissionConfig).deliveryCommission;
+    }, 0);
+  }, [eligibleEarningsSettlements, commissionConfig]);
+
+  const totalPlatformFees = useMemo(() => {
+    return eligibleEarningsSettlements.reduce((acc, s) => {
+      return acc + calculateSettlementEarnings(s, commissionConfig).platformFee;
+    }, 0);
+  }, [eligibleEarningsSettlements, commissionConfig]);
+
+  const totalAdminEarningsRevenue = useMemo(() => {
+    return totalFoodCommission + totalDeliveryCommission + totalPlatformFees;
+  }, [totalFoodCommission, totalDeliveryCommission, totalPlatformFees]);
+
+  // Refunds & Reversals Date Filter State
+  const [refundsDateFilter, setRefundsDateFilter] = useState<PaymentDateFilter>('THIS_MONTH');
+  const [refundsDraftStartDate, setRefundsDraftStartDate] = useState<string>('');
+  const [refundsDraftEndDate, setRefundsDraftEndDate] = useState<string>('');
+  const [refundsAppliedStartDate, setRefundsAppliedStartDate] = useState<string>('');
+  const [refundsAppliedEndDate, setRefundsAppliedEndDate] = useState<string>('');
+  const [refundsRangeError, setRefundsRangeError] = useState<string | null>(null);
+
+  // Pagination & Sorting State for Refunds
+  const [refundCurrentPage, setRefundCurrentPage] = useState<number>(1);
+  const [refundSortBy, setRefundSortBy] = useState<'DATE_DESC' | 'DATE_ASC' | 'AMOUNT_DESC' | 'AMOUNT_ASC'>('DATE_DESC');
+  const refundItemsPerPage = 5;
+
+  const handleRefundsPresetChange = (preset: PaymentDateFilter) => {
+    setRefundsDateFilter(preset);
+    setRefundsRangeError(null);
+    setRefundCurrentPage(1);
+    if (preset !== 'CUSTOM') {
+      setRefundsDraftStartDate('');
+      setRefundsDraftEndDate('');
+      setRefundsAppliedStartDate('');
+      setRefundsAppliedEndDate('');
+    }
+  };
+
+  const handleApplyRefundsCustomDates = () => {
+    if (refundsDraftStartDate && refundsDraftEndDate && refundsDraftStartDate > refundsDraftEndDate) {
+      setRefundsRangeError('Start date cannot be later than End date.');
+      showToast('Invalid date range: Start date cannot be later than End date.');
+      return;
+    }
+    setRefundsRangeError(null);
+    setRefundsAppliedStartDate(refundsDraftStartDate);
+    setRefundsAppliedEndDate(refundsDraftEndDate);
+    setRefundCurrentPage(1);
+  };
+
+  const handleResetRefundsFilter = () => {
+    setRefundsDateFilter('THIS_MONTH');
+    setRefundsDraftStartDate('');
+    setRefundsDraftEndDate('');
+    setRefundsAppliedStartDate('');
+    setRefundsAppliedEndDate('');
+    setRefundsRangeError(null);
+    setRefundStatusFilter('PENDING');
+    setRefundSearchTerm('');
+    setRefundSortBy('DATE_DESC');
+    setRefundCurrentPage(1);
+  };
+
   // Strictly include only genuine online payment cancellations (exclude Cash on Delivery / COD)
-  const onlineCancelledRefunds = cancelledRefunds.filter(
-    (r) =>
-      Boolean(r.isOnlinePayment) &&
-      !r.paymentMethod?.toUpperCase().includes('COD') &&
-      !r.paymentMethod?.toUpperCase().includes('CASH ON DELIVERY')
-  );
-  const pendingCancelledRefunds = onlineCancelledRefunds.filter((r) => r.status === 'PENDING_APPROVAL');
+  const onlineCancelledRefunds = useMemo(() => {
+    return cancelledRefunds.filter(
+      (r) =>
+        Boolean(r.isOnlinePayment) &&
+        !r.paymentMethod?.toUpperCase().includes('COD') &&
+        !r.paymentMethod?.toUpperCase().includes('CASH ON DELIVERY')
+    );
+  }, [cancelledRefunds]);
+
+  // Date-filtered refunds using refund initiation date (cancelledAt)
+  const dateFilteredRefunds = useMemo(() => {
+    return filterRecordsByDateRange(
+      onlineCancelledRefunds,
+      refundsDateFilter,
+      (r) => r.cancelledAt || (r as any).createdAt || r.reviewedAt,
+      refundsAppliedStartDate,
+      refundsAppliedEndDate
+    );
+  }, [onlineCancelledRefunds, refundsDateFilter, refundsAppliedStartDate, refundsAppliedEndDate]);
+
+  const pendingCancelledRefunds = dateFilteredRefunds.filter((r) => r.status === 'PENDING_APPROVAL');
   const pendingOnlineRefundCount = pendingCancelledRefunds.length;
+  const processedCancelledRefunds = dateFilteredRefunds.filter((r) => r.status === 'APPROVED' || r.status === 'REFUNDED');
+
+  const filteredRefundList = useMemo(() => {
+    let list = dateFilteredRefunds.filter((r) => {
+      if (refundStatusFilter === 'PENDING' && r.status !== 'PENDING_APPROVAL') return false;
+      if (
+        refundStatusFilter === 'PROCESSED' &&
+        r.status !== 'APPROVED' &&
+        r.status !== 'REFUNDED' &&
+        r.status !== 'REJECTED'
+      ) {
+        return false;
+      }
+      if (refundSearchTerm.trim()) {
+        const q = refundSearchTerm.toLowerCase();
+        return (
+          r.customerName.toLowerCase().includes(q) ||
+          r.customerId.toLowerCase().includes(q) ||
+          r.orderId.toLowerCase().includes(q) ||
+          r.paymentUuid.toLowerCase().includes(q) ||
+          (r.gatewayTransactionId && r.gatewayTransactionId.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
+
+    list = [...list].sort((a, b) => {
+      const timeA = new Date(a.cancelledAt || 0).getTime();
+      const timeB = new Date(b.cancelledAt || 0).getTime();
+      if (refundSortBy === 'DATE_DESC') return timeB - timeA;
+      if (refundSortBy === 'DATE_ASC') return timeA - timeB;
+      if (refundSortBy === 'AMOUNT_DESC') return (b.amount || 0) - (a.amount || 0);
+      if (refundSortBy === 'AMOUNT_ASC') return (a.amount || 0) - (b.amount || 0);
+      return 0;
+    });
+
+    return list;
+  }, [dateFilteredRefunds, refundStatusFilter, refundSearchTerm, refundSortBy]);
+
+  const totalRefundPages = Math.max(1, Math.ceil(filteredRefundList.length / refundItemsPerPage));
+  const paginatedRefundList = useMemo(() => {
+    const startIndex = (refundCurrentPage - 1) * refundItemsPerPage;
+    return filteredRefundList.slice(startIndex, startIndex + refundItemsPerPage);
+  }, [filteredRefundList, refundCurrentPage, refundItemsPerPage]);
 
   const handleApproveRefundRequest = async (request: CancelledOrderRefundRequest) => {
     setProcessingRefundId(request.id);
@@ -2346,18 +2588,74 @@ export function PaymentsPage() {
               boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
             }}
           >
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>
-              Foodie Admin Net Platform Revenue Breakdown
-            </h2>
-            <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 20px' }}>
-              Real-time accumulated earnings breakdown across all processed order settlements.
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: 0 }}>
+                  Foodie Admin Net Platform Revenue Breakdown
+                </h2>
+                <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
+                  Real-time platform revenue breakdown across all processed order settlements.
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3', backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '6px 14px', borderRadius: 20 }}>
+                  Total Platform Earnings: ₹{totalAdminEarningsRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
 
+            {/* Date Filter Toolbar */}
+            <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #E5E7EB', marginBottom: 20 }}>
+              <PaymentTabDateFilterBar
+                idPrefix="earnings"
+                filter={earningsDateFilter}
+                onFilterChange={handleEarningsPresetChange}
+                customStartDate={earningsDraftStartDate}
+                onStartDateChange={(val) => {
+                  setEarningsDraftStartDate(val);
+                  setEarningsRangeError(null);
+                }}
+                customEndDate={earningsDraftEndDate}
+                onEndDateChange={(val) => {
+                  setEarningsDraftEndDate(val);
+                  setEarningsRangeError(null);
+                }}
+                onReset={handleResetEarningsFilter}
+                options={EARNINGS_AND_REFUNDS_DATE_OPTIONS}
+                onApply={handleApplyEarningsCustomDates}
+                rangeError={earningsRangeError}
+                resetButtonLabel="Reset"
+                applyButtonLabel="Apply Filter"
+                containerStyle={{ borderBottom: 'none' }}
+              />
+            </div>
+
+            {/* Period Indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, fontSize: 12, color: '#6B7280' }}>
+              <div>
+                <span style={{ fontWeight: 600 }}>Active Period:</span>{' '}
+                <span style={{ color: '#111827', fontWeight: 700 }}>
+                  {earningsDateFilter === 'TODAY' && 'Today'}
+                  {earningsDateFilter === 'THIS_WEEK' && 'This Week (Monday to Present)'}
+                  {earningsDateFilter === 'THIS_MONTH' && 'This Month (Month-to-Date)'}
+                  {earningsDateFilter === 'THIS_YEAR' && 'This Year (Year-to-Date)'}
+                  {earningsDateFilter === 'CUSTOM' && (earningsAppliedStartDate || earningsAppliedEndDate ? `${earningsAppliedStartDate || 'Any'} to ${earningsAppliedEndDate || 'Present'}` : 'Custom Date Range')}
+                  {earningsDateFilter === 'ALL' && 'All Records (Lifetime Total)'}
+                </span>
+                {' • '}
+                <span>{eligibleEarningsSettlements.length} eligible settled orders</span>
+              </div>
+              {settlementsLoading && (
+                <span style={{ color: '#2196F3', fontWeight: 600 }}>Refreshing earnings data...</span>
+              )}
+            </div>
+
+            {/* Revenue Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
               <div style={{ backgroundColor: '#F9FAFB', padding: 20, borderRadius: 16, border: '1px solid #E5E7EB' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>14% Food Item Commission</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#111827', margin: '8px 0' }}>
-                  ₹{serverSettlements.reduce((acc, s) => acc + (s.restaurantFoodCommission || 0), 0).toFixed(2)}
+                  ₹{totalFoodCommission.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div style={{ fontSize: 11, color: '#6B7280' }}>14% retained on total food subtotal</div>
               </div>
@@ -2365,7 +2663,7 @@ export function PaymentsPage() {
               <div style={{ backgroundColor: '#F9FAFB', padding: 20, borderRadius: 16, border: '1px solid #E5E7EB' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>10% Delivery Fee Commission</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#111827', margin: '8px 0' }}>
-                  ₹{serverSettlements.reduce((acc, s) => acc + (s.deliveryPartnerCommission || 0), 0).toFixed(2)}
+                  ₹{totalDeliveryCommission.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div style={{ fontSize: 11, color: '#6B7280' }}>10% retained on total delivery fee</div>
               </div>
@@ -2373,11 +2671,48 @@ export function PaymentsPage() {
               <div style={{ backgroundColor: '#F9FAFB', padding: 20, borderRadius: 16, border: '1px solid #E5E7EB' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>Fixed Platform Service Fees</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#111827', margin: '8px 0' }}>
-                  ₹{serverSettlements.reduce((acc, s) => acc + (s.platformFee || 40), 0).toFixed(2)}
+                  ₹{totalPlatformFees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div style={{ fontSize: 11, color: '#6B7280' }}>₹40 fixed per order retained 100%</div>
+                <div style={{ fontSize: 11, color: '#6B7280' }}>₹{commissionConfig.platformFixedFee} fixed per order retained 100%</div>
               </div>
             </div>
+
+            {/* Empty State when 0 eligible settlements in filter */}
+            {!settlementsLoading && eligibleEarningsSettlements.length === 0 && (
+              <div
+                style={{
+                  marginTop: 20,
+                  padding: 32,
+                  textAlign: 'center',
+                  backgroundColor: '#F9FAFB',
+                  borderRadius: 16,
+                  border: '1px dashed #E5E7EB',
+                }}
+              >
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 4 }}>
+                  No earnings recorded for the selected date range.
+                </div>
+                <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 14 }}>
+                  Displaying ₹0.00 for all commission categories. Try adjusting your timeframe filter or reset to default.
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetEarningsFilter}
+                  style={{
+                    padding: '6px 16px',
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    backgroundColor: '#E3F2FD',
+                    color: '#2196F3',
+                    border: '1px solid #BFDBFE',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Reset Filter
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2510,10 +2845,10 @@ export function PaymentsPage() {
                 </span>
               </div>
               <div style={{ fontSize: 26, fontWeight: 700, color: '#111827' }}>
-                ₹{pendingCancelledRefunds.reduce((sum, r) => sum + r.amount, 0).toFixed(2)}
+                ₹{pendingCancelledRefunds.reduce((sum, r) => sum + (r.amount || 0), 0).toFixed(2)}
               </div>
               <div style={{ fontSize: 12, color: '#6B7280' }}>
-                Total online payment refund amount awaiting Finance Admin approval.
+                Total online payment refund amount awaiting Finance Admin approval for the selected period.
               </div>
             </div>
 
@@ -2582,11 +2917,11 @@ export function PaymentsPage() {
                     borderRadius: 9999,
                   }}
                 >
-                  {cancelledRefunds.filter((r) => r.status === 'APPROVED' || r.status === 'REFUNDED').length} Settled
+                  {processedCancelledRefunds.length} Settled
                 </span>
               </div>
               <div style={{ fontSize: 26, fontWeight: 700, color: '#22C55E' }}>
-                ₹{cancelledRefunds.filter((r) => r.status === 'APPROVED' || r.status === 'REFUNDED').reduce((sum, r) => sum + r.amount, 0).toFixed(2)}
+                ₹{processedCancelledRefunds.reduce((sum, r) => sum + (r.amount || 0), 0).toFixed(2)}
               </div>
               <div style={{ fontSize: 12, color: '#6B7280' }}>
                 Credited directly back to customer bank accounts / UPI IDs / Wallets.
@@ -2692,7 +3027,53 @@ export function PaymentsPage() {
               </div>
             </div>
 
-            {/* Filter Tabs & Search Bar */}
+            {/* Date Filter Toolbar */}
+            <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #E5E7EB' }}>
+              <PaymentTabDateFilterBar
+                idPrefix="refunds"
+                filter={refundsDateFilter}
+                onFilterChange={handleRefundsPresetChange}
+                customStartDate={refundsDraftStartDate}
+                onStartDateChange={(val) => {
+                  setRefundsDraftStartDate(val);
+                  setRefundsRangeError(null);
+                }}
+                customEndDate={refundsDraftEndDate}
+                onEndDateChange={(val) => {
+                  setRefundsDraftEndDate(val);
+                  setRefundsRangeError(null);
+                }}
+                onReset={handleResetRefundsFilter}
+                options={EARNINGS_AND_REFUNDS_DATE_OPTIONS}
+                onApply={handleApplyRefundsCustomDates}
+                rangeError={refundsRangeError}
+                resetButtonLabel="Reset"
+                applyButtonLabel="Apply Filter"
+                containerStyle={{ borderBottom: 'none' }}
+              />
+            </div>
+
+            {/* Active Date Period Indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#6B7280' }}>
+              <div>
+                <span style={{ fontWeight: 600 }}>Filtering by Refund Initiation Date:</span>{' '}
+                <span style={{ color: '#111827', fontWeight: 700 }}>
+                  {refundsDateFilter === 'TODAY' && 'Today'}
+                  {refundsDateFilter === 'THIS_WEEK' && 'This Week'}
+                  {refundsDateFilter === 'THIS_MONTH' && 'This Month'}
+                  {refundsDateFilter === 'THIS_YEAR' && 'This Year'}
+                  {refundsDateFilter === 'CUSTOM' && (refundsAppliedStartDate || refundsAppliedEndDate ? `${refundsAppliedStartDate || 'Any'} to ${refundsAppliedEndDate || 'Present'}` : 'Custom Date Range')}
+                  {refundsDateFilter === 'ALL' && 'All Records'}
+                </span>
+                {' • '}
+                <span>{dateFilteredRefunds.length} total refunds in period</span>
+              </div>
+              {cancelledRefundsLoading && (
+                <span style={{ color: '#2196F3', fontWeight: 600 }}>Refreshing refund queue...</span>
+              )}
+            </div>
+
+            {/* Filter Tabs & Search Bar & Sort Dropdown */}
             <div
               style={{
                 display: 'flex',
@@ -2704,20 +3085,23 @@ export function PaymentsPage() {
                 borderBottom: '1px solid #E5E7EB',
               }}
             >
-              {/* Filter Pills */}
+              {/* Status Filter Pills */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#6B7280' }}>Status:</span>
                 {[
                   { key: 'PENDING', label: `Pending Approvals (${pendingCancelledRefunds.length})` },
-                  { key: 'ALL', label: `All Online Cancellations (${onlineCancelledRefunds.length})` },
-                  { key: 'PROCESSED', label: `Processed / Refunded (${onlineCancelledRefunds.filter((r) => r.status === 'APPROVED' || r.status === 'REFUNDED').length})` },
+                  { key: 'ALL', label: `All Online Cancellations (${dateFilteredRefunds.length})` },
+                  { key: 'PROCESSED', label: `Processed / Refunded (${processedCancelledRefunds.length})` },
                 ].map((f) => {
                   const isActive = refundStatusFilter === f.key;
                   return (
                     <button
                       key={f.key}
                       type="button"
-                      onClick={() => setRefundStatusFilter(f.key as any)}
+                      onClick={() => {
+                        setRefundStatusFilter(f.key as any);
+                        setRefundCurrentPage(1);
+                      }}
                       style={{
                         padding: '6px 14px',
                         borderRadius: 20,
@@ -2736,33 +3120,66 @@ export function PaymentsPage() {
                 })}
               </div>
 
-              {/* Search Bar */}
-              <div style={{ position: 'relative', width: 340 }}>
-                <input
-                  type="text"
-                  placeholder="Filter by Customer, ID, Order #, or Payment..."
-                  value={refundSearchTerm}
-                  onChange={(e) => setRefundSearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 32px',
-                    borderRadius: 10,
-                    border: '1px solid #E5E7EB',
-                    fontSize: 12,
-                    color: '#111827',
-                    outline: 'none',
-                    backgroundColor: '#F9FAFB',
-                  }}
-                />
-                <svg
-                  style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', width: 14, height: 14 }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <circle cx="11" cy="11" r="7" strokeWidth="2" />
-                  <path strokeLinecap="round" strokeWidth="2" d="M16 16l4.5 4.5" />
-                </svg>
+              {/* Search Bar & Sort Control */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label htmlFor="refund-sort-select" style={{ fontSize: 12, fontWeight: 600, color: '#6B7280' }}>
+                    Sort:
+                  </label>
+                  <select
+                    id="refund-sort-select"
+                    value={refundSortBy}
+                    onChange={(e) => {
+                      setRefundSortBy(e.target.value as any);
+                      setRefundCurrentPage(1);
+                    }}
+                    style={{
+                      padding: '7px 10px',
+                      borderRadius: 8,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 12,
+                      color: '#111827',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="DATE_DESC">Newest Initiated</option>
+                    <option value="DATE_ASC">Oldest Initiated</option>
+                    <option value="AMOUNT_DESC">Highest Amount</option>
+                    <option value="AMOUNT_ASC">Lowest Amount</option>
+                  </select>
+                </div>
+
+                <div style={{ position: 'relative', width: 280 }}>
+                  <input
+                    type="text"
+                    placeholder="Filter by Customer, ID, Order #..."
+                    value={refundSearchTerm}
+                    onChange={(e) => {
+                      setRefundSearchTerm(e.target.value);
+                      setRefundCurrentPage(1);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 32px',
+                      borderRadius: 10,
+                      border: '1px solid #E5E7EB',
+                      fontSize: 12,
+                      color: '#111827',
+                      outline: 'none',
+                      backgroundColor: '#F9FAFB',
+                    }}
+                  />
+                  <svg
+                    style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', width: 14, height: 14 }}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="11" cy="11" r="7" strokeWidth="2" />
+                    <path strokeLinecap="round" strokeWidth="2" d="M16 16l4.5 4.5" />
+                  </svg>
+                </div>
               </div>
             </div>
 
@@ -2771,345 +3188,432 @@ export function PaymentsPage() {
               <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14, fontWeight: 500 }}>
                 Fetching customer cancellation refund requests from payment backend...
               </div>
-            ) : (() => {
-              const filteredList = onlineCancelledRefunds.filter((r) => {
-                if (refundStatusFilter === 'PENDING' && r.status !== 'PENDING_APPROVAL') return false;
-                if (
-                  refundStatusFilter === 'PROCESSED' &&
-                  r.status !== 'APPROVED' &&
-                  r.status !== 'REFUNDED' &&
-                  r.status !== 'REJECTED'
-                ) {
-                  return false;
-                }
-                if (refundSearchTerm.trim()) {
-                  const q = refundSearchTerm.toLowerCase();
-                  return (
-                    r.customerName.toLowerCase().includes(q) ||
-                    r.customerId.toLowerCase().includes(q) ||
-                    r.orderId.toLowerCase().includes(q) ||
-                    r.paymentUuid.toLowerCase().includes(q) ||
-                    (r.gatewayTransactionId && r.gatewayTransactionId.toLowerCase().includes(q))
+            ) : filteredRefundList.length === 0 ? (
+              <div
+                style={{
+                  padding: 48,
+                  textAlign: 'center',
+                  backgroundColor: '#F9FAFB',
+                  borderRadius: 16,
+                  border: '1px dashed #E5E7EB',
+                }}
+              >
+                <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2196F3" strokeWidth="2">
+                    <circle cx="12" cy="12" r="9" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.5 12.5l2.5 2.5 4.5-5" />
+                  </svg>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>
+                  No customer cancellation requests match this filter
+                </div>
+                <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 16px' }}>
+                  No online payment refunds found for the selected status and date range.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResetRefundsFilter}
+                  style={{
+                    padding: '6px 16px',
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    backgroundColor: '#E3F2FD',
+                    color: '#2196F3',
+                    border: '1px solid #BFDBFE',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Reset All Filters
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {paginatedRefundList.map((req) => {
+                  const isPending = req.status === 'PENDING_APPROVAL';
+                  const isApproved = req.status === 'APPROVED' || req.status === 'REFUNDED';
+                  const isRejected = req.status === 'REJECTED';
+                  const isActioning = processingRefundId === req.id;
+
+                  const matchedSettlement = serverSettlements.find(
+                    (s) => s.orderId === req.orderId || s.orderNumber === req.orderId
                   );
-                }
-                return true;
-              });
+                  const restaurantName = (req as any).restaurantName || matchedSettlement?.restaurantName || 'Restaurant Partner';
 
-              if (filteredList.length === 0) {
-                return (
-                  <div
-                    style={{
-                      padding: 48,
-                      textAlign: 'center',
-                      backgroundColor: '#F9FAFB',
-                      borderRadius: 16,
-                      border: '1px dashed #E5E7EB',
-                    }}
-                  >
-                    <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2196F3" strokeWidth="2">
-                        <circle cx="12" cy="12" r="9" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.5 12.5l2.5 2.5 4.5-5" />
-                      </svg>
-                    </div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>
-                      No customer cancellation requests match this filter
-                    </div>
-                    <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0' }}>
-                      All online payments for customer cancellations are approved and processed.
-                    </p>
-                  </div>
-                );
-              }
+                  return (
+                    <div
+                      key={req.id}
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 16,
+                        border: isPending ? '1px solid #2196F3' : '1px solid #E5E7EB',
+                        padding: '20px 22px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 14,
+                        boxShadow: isPending ? '0 4px 12px rgba(33, 150, 243, 0.08)' : '0 1px 3px rgba(0, 0, 0, 0.03)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {/* Top Meta Line: Badges & Status */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          {/* Specifically Online Payment Badge */}
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              backgroundColor: '#E3F2FD',
+                              color: '#2196F3',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              letterSpacing: '0.4px',
+                            }}
+                          >
+                            <span>{req.paymentMethod}</span>
+                          </span>
 
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {filteredList.map((req) => {
-                    const isPending = req.status === 'PENDING_APPROVAL';
-                    const isApproved = req.status === 'APPROVED' || req.status === 'REFUNDED';
-                    const isRejected = req.status === 'REJECTED';
-                    const isActioning = processingRefundId === req.id;
+                          {/* Gateway Provider */}
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              backgroundColor: '#DCFCE7',
+                              color: '#15803D',
+                            }}
+                          >
+                            {req.gatewayProvider} DIRECT REVERSAL
+                          </span>
 
-                    return (
-                      <div
-                        key={req.id}
-                        style={{
-                          backgroundColor: '#FFFFFF',
-                          borderRadius: 16,
-                          border: isPending ? '1px solid #2196F3' : '1px solid #E5E7EB',
-                          padding: '20px 22px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 14,
-                          boxShadow: isPending ? '0 4px 12px rgba(33, 150, 243, 0.08)' : '0 1px 3px rgba(0, 0, 0, 0.03)',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        {/* Top Meta Line: Badges & Status */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                            {/* Specifically Online Payment Badge */}
+                          {/* Order ID Pill */}
+                          <span
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: '#374151',
+                              backgroundColor: '#F3F4F6',
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              fontFamily: 'monospace',
+                            }}
+                          >
+                            ORDER: {req.orderId}
+                          </span>
+
+                          {/* Restaurant Name Pill */}
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: '#4B5563',
+                              backgroundColor: '#F3F4F6',
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                            }}
+                          >
+                            Store: {restaurantName}
+                          </span>
+                        </div>
+
+                        {/* Approval Status */}
+                        <div>
+                          {isPending && (
                             <span
                               style={{
                                 fontSize: 11,
                                 fontWeight: 700,
-                                padding: '4px 10px',
-                                borderRadius: 6,
-                                backgroundColor: '#E3F2FD',
-                                color: '#2196F3',
-                                display: 'flex',
+                                padding: '5px 12px',
+                                borderRadius: 9999,
+                                backgroundColor: '#FEF3C7',
+                                color: '#B45309',
+                                display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 5,
-                                letterSpacing: '0.4px',
+                                gap: 6,
                               }}
                             >
-                              <span>{req.paymentMethod}</span>
+                              <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#F59E0B', display: 'inline-block' }} />
+                              AWAITING REFUND APPROVAL
                             </span>
-
-                            {/* Gateway Provider */}
+                          )}
+                          {isApproved && (
                             <span
                               style={{
                                 fontSize: 11,
                                 fontWeight: 600,
-                                padding: '3px 8px',
-                                borderRadius: 6,
+                                padding: '5px 12px',
+                                borderRadius: 9999,
                                 backgroundColor: '#DCFCE7',
                                 color: '#15803D',
                               }}
                             >
-                              {req.gatewayProvider} DIRECT REVERSAL
+                              APPROVED & REFUNDED
                             </span>
-
-                            {/* Order ID Pill */}
+                          )}
+                          {isRejected && (
                             <span
                               style={{
-                                fontSize: 12,
+                                fontSize: 11,
                                 fontWeight: 600,
-                                color: '#374151',
-                                backgroundColor: '#F3F4F6',
-                                padding: '3px 8px',
-                                borderRadius: 6,
-                                fontFamily: 'monospace',
+                                padding: '5px 12px',
+                                borderRadius: 9999,
+                                backgroundColor: '#FEE2E2',
+                                color: '#B91C1C',
                               }}
                             >
-                              ORDER: {req.orderId}
+                              REJECTED
                             </span>
-                          </div>
+                          )}
+                        </div>
+                      </div>
 
-                          {/* Approval Status */}
-                          <div>
-                            {isPending && (
-                              <span
+                      {/* Middle Details Grid */}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                          gap: 16,
+                          padding: '14px 16px',
+                          backgroundColor: '#F9FAFB',
+                          borderRadius: 12,
+                          border: '1px solid #E5E7EB',
+                        }}
+                      >
+                        {/* Col 1: Customer Details */}
+                        <div>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
+                            Customer Information
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                            <div
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '50%',
+                                backgroundColor: '#E3F2FD',
+                                color: '#2196F3',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: 11,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {req.customerName.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
+                                {req.customerName}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#6B7280', fontFamily: 'monospace' }}>
+                                ID: {req.customerId}
+                              </div>
+                            </div>
+                          </div>
+                          {req.customerPhone && (
+                            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3 }}>
+                              Phone: {req.customerPhone}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Col 2: Refund Amount */}
+                        <div>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
+                            Online Refund Amount
+                          </span>
+                          <div style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginTop: 2 }}>
+                            ₹{req.amount.toFixed(2)}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#22C55E', fontWeight: 600 }}>
+                            Full Online Payment Value
+                          </div>
+                        </div>
+
+                        {/* Col 3: Gateway & Payment Identifiers */}
+                        <div>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
+                            Payment Identifiers
+                          </span>
+                          <div style={{ fontSize: 11, color: '#111827', marginTop: 4, fontFamily: 'monospace' }}>
+                            <strong>UUID:</strong> {req.paymentUuid.slice(0, 14)}...
+                          </div>
+                          {req.gatewayTransactionId && (
+                            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2, fontFamily: 'monospace' }}>
+                              <strong>Tx Ref:</strong> {req.gatewayTransactionId}
+                            </div>
+                          )}
+                          {req.refundReference && (
+                            <div style={{ fontSize: 11, color: '#15803D', fontWeight: 600, marginTop: 2 }}>
+                              <strong>Refund Ref:</strong> {req.refundReference}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Col 4: Cancellation Reason & Time */}
+                        <div>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
+                            Cancellation Reason
+                          </span>
+                          <div style={{ fontSize: 12, color: '#374151', fontWeight: 500, marginTop: 3, lineHeight: 1.35 }}>
+                            &ldquo;{req.cancellationReason}&rdquo;
+                          </div>
+                          <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
+                            Initiated {new Date(req.cancelledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(req.cancelledAt).toLocaleDateString()}
+                          </div>
+                          {req.reviewedAt && (
+                            <div style={{ fontSize: 11, color: '#15803D', marginTop: 2 }}>
+                              Completed {new Date(req.reviewedAt).toLocaleDateString()} by {req.reviewedBy || 'Finance Admin'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Bottom Actions Row */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                        <div style={{ fontSize: 12, color: '#6B7280' }}>
+                          {isPending
+                            ? 'Approving will trigger the backend Cashfree refund gateway reversal and update customer ledger.'
+                            : `Processed by ${req.reviewedBy || 'Finance Admin'}.`}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          {isPending && (
+                            <>
+                              {/* Reject Button */}
+                              <button
+                                type="button"
+                                disabled={isActioning}
+                                onClick={() => void handleRejectRefundRequest(req)}
                                 style={{
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  padding: '5px 12px',
-                                  borderRadius: 9999,
-                                  backgroundColor: '#FEF3C7',
-                                  color: '#B45309',
-                                  display: 'inline-flex',
+                                  padding: '8px 14px',
+                                  borderRadius: 10,
+                                  border: '1px solid #FECACA',
+                                  backgroundColor: '#FEF2F2',
+                                  color: '#EF4444',
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Reject
+                              </button>
+
+                              {/* Approve & Refund Button */}
+                              <button
+                                type="button"
+                                disabled={isActioning}
+                                onClick={() => void handleApproveRefundRequest(req)}
+                                style={{
+                                  padding: '8px 18px',
+                                  borderRadius: 10,
+                                  border: 'none',
+                                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                                  color: '#FFFFFF',
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
+                                  display: 'flex',
                                   alignItems: 'center',
                                   gap: 6,
                                 }}
                               >
-                                <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#F59E0B', display: 'inline-block' }} />
-                                AWAITING REFUND APPROVAL
-                              </span>
-                            )}
-                            {isApproved && (
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  padding: '5px 12px',
-                                  borderRadius: 9999,
-                                  backgroundColor: '#DCFCE7',
-                                  color: '#15803D',
-                                }}
-                              >
-                                APPROVED & REFUNDED
-                              </span>
-                            )}
-                            {isRejected && (
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  padding: '5px 12px',
-                                  borderRadius: 9999,
-                                  backgroundColor: '#FEE2E2',
-                                  color: '#B91C1C',
-                                }}
-                              >
-                                REJECTED
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Middle Details Grid */}
-                        <div
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                            gap: 16,
-                            padding: '14px 16px',
-                            backgroundColor: '#F9FAFB',
-                            borderRadius: 12,
-                            border: '1px solid #E5E7EB',
-                          }}
-                        >
-                          {/* Col 1: Customer Details */}
-                          <div>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
-                              Customer Information
-                            </span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                              <div
-                                style={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: '50%',
-                                  backgroundColor: '#E3F2FD',
-                                  color: '#2196F3',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {req.customerName.slice(0, 2).toUpperCase()}
-                              </div>
-                              <div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
-                                  {req.customerName}
-                                </div>
-                                <div style={{ fontSize: 11, color: '#6B7280', fontFamily: 'monospace' }}>
-                                  ID: {req.customerId}
-                                </div>
-                              </div>
-                            </div>
-                            {req.customerPhone && (
-                              <div style={{ fontSize: 11, color: '#6B7280', marginTop: 3 }}>
-                                Phone: {req.customerPhone}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Col 2: Refund Amount */}
-                          <div>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
-                              Online Refund Amount
-                            </span>
-                            <div style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginTop: 2 }}>
-                              ₹{req.amount.toFixed(2)}
-                            </div>
-                            <div style={{ fontSize: 11, color: '#22C55E', fontWeight: 600 }}>
-                              Full Online Payment Value
-                            </div>
-                          </div>
-
-                          {/* Col 3: Gateway & Payment Identifiers */}
-                          <div>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
-                              Payment Identifiers
-                            </span>
-                            <div style={{ fontSize: 11, color: '#111827', marginTop: 4, fontFamily: 'monospace' }}>
-                              <strong>UUID:</strong> {req.paymentUuid.slice(0, 14)}...
-                            </div>
-                            {req.gatewayTransactionId && (
-                              <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2, fontFamily: 'monospace' }}>
-                                <strong>Tx Ref:</strong> {req.gatewayTransactionId}
-                              </div>
-                            )}
-                            {req.refundReference && (
-                              <div style={{ fontSize: 11, color: '#15803D', fontWeight: 600, marginTop: 2 }}>
-                                <strong>Refund Ref:</strong> {req.refundReference}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Col 4: Cancellation Reason & Time */}
-                          <div>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
-                              Cancellation Reason
-                            </span>
-                            <div style={{ fontSize: 12, color: '#374151', fontWeight: 500, marginTop: 3, lineHeight: 1.35 }}>
-                              &ldquo;{req.cancellationReason}&rdquo;
-                            </div>
-                            <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>
-                              Cancelled {new Date(req.cancelledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(req.cancelledAt).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Bottom Actions Row */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                          <div style={{ fontSize: 12, color: '#6B7280' }}>
-                            {isPending
-                              ? 'Approving will trigger the backend Cashfree refund gateway reversal and update customer ledger.'
-                              : `Processed by ${req.reviewedBy || 'Finance Admin'}.`}
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            {isPending && (
-                              <>
-                                {/* Reject Button */}
-                                <button
-                                  type="button"
-                                  disabled={isActioning}
-                                  onClick={() => void handleRejectRefundRequest(req)}
-                                  style={{
-                                    padding: '8px 14px',
-                                    borderRadius: 10,
-                                    border: '1px solid #FECACA',
-                                    backgroundColor: '#FEF2F2',
-                                    color: '#EF4444',
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  Reject
-                                </button>
-
-                                {/* Approve & Refund Button */}
-                                <button
-                                  type="button"
-                                  disabled={isActioning}
-                                  onClick={() => void handleApproveRefundRequest(req)}
-                                  style={{
-                                    padding: '8px 18px',
-                                    borderRadius: 10,
-                                    border: 'none',
-                                    background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                                    color: '#FFFFFF',
-                                    fontSize: 13,
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 6,
-                                  }}
-                                >
-                                  {isActioning ? (
-                                    <span>Processing Refund via Cashfree...</span>
-                                  ) : (
-                                    <span>Approve & Disburse Refund via Cashfree (₹{req.amount.toFixed(2)})</span>
-                                  )}
-                                </button>
-                              </>
-                            )}
-                          </div>
+                                {isActioning ? (
+                                  <span>Processing Refund via Cashfree...</span>
+                                ) : (
+                                  <span>Approve & Disburse Refund via Cashfree (₹{req.amount.toFixed(2)})</span>
+                                )}
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+                    </div>
+                  );
+                })}
+
+                {/* Pagination Controls */}
+                {totalRefundPages > 1 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingTop: 16,
+                      borderTop: '1px solid #E5E7EB',
+                      flexWrap: 'wrap',
+                      gap: 12,
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: '#6B7280' }}>
+                      Showing {(refundCurrentPage - 1) * refundItemsPerPage + 1} to{' '}
+                      {Math.min(refundCurrentPage * refundItemsPerPage, filteredRefundList.length)} of{' '}
+                      {filteredRefundList.length} records
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button
+                        type="button"
+                        disabled={refundCurrentPage <= 1}
+                        onClick={() => setRefundCurrentPage((p) => Math.max(1, p - 1))}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: 6,
+                          border: '1px solid #E5E7EB',
+                          backgroundColor: refundCurrentPage <= 1 ? '#F9FAFB' : '#FFFFFF',
+                          color: refundCurrentPage <= 1 ? '#9CA3AF' : '#374151',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: refundCurrentPage <= 1 ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        Previous
+                      </button>
+                      {Array.from({ length: totalRefundPages }, (_, i) => i + 1).map((pg) => (
+                        <button
+                          key={pg}
+                          type="button"
+                          onClick={() => setRefundCurrentPage(pg)}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: 6,
+                            border: refundCurrentPage === pg ? '1px solid #2196F3' : '1px solid #E5E7EB',
+                            backgroundColor: refundCurrentPage === pg ? '#E3F2FD' : '#FFFFFF',
+                            color: refundCurrentPage === pg ? '#2196F3' : '#374151',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {pg}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        disabled={refundCurrentPage >= totalRefundPages}
+                        onClick={() => setRefundCurrentPage((p) => Math.min(totalRefundPages, p + 1))}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: 6,
+                          border: '1px solid #E5E7EB',
+                          backgroundColor: refundCurrentPage >= totalRefundPages ? '#F9FAFB' : '#FFFFFF',
+                          color: refundCurrentPage >= totalRefundPages ? '#9CA3AF' : '#374151',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: refundCurrentPage >= totalRefundPages ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
