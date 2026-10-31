@@ -4320,6 +4320,41 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
     controls[id] = controls[id] || {};
     controls[id].isCodDisabled = isCodDisabled;
     controls[id].updatedAt = new Date().toISOString();
+
+    // Alias COD across email, phone, name for fast cross-app propagation
+    try {
+      const endpointsToTry = [
+        "http://localhost:8082/api/v1/admin/customers",
+        backendUrl + "/api/v1/admin/customers"
+      ];
+      for (const ep of endpointsToTry) {
+        try {
+          const cRes = await safeFetch(ep, {
+            headers: { "Accept": "application/json", "Authorization": "Bearer " + (ep.includes("8082") ? devToken : token) },
+            timeoutMs: 2000,
+          });
+          if (cRes.response && cRes.response.ok) {
+            const cj = await cRes.response.json();
+            const list = cj?.data?.customers || cj?.data || [];
+            const found = list.find((c: any) => c.id === id || c.email === id || c.phone === id);
+            if (found) {
+              if (found.email) {
+                controls[found.email.toLowerCase().trim()] = { ...(controls[found.email.toLowerCase().trim()] || {}), ...controls[id], isCodDisabled };
+              }
+              if (found.phone) {
+                controls[found.phone.trim()] = { ...(controls[found.phone.trim()] || {}), ...controls[id], isCodDisabled };
+                controls[found.phone.replace(/\D/g, "")] = { ...(controls[found.phone.replace(/\D/g, "")] || {}), ...controls[id], isCodDisabled };
+              }
+              if (found.name) {
+                controls[found.name.toLowerCase().trim()] = { ...(controls[found.name.toLowerCase().trim()] || {}), ...controls[id], isCodDisabled };
+              }
+              break;
+            }
+          }
+        } catch {}
+      }
+    } catch {}
+
     saveCustomerControls(controls);
 
     // Sync to local Spring Boot

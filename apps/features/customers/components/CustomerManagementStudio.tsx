@@ -9,6 +9,7 @@ import {
   useUpdateCustomerStatusMutation,
   useGetSupportTicketsQuery,
   useUpdateTicketStatusMutation,
+  useUpdateCustomerCodMutation,
 } from '@/api/endpoints/customersApi';
 import { useGetAdminOrdersQuery } from '@/api/endpoints/ordersApi';
 import type { OrderItemRecord } from '@/features/orders/types';
@@ -192,6 +193,24 @@ export function CustomerManagementStudio() {
   } = useGetSupportTicketsQuery();
 
   const [updateCustomerStatus, { isLoading: isUpdatingStatus }] = useUpdateCustomerStatusMutation();
+  const [updateCustomerCod, { isLoading: isUpdatingCod }] = useUpdateCustomerCodMutation();
+
+  const handleToggleCod = async (cust: CustomerProfile) => {
+    try {
+      const nextCodDisabled = !cust.isCodDisabled;
+      await updateCustomerCod({
+        id: cust.id,
+        isCodDisabled: nextCodDisabled,
+        reason: nextCodDisabled ? "Cash on Delivery disabled by administrator" : "Cash on Delivery enabled by administrator",
+      }).unwrap();
+      setToastMsg(`Cash on Delivery ${nextCodDisabled ? "DISABLED" : "ENABLED"} for ${cust.name || cust.email}`);
+      setTimeout(() => setToastMsg(null), 3500);
+      void refetchCustomers();
+    } catch (err: any) {
+      setToastMsg(err?.data?.message || err?.message || "Failed to update COD permission.");
+      setTimeout(() => setToastMsg(null), 3500);
+    }
+  };
   const [updateTicketStatus, { isLoading: isUpdatingTicket }] = useUpdateTicketStatusMutation();
 
   const handleRefreshLive = async () => {
@@ -950,6 +969,23 @@ export function CustomerManagementStudio() {
                           >
                             {cust.accountStatus === 'ACTIVE' ? 'Active' : 'Suspended'}
                           </span>
+                          {cust.isCodDisabled ? (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                backgroundColor: "#FEF3C7",
+                                color: "#B45309",
+                                border: "1px solid #FDE68A",
+                                marginLeft: 6,
+                              }}
+                              title="Cash on Delivery is blocked for this user"
+                            >
+                              🚫 No COD
+                            </span>
+                          ) : null}
                         </td>
 
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
@@ -969,6 +1005,24 @@ export function CustomerManagementStudio() {
                               }}
                             >
                               Details
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isUpdatingCod}
+                              onClick={() => handleToggleCod(cust)}
+                              style={{
+                                padding: "5px 10px",
+                                borderRadius: 8,
+                                border: cust.isCodDisabled ? "1px solid #10B981" : "1px solid #F59E0B",
+                                backgroundColor: cust.isCodDisabled ? "#ECFDF5" : "#FFFBEB",
+                                color: cust.isCodDisabled ? "#059669" : "#D97706",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                              title={cust.isCodDisabled ? "Click to Enable Cash on Delivery" : "Click to Disable Cash on Delivery"}
+                            >
+                              {cust.isCodDisabled ? "✓ Enable COD" : "🚫 Disable COD"}
                             </button>
                             <button
                               type="button"
@@ -1291,6 +1345,12 @@ export function CustomerManagementStudio() {
                 <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>ACCOUNT STATUS</span>
                 <span style={{ fontWeight: 600, color: '#111827', marginTop: 2, display: 'block' }}>
                   {selectedCustomerForDetails.accountStatus}
+                </span>
+              </div>
+              <div>
+                <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>CASH ON DELIVERY</span>
+                <span style={{ fontWeight: 700, color: selectedCustomerForDetails.isCodDisabled ? '#DC2626' : '#16A34A', marginTop: 2, display: 'block' }}>
+                  {selectedCustomerForDetails.isCodDisabled ? '🚫 COD Blocked' : '💵 COD Enabled'}
                 </span>
               </div>
               <div>
