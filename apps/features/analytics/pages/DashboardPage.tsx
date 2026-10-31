@@ -2,11 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  EmptyState,
   Text,
   Toast,
   trackAnalyticsEvent,
-  useApiErrorHandler,
   useConnectivity,
   useTheme,
 } from 'foodie-shared-web';
@@ -26,10 +24,9 @@ import { PermissionDenied } from '../components/PermissionDenied';
 import { SalesAnalyticsChart } from '../components/SalesAnalyticsChart';
 import { TopPerformersWidget } from '../components/TopPerformersWidget';
 
-
 import {
-  defaultDateRange,
   getDashboardPresetRange,
+  getPreviousPeriodRange,
   validateDateRange,
   type AnalyticsDateRange,
 } from '../types';
@@ -70,6 +67,8 @@ export function DashboardPage() {
 
   const allowed = canAccessAnalyticsSummary(role);
 
+  const [selectedPreset, setSelectedPreset] = useState<string | null>('Last 7 Days');
+  const [hoveredPreset, setHoveredPreset] = useState<string | null>(null);
   const [draft, setDraft] = useState<AnalyticsDateRange>(() => getDashboardPresetRange('Last 7 Days'));
   const [applied, setApplied] = useState<AnalyticsDateRange>(() => getDashboardPresetRange('Last 7 Days'));
   const [rangeError, setRangeError] = useState<string | null>(null);
@@ -78,8 +77,13 @@ export function DashboardPage() {
     variant: 'info' | 'success' | 'error' | 'warning';
   } | null>(null);
 
-  const skip = !allowed || Boolean(rangeError);
+  const skip = !allowed;
+  const previousRange = useMemo(() => getPreviousPeriodRange(applied), [applied.dateFrom, applied.dateTo]);
   const query = useGetDashboardSummaryQuery(applied, {
+    skip,
+    refetchOnFocus: true,
+  });
+  const previousQuery = useGetDashboardSummaryQuery(previousRange, {
     skip,
     refetchOnFocus: true,
   });
@@ -106,7 +110,7 @@ export function DashboardPage() {
 
     return items.slice(0, 5).map((res: any, index: number) => {
       const rawCategory = Array.isArray(res.cuisineTypes) && res.cuisineTypes.length > 0
-        ? res.cuisineTypes.slice(0, 2).map((c: string) => c.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())).join(' • ')
+        ? res.cuisineTypes.slice(0, 2).map((c: string) => c.replace('_', ' ').toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase())).join(' • ')
         : (res.cuisineCategory || 'Multi-Cuisine');
 
       const rawRating = Number(res.avgRating ?? res.rating ?? 0);
@@ -155,9 +159,7 @@ export function DashboardPage() {
     return itemList.slice(0, 5);
   }, [menuQuery.data, topStores]);
 
-
   const handledErrorRef = React.useRef<unknown>(null);
-
 
   useEffect(() => {
     trackAnalyticsEvent('admin_dashboard_viewed');
@@ -188,7 +190,37 @@ export function DashboardPage() {
     return toUnwrappedApiError(query.error).code === 'FORBIDDEN';
   }, [query.isError, query.error]);
 
+  const handlePresetClick = (presetLabel: string) => {
+    const range = getDashboardPresetRange(presetLabel);
+    setRangeError(null);
+    setSelectedPreset(presetLabel);
+    setDraft(range);
+    setApplied(range);
+    trackAnalyticsEvent('date_range_changed', {
+      dateFrom: range.dateFrom,
+      dateTo: range.dateTo,
+      screen: 'dashboard',
+      preset: presetLabel,
+    });
+  };
+
+  const handleDraftChange = (next: AnalyticsDateRange) => {
+    setDraft(next);
+    setSelectedPreset(null);
+    if (rangeError) {
+      if (next.dateFrom && next.dateTo && next.dateFrom <= next.dateTo) {
+        setRangeError(null);
+      }
+    }
+  };
+
   const applyRange = () => {
+    if (!draft.dateFrom || !draft.dateTo) {
+      const msg = 'Both start date and end date are required.';
+      setRangeError(msg);
+      setToast({ message: msg, variant: 'error' });
+      return;
+    }
     const validated = validateDateRange(draft.dateFrom, draft.dateTo);
     if (!validated.ok) {
       setRangeError(validated.message);
@@ -197,8 +229,16 @@ export function DashboardPage() {
     }
     setRangeError(null);
     setApplied(validated.range);
+
+    const presets = ['Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days', 'This Month'];
+    const matched = presets.find((label) => {
+      const r = getDashboardPresetRange(label);
+      return r.dateFrom === validated.range.dateFrom && r.dateTo === validated.range.dateTo;
+    });
+    setSelectedPreset(matched ?? null);
+
     setToast({
-      message: ` Custom date range applied: ${validated.range.dateFrom} to ${validated.range.dateTo}`,
+      message: `Custom date range applied: ${validated.range.dateFrom} to ${validated.range.dateTo}`,
       variant: 'success',
     });
     trackAnalyticsEvent('date_range_changed', {
@@ -290,45 +330,27 @@ export function DashboardPage() {
               { label: 'This Month' },
             ].map((preset) => {
               const range = getDashboardPresetRange(preset.label);
-              const isPresetActive = applied.dateFrom === range.dateFrom && applied.dateTo === range.dateTo;
+              const isPresetActive = selectedPreset === preset.label ||
+                (selectedPreset === null && applied.dateFrom === range.dateFrom && applied.dateTo === range.dateTo);
+              const isHovered = hoveredPreset === preset.label;
 
               return (
                 <button
                   key={preset.label}
                   type="button"
-                  onClick={() => {
-                    setRangeError(null);
-                    setDraft(range);
-                    setApplied(range);
-                    trackAnalyticsEvent('date_range_changed', {
-                      dateFrom: range.dateFrom,
-                      dateTo: range.dateTo,
-                      screen: 'dashboard',
-                      preset: preset.label,
-                    });
-                  }}
+                  onClick={() => handlePresetClick(preset.label)}
+                  onMouseEnter={() => setHoveredPreset(preset.label)}
+                  onMouseLeave={() => setHoveredPreset(null)}
                   style={{
                     padding: '6px 14px',
                     borderRadius: 8,
-                    border: isPresetActive ? '1px solid #BFDBFE' : '1px solid #E5E7EB',
-                    backgroundColor: isPresetActive ? '#E3F2FD' : '#FFFFFF',
-                    color: isPresetActive ? '#2196F3' : '#6B7280',
+                    border: isPresetActive ? '1px solid #90CAF9' : isHovered ? '1px solid #D1D5DB' : '1px solid #E5E7EB',
+                    backgroundColor: isPresetActive ? '#E3F2FD' : isHovered ? '#F5F7FA' : '#FFFFFF',
+                    color: isPresetActive ? '#1976D2' : isHovered ? '#111827' : '#6B7280',
                     fontSize: 12,
                     fontWeight: isPresetActive ? 700 : 500,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease-in-out',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isPresetActive) {
-                      e.currentTarget.style.backgroundColor = '#F5F7FA';
-                      e.currentTarget.style.color = '#111827';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isPresetActive) {
-                      e.currentTarget.style.backgroundColor = '#FFFFFF';
-                      e.currentTarget.style.color = '#6B7280';
-                    }
                   }}
                 >
                   {preset.label}
@@ -339,7 +361,7 @@ export function DashboardPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <DateRangePicker value={draft} onChange={setDraft} />
+          <DateRangePicker value={draft} onChange={handleDraftChange} />
           <button
             type="button"
             aria-label="Apply date range"
@@ -363,12 +385,29 @@ export function DashboardPage() {
       </div>
 
       {rangeError ? (
-        <Text as="p" variant="caption" color={tokens.color.error}>
-          {rangeError}
-        </Text>
+        <div
+          role="alert"
+          style={{
+            padding: '10px 14px',
+            borderRadius: 10,
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FCA5A5',
+            color: '#B91C1C',
+            fontSize: 13,
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>{rangeError}</span>
+        </div>
       ) : null}
-
-
 
       {/* 2. Primary KPI Grid */}
       {forbidden ? (
@@ -388,6 +427,8 @@ export function DashboardPage() {
                 avgOrderValue: 0,
               }
             }
+            previousSummary={previousQuery.data}
+            isLoadingComparison={previousQuery.isLoading}
           />
         </div>
       )}
@@ -402,9 +443,6 @@ export function DashboardPage() {
         isLoading={storesQuery.isLoading || (Boolean(firstStoreId) && menuQuery.isLoading)}
       />
 
-
-
-
       <Toast
         open={Boolean(toast)}
         message={toast?.message ?? ''}
@@ -415,4 +453,3 @@ export function DashboardPage() {
     </div>
   );
 }
-

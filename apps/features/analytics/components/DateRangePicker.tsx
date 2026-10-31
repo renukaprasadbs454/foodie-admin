@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Text, useTheme } from 'foodie-shared-web';
 import type { AnalyticsDateRange } from '../types';
 
 type Props = {
@@ -12,7 +11,9 @@ type Props = {
 
 /** Local date range — UI-API DateRangePicker (feature-local). */
 export function DateRangePicker({ value, onChange, disabled }: Props) {
-  const { tokens } = useTheme();
+  const dateFrom = value?.dateFrom ?? '';
+  const dateTo = value?.dateTo ?? '';
+  const isInverted = Boolean(dateFrom && dateTo && dateFrom > dateTo);
 
   return (
     <div
@@ -29,22 +30,24 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
         </span>
         <input
           type="date"
-          value={value.dateFrom}
+          value={dateFrom}
           disabled={disabled}
           aria-label="Date from"
+          title={isInverted ? 'From date cannot be later than To date' : undefined}
           onChange={(e) =>
-            onChange({ ...value, dateFrom: e.target.value })
+            onChange({ dateFrom: e.target.value, dateTo })
           }
           style={{
             padding: '7px 12px',
-            border: '1px solid #E5E7EB',
+            border: isInverted ? '1px solid #EF4444' : '1px solid #E5E7EB',
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 500,
             color: '#111827',
             backgroundColor: '#FFFFFF',
             outline: 'none',
-            cursor: 'pointer',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            transition: 'border-color 0.15s ease',
           }}
         />
       </label>
@@ -54,20 +57,22 @@ export function DateRangePicker({ value, onChange, disabled }: Props) {
         </span>
         <input
           type="date"
-          value={value.dateTo}
+          value={dateTo}
           disabled={disabled}
           aria-label="Date to"
-          onChange={(e) => onChange({ ...value, dateTo: e.target.value })}
+          title={isInverted ? 'To date cannot be earlier than From date' : undefined}
+          onChange={(e) => onChange({ dateFrom, dateTo: e.target.value })}
           style={{
             padding: '7px 12px',
-            border: '1px solid #E5E7EB',
+            border: isInverted ? '1px solid #EF4444' : '1px solid #E5E7EB',
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 500,
             color: '#111827',
             backgroundColor: '#FFFFFF',
             outline: 'none',
-            cursor: 'pointer',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            transition: 'border-color 0.15s ease',
           }}
         />
       </label>

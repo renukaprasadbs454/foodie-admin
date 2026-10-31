@@ -20,11 +20,12 @@ interface Props {
 
 export function SalesAnalyticsChart({ range }: Props) {
   const queryRange = useMemo(() => range ?? defaultDateRange(), [range]);
-  const { data: rawSalesData } = useGetDailySalesQuery(queryRange);
+  const { data: rawSalesData, isLoading, isFetching } = useGetDailySalesQuery(queryRange);
 
   const chartData = useMemo(() => {
-    if (!rawSalesData || rawSalesData.length === 0) return [];
-    return rawSalesData.map((p) => {
+    if (!rawSalesData || !Array.isArray(rawSalesData) || rawSalesData.length === 0) return [];
+    const sorted = [...rawSalesData].sort((a, b) => a.date.localeCompare(b.date));
+    return sorted.map((p) => {
       const rev = Number(p.revenue) || 0;
       return {
         date: p.date,
@@ -49,10 +50,15 @@ export function SalesAnalyticsChart({ range }: Props) {
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em' }}>
-            Gross Marketplace Volume & Admin Earnings
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>Gross Marketplace Volume & Admin Earnings</span>
+            {isFetching ? (
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#2196F3', backgroundColor: '#E3F2FD', padding: '2px 8px', borderRadius: 10 }}>
+                Updating...
+              </span>
+            ) : null}
           </div>
           <div style={{ fontSize: 13, color: '#6B7280', marginTop: 3 }}>
             Revenue vs 15% Marketplace Platform Commission
@@ -62,7 +68,11 @@ export function SalesAnalyticsChart({ range }: Props) {
 
       {/* Chart Content */}
       <div style={{ flex: 1, width: '100%', minHeight: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {chartData.length === 0 ? (
+        {isLoading && (!chartData || chartData.length === 0) ? (
+          <div style={{ textAlign: 'center', color: '#6B7280', fontSize: 13, padding: 32 }}>
+            Loading sales telemetry...
+          </div>
+        ) : chartData.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#6B7280', fontSize: 13, padding: 32 }}>
             No sales volume recorded for the selected date range.
           </div>
@@ -81,9 +91,18 @@ export function SalesAnalyticsChart({ range }: Props) {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
               <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
+              <YAxis
+                stroke="#9CA3AF"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(val) => `₹${val}`}
+              />
               <Tooltip
-                formatter={(value: any) => [`₹${Number(value ?? 0).toLocaleString()}`, '']}
+                formatter={(value: any, name: any) => [
+                  `₹${Number(value ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                  name ?? '',
+                ]}
                 contentStyle={{
                   backgroundColor: '#FFFFFF',
                   borderRadius: 12,
@@ -104,6 +123,8 @@ export function SalesAnalyticsChart({ range }: Props) {
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#salesGrad)"
+                dot={{ r: 3, fill: '#2196F3' }}
+                activeDot={{ r: 6, fill: '#2196F3' }}
               />
               <Area
                 type="monotone"
@@ -113,6 +134,8 @@ export function SalesAnalyticsChart({ range }: Props) {
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#commGrad)"
+                dot={{ r: 3, fill: '#42A5F5' }}
+                activeDot={{ r: 5, fill: '#42A5F5' }}
               />
             </AreaChart>
           </ResponsiveContainer>

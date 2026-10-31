@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 
 interface TopRestaurant {
   id: string;
@@ -53,9 +54,9 @@ export function TopPerformersWidget({ restaurants = [], items = [], isLoading = 
           <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em' }}>
             Top Rated Stores
           </div>
-          <a href="/restaurants" style={{ fontSize: 13, fontWeight: 600, color: '#2196F3', textDecoration: 'none' }}>
+          <Link href="/restaurants" style={{ fontSize: 13, fontWeight: 600, color: '#2196F3', textDecoration: 'none' }}>
             View All →
-          </a>
+          </Link>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

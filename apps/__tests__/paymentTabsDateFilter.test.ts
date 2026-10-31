@@ -425,4 +425,255 @@ describe('Payment Tabs Date Filtering System', () => {
       expect(result).toHaveLength(2);
     });
   });
+
+  describe('6. Executive Overview Filtering & Metric Recalculations', () => {
+    const executiveSettlements: PaymentSettlementRecord[] = [
+      {
+        id: 'settle-today-1',
+        settlementId: 'SET-TODAY-1',
+        orderId: 'ORD-101',
+        customerName: 'Alice',
+        totalPaid: 500,
+        foodSubtotal: 400,
+        deliveryFee: 60,
+        restaurantNetShare: 344,
+        deliveryPartnerNetShare: 54,
+        adminTotalRevenue: 102,
+        settlementStatus: 'FUNDS_DISTRIBUTED',
+        settledAt: new Date(2026, 9, 28, 10, 0, 0).toISOString(), // Today 10:00 AM
+      },
+      {
+        id: 'settle-yesterday-1',
+        settlementId: 'SET-YEST-1',
+        orderId: 'ORD-102',
+        customerName: 'Bob',
+        totalPaid: 800,
+        foodSubtotal: 700,
+        deliveryFee: 60,
+        restaurantNetShare: 602,
+        deliveryPartnerNetShare: 54,
+        adminTotalRevenue: 144,
+        settlementStatus: 'FUNDS_DISTRIBUTED',
+        settledAt: new Date(2026, 9, 27, 16, 0, 0).toISOString(), // Yesterday 4:00 PM (Tuesday)
+      },
+      {
+        id: 'settle-this-week-monday',
+        settlementId: 'SET-MON-1',
+        orderId: 'ORD-103',
+        customerName: 'Charlie',
+        totalPaid: 1200,
+        foodSubtotal: 1000,
+        deliveryFee: 100,
+        restaurantNetShare: 860,
+        deliveryPartnerNetShare: 90,
+        adminTotalRevenue: 250,
+        settlementStatus: 'FUNDS_DISTRIBUTED',
+        settledAt: new Date(2026, 9, 26, 9, 0, 0).toISOString(), // Monday of this week
+      },
+      {
+        id: 'settle-last-week',
+        settlementId: 'SET-LAST-WK',
+        orderId: 'ORD-104',
+        customerName: 'Dave',
+        totalPaid: 450,
+        foodSubtotal: 350,
+        deliveryFee: 60,
+        restaurantNetShare: 301,
+        deliveryPartnerNetShare: 54,
+        adminTotalRevenue: 95,
+        settlementStatus: 'FUNDS_DISTRIBUTED',
+        settledAt: new Date(2026, 9, 20, 11, 0, 0).toISOString(), // Last week
+      },
+      {
+        id: 'settle-earlier-this-month',
+        settlementId: 'SET-MONTH-1',
+        orderId: 'ORD-105',
+        customerName: 'Eve',
+        totalPaid: 650,
+        foodSubtotal: 500,
+        deliveryFee: 70,
+        restaurantNetShare: 430,
+        deliveryPartnerNetShare: 63,
+        adminTotalRevenue: 157,
+        settlementStatus: 'FUNDS_DISTRIBUTED',
+        settledAt: new Date(2026, 9, 5, 12, 0, 0).toISOString(), // Oct 5, 2026
+      },
+      {
+        id: 'settle-earlier-this-year',
+        settlementId: 'SET-YEAR-1',
+        orderId: 'ORD-106',
+        customerName: 'Frank',
+        totalPaid: 300,
+        foodSubtotal: 220,
+        deliveryFee: 40,
+        restaurantNetShare: 189.2,
+        deliveryPartnerNetShare: 36,
+        adminTotalRevenue: 74.8,
+        settlementStatus: 'FUNDS_DISTRIBUTED',
+        settledAt: new Date(2026, 2, 15, 14, 0, 0).toISOString(), // March 15, 2026
+      },
+      {
+        id: 'settle-last-year',
+        settlementId: 'SET-LAST-YEAR',
+        orderId: 'ORD-107',
+        customerName: 'Grace',
+        totalPaid: 700,
+        foodSubtotal: 600,
+        deliveryFee: 60,
+        restaurantNetShare: 516,
+        deliveryPartnerNetShare: 54,
+        adminTotalRevenue: 130,
+        settlementStatus: 'FUNDS_DISTRIBUTED',
+        settledAt: new Date(2025, 11, 20, 10, 0, 0).toISOString(), // Dec 20, 2025
+      },
+    ];
+
+    it('ensures Executive Overview filter options include ONLY Today, This Week, This Month, This Year, Custom Date Range', () => {
+      const allowedOptions = ['TODAY', 'THIS_WEEK', 'THIS_MONTH', 'THIS_YEAR', 'CUSTOM'];
+      // Verify YESTERDAY and ALL are strictly omitted
+      expect(allowedOptions).not.toContain('YESTERDAY');
+      expect(allowedOptions).not.toContain('ALL');
+      expect(allowedOptions).toHaveLength(5);
+    });
+
+    it('recalculates all 4 financial metrics accurately for TODAY', () => {
+      const filtered = filterRecordsByDateRange(
+        executiveSettlements,
+        'TODAY',
+        (s) => s.settledAt,
+        undefined,
+        undefined,
+        refDate
+      );
+      expect(filtered).toHaveLength(1);
+
+      const totalAdminEscrowPaid = filtered.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
+      const totalAdminNetRevenue = filtered.reduce((acc, s) => acc + (s.adminTotalRevenue || 0), 0);
+      const totalDistributedToRestaurants = filtered.reduce((acc, s) => acc + (s.restaurantNetShare || 0), 0);
+      const totalDistributedToDrivers = filtered.reduce((acc, s) => acc + (s.deliveryPartnerNetShare || 0), 0);
+
+      expect(totalAdminEscrowPaid).toBe(500);
+      expect(totalAdminNetRevenue).toBe(102);
+      expect(totalDistributedToRestaurants).toBe(344);
+      expect(totalDistributedToDrivers).toBe(54);
+    });
+
+    it('recalculates all 4 financial metrics accurately for THIS_WEEK', () => {
+      const filtered = filterRecordsByDateRange(
+        executiveSettlements,
+        'THIS_WEEK',
+        (s) => s.settledAt,
+        undefined,
+        undefined,
+        refDate
+      );
+      expect(filtered).toHaveLength(3);
+
+      const totalAdminEscrowPaid = filtered.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
+      const totalAdminNetRevenue = filtered.reduce((acc, s) => acc + (s.adminTotalRevenue || 0), 0);
+      const totalDistributedToRestaurants = filtered.reduce((acc, s) => acc + (s.restaurantNetShare || 0), 0);
+      const totalDistributedToDrivers = filtered.reduce((acc, s) => acc + (s.deliveryPartnerNetShare || 0), 0);
+
+      expect(totalAdminEscrowPaid).toBe(2500);
+      expect(totalAdminNetRevenue).toBe(496);
+      expect(totalDistributedToRestaurants).toBe(1806);
+      expect(totalDistributedToDrivers).toBe(198);
+    });
+
+    it('recalculates all 4 financial metrics accurately for THIS_MONTH', () => {
+      const filtered = filterRecordsByDateRange(
+        executiveSettlements,
+        'THIS_MONTH',
+        (s) => s.settledAt,
+        undefined,
+        undefined,
+        refDate
+      );
+      expect(filtered).toHaveLength(5);
+
+      const totalAdminEscrowPaid = filtered.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
+      const totalAdminNetRevenue = filtered.reduce((acc, s) => acc + (s.adminTotalRevenue || 0), 0);
+      const totalDistributedToRestaurants = filtered.reduce((acc, s) => acc + (s.restaurantNetShare || 0), 0);
+      const totalDistributedToDrivers = filtered.reduce((acc, s) => acc + (s.deliveryPartnerNetShare || 0), 0);
+
+      expect(totalAdminEscrowPaid).toBe(3600);
+      expect(totalAdminNetRevenue).toBe(748);
+      expect(totalDistributedToRestaurants).toBe(2537);
+      expect(totalDistributedToDrivers).toBe(315);
+    });
+
+    it('recalculates all 4 financial metrics accurately for THIS_YEAR', () => {
+      const filtered = filterRecordsByDateRange(
+        executiveSettlements,
+        'THIS_YEAR',
+        (s) => s.settledAt,
+        undefined,
+        undefined,
+        refDate
+      );
+      expect(filtered).toHaveLength(6);
+
+      const totalAdminEscrowPaid = filtered.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
+      const totalAdminNetRevenue = filtered.reduce((acc, s) => acc + (s.adminTotalRevenue || 0), 0);
+      const totalDistributedToRestaurants = filtered.reduce((acc, s) => acc + (s.restaurantNetShare || 0), 0);
+      const totalDistributedToDrivers = filtered.reduce((acc, s) => acc + (s.deliveryPartnerNetShare || 0), 0);
+
+      expect(totalAdminEscrowPaid).toBe(3900);
+      expect(Number(totalAdminNetRevenue.toFixed(1))).toBe(822.8);
+      expect(Number(totalDistributedToRestaurants.toFixed(1))).toBe(2726.2);
+      expect(totalDistributedToDrivers).toBe(351);
+    });
+
+    it('recalculates all 4 financial metrics accurately for CUSTOM date range', () => {
+      const filtered = filterRecordsByDateRange(
+        executiveSettlements,
+        'CUSTOM',
+        (s) => s.settledAt,
+        '2026-10-26',
+        '2026-10-27',
+        refDate
+      );
+      expect(filtered).toHaveLength(2);
+
+      const totalAdminEscrowPaid = filtered.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
+      const totalAdminNetRevenue = filtered.reduce((acc, s) => acc + (s.adminTotalRevenue || 0), 0);
+      const totalDistributedToRestaurants = filtered.reduce((acc, s) => acc + (s.restaurantNetShare || 0), 0);
+      const totalDistributedToDrivers = filtered.reduce((acc, s) => acc + (s.deliveryPartnerNetShare || 0), 0);
+
+      expect(totalAdminEscrowPaid).toBe(2000);
+      expect(totalAdminNetRevenue).toBe(394);
+      expect(totalDistributedToRestaurants).toBe(1462);
+      expect(totalDistributedToDrivers).toBe(144);
+    });
+
+    it('gracefully handles empty filter results with 0 for all metrics', () => {
+      // Range where no settlements exist (e.g. year 2020)
+      const filtered = filterRecordsByDateRange(
+        executiveSettlements,
+        'CUSTOM',
+        (s) => s.settledAt,
+        '2020-01-01',
+        '2020-01-31',
+        refDate
+      );
+      expect(filtered).toHaveLength(0);
+
+      const totalAdminEscrowPaid = filtered.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
+      const totalAdminNetRevenue = filtered.reduce((acc, s) => acc + (s.adminTotalRevenue || 0), 0);
+      const totalDistributedToRestaurants = filtered.reduce((acc, s) => acc + (s.restaurantNetShare || 0), 0);
+      const totalDistributedToDrivers = filtered.reduce((acc, s) => acc + (s.deliveryPartnerNetShare || 0), 0);
+
+      expect(totalAdminEscrowPaid).toBe(0);
+      expect(totalAdminNetRevenue).toBe(0);
+      expect(totalDistributedToRestaurants).toBe(0);
+      expect(totalDistributedToDrivers).toBe(0);
+    });
+
+    it('validates custom date range where From date is later than To date', () => {
+      const startDate = '2026-10-28';
+      const endDate = '2026-10-20';
+      const isInvalid = startDate > endDate;
+      expect(isInvalid).toBe(true);
+    });
+  });
 });

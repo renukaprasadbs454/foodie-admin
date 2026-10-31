@@ -260,6 +260,54 @@ export function PaymentsPage() {
   const [commissionConfig, setCommissionConfig] = useState<CommissionConfig>(DEFAULT_COMMISSION_CONFIG);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // Executive Overview Date Filter State (Exclusively for Executive Overview tab)
+  const [overviewDateFilter, setOverviewDateFilter] = useState<PaymentDateFilter>('THIS_MONTH');
+  const [overviewDraftStartDate, setOverviewDraftStartDate] = useState<string>('');
+  const [overviewDraftEndDate, setOverviewDraftEndDate] = useState<string>('');
+  const [overviewAppliedStartDate, setOverviewAppliedStartDate] = useState<string>('');
+  const [overviewAppliedEndDate, setOverviewAppliedEndDate] = useState<string>('');
+  const [overviewRangeError, setOverviewRangeError] = useState<string | null>(null);
+
+  const handleOverviewPresetChange = (preset: PaymentDateFilter) => {
+    setOverviewDateFilter(preset);
+    setOverviewRangeError(null);
+    if (preset !== 'CUSTOM') {
+      setOverviewDraftStartDate('');
+      setOverviewDraftEndDate('');
+      setOverviewAppliedStartDate('');
+      setOverviewAppliedEndDate('');
+    }
+  };
+
+  const handleApplyOverviewCustomDates = () => {
+    if (overviewDraftStartDate && overviewDraftEndDate && overviewDraftStartDate > overviewDraftEndDate) {
+      setOverviewRangeError('From date cannot be later than To date.');
+      showToast('Invalid date range: From date cannot be later than To date.');
+      return;
+    }
+    setOverviewRangeError(null);
+    setOverviewAppliedStartDate(overviewDraftStartDate);
+    setOverviewAppliedEndDate(overviewDraftEndDate);
+  };
+
+  const handleClearOverviewDates = () => {
+    setOverviewDraftStartDate('');
+    setOverviewDraftEndDate('');
+    setOverviewAppliedStartDate('');
+    setOverviewAppliedEndDate('');
+    setOverviewRangeError(null);
+  };
+
+  const overviewFilteredSettlements = useMemo(() => {
+    return filterRecordsByDateRange(
+      serverSettlements,
+      overviewDateFilter,
+      (s) => s.settledAt,
+      overviewAppliedStartDate,
+      overviewAppliedEndDate
+    );
+  }, [serverSettlements, overviewDateFilter, overviewAppliedStartDate, overviewAppliedEndDate]);
+
   // Transactions Date Filter State
   const [txDateFilter, setTxDateFilter] = useState<TransactionDateFilter>('ALL');
   const [txCustomStartDate, setTxCustomStartDate] = useState<string>('');
@@ -550,11 +598,11 @@ export function PaymentsPage() {
   const realRestaurants = restaurantsData?.items || [];
   const realPartners = partnersData?.items || [];
 
-  // Live Financial Metrics Calculated from Real Database Data
-  const totalAdminEscrowPaid = serverSettlements.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
-  const totalAdminNetRevenue = serverSettlements.reduce((acc, s) => acc + (s.adminTotalRevenue || 0), 0);
-  const totalDistributedToRestaurants = serverSettlements.reduce((acc, s) => acc + (s.restaurantNetShare || 0), 0);
-  const totalDistributedToDrivers = serverSettlements.reduce((acc, s) => acc + (s.deliveryPartnerNetShare || 0), 0);
+  // Live Financial Metrics Calculated from Real Database Data (filtered by Executive Overview date range)
+  const totalAdminEscrowPaid = overviewFilteredSettlements.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
+  const totalAdminNetRevenue = overviewFilteredSettlements.reduce((acc, s) => acc + (s.adminTotalRevenue || 0), 0);
+  const totalDistributedToRestaurants = overviewFilteredSettlements.reduce((acc, s) => acc + (s.restaurantNetShare || 0), 0);
+  const totalDistributedToDrivers = overviewFilteredSettlements.reduce((acc, s) => acc + (s.deliveryPartnerNetShare || 0), 0);
 
   // Live Simulator Calculations
   const livePreviewSplit = calculatePaymentSplit(
@@ -726,6 +774,164 @@ export function PaymentsPage() {
       {/* TAB 1: EXECUTIVE OVERVIEW */}
       {activeTab === 'OVERVIEW' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Executive Overview Date Filter Section */}
+          <div
+            id="overview-date-filter-bar"
+            style={{
+              padding: '12px 20px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              border: '1px solid #E5E7EB',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            {/* Filter Pills */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6B7280' }}>Date Range:</span>
+              {[
+                { key: 'TODAY' as const, label: 'Today' },
+                { key: 'THIS_WEEK' as const, label: 'This Week' },
+                { key: 'THIS_MONTH' as const, label: 'This Month' },
+                { key: 'THIS_YEAR' as const, label: 'This Year' },
+                { key: 'CUSTOM' as const, label: 'Custom Date Range' },
+              ].map((opt) => {
+                const isActive = overviewDateFilter === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    id={`overview-filter-${opt.key.toLowerCase().replace('_', '-')}`}
+                    type="button"
+                    onClick={() => handleOverviewPresetChange(opt.key)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: isActive ? '1px solid #2196F3' : '1px solid #E5E7EB',
+                      backgroundColor: isActive ? '#E3F2FD' : '#FFFFFF',
+                      color: isActive ? '#2196F3' : '#6B7280',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Date Range Selectors */}
+            {overviewDateFilter === 'CUSTOM' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label htmlFor="overview-start-date" style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                    From:
+                  </label>
+                  <input
+                    id="overview-start-date"
+                    type="date"
+                    value={overviewDraftStartDate}
+                    onChange={(e) => {
+                      setOverviewDraftStartDate(e.target.value);
+                      setOverviewRangeError(null);
+                    }}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: overviewRangeError ? '1px solid #EF4444' : '1px solid #E5E7EB',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 12,
+                      color: '#111827',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label htmlFor="overview-end-date" style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                    To:
+                  </label>
+                  <input
+                    id="overview-end-date"
+                    type="date"
+                    value={overviewDraftEndDate}
+                    onChange={(e) => {
+                      setOverviewDraftEndDate(e.target.value);
+                      setOverviewRangeError(null);
+                    }}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: overviewRangeError ? '1px solid #EF4444' : '1px solid #E5E7EB',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 12,
+                      color: '#111827',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <button
+                  id="overview-apply-custom-dates"
+                  type="button"
+                  onClick={handleApplyOverviewCustomDates}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    border: '1px solid #2196F3',
+                    backgroundColor: '#2196F3',
+                    color: '#FFFFFF',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Apply
+                </button>
+
+                {(overviewDraftStartDate || overviewDraftEndDate || overviewAppliedStartDate || overviewAppliedEndDate) && (
+                  <button
+                    id="overview-clear-dates"
+                    type="button"
+                    onClick={handleClearOverviewDates}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#6B7280',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Clear Dates
+                  </button>
+                )}
+
+                {overviewRangeError && (
+                  <span
+                    id="overview-range-error"
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#EF4444',
+                      marginLeft: 4,
+                    }}
+                  >
+                    {overviewRangeError}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Financial Summary KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             <div

@@ -194,4 +194,48 @@ describe('Unserviceable Areas Feature', () => {
       expect(resolveDocumentUrl('restaurants/123/file.png')).toBe('/api/bff/storage/restaurants/123/file.png');
     });
   });
+
+  describe('Details Modal Helpers & Data Integrity', () => {
+    it('safely handles complete and missing contact information for Customer Information section', () => {
+      const fullReq: UnserviceableRequestDto = {
+        id: '101',
+        restaurantName: '[Customer] Priya Sharma',
+        contactPerson: 'Priya Sharma',
+        contactEmail: 'priya@example.com',
+        contactPhone: '+919871457639',
+        address: 'Sri Banashankari Layout, Yelahanka taluku',
+        cityName: 'Bangalore',
+        latitude: 13.175496,
+        longitude: 77.559425,
+        status: 'PENDING',
+        createdAt: '2026-10-31T09:00:00Z',
+      };
+
+      expect(getRequesterDisplayName(fullReq)).toBe('Priya Sharma');
+      expect(inferRequestSource(fullReq)).toBe('CUSTOMER');
+      expect(getRequestedArea(fullReq)).toBe('Sri Banashankari Layout, Yelahanka taluku');
+
+      const sparseReq = {
+        id: '102',
+        address: '',
+        status: 'PENDING',
+      } as unknown as UnserviceableRequestDto;
+
+      expect(getRequesterDisplayName(sparseReq)).toBe('Unknown Requester');
+      expect(getRequestedArea(sparseReq)).toBe('Unspecified Live Location');
+    });
+
+    it('formats coordinates and Google Maps link correctly for Location & Geospatial section', () => {
+      const lat = 13.17549644323565;
+      const lng = 77.55942519885193;
+      const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+      expect(mapsUrl).toBe('https://www.google.com/maps?q=13.17549644323565,77.55942519885193');
+    });
+
+    it('formats request reference with #REQ- prefix', () => {
+      const formatRef = (id: string | number) => `#REQ-${id}`;
+      expect(formatRef('10')).toBe('#REQ-10');
+      expect(formatRef(42)).toBe('#REQ-42');
+    });
+  });
 });

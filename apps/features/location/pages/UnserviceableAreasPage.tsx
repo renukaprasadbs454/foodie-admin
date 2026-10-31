@@ -129,6 +129,90 @@ export function UnserviceableAreasPage() {
     docIndex: number;
   } | null>(null);
 
+  // Lock body scroll and support Escape key only when modal dialogs (log or doc preview) are open
+  React.useEffect(() => {
+    if (showLogModal || selectedDocPreview) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          if (selectedDocPreview) {
+            setSelectedDocPreview(null);
+          } else if (showLogModal) {
+            setShowLogModal(false);
+          }
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [showLogModal, selectedDocPreview]);
+
+  // Keep detailModalRequest fresh if background query updates
+  React.useEffect(() => {
+    if (detailModalRequest) {
+      const updated = dbRequests.find((r) => r.id === detailModalRequest.id);
+      if (updated && updated.status !== detailModalRequest.status) {
+        setDetailModalRequest(updated);
+      }
+    }
+  }, [dbRequests, detailModalRequest?.id]);
+
+  // Navigation handlers between full-page request details and request list
+  const handleOpenDetails = (req: UnserviceableRequestDto) => {
+    setDetailModalRequest(req);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('requestId', req.id);
+      window.history.pushState({ requestId: req.id }, '', url.toString());
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleCloseDetails = () => {
+    setDetailModalRequest(null);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('requestId');
+      url.searchParams.delete('id');
+      window.history.pushState({}, '', url.pathname);
+    }
+  };
+
+  // Sync with URL query parameter (for direct links or browser back/forward)
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && dbRequests.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const reqId = params.get('requestId') || params.get('id');
+      if (reqId) {
+        const found = dbRequests.find((r) => r.id === reqId);
+        if (found && (!detailModalRequest || detailModalRequest.id !== reqId)) {
+          setDetailModalRequest(found);
+        }
+      }
+    }
+  }, [dbRequests]);
+
+  React.useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const reqId = params.get('requestId') || params.get('id');
+        if (reqId) {
+          const found = dbRequests.find((r) => r.id === reqId);
+          if (found) setDetailModalRequest(found);
+        } else {
+          setDetailModalRequest(null);
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [dbRequests]);
+
   // New Request Form state
   const [newSource, setNewSource] = useState<RequestSource>('CUSTOMER');
   const [newName, setNewName] = useState('');
@@ -575,6 +659,666 @@ export function UnserviceableAreasPage() {
         </div>
       )}
 
+      {detailModalRequest ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Top Breadcrumb & Back Navigation */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <button
+              type="button"
+              onClick={handleCloseDetails}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 16px',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #E2E8F0',
+                borderRadius: 8,
+                color: '#334155',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#F8FAFC';
+                e.currentTarget.style.borderColor = '#CBD5E1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#FFFFFF';
+                e.currentTarget.style.borderColor = '#E2E8F0';
+              }}
+            >
+              <span style={{ fontSize: 16 }}>←</span>
+              <span>Back to Requests</span>
+            </button>
+
+            <div style={{ fontSize: 13, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>Unserviceable Areas</span>
+              <span>/</span>
+              <span style={{ fontWeight: 600, color: '#0F172A' }}>Demand Request #{detailModalRequest.id}</span>
+            </div>
+          </div>
+
+          {/* Request Header Card */}
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              border: '1px solid #E2E8F0',
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 16,
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                  Request Details
+                </h1>
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#2563EB',
+                    backgroundColor: '#EFF6FF',
+                    padding: '3px 10px',
+                    borderRadius: 6,
+                    border: '1px solid #BFDBFE',
+                  }}
+                >
+                  #REQ-{detailModalRequest.id}
+                </span>
+                {renderSourceBadge(inferRequestSource(detailModalRequest))}
+                {renderStatusBadge(detailModalRequest.status)}
+              </div>
+              <div style={{ fontSize: 13, color: '#64748B', marginTop: 6 }}>
+                Submitted on {detailModalRequest.createdAt ? String(detailModalRequest.createdAt).replace('T', ' ').slice(0, 16) : 'Not available'} • Requester: <strong>{getRequesterDisplayName(detailModalRequest)}</strong>
+              </div>
+            </div>
+
+            {/* Header Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {detailModalRequest.status !== 'APPROVED' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleExtendZone(detailModalRequest)}
+                    disabled={isExtendingZone}
+                    style={{
+                      padding: '9px 18px',
+                      background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: isExtendingZone ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 2px 4px rgba(37, 99, 235, 0.25)',
+                    }}
+                  >
+                    {isExtendingZone ? 'Extending...' : 'Extend Zone'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApproveAndCreateZone(detailModalRequest)}
+                    disabled={isApproving}
+                    style={{
+                      padding: '9px 18px',
+                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: isApproving ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.25)',
+                    }}
+                  >
+                    {isApproving ? 'Approving...' : 'Approve'}
+                  </button>
+                </>
+              )}
+
+              {detailModalRequest.status !== 'REJECTED' && (
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus(detailModalRequest.id, 'REJECTED')}
+                  disabled={isUpdatingStatus}
+                  style={{
+                    padding: '9px 16px',
+                    backgroundColor: '#FEE2E2',
+                    color: '#B91C1C',
+                    border: '1px solid #FECACA',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: isUpdatingStatus ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Reject
+                </button>
+              )}
+
+              {detailModalRequest.status !== 'PENDING' && (
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus(detailModalRequest.id, 'PENDING')}
+                  disabled={isUpdatingStatus}
+                  style={{
+                    padding: '9px 16px',
+                    backgroundColor: '#FEF3C7',
+                    color: '#B45309',
+                    border: '1px solid #FDE68A',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: isUpdatingStatus ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Reset to Pending
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleCloseDetails}
+                style={{
+                  padding: '9px 18px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#475569',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Back to Requests
+              </button>
+            </div>
+          </div>
+
+          {/* Details Content in 2 Columns */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: 20 }}>
+            {/* Left Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Customer Information Card */}
+              <div
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  border: '1px solid #E2E8F0',
+                  padding: '20px 24px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: '#475569',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>👤</span>
+                  <span>Customer Information</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#64748B', marginBottom: 3 }}>Customer Name</div>
+                    <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 14 }}>
+                      {getRequesterDisplayName(detailModalRequest) || 'Not available'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#64748B', marginBottom: 3 }}>Contact Person</div>
+                    <div style={{ fontWeight: 600, color: '#334155', fontSize: 14 }}>
+                      {detailModalRequest.contactPerson || 'Not available'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#64748B', marginBottom: 3 }}>Phone Number</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>
+                      {detailModalRequest.contactPhone ? (
+                        <a href={`tel:${detailModalRequest.contactPhone}`} style={{ color: '#2563EB', textDecoration: 'none' }}>
+                          {detailModalRequest.contactPhone}
+                        </a>
+                      ) : (
+                        <span style={{ color: '#94A3B8' }}>Not available</span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#64748B', marginBottom: 3 }}>Email Address</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>
+                      {detailModalRequest.contactEmail ? (
+                        <a href={`mailto:${detailModalRequest.contactEmail}`} style={{ color: '#2563EB', textDecoration: 'none' }}>
+                          {detailModalRequest.contactEmail}
+                        </a>
+                      ) : (
+                        <span style={{ color: '#94A3B8' }}>Not available</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location & Geospatial Details Card */}
+              <div
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  border: '1px solid #E2E8F0',
+                  padding: '20px 24px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: '#475569',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>🗺️</span>
+                  <span>Location & Geospatial Details</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#64748B', marginBottom: 3 }}>Requested Area / Address</div>
+                    <div style={{ fontWeight: 600, color: '#0F172A', fontSize: 14 }}>
+                      {getRequestedArea(detailModalRequest) || 'Not available'}
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 3 }}>City</div>
+                      <div style={{ fontWeight: 600, color: '#334155', fontSize: 14 }}>
+                        {detailModalRequest.cityName || 'Not specified'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 3 }}>Coordinates</div>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>
+                        {detailModalRequest.latitude && detailModalRequest.longitude ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${detailModalRequest.latitude},${detailModalRequest.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: '#2563EB',
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontWeight: 600,
+                            }}
+                          >
+                            <span>{detailModalRequest.latitude}, {detailModalRequest.longitude}</span>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                color: '#2563EB',
+                                backgroundColor: '#EFF6FF',
+                                border: '1px solid #BFDBFE',
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                              }}
+                            >
+                              Maps ↗
+                            </span>
+                          </a>
+                        ) : (
+                          <span style={{ color: '#94A3B8' }}>Not specified</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submitted Verification Documents Card */}
+              <div
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  border: '1px solid #E2E8F0',
+                  padding: '20px 24px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: '#475569',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: 14,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>📑</span>
+                  <span>Submitted Verification Documents</span>
+                </div>
+                {(() => {
+                  const normalizedDocs = getNormalizedDocuments(detailModalRequest);
+                  if (normalizedDocs.length === 0) {
+                    return (
+                      <div style={{ fontSize: 13, color: '#94A3B8', fontStyle: 'italic' }}>
+                        No verification documents attached to this demand request.
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                      {normalizedDocs.map((doc, idx) => (
+                        <div
+                          key={doc.documentId || idx}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            setSelectedDocPreview({
+                              request: detailModalRequest,
+                              document: doc,
+                              allDocs: normalizedDocs,
+                              docIndex: idx,
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              setSelectedDocPreview({
+                                request: detailModalRequest,
+                                document: doc,
+                                allDocs: normalizedDocs,
+                                docIndex: idx,
+                              });
+                            }
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            backgroundColor: '#FFFFFF',
+                            color: '#1E40AF',
+                            border: '1px solid #BFDBFE',
+                            borderRadius: 8,
+                            padding: '8px 14px',
+                            fontSize: 13,
+                            fontWeight: 600,
+                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#EFF6FF';
+                            e.currentTarget.style.borderColor = '#60A5FA';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#FFFFFF';
+                            e.currentTarget.style.borderColor = '#BFDBFE';
+                          }}
+                          title="Click to view and inspect document"
+                        >
+                          <span style={{ fontSize: 16 }}>📄</span>
+                          <span style={{ fontWeight: 600, color: '#1E3A8A' }}>
+                            {doc.name || formatDocumentName(doc.docType)}
+                          </span>
+                          <span
+                            style={{
+                              marginLeft: 4,
+                              backgroundColor: '#DCFCE7',
+                              color: '#15803D',
+                              borderRadius: 4,
+                              padding: '2px 6px',
+                              fontSize: 11,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Verified
+                          </span>
+                          <span style={{ fontSize: 12, color: '#2563EB', fontWeight: 700 }}>↗</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Nearest Operating Zone & Distance Analysis Card */}
+              {(() => {
+                const nearestZoneInfo = getNearestZoneForRequest(detailModalRequest);
+                const distStr =
+                  nearestZoneInfo && nearestZoneInfo.distanceKm > 0
+                    ? `${nearestZoneInfo.distanceKm.toFixed(1)} km`
+                    : '< 1 km';
+
+                return (
+                  <div
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 16,
+                      border: '1px solid #E2E8F0',
+                      padding: '20px 24px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#1E40AF',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: 16,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }}>📍</span>
+                      <span>Nearest Operating Zone & Distance Analysis</span>
+                    </div>
+                    {nearestZoneInfo ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          backgroundColor: '#F8FAFC',
+                          padding: '16px 20px',
+                          borderRadius: 12,
+                          border: '1px solid #BFDBFE',
+                          flexWrap: 'wrap',
+                          gap: 14,
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: '#1E3A8A' }}>
+                            {nearestZoneInfo.zone.zoneName || nearestZoneInfo.zone.cityName}
+                          </div>
+                          <div style={{ fontSize: 13, color: '#475569', marginTop: 4 }}>
+                            City: <strong>{nearestZoneInfo.zone.cityName}</strong> • Operating Radius:{' '}
+                            <strong>{nearestZoneInfo.zone.radiusKm} km</strong>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 800,
+                              color: '#1D4ED8',
+                              backgroundColor: '#EFF6FF',
+                              border: '1px solid #BFDBFE',
+                              padding: '8px 14px',
+                              borderRadius: 10,
+                              display: 'inline-block',
+                            }}
+                          >
+                            {distStr} from zone
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 13, color: '#64748B' }}>
+                        No operating zones registered yet.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Nearby Restaurants & Distances Card */}
+              {(() => {
+                const nearbyRests = getNearbyRestaurantsForRequest(detailModalRequest);
+                return (
+                  <div
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 16,
+                      border: '1px solid #E2E8F0',
+                      padding: '20px 24px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      flex: 1,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: 16,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 16 }}>🍽️</span>
+                        <span>Nearby Restaurants & Distances</span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          backgroundColor: '#EFF6FF',
+                          color: '#1D4ED8',
+                          border: '1px solid #BFDBFE',
+                          padding: '3px 10px',
+                          borderRadius: 12,
+                        }}
+                      >
+                        {nearbyRests.length} {nearbyRests.length === 1 ? 'nearby' : 'nearby'}
+                      </span>
+                    </div>
+
+                    {nearbyRests.length > 0 ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          maxHeight: 460,
+                          overflowY: nearbyRests.length > 6 ? 'auto' : 'visible',
+                          borderRadius: 10,
+                          border: '1px solid #E2E8F0',
+                        }}
+                      >
+                        {nearbyRests.map((nr, idx) => (
+                          <div
+                            key={nr.restaurantId || idx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '12px 16px',
+                              backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC',
+                              borderBottom: idx === nearbyRests.length - 1 ? 'none' : '1px solid #F1F5F9',
+                              gap: 12,
+                            }}
+                          >
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: 600,
+                                  color: '#0F172A',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {nr.name}
+                              </div>
+                              <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                                {nr.zoneName} •{' '}
+                                {Array.isArray(nr.cuisineTypes) && nr.cuisineTypes.length
+                                  ? nr.cuisineTypes.slice(0, 2).join(', ')
+                                  : 'Multi-cuisine'}
+                              </div>
+                            </div>
+                            <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color: '#0F172A',
+                                  backgroundColor: '#F1F5F9',
+                                  border: '1px solid #E2E8F0',
+                                  padding: '4px 10px',
+                                  borderRadius: 8,
+                                  display: 'inline-block',
+                                }}
+                              >
+                                {nr.distanceKm.toFixed(1)} km
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 13, color: '#64748B', padding: '12px 0' }}>
+                        No operating restaurants found within 50 km.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Header Bar */}
       <div
         style={{
@@ -1575,7 +2319,7 @@ export function UnserviceableAreasPage() {
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
                           <button
                             type="button"
-                            onClick={() => setDetailModalRequest(req)}
+                            onClick={() => handleOpenDetails(req)}
                             style={{
                               padding: '6px 12px',
                               backgroundColor: '#F3F4F6',
@@ -1662,436 +2406,6 @@ export function UnserviceableAreasPage() {
           </div>
         )}
       </div>
-
-      {/* VIEW DETAILS MODAL */}
-      {detailModalRequest && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            backgroundColor: 'rgba(17, 24, 39, 0.5)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-          }}
-          onClick={() => setDetailModalRequest(null)}
-        >
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 20,
-              width: '100%',
-              maxWidth: 560,
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-              overflow: 'hidden',
-              animation: 'fadeIn 0.2s ease-in-out',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div
-              style={{
-                padding: '20px 24px',
-                borderBottom: '1px solid #E5E7EB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: '#F9FAFB',
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>
-                    Demand Request #{detailModalRequest.id}
-                  </h3>
-                  {renderSourceBadge(inferRequestSource(detailModalRequest))}
-                </div>
-                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
-                  Submitted on {detailModalRequest.createdAt ? String(detailModalRequest.createdAt).replace('T', ' ').slice(0, 16) : '-'}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDetailModalRequest(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#6B7280',
-                  cursor: 'pointer',
-                  padding: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 18, fontSize: 13 }}>
-              {/* Requester Profile */}
-              <div style={{ backgroundColor: '#F9FAFB', padding: 14, borderRadius: 12, border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                  Requester Information
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>Name</div>
-                    <div style={{ fontWeight: 700, color: '#111827' }}>
-                      {getRequesterDisplayName(detailModalRequest)}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>Contact Person</div>
-                    <div style={{ fontWeight: 600, color: '#374151' }}>
-                      {detailModalRequest.contactPerson || '-'}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>Phone</div>
-                    <div style={{ fontWeight: 600, color: '#2563EB' }}>
-                      <a href={`tel:${detailModalRequest.contactPhone}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                        {detailModalRequest.contactPhone || '-'}
-                      </a>
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>Email</div>
-                    <div style={{ fontWeight: 600, color: '#374151' }}>
-                      <a href={`mailto:${detailModalRequest.contactEmail}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                        {detailModalRequest.contactEmail || '-'}
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Nearest Operating Zone & Distance Breakdown */}
-              {detailModalRequest && (() => {
-                const nearestZoneInfo = getNearestZoneForRequest(detailModalRequest);
-                const distStr = nearestZoneInfo && nearestZoneInfo.distanceKm > 0
-                  ? `${nearestZoneInfo.distanceKm.toFixed(1)} km`
-                  : '< 1 km';
-
-                return (
-                  <div style={{ backgroundColor: '#EFF6FF', padding: 14, borderRadius: 12, border: '1px solid #BFDBFE', marginBottom: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>📍</span>
-                      <span>Nearest Operating Zone & Distance Analysis</span>
-                    </div>
-                    {nearestZoneInfo ? (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', padding: '10px 14px', borderRadius: 8, border: '1px solid #DBEAFE' }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: '#1E3A8A' }}>
-                            {nearestZoneInfo.zone.zoneName || nearestZoneInfo.zone.cityName}
-                          </div>
-                          <div style={{ fontSize: 12, color: '#3B82F6', marginTop: 2 }}>
-                            Current Operating Radius: {nearestZoneInfo.zone.radiusKm} km • City: {nearestZoneInfo.zone.cityName}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: '#1D4ED8', backgroundColor: '#DBEAFE', padding: '4px 10px', borderRadius: 8 }}>
-                            {distStr} from zone
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: '#1E40AF' }}>
-                        No operating zones registered yet.
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Nearby Zone Restaurants & Distance Analysis */}
-              {detailModalRequest && (() => {
-                const nearbyRests = getNearbyRestaurantsForRequest(detailModalRequest);
-                return (
-                  <div style={{ backgroundColor: '#FFFBEB', padding: 14, borderRadius: 12, border: '1px solid #FCD34D', marginBottom: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span>🛵</span>
-                        <span>Restaurants Available From Nearby Zones & Distances</span>
-                      </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: '#FEF3C7', color: '#B45309', padding: '2px 8px', borderRadius: 8 }}>
-                        {nearbyRests.length} nearby
-                      </span>
-                    </div>
-
-                    {nearbyRests.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-                        {nearbyRests.slice(0, 5).map((nr) => (
-                          <div
-                            key={nr.restaurantId}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              backgroundColor: '#FFFFFF',
-                              padding: '8px 12px',
-                              borderRadius: 8,
-                              border: '1px solid #FDE68A',
-                            }}
-                          >
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
-                                {nr.name}
-                              </div>
-                              <div style={{ fontSize: 11, color: '#78350F', marginTop: 1 }}>
-                                {nr.zoneName} • {nr.cuisineTypes.slice(0, 2).join(', ') || 'Multi-cuisine'}
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <span style={{ fontSize: 13, fontWeight: 800, color: '#B45309', backgroundColor: '#FEF3C7', padding: '3px 8px', borderRadius: 6 }}>
-                                {nr.distanceKm.toFixed(1)} km
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: '#92400E' }}>
-                        No operating restaurants found within 50 km.
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Location & Geography */}
-              <div style={{ backgroundColor: '#F9FAFB', padding: 14, borderRadius: 12, border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                  Location & Geospatial Details
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#9CA3AF' }}>Requested Area / Address</div>
-                    <div style={{ fontWeight: 600, color: '#111827' }}>
-                      {getRequestedArea(detailModalRequest)}
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 11, color: '#9CA3AF' }}>City</div>
-                      <div style={{ fontWeight: 600, color: '#374151' }}>
-                        {detailModalRequest.cityName || '-'}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: '#9CA3AF' }}>Coordinates</div>
-                      <div style={{ fontWeight: 600, color: '#2563EB' }}>
-                        {detailModalRequest.latitude && detailModalRequest.longitude ? (
-                          <a
-                            href={`https://www.google.com/maps?q=${detailModalRequest.latitude},${detailModalRequest.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: '#2563EB', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                          >
-                            {detailModalRequest.latitude}, {detailModalRequest.longitude}
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                              <polyline points="15 3 21 3 21 9" />
-                              <line x1="10" y1="14" x2="21" y2="3" />
-                            </svg>
-                          </a>
-                        ) : (
-                          'Not specified'
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Submitted Documents Section */}
-              <div style={{ backgroundColor: '#F9FAFB', padding: 14, borderRadius: 12, border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>📑</span>
-                  <span>Submitted Verification Documents</span>
-                </div>
-                {(() => {
-                  const normalizedDocs = getNormalizedDocuments(detailModalRequest);
-                  if (normalizedDocs.length === 0) {
-                    return (
-                      <div style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' }}>
-                        No documents attached to this demand request.
-                      </div>
-                    );
-                  }
-                  return (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                      {normalizedDocs.map((doc, idx) => (
-                        <div
-                          key={doc.documentId || idx}
-                          onClick={() => {
-                            setSelectedDocPreview({
-                              request: detailModalRequest,
-                              document: doc,
-                              allDocs: normalizedDocs,
-                              docIndex: idx,
-                            });
-                          }}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            backgroundColor: '#FFFFFF',
-                            color: '#1E40AF',
-                            border: '1px solid #BFDBFE',
-                            borderRadius: 10,
-                            padding: '8px 14px',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#EFF6FF';
-                            e.currentTarget.style.borderColor = '#60A5FA';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                            e.currentTarget.style.boxShadow = '0 4px 10px rgba(37,99,235,0.12)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#FFFFFF';
-                            e.currentTarget.style.borderColor = '#BFDBFE';
-                            e.currentTarget.style.transform = 'none';
-                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
-                          }}
-                          title="Click to view and open document"
-                        >
-                          <span style={{ fontSize: 18 }}>📄</span>
-                          <div>
-                            <div style={{ fontWeight: 700, color: '#1E3A8A', fontSize: 13 }}>
-                              {doc.name || formatDocumentName(doc.docType)}
-                            </div>
-                            <div style={{ fontSize: 11, color: '#2563EB', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                              <span>Click to inspect</span>
-                              <span style={{ fontWeight: 800 }}>↗</span>
-                            </div>
-                          </div>
-                          <span
-                            style={{
-                              marginLeft: 6,
-                              backgroundColor: '#DCFCE7',
-                              color: '#15803D',
-                              borderRadius: 4,
-                              padding: '2px 6px',
-                              fontSize: 10,
-                              fontWeight: 700,
-                            }}
-                          >
-                            Verified
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Status and Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#4B5563' }}>Current Status:</span>
-                  {renderStatusBadge(detailModalRequest.status)}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {detailModalRequest.status !== 'APPROVED' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleExtendZone(detailModalRequest)}
-                        disabled={isExtendingZone}
-                        style={{
-                          padding: '8px 16px',
-                          background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: isExtendingZone ? 'not-allowed' : 'pointer',
-                          boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)',
-                        }}
-                      >
-                        {isExtendingZone ? 'Extending...' : 'Extend Zone'}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleApproveAndCreateZone(detailModalRequest)}
-                        disabled={isApproving}
-                        style={{
-                          padding: '8px 16px',
-                          background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: isApproving ? 'not-allowed' : 'pointer',
-                          boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
-                        }}
-                      >
-                        {isApproving ? 'Approving...' : 'Approve'}
-                      </button>
-                    </>
-                  )}
-
-                  {detailModalRequest.status !== 'REJECTED' && (
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateStatus(detailModalRequest.id, 'REJECTED')}
-                      disabled={isUpdatingStatus}
-                      style={{
-                        padding: '8px 14px',
-                        backgroundColor: '#FEE2E2',
-                        color: '#B91C1C',
-                        border: '1px solid #FECACA',
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Reject
-                    </button>
-                  )}
-
-                  {detailModalRequest.status !== 'PENDING' && (
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateStatus(detailModalRequest.id, 'PENDING')}
-                      disabled={isUpdatingStatus}
-                      style={{
-                        padding: '8px 14px',
-                        backgroundColor: '#FEF3C7',
-                        color: '#B45309',
-                        border: '1px solid #FDE68A',
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Reset to Pending
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* LOG DEMAND REQUEST MODAL */}
       {showLogModal && (
@@ -2449,6 +2763,9 @@ export function UnserviceableAreasPage() {
             </div>
           </form>
         </div>
+      )}
+
+        </>
       )}
 
       {/* Document Preview & Inspection Modal */}

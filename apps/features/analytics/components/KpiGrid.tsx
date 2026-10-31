@@ -2,12 +2,18 @@
 
 import React from 'react';
 import { Text } from 'foodie-shared-web';
-import type { DashboardSummary } from '../types';
-import { formatCount } from '../types';
+import type { DashboardSummary, TrendIndicator } from '../types';
+import {
+  formatCount,
+  calculatePercentageChange,
+  parseTrendIndicator,
+} from '../types';
 import { MoneyText } from './MoneyText';
 
 type Props = {
   summary: DashboardSummary;
+  previousSummary?: DashboardSummary | null;
+  isLoadingComparison?: boolean;
 };
 
 function KpiCard({
@@ -16,16 +22,22 @@ function KpiCard({
   icon,
   trend,
   isPrimary = false,
+  onClick,
 }: {
   label: string;
   children: React.ReactNode;
   icon?: React.ReactNode;
-  trend?: string;
+  trend: TrendIndicator;
   isPrimary?: boolean;
+  onClick?: () => void;
 }) {
+  const isInteractive = Boolean(onClick);
+
   return (
     <div
-      className="card-hover"
+      onClick={onClick}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
       style={{
         padding: '22px 24px',
         borderRadius: 20,
@@ -38,8 +50,9 @@ function KpiCard({
         boxShadow: isPrimary
           ? '0 10px 25px -5px rgba(33, 150, 243, 0.35), 0 8px 10px -6px rgba(33, 150, 243, 0.2)'
           : '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)',
-        cursor: 'default',
+        cursor: isInteractive ? 'pointer' : 'default',
         minHeight: 130,
+        transition: isInteractive ? 'transform 0.15s ease, box-shadow 0.15s ease' : undefined,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -72,28 +85,119 @@ function KpiCard({
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 4 }}>
         <div>{children}</div>
-        {trend ? (
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: isPrimary ? '#FFFFFF' : '#15803D',
-              backgroundColor: isPrimary ? 'rgba(255, 255, 255, 0.22)' : '#DCFCE7',
-              border: isPrimary ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid #BBF7D0',
-              padding: '3px 9px',
-              borderRadius: 9999,
-            }}
-          >
-            {trend}
-          </span>
-        ) : null}
+        <span
+          aria-label={`Comparison trend: ${trend.text}`}
+          title={
+            trend.text !== '—' && trend.text !== '...'
+              ? `Period-over-period change: ${trend.text}`
+              : 'Comparison value unavailable'
+          }
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: isPrimary
+              ? '#FFFFFF'
+              : trend.isNeutral
+              ? '#4B5563'
+              : trend.isPositive
+              ? '#15803D'
+              : '#DC2626',
+            backgroundColor: isPrimary
+              ? trend.isNeutral
+                ? 'rgba(255, 255, 255, 0.2)'
+                : trend.isPositive
+                ? 'rgba(255, 255, 255, 0.22)'
+                : 'rgba(239, 68, 68, 0.35)'
+              : trend.isNeutral
+              ? '#F3F4F6'
+              : trend.isPositive
+              ? '#DCFCE7'
+              : '#FEE2E2',
+            border: isPrimary
+              ? '1px solid rgba(255, 255, 255, 0.3)'
+              : trend.isNeutral
+              ? '1px solid #E5E7EB'
+              : trend.isPositive
+              ? '1px solid #BBF7D0'
+              : '1px solid #FECACA',
+            padding: '3px 9px',
+            borderRadius: 9999,
+            cursor: 'default',
+            userSelect: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {trend.text}
+        </span>
       </div>
     </div>
   );
 }
 
 /** Summary KPI tiles — SaaS Blue theme with primary gradient card. */
-export function KpiGrid({ summary }: Props) {
+export function KpiGrid({ summary, previousSummary, isLoadingComparison = false }: Props) {
+  const s = summary as any;
+
+  const resolveCardTrend = (
+    currentVal: number | string | undefined,
+    prevVal: number | string | undefined,
+    explicitTrend: unknown,
+  ): TrendIndicator => {
+    // 1. Direct explicit trend if supplied by backend or props
+    const direct = parseTrendIndicator(explicitTrend);
+    if (direct) return direct;
+
+    // 2. Calculated comparison if previousSummary is available
+    if (previousSummary) {
+      const computed = calculatePercentageChange(currentVal, prevVal);
+      if (computed) return computed;
+    }
+
+    // 3. While comparison data is still loading
+    if (isLoadingComparison) {
+      return { text: '...', isPositive: true, isNeutral: true };
+    }
+
+    // 4. If comparison is unavailable, show standard unavailable state
+    return { text: '—', isPositive: true, isNeutral: true };
+  };
+
+  const revenueTrend = resolveCardTrend(
+    summary.totalRevenue,
+    previousSummary?.totalRevenue,
+    summary.revenueTrend ?? s.totalRevenueTrend ?? summary.trends?.revenue ?? summary.trends?.totalRevenue
+  );
+
+  const ordersTrend = resolveCardTrend(
+    summary.totalOrders,
+    previousSummary?.totalOrders,
+    summary.ordersTrend ?? s.totalOrdersTrend ?? summary.trends?.orders ?? summary.trends?.totalOrders
+  );
+
+  const storesTrend = resolveCardTrend(
+    summary.activeRestaurants,
+    previousSummary?.activeRestaurants,
+    summary.storesTrend ?? s.activeRestaurantsTrend ?? summary.trends?.stores ?? summary.trends?.restaurants ?? summary.trends?.activeRestaurants
+  );
+
+  const fleetTrend = resolveCardTrend(
+    summary.activeDeliveryPartners,
+    previousSummary?.activeDeliveryPartners,
+    summary.fleetTrend ?? s.activeDeliveryPartnersTrend ?? summary.trends?.fleet ?? summary.trends?.deliveryPartners ?? summary.trends?.activeDeliveryPartners
+  );
+
+  const customersTrend = resolveCardTrend(
+    summary.newCustomers,
+    previousSummary?.newCustomers,
+    summary.customersTrend ?? s.newCustomersTrend ?? summary.trends?.customers ?? summary.trends?.newCustomers
+  );
+
+  const aovTrend = resolveCardTrend(
+    summary.avgOrderValue,
+    previousSummary?.avgOrderValue,
+    summary.aovTrend ?? s.avgOrderValueTrend ?? summary.trends?.aov ?? summary.trends?.avgOrderValue
+  );
+
   return (
     <div
       style={{
@@ -105,7 +209,7 @@ export function KpiGrid({ summary }: Props) {
       <KpiCard
         label="Total Marketplace Revenue"
         isPrimary={true}
-        trend="+14.2%"
+        trend={revenueTrend}
         icon={
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="1" x2="12" y2="23" />
@@ -118,7 +222,7 @@ export function KpiGrid({ summary }: Props) {
 
       <KpiCard
         label="Total Orders"
-        trend="+8.5%"
+        trend={ordersTrend}
         icon={
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
@@ -134,7 +238,7 @@ export function KpiGrid({ summary }: Props) {
 
       <KpiCard
         label="Active Stores / Vendors"
-        trend="+5.1%"
+        trend={storesTrend}
         icon={
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -149,7 +253,7 @@ export function KpiGrid({ summary }: Props) {
 
       <KpiCard
         label="Active Delivery Fleet"
-        trend="+11.0%"
+        trend={fleetTrend}
         icon={
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="1" y="3" width="15" height="13" />
@@ -166,7 +270,7 @@ export function KpiGrid({ summary }: Props) {
 
       <KpiCard
         label="Registered Customers"
-        trend="+18.3%"
+        trend={customersTrend}
         icon={
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -183,7 +287,7 @@ export function KpiGrid({ summary }: Props) {
 
       <KpiCard
         label="Average Order Value"
-        trend="+3.4%"
+        trend={aovTrend}
         icon={
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />

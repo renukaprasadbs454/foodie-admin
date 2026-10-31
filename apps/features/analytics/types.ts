@@ -15,6 +15,13 @@ export type DashboardSummary = {
   activeDeliveryPartners: number;
   newCustomers: number;
   avgOrderValue: number | string;
+  revenueTrend?: number | string | null;
+  ordersTrend?: number | string | null;
+  storesTrend?: number | string | null;
+  fleetTrend?: number | string | null;
+  customersTrend?: number | string | null;
+  aovTrend?: number | string | null;
+  trends?: Record<string, number | string | null>;
 };
 
 export type DailySalesPoint = {
@@ -100,12 +107,14 @@ export function getDashboardPresetRange(label: string, now = new Date()): Analyt
 }
 
 export function formatMoneyInr(value: number | string | null | undefined): string {
+  if (value == null || value === '') return '₹—';
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n)) return '₹—';
   return `₹${n.toFixed(2)}`;
 }
 
 export function formatCount(value: number | string | null | undefined): string {
+  if (value == null || value === '') return '—';
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n)) return '—';
   return String(Math.trunc(n));
@@ -115,4 +124,113 @@ export function formatPercent(value: number | string | null | undefined): string
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n)) return '—';
   return `${n.toFixed(2)}%`;
+}
+
+export type TrendIndicator = {
+  text: string;
+  isPositive: boolean;
+  isNeutral?: boolean;
+};
+
+export function getPreviousPeriodRange(range: AnalyticsDateRange): AnalyticsDateRange {
+  const from = new Date(`${range.dateFrom}T00:00:00.000Z`);
+  const to = new Date(`${range.dateTo}T00:00:00.000Z`);
+
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from > to) {
+    return range;
+  }
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const durationDays = Math.round((to.getTime() - from.getTime()) / dayMs) + 1;
+
+  const prevTo = new Date(from.getTime() - dayMs);
+  const prevFrom = new Date(prevTo.getTime() - (durationDays - 1) * dayMs);
+
+  return {
+    dateFrom: prevFrom.toISOString().slice(0, 10),
+    dateTo: prevTo.toISOString().slice(0, 10),
+  };
+}
+
+export function calculatePercentageChange(
+  current: number | string | null | undefined,
+  previous: number | string | null | undefined,
+): TrendIndicator | null {
+  if (current == null || previous == null) return null;
+
+  const curr = typeof current === 'number' ? current : Number(current);
+  const prev = typeof previous === 'number' ? previous : Number(previous);
+
+  if (!Number.isFinite(curr) || !Number.isFinite(prev)) return null;
+
+  if (prev === 0 && curr === 0) {
+    return { text: '0.0%', isPositive: true, isNeutral: true };
+  }
+
+  if (prev === 0 && curr > 0) {
+    return { text: '+100%', isPositive: true, isNeutral: false };
+  }
+
+  if (prev === 0 && curr < 0) {
+    return { text: '-100%', isPositive: false, isNeutral: false };
+  }
+
+  const diff = curr - prev;
+  const pct = (diff / Math.abs(prev)) * 100;
+
+  if (Math.abs(pct) < 0.05) {
+    return { text: '0.0%', isPositive: true, isNeutral: true };
+  }
+
+  const isPositive = pct > 0;
+  return {
+    text: `${isPositive ? '+' : ''}${pct.toFixed(1)}%`,
+    isPositive,
+    isNeutral: false,
+  };
+}
+
+export function parseTrendIndicator(value: unknown): TrendIndicator | null {
+  if (value == null || value === '') return null;
+  if (typeof value === 'object' && value !== null && 'text' in value) {
+    const v = value as { text: string; isPositive?: boolean; isNeutral?: boolean };
+    return {
+      text: String(v.text),
+      isPositive: v.isPositive ?? !String(v.text).startsWith('-'),
+      isNeutral: v.isNeutral ?? (v.text === '—' || v.text === '0.0%'),
+    };
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return null;
+    if (Math.abs(value) < 0.05) {
+      return { text: '0.0%', isPositive: true, isNeutral: true };
+    }
+    const isPositive = value > 0;
+    return {
+      text: `${isPositive ? '+' : ''}${value.toFixed(1)}%`,
+      isPositive,
+      isNeutral: false,
+    };
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (trimmed === '—' || trimmed === 'N/A' || trimmed === '...') {
+      return { text: trimmed, isPositive: true, isNeutral: true };
+    }
+    const parsed = parseFloat(trimmed);
+    if (!Number.isFinite(parsed)) {
+      return { text: trimmed, isPositive: !trimmed.startsWith('-'), isNeutral: false };
+    }
+    if (Math.abs(parsed) < 0.05) {
+      return { text: '0.0%', isPositive: true, isNeutral: true };
+    }
+    const isPositive = parsed > 0;
+    return {
+      text: trimmed.endsWith('%') ? trimmed : `${isPositive ? '+' : ''}${parsed.toFixed(1)}%`,
+      isPositive,
+      isNeutral: false,
+    };
+  }
+  return null;
 }
