@@ -7285,7 +7285,7 @@ async function handleAdminRoles() {
                       }
                     }
                     if (isSuspended) {
-                      json.data.kycStatus = 'PENDING';
+                      json.data.kycStatus = 'SUSPENDED';
                       json.data.isOnline = false;
                       if (suspInfo?.reason) json.data.kycRejectionReason = suspInfo.reason;
                       if (Array.isArray(json.data.documents)) {

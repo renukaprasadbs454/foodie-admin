@@ -11,6 +11,7 @@ import type {
   RestaurantSettlementRecord,
   CancelledOrderRefundRequest,
 } from '../../features/payments/types';
+export type { PayoutRecord };
 
 /**
  * Payments RTK — Commission Settlement, Real Transactions, Ledger & Disbursals.

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Text, trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import { GAP_API_15_PARTNER_LIST } from '@/constants/gaps';
 import { DeliveryPricingSettingsCard } from '../components/DeliveryPricingSettingsCard';
+import { DeliveryPartnerFullDetailsDrawer } from '../components/DeliveryPartnerFullDetailsDrawer';
 import {
   useGetAdminDeliveryPartnersQuery,
   useApproveDeliveryPartnerKycMutation,
@@ -101,6 +102,7 @@ export function DeliveryPartnersPage() {
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPartnerForDetails, setSelectedPartnerForDetails] = useState<AdminDeliveryPartner | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'VERIFIED' | 'PENDING' | 'REJECTED' | 'SUSPENDED'>('ALL');
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -833,8 +835,26 @@ export function DeliveryPartnersPage() {
                 const docCount = docs.length;
                 return (
                   <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: 700, color: '#111827' }}>{p.fullName || 'Unnamed Partner'}</div>
+                    <td
+                      style={{ padding: '16px 20px', cursor: 'pointer' }}
+                      onClick={() => setSelectedPartnerForDetails(p)}
+                      title={`Click to view full details for ${p.fullName || 'partner'}`}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          color: '#111827',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          transition: 'color 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = '#0284C7')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = '#111827')}
+                      >
+                        <span>{p.fullName || 'Unnamed Partner'}</span>
+                        <span style={{ fontSize: 11, color: '#0284C7' }}>↗</span>
+                      </div>
                       <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace' }}>
                         ID: {p.id.slice(0, 8)}...
                       </div>
@@ -2683,6 +2703,25 @@ export function DeliveryPartnersPage() {
           {toastMsg.message}
         </div>
       )}
+    
+      {/* Delivery Partner Full Details Drawer */}
+      {selectedPartnerForDetails && (
+        <DeliveryPartnerFullDetailsDrawer
+          open={Boolean(selectedPartnerForDetails)}
+          partner={selectedPartnerForDetails}
+          onClose={() => setSelectedPartnerForDetails(null)}
+          onPartnerUpdated={(updatedPartner) => {
+            setSelectedPartnerForDetails(updatedPartner);
+            if (updatedPartner.kycStatus === 'SUSPENDED') {
+              updateLocalSuspended(updatedPartner.id, true);
+            } else if (updatedPartner.kycStatus === 'VERIFIED') {
+              updateLocalSuspended(updatedPartner.id, false);
+            }
+            refetch();
+          }}
+        />
+      )}
+
     </div>
   );
 }

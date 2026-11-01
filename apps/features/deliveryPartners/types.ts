@@ -34,16 +34,27 @@ export interface AdminDeliveryPartner {
   userCredentialId: string;
   fullName: string;
   phoneNumber: string;
+  email?: string | null;
   vehicleType: string;
   vehicleNumber?: string | null;
   profileImageUrl?: string | null;
   kycStatus: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
+  kycRejectionReason?: string | null;
   isOnline: boolean;
   cashInHand: number;
+  maxCashInHandLimit?: number;
   totalDeliveries: number;
   zone: string;
   documents: DeliveryDocument[];
   createdAt: string;
+  rating?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
 }
 
 export type DeliverymanRecord = {
@@ -114,4 +125,5 @@ export function isDeliveryPartnerKycEligible(partner?: AdminDeliveryPartner | nu
 
   return hasIdentity && hasLicense && hasVehicleRc;
 }
+
 
