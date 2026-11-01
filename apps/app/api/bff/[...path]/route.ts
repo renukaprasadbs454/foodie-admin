@@ -2660,8 +2660,8 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
         return (a.zoneName || a.id).localeCompare(b.zoneName || b.id);
       });
 
-    // Zone data isolation: Non-super-admins only see their assigned operating zone (unless multi-zone permitted role)
-    if (!isSuperAdmin && !isMultiRole && userAssignedZoneId) {
+    // Zone data isolation: Non-super-admins only see their assigned operating zone
+    if (!isSuperAdmin && userAssignedZoneId) {
       return allZones.filter((z) => z.id.toLowerCase() === userAssignedZoneId!.toLowerCase());
     }
 
@@ -2764,7 +2764,7 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
     }
 
     // Backend Security: Prevent cross-zone access
-    if (!isSuperAdmin && !isMultiRole && userAssignedZoneId && selectedZoneId.toLowerCase() !== userAssignedZoneId.toLowerCase()) {
+    if (!isSuperAdmin && userAssignedZoneId && selectedZoneId.toLowerCase() !== userAssignedZoneId.toLowerCase()) {
       return NextResponse.json({
         success: false,
         data: null,
@@ -5926,9 +5926,8 @@ async function handleAdminRoles() {
   }
 
   const isEarlySuperAdmin = earlyUserRole === 'SUPER_ADMIN' || (!earlyAssignedZoneId && (accessToken?.includes('super_admin') || accessToken?.includes('USR-1001')));
-  const isEarlyMultiRole = isMultiZoneRole(earlyUserRole) || isMultiZoneRole(request.headers.get('x-user-role'));
 
-  if (!isEarlySuperAdmin && !isEarlyMultiRole && earlyAssignedZoneId) {
+  if (!isEarlySuperAdmin && earlyAssignedZoneId) {
     const explicitTargetZone = request.headers.get('x-active-zone-id') ||
       incomingReqUrl.searchParams.get('zoneId');
 
@@ -6198,7 +6197,7 @@ async function handleAdminRoles() {
   const isMultiRole = isMultiZoneRole(userRole) || isMultiZoneRole(request.headers.get('x-user-role'));
 
   // Backend Security & Data Isolation Enforcement (Task items 4, 5, 6)
-  if (!isSuperAdmin && !isMultiRole && userAssignedZoneId) {
+  if (!isSuperAdmin && userAssignedZoneId) {
     const explicitZone = request.headers.get('x-active-zone-id') ||
       incomingUrl.searchParams.get('zoneId');
 
