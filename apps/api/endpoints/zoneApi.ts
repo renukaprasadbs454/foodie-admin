@@ -90,22 +90,25 @@ export const zoneApi = baseApi.injectEndpoints({
           activeDrivers: 22,
         };
 
-        const bgl = raw.find((z: any) => {
-          const name = String(z.zoneName || '').trim().toLowerCase();
-          const id = String(z.id || '').trim().toLowerCase();
-          return (id === 'dz-bangalore' || name === 'bangalore zone') && name !== 'bengaluru zone';
-        });
+        if (Array.isArray(raw) && raw.length > 0) {
+          return raw
+            .filter((z: any) => z && (z.id || z.zoneName) && z.status !== 'DELETED')
+            .map((z: any) => ({
+              id: String(z.id || z.zoneId || z.zoneName),
+              zoneName: String(z.zoneName || z.name || z.id),
+              cityName: z.cityName || z.city || '',
+              latitude: typeof z.latitude === 'number' ? z.latitude : (z.latitude ? parseFloat(z.latitude) : undefined),
+              longitude: typeof z.longitude === 'number' ? z.longitude : (z.longitude ? parseFloat(z.longitude) : undefined),
+              radiusKm: typeof z.radiusKm === 'number' ? z.radiusKm : (z.radiusKm ? parseFloat(z.radiusKm) : undefined),
+              status: (z.status || 'ACTIVE') as OperatingZone['status'],
+              restaurantEnabled: z.restaurantEnabled ?? true,
+              deliveryPartnerEnabled: z.deliveryPartnerEnabled ?? true,
+              customerOrderingEnabled: z.customerOrderingEnabled ?? true,
+              activeDrivers: typeof z.activeDrivers === 'number' ? z.activeDrivers : 0,
+            }));
+        }
 
-        const tmk = raw.find((z: any) => {
-          const name = String(z.zoneName || '').trim().toLowerCase();
-          const id = String(z.id || '').trim().toLowerCase();
-          return (id === 'dz-tumkur' || name === 'tumkur zone') && name !== 'tumkur zone 1';
-        });
-
-        return [
-          bgl ? { ...bgl, id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: 'Bangalore' } : defaultBangalore,
-          tmk ? { ...tmk, id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: 'Tumkur' } : defaultTumkur,
-        ];
+        return [defaultBangalore, defaultTumkur];
       },
       providesTags: ['LocationZone'],
     }),

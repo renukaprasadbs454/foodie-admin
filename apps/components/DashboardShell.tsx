@@ -90,6 +90,16 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    const handleZoneChange = (e: Event) => {
+      const detail = (e as CustomEvent<{ zoneId: string; zoneName: string }>)?.detail;
+      if (detail?.zoneId) setActiveZoneId(detail.zoneId);
+      if (detail?.zoneName) setActiveZoneName(detail.zoneName);
+    };
+    window.addEventListener('foodie:zone-change', handleZoneChange);
+    return () => window.removeEventListener('foodie:zone-change', handleZoneChange);
+  }, []);
+
+  useEffect(() => {
     const isAuditorPath = Boolean(pathname && pathname.startsWith('/compliance-auditor'));
     const isFinancePath = Boolean(pathname && pathname.startsWith('/finance-admin'));
     const assignedZone = typeof window !== 'undefined'

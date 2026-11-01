@@ -12,6 +12,18 @@ export type RestaurantAddress = {
   longitude?: number | string | null;
 };
 
+export type RestaurantDocumentItem = {
+  documentId: string;
+  docType: string;
+  verifiedAt?: string | null;
+  documentUrl?: string | null;
+  fileUrl?: string | null;
+  downloadUrl?: string | null;
+  status?: 'VERIFIED' | 'PENDING' | 'REJECTED' | 'NOT_UPLOADED';
+  rejectionReason?: string | null;
+  createdAt?: string | null;
+};
+
 export type RestaurantDetail = {
   restaurantId: string;
   name: string;
@@ -26,19 +38,29 @@ export type RestaurantDetail = {
   status?: string | null;
   commissionPct?: number | string | null;
   ownerUserCredentialId?: string | null;
+  phone?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
+  zoneId?: string | null;
+  zoneName?: string | null;
+  restaurantType?: string | null;
+  isOpen?: boolean | null;
+  openTime?: string | null;
+  closeTime?: string | null;
+  openDays?: string[] | null;
+  reviewCount?: number | null;
+  totalReviews?: number | null;
+  ordersCount?: number | null;
   legalDetails?: {
     gstin?: string | null;
     pan?: string | null;
     fssaiLicenseNumber?: string | null;
     legalName?: string | null;
     businessType?: string | null;
+    contactPhone?: string | null;
+    contactEmail?: string | null;
   } | null;
-  documents?: {
-    documentId: string;
-    docType: string;
-    verifiedAt?: string | null;
-    documentUrl?: string | null;
-  }[] | null;
+  documents?: RestaurantDocumentItem[] | null;
 };
 
 export type RestaurantReview = {

@@ -27,6 +27,40 @@ export const restaurantsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getRestaurant: builder.query<RestaurantDetail, string>({
       query: (restaurantId) => `/api/bff/restaurants/${restaurantId}`,
+      transformResponse: (response: any) => {
+        const item: RestaurantDetail = (response && typeof response === 'object' && 'data' in response) ? response.data : response;
+        if (!item) return item;
+
+        const baseUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+        const resolveUrl = (url?: string | null) => {
+          if (!url) return '';
+          if (url.startsWith('http://') || url.startsWith('https://')) return url;
+          if (url.startsWith('/api')) return `${baseUrl}${url}`;
+          return `${baseUrl}/${url.replace(/^\/+/, '')}`;
+        };
+
+        if (item.logoImageUrl && !item.logoImageUrl.startsWith('http')) {
+          item.logoImageUrl = resolveUrl(item.logoImageUrl);
+        }
+        if (item.coverImageUrl && !item.coverImageUrl.startsWith('http')) {
+          item.coverImageUrl = resolveUrl(item.coverImageUrl);
+        }
+
+        if (Array.isArray(item.documents)) {
+          item.documents = item.documents.map((doc: any) => {
+            const rawUrl = doc.documentUrl || doc.fileUrl || doc.url || '';
+            const resolved = resolveUrl(rawUrl);
+            return {
+              ...doc,
+              documentUrl: resolved || rawUrl,
+              fileUrl: resolved || doc.fileUrl || rawUrl,
+              downloadUrl: doc.downloadUrl ? resolveUrl(doc.downloadUrl) : (resolved || rawUrl),
+            };
+          });
+        }
+
+        return item;
+      },
       providesTags: (_result, _error, id) => [
         { type: 'Restaurant', id },
         { type: 'Admin', id: 'RESTAURANT' },
@@ -162,6 +196,68 @@ export const restaurantsApi = baseApi.injectEndpoints({
       query: (restaurantId) => `/api/bff/menu/restaurants/${restaurantId}`,
       providesTags: (_result, _error, id) => [{ type: 'Restaurant', id: `MENU_${id}` }],
     }),
+    verifyRestaurantDocument: builder.mutation<
+      RestaurantDetail,
+      { restaurantId: string; documentId: string }
+    >({
+      query: ({ restaurantId, documentId }) => ({
+        url: `/api/bff/admin/restaurants/${restaurantId}/documents/${documentId}/verify`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: 'Restaurant', id: arg.restaurantId },
+        { type: 'Admin', id: 'RESTAURANT' },
+        { type: 'Admin', id: 'LIST' },
+        'Admin',
+      ],
+    }),
+    rejectRestaurantDocument: builder.mutation<
+      RestaurantDetail,
+      { restaurantId: string; documentId: string; reason?: string }
+    >({
+      query: ({ restaurantId, documentId, reason }) => ({
+        url: `/api/bff/admin/restaurants/${restaurantId}/documents/${documentId}/reject`,
+        method: 'PATCH',
+        body: { reason: reason || 'Document rejected by admin' },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: 'Restaurant', id: arg.restaurantId },
+        { type: 'Admin', id: 'RESTAURANT' },
+        { type: 'Admin', id: 'LIST' },
+        'Admin',
+      ],
+    }),
+    resetRestaurantDocument: builder.mutation<
+      RestaurantDetail,
+      { restaurantId: string; documentId: string }
+    >({
+      query: ({ restaurantId, documentId }) => ({
+        url: `/api/bff/admin/restaurants/${restaurantId}/documents/${documentId}/reset`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: 'Restaurant', id: arg.restaurantId },
+        { type: 'Admin', id: 'RESTAURANT' },
+        { type: 'Admin', id: 'LIST' },
+        'Admin',
+      ],
+    }),
+    updateRestaurantCommission: builder.mutation<
+      RestaurantDetail,
+      { restaurantId: string; commissionPct: number; notes?: string }
+    >({
+      query: ({ restaurantId, commissionPct, notes }) => ({
+        url: `/api/bff/admin/restaurants/${restaurantId}/commission`,
+        method: 'PATCH',
+        body: { commissionPct, notes },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: 'Restaurant', id: arg.restaurantId },
+        { type: 'Admin', id: 'RESTAURANT' },
+        { type: 'Admin', id: 'LIST' },
+        'Admin',
+      ],
+    }),
   }),
 });
 
@@ -175,6 +271,10 @@ export const {
   useDeleteRestaurantMutation,
   useUpdateAdminRestaurantPositionsMutation,
   useCreateAdminRestaurantMutation,
+  useVerifyRestaurantDocumentMutation,
+  useRejectRestaurantDocumentMutation,
+  useResetRestaurantDocumentMutation,
+  useUpdateRestaurantCommissionMutation,
 } = restaurantsApi;
 
 

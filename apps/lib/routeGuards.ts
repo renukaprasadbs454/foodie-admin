@@ -7,6 +7,27 @@ export function shouldAllowDashboard(authStatus: AuthStatus): boolean {
   return authStatus === 'authenticated';
 }
 
+/**
+ * Returns true if the role is one of the 5 roles permitted to view and switch between all operating zones:
+ * Compliance Auditor, Finance Admin, Operations Admin, Restaurant Manager, and Support Agent.
+ * Super Admin is NOT included here as Super Admin has its own dedicated Global View logic.
+ */
+export function isMultiZoneRole(role?: AdminRole | string | null): boolean {
+  if (!role) return false;
+  const r = role.toUpperCase().trim();
+  return (
+    r === 'AUDITOR' ||
+    r === 'COMPLIANCE_AUDITOR' ||
+    r === 'FINANCE' ||
+    r === 'FINANCE_ADMIN' ||
+    r === 'OPS' ||
+    r === 'OPERATIONS_ADMIN' ||
+    r === 'RESTAURANT_MANAGER' ||
+    r === 'SUPPORT' ||
+    r === 'SUPPORT_AGENT'
+  );
+}
+
 export function canAccessAuditLog(role: AdminRole | string | null): boolean {
   if (!role) return false;
   const r = role.toUpperCase();

@@ -70,6 +70,194 @@ if (!globalAny.ADMIN_SUSPENDED_DELIVERY_PARTNERS) {
   globalAny.ADMIN_SUSPENDED_DELIVERY_PARTNERS = initialMap;
 }
 
+const SHARED_RESTAURANT_DOCS_FILE = path.join(os.tmpdir(), 'foodie_restaurant_docs.json');
+function readSharedRestaurantDocs(): Record<string, any> {
+  try {
+    if (fs.existsSync(SHARED_RESTAURANT_DOCS_FILE)) {
+      const data = fs.readFileSync(SHARED_RESTAURANT_DOCS_FILE, 'utf8');
+      return JSON.parse(data) || {};
+    }
+  } catch {}
+  return {};
+}
+
+function writeSharedRestaurantDocs(map: Record<string, any>) {
+  try {
+    fs.writeFileSync(SHARED_RESTAURANT_DOCS_FILE, JSON.stringify(map, null, 2), 'utf8');
+  } catch {}
+}
+
+const SHARED_RESTAURANT_COMMISSIONS_FILE = path.join(os.tmpdir(), 'foodie_restaurant_commissions.json');
+function readSharedRestaurantCommissions(): Record<string, any> {
+  try {
+    if (fs.existsSync(SHARED_RESTAURANT_COMMISSIONS_FILE)) {
+      const data = fs.readFileSync(SHARED_RESTAURANT_COMMISSIONS_FILE, 'utf8');
+      return JSON.parse(data) || {};
+    }
+  } catch {}
+  return {};
+}
+
+function writeSharedRestaurantCommissions(map: Record<string, any>) {
+  try {
+    fs.writeFileSync(SHARED_RESTAURANT_COMMISSIONS_FILE, JSON.stringify(map, null, 2), 'utf8');
+  } catch {}
+}
+
+async function handleRestaurantDocumentAction(request: Request, targetPath: string, accessToken: string | null) {
+  const match = targetPath.match(/^(?:admin\/)?restaurants\/([^/]+)\/documents\/([^/]+)\/(verify|approve|reject|reset)$/);
+  if (!match) return null;
+
+  const [, restaurantId, docId, action] = match;
+  let body: any = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const reason = (body && typeof body.reason === 'string' && body.reason.trim())
+    ? body.reason.trim()
+    : 'Document rejected by Admin. Please re-upload clear and valid certificate.';
+
+  const isVerify = action === 'verify' || action === 'approve';
+  const isReject = action === 'reject';
+  const isReset = action === 'reset';
+
+  const docStatus = isVerify ? 'VERIFIED' : (isReject ? 'REJECTED' : 'PENDING');
+  const verifiedAt = isVerify ? new Date().toISOString() : null;
+  const rejectedAt = isReject ? new Date().toISOString() : null;
+
+  const docsMap = readSharedRestaurantDocs();
+  const entryKey = `${restaurantId}_${docId}`;
+  docsMap[entryKey] = {
+    restaurantId,
+    documentId: docId,
+    status: docStatus,
+    verifiedAt,
+    rejectedAt,
+    rejectionReason: isReject ? reason : null,
+    updatedAt: new Date().toISOString(),
+  };
+  docsMap[docId] = docsMap[entryKey];
+  writeSharedRestaurantDocs(docsMap);
+
+  try {
+    const upstreamToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : 'demo-admin-token';
+    const upstreamUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/restaurants/${restaurantId}/documents/${docId}/${isVerify ? 'verify' : (isReject ? 'reject' : 'verify')}`;
+    await safeFetch(upstreamUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${upstreamToken}`,
+      },
+      body: JSON.stringify({ reason }),
+      timeoutMs: 3000,
+    });
+  } catch {}
+
+  purgeBffCache('admin/restaurants');
+  purgeBffCache('restaurants');
+  BFF_CACHE.clear();
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      restaurantId,
+      documentId: docId,
+      status: docStatus,
+      verifiedAt,
+      rejectedAt,
+      rejectionReason: isReject ? reason : null,
+    },
+    error: null,
+    meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+  }, { status: 200 });
+}
+
+async function handleRestaurantCommissionAction(request: Request, targetPath: string, accessToken: string | null) {
+  const match = targetPath.match(/^(?:admin\/)?restaurants\/([^/]+)\/commission$/);
+  if (!match) return null;
+
+  const [, restaurantId] = match;
+  let body: any = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+
+  const commissionPct = Number(body?.commissionPct ?? 15);
+  const commMap = readSharedRestaurantCommissions();
+  commMap[restaurantId] = {
+    restaurantId,
+    commissionPct,
+    deliveryCommissionPct: Number(body?.deliveryCommissionPct ?? 10),
+    commissionModel: body?.commissionModel || 'PERCENTAGE',
+    payoutFrequency: body?.payoutFrequency || 'WEEKLY',
+    contractType: body?.contractType || 'CUSTOM_PARTNER',
+    tcsDeductionEnabled: body?.tcsDeductionEnabled !== false,
+    updatedAt: new Date().toISOString(),
+  };
+  writeSharedRestaurantCommissions(commMap);
+
+  try {
+    const upstreamToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : 'demo-admin-token';
+    const upstreamUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/restaurants/${restaurantId}/commission`;
+    await safeFetch(upstreamUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${upstreamToken}`,
+      },
+      body: JSON.stringify({ commissionPct, ...body }),
+      timeoutMs: 3000,
+    });
+  } catch {}
+
+  purgeBffCache('admin/restaurants');
+  purgeBffCache('restaurants');
+  BFF_CACHE.clear();
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      restaurantId,
+      commissionPct,
+      ...commMap[restaurantId],
+    },
+    error: null,
+    meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+  }, { status: 200 });
+}
+
+async function handleStorageProxy(request: Request, targetPath: string) {
+  const cleanKey = targetPath.replace(/^(?:api\/v1\/)?storage\//, '');
+  const upstreamUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/storage/${cleanKey}`;
+  const { response: upstream } = await safeFetch(upstreamUrl, {
+    method: 'GET',
+    timeoutMs: 10000,
+  });
+
+  if (upstream && upstream.ok) {
+    const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
+    const body = await upstream.arrayBuffer();
+    const headers: Record<string, string> = {
+      'Content-Type': contentType,
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=86400',
+    };
+    const disposition = upstream.headers.get('content-disposition');
+    if (disposition) {
+      headers['Content-Disposition'] = disposition;
+    }
+    return new NextResponse(body, { status: 200, headers });
+  }
+
+  return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Storage object not found' } }, { status: 404 });
+}
+
 async function handleSuspendDeliveryPartner(request: Request, targetPath: string, accessToken: string | null) {
   const parts = targetPath.split('/');
   const suspendIdx = parts.indexOf('suspend');
@@ -1805,6 +1993,22 @@ function isZoneDeleted(id?: string | null, name?: string | null): boolean {
   );
 }
 
+function isMultiZoneRole(role?: string | null): boolean {
+  if (!role) return false;
+  const r = role.toUpperCase().trim();
+  return (
+    r === 'AUDITOR' ||
+    r === 'COMPLIANCE_AUDITOR' ||
+    r === 'FINANCE' ||
+    r === 'FINANCE_ADMIN' ||
+    r === 'OPS' ||
+    r === 'OPERATIONS_ADMIN' ||
+    r === 'RESTAURANT_MANAGER' ||
+    r === 'SUPPORT' ||
+    r === 'SUPPORT_AGENT'
+  );
+}
+
 function getCitiesPersistenceFile(): string {
   try {
     const dataDir = path.join(process.cwd(), 'data');
@@ -2360,6 +2564,8 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
     request.headers.get('x-user-role') === 'SUPER_ADMIN' ||
     (!userAssignedZoneId && (token.includes('super_admin') || token.includes('USR-1001') || token.includes('demo-admin')));
 
+  const isMultiRole = isMultiZoneRole(userRole) || isMultiZoneRole(request.headers.get('x-user-role'));
+
   // Helper to restrict operating zones strictly to approved and non-deleted operating zones
   const filterApprovedZones = (rawZones: any[]) => {
     const defaultBangalore = {
@@ -2454,8 +2660,8 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
         return (a.zoneName || a.id).localeCompare(b.zoneName || b.id);
       });
 
-    // Zone data isolation: Non-super-admins only see their assigned operating zone
-    if (!isSuperAdmin && userAssignedZoneId) {
+    // Zone data isolation: Non-super-admins only see their assigned operating zone (unless multi-zone permitted role)
+    if (!isSuperAdmin && !isMultiRole && userAssignedZoneId) {
       return allZones.filter((z) => z.id.toLowerCase() === userAssignedZoneId!.toLowerCase());
     }
 
@@ -2558,7 +2764,7 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
     }
 
     // Backend Security: Prevent cross-zone access
-    if (!isSuperAdmin && userAssignedZoneId && selectedZoneId.toLowerCase() !== userAssignedZoneId.toLowerCase()) {
+    if (!isSuperAdmin && !isMultiRole && userAssignedZoneId && selectedZoneId.toLowerCase() !== userAssignedZoneId.toLowerCase()) {
       return NextResponse.json({
         success: false,
         data: null,
@@ -5720,8 +5926,9 @@ async function handleAdminRoles() {
   }
 
   const isEarlySuperAdmin = earlyUserRole === 'SUPER_ADMIN' || (!earlyAssignedZoneId && (accessToken?.includes('super_admin') || accessToken?.includes('USR-1001')));
+  const isEarlyMultiRole = isMultiZoneRole(earlyUserRole) || isMultiZoneRole(request.headers.get('x-user-role'));
 
-  if (!isEarlySuperAdmin && earlyAssignedZoneId) {
+  if (!isEarlySuperAdmin && !isEarlyMultiRole && earlyAssignedZoneId) {
     const explicitTargetZone = request.headers.get('x-active-zone-id') ||
       incomingReqUrl.searchParams.get('zoneId');
 
@@ -5754,6 +5961,18 @@ async function handleAdminRoles() {
         }, { status: 403 });
       }
     }
+  }
+
+  if (targetPath.startsWith('storage/') || targetPath.startsWith('api/v1/storage/')) {
+    return handleStorageProxy(request, targetPath);
+  }
+
+  if (targetPath.match(/^(?:admin\/)?restaurants\/([^/]+)\/documents\/([^/]+)\/(verify|approve|reject|reset)$/)) {
+    return handleRestaurantDocumentAction(request, targetPath, accessToken);
+  }
+
+  if (targetPath.match(/^(?:admin\/)?restaurants\/([^/]+)\/commission$/)) {
+    return handleRestaurantCommissionAction(request, targetPath, accessToken);
   }
 
   if (targetPath.match(/^(admin\/)?delivery-partners\/[^\/]+\/suspend$/)) {
@@ -5976,9 +6195,10 @@ async function handleAdminRoles() {
   }
 
   const isSuperAdmin = userRole === 'SUPER_ADMIN' || (!userAssignedZoneId && (accessToken.includes('super_admin') || accessToken.includes('USR-1001')));
+  const isMultiRole = isMultiZoneRole(userRole) || isMultiZoneRole(request.headers.get('x-user-role'));
 
   // Backend Security & Data Isolation Enforcement (Task items 4, 5, 6)
-  if (!isSuperAdmin && userAssignedZoneId) {
+  if (!isSuperAdmin && !isMultiRole && userAssignedZoneId) {
     const explicitZone = request.headers.get('x-active-zone-id') ||
       incomingUrl.searchParams.get('zoneId');
 
@@ -7071,8 +7291,12 @@ async function handleAdminRoles() {
           if (json && json.data) {
             let modified = false;
 
-            if (!isSuperAdmin && userAssignedZoneId) {
-              const cleanAssigned = userAssignedZoneId.trim().toLowerCase();
+            const effectiveFilterZone = isMultiRole
+              ? (incomingActiveZone && incomingActiveZone !== 'ALL' ? incomingActiveZone : null)
+              : userAssignedZoneId;
+
+            if (!isSuperAdmin && effectiveFilterZone) {
+              const cleanAssigned = effectiveFilterZone.trim().toLowerCase();
               const isMatch = (item: any) => {
                 if (!item || typeof item !== 'object') return true;
 
@@ -7300,7 +7524,147 @@ async function handleAdminRoles() {
               }
             }
 
-// Preserved real live customer location without hardcoded override
+            if (json && json.data && targetPath.includes('restaurants')) {
+              const docsMap = readSharedRestaurantDocs();
+              const commMap = readSharedRestaurantCommissions();
+              const baseUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+
+              const applyRestaurantEnhancements = (item: any) => {
+                if (!item || typeof item !== 'object') return;
+                const restId = item.restaurantId || item.id;
+                if (!restId) return;
+
+                // 1. Commission override
+                if (commMap[restId] && typeof commMap[restId].commissionPct === 'number') {
+                  item.commissionPct = commMap[restId].commissionPct;
+                  modified = true;
+                }
+
+                // 2. URLs rewriting
+                if (item.logoImageUrl && typeof item.logoImageUrl === 'string' && item.logoImageUrl.startsWith('/api')) {
+                  item.logoImageUrl = `${baseUrl}${item.logoImageUrl}`;
+                  modified = true;
+                }
+                if (item.coverImageUrl && typeof item.coverImageUrl === 'string' && item.coverImageUrl.startsWith('/api')) {
+                  item.coverImageUrl = `${baseUrl}${item.coverImageUrl}`;
+                  modified = true;
+                }
+
+                // 3. Document statuses & URLs
+                if (Array.isArray(item.documents)) {
+                  item.documents.forEach((doc: any) => {
+                    const docId = doc.documentId || doc.id;
+                    const key = `${restId}_${docId}`;
+                    const savedDoc = docsMap[key] || docsMap[docId];
+
+                    if (savedDoc) {
+                      if (savedDoc.status === 'VERIFIED') {
+                        doc.verifiedAt = savedDoc.verifiedAt || new Date().toISOString();
+                        doc.status = 'VERIFIED';
+                      } else if (savedDoc.status === 'REJECTED') {
+                        doc.verifiedAt = null;
+                        doc.status = 'REJECTED';
+                        doc.rejectionReason = savedDoc.rejectionReason;
+                      } else if (savedDoc.status === 'PENDING') {
+                        doc.verifiedAt = null;
+                        doc.status = 'PENDING';
+                      }
+                      modified = true;
+                    } else {
+                      doc.status = doc.verifiedAt ? 'VERIFIED' : 'PENDING';
+                    }
+
+                    if (doc.documentUrl && doc.documentUrl.startsWith('/api')) {
+                      doc.documentUrl = `${baseUrl}${doc.documentUrl}`;
+                      modified = true;
+                    }
+                    if (doc.fileUrl && doc.fileUrl.startsWith('/api')) {
+                      doc.fileUrl = `${baseUrl}${doc.fileUrl}`;
+                      modified = true;
+                    }
+                    if (doc.downloadUrl && doc.downloadUrl.startsWith('/api')) {
+                      doc.downloadUrl = `${baseUrl}${doc.downloadUrl}`;
+                      modified = true;
+                    }
+                    if (!doc.documentUrl && doc.fileUrl) {
+                      doc.documentUrl = doc.fileUrl;
+                      modified = true;
+                    }
+                    if (!doc.downloadUrl && doc.documentUrl) {
+                      doc.downloadUrl = doc.documentUrl;
+                      modified = true;
+                    }
+                  });
+                }
+              };
+
+              if (Array.isArray(json.data.items)) {
+                json.data.items.forEach(applyRestaurantEnhancements);
+              } else if (Array.isArray(json.data)) {
+                json.data.forEach(applyRestaurantEnhancements);
+              } else if (json.data && (json.data.restaurantId || json.data.id)) {
+                const restId = json.data.restaurantId || json.data.id;
+                if (!json.data.documents || json.data.documents.length === 0) {
+                  try {
+                    let adminList = globalAny.CACHED_ADMIN_RESTAURANTS as any[] | undefined;
+                    const cacheTime = globalAny.CACHED_ADMIN_RESTAURANTS_TIME as number | undefined;
+                    const now = Date.now();
+                    if (!adminList || !cacheTime || now - cacheTime > 30000) {
+                      const adminListRes = await safeFetch(`${baseUrl}/api/v1/admin/restaurants?size=100`, {
+                        headers: { Authorization: 'Bearer demo-admin-token', Accept: 'application/json' },
+                        timeoutMs: 4000,
+                      });
+                      if (adminListRes.response && adminListRes.response.ok) {
+                        const adminJson = await adminListRes.response.json().catch(() => null);
+                        adminList = adminJson?.data?.items || (Array.isArray(adminJson?.data) ? adminJson.data : []);
+                        globalAny.CACHED_ADMIN_RESTAURANTS = adminList;
+                        globalAny.CACHED_ADMIN_RESTAURANTS_TIME = now;
+                      }
+                    }
+                    if (adminList) {
+                      const matched = adminList.find((x: any) => (x.restaurantId || x.id) === restId);
+                      if (matched) {
+                        if (Array.isArray(matched.documents) && matched.documents.length > 0) {
+                          json.data.documents = JSON.parse(JSON.stringify(matched.documents));
+                          modified = true;
+                        }
+                        if (matched.legalDetails && !json.data.legalDetails) {
+                          json.data.legalDetails = matched.legalDetails;
+                          modified = true;
+                        }
+                        if (matched.ownerUserCredentialId && !json.data.ownerUserCredentialId) {
+                          json.data.ownerUserCredentialId = matched.ownerUserCredentialId;
+                          modified = true;
+                        }
+                        if (matched.contactPhone && !json.data.contactPhone) {
+                          json.data.contactPhone = matched.contactPhone;
+                          modified = true;
+                        }
+                        if (matched.phone && !json.data.phone) {
+                          json.data.phone = matched.phone;
+                          modified = true;
+                        }
+                        if (typeof matched.commissionPct === 'number' && !json.data.commissionPct) {
+                          json.data.commissionPct = matched.commissionPct;
+                          modified = true;
+                        }
+                        if (matched.zoneName && !json.data.zoneName) {
+                          json.data.zoneName = matched.zoneName;
+                          modified = true;
+                        }
+                        if (matched.zoneId && !json.data.zoneId) {
+                          json.data.zoneId = matched.zoneId;
+                          modified = true;
+                        }
+                      }
+                    }
+                  } catch (enrichErr) {
+                    console.warn('[BFF] Failed to enrich restaurant detail from admin list:', enrichErr);
+                  }
+                }
+                applyRestaurantEnhancements(json.data);
+              }
+            }
 
             if (modified) {
               const newBuf = Buffer.from(JSON.stringify(json));
@@ -7681,29 +8045,34 @@ async function handleAdminRoles() {
 
 type Ctx = { params: Promise<{ path: string[] }> };
 
-export async function GET(request: Request, ctx: Ctx) {
+export async function GET(request: Request, ctx: Ctx): Promise<Response> {
   const { path } = await ctx.params;
-  return proxy(request, path);
+  const res = await proxy(request, path);
+  return res || new NextResponse(null, { status: 404 });
 }
 
-export async function POST(request: Request, ctx: Ctx) {
+export async function POST(request: Request, ctx: Ctx): Promise<Response> {
   const { path } = await ctx.params;
-  return proxy(request, path);
+  const res = await proxy(request, path);
+  return res || new NextResponse(null, { status: 404 });
 }
 
-export async function PUT(request: Request, ctx: Ctx) {
+export async function PUT(request: Request, ctx: Ctx): Promise<Response> {
   const { path } = await ctx.params;
-  return proxy(request, path);
+  const res = await proxy(request, path);
+  return res || new NextResponse(null, { status: 404 });
 }
 
-export async function PATCH(request: Request, ctx: Ctx) {
+export async function PATCH(request: Request, ctx: Ctx): Promise<Response> {
   const { path } = await ctx.params;
-  return proxy(request, path);
+  const res = await proxy(request, path);
+  return res || new NextResponse(null, { status: 404 });
 }
 
-export async function DELETE(request: Request, ctx: Ctx) {
+export async function DELETE(request: Request, ctx: Ctx): Promise<Response> {
   const { path } = await ctx.params;
-  return proxy(request, path);
+  const res = await proxy(request, path);
+  return res || new NextResponse(null, { status: 404 });
 }
 
 export async function OPTIONS() {

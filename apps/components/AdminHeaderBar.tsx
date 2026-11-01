@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { GlobalSearchModal } from '@/components/GlobalSearchModal';
 import { useAppSelector } from '@/store/hooks';
+import { useGetAvailableZonesQuery, useSelectOperatingZoneMutation, type OperatingZone } from '@/api/endpoints/zoneApi';
+import { isMultiZoneRole } from '@/lib/routeGuards';
 interface AdminHeaderBarProps {
   role?: string | null;
   userId?: string | null;
@@ -46,10 +48,112 @@ export function AdminHeaderBar({
     ? (role || authState.role || storedRole || 'OPS')
     : (role || authState.role || storedRole || 'SUPER_ADMIN');
 
-  const activeZoneId = typeof window !== 'undefined'
+  const isMultiRole = !isSuperAdmin && Boolean(
+    isMultiZoneRole(currentUserRole) ||
+    isMultiZoneRole(role) ||
+    isMultiZoneRole(authState.role) ||
+    isMultiZoneRole(storedRole)
+  );
+
+  const [currentZoneId, setCurrentZoneId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('foodie_active_zone_id') || sessionStorage.getItem('foodie_active_zone_id') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1] : null);
+      if (stored) return decodeURIComponent(stored);
+      if (assignedZone) return decodeURIComponent(assignedZone);
+    }
+    return 'dz-bangalore';
+  });
+
+  const [currentZoneName, setCurrentZoneName] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const storedName = localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name') || (typeof document !== 'undefined' ? decodeURIComponent(document.cookie.match(/foodie_active_zone_name=([^;]+)/)?.[1] || '') : null);
+      if (storedName) return storedName;
+    }
+    return 'Bangalore Zone';
+  });
+
+  const [isZoneDropdownOpen, setIsZoneDropdownOpen] = useState(false);
+  const zoneDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  const { data: availableZones = [], isLoading: isLoadingZones } = useGetAvailableZonesQuery(undefined, {
+    skip: !isMultiRole,
+    refetchOnMountOrArgChange: true,
+  });
+
+  const [selectOperatingZoneMutation] = useSelectOperatingZoneMutation();
+
+  React.useEffect(() => {
+    if (availableZones.length > 0 && currentZoneId) {
+      const clean = currentZoneId.trim().toLowerCase();
+      const match = availableZones.find(
+        (z) => z.id.toLowerCase() === clean || (z.zoneName && z.zoneName.toLowerCase() === clean)
+      );
+      if (match && match.zoneName && match.zoneName !== currentZoneName) {
+        setCurrentZoneName(match.zoneName);
+      }
+    }
+  }, [availableZones, currentZoneId, currentZoneName]);
+
+  React.useEffect(() => {
+    function handleClickOutsideZone(event: MouseEvent) {
+      if (zoneDropdownRef.current && !zoneDropdownRef.current.contains(event.target as Node)) {
+        setIsZoneDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutsideZone);
+    return () => document.removeEventListener('mousedown', handleClickOutsideZone);
+  }, []);
+
+  React.useEffect(() => {
+    function onZoneChange(e: Event) {
+      const detail = (e as CustomEvent<{ zoneId: string; zoneName: string }>)?.detail;
+      if (detail?.zoneId) setCurrentZoneId(detail.zoneId);
+      if (detail?.zoneName) setCurrentZoneName(detail.zoneName);
+    }
+    window.addEventListener('foodie:zone-change', onZoneChange);
+    return () => window.removeEventListener('foodie:zone-change', onZoneChange);
+  }, []);
+
+  const handleSelectZone = async (zone: OperatingZone) => {
+    try {
+      setCurrentZoneId(zone.id);
+      setCurrentZoneName(zone.zoneName);
+      setIsZoneDropdownOpen(false);
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('foodie_active_zone_id', zone.id);
+        localStorage.setItem('foodie_active_zone_name', zone.zoneName);
+        sessionStorage.setItem('foodie_active_zone_id', zone.id);
+        sessionStorage.setItem('foodie_active_zone_name', zone.zoneName);
+
+        localStorage.setItem('foodie_user_assigned_zone', zone.id);
+        sessionStorage.setItem('foodie_user_assigned_zone', zone.id);
+
+        document.cookie = `foodie_active_zone_id=${encodeURIComponent(zone.id)}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `foodie_active_zone_name=${encodeURIComponent(zone.zoneName)}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `foodie_user_assigned_zone=${encodeURIComponent(zone.id)}; path=/; max-age=86400; SameSite=Lax`;
+
+        window.dispatchEvent(
+          new CustomEvent('foodie:zone-change', {
+            detail: { zoneId: zone.id, zoneName: zone.zoneName },
+          })
+        );
+      }
+
+      await selectOperatingZoneMutation({ zoneId: zone.id }).unwrap();
+    } catch (err) {
+      console.warn('Failed to select operating zone on backend', err);
+    }
+  };
+
+  const activeZoneId = isMultiRole
+    ? currentZoneId
+    : typeof window !== 'undefined'
     ? (assignedZone || localStorage.getItem('foodie_active_zone_id') || sessionStorage.getItem('foodie_active_zone_id') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1] : null) || 'dz-bangalore')
     : 'dz-bangalore';
-  const activeZoneName = typeof window !== 'undefined'
+  const activeZoneName = isMultiRole
+    ? currentZoneName
+    : typeof window !== 'undefined'
     ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name') || (typeof document !== 'undefined' ? decodeURIComponent(document.cookie.match(/foodie_active_zone_name=([^;]+)/)?.[1] || '') : null) || (activeZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone'))
     : (activeZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone');
 
@@ -634,6 +738,187 @@ export function AdminHeaderBar({
                   Global View (All Zones)
                 </span>
               </div>
+            </div>
+          ) : isMultiRole ? (
+            /* Multi-Role Dynamic Zone Territory Selector (Compliance Auditor, Finance Admin, Operations Admin, Restaurant Manager, Support Agent) */
+            <div ref={zoneDropdownRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                id="zone-territory-switcher-btn"
+                onClick={() => setIsZoneDropdownOpen((prev) => !prev)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  backgroundColor: isZoneDropdownOpen ? '#F0FDF4' : '#F8FAFC',
+                  border: isZoneDropdownOpen ? '1px solid #22C55E' : '1px solid #E2E8F0',
+                  borderRadius: 12,
+                  padding: '6px 12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease-in-out',
+                  boxShadow: isZoneDropdownOpen ? '0 0 0 2px rgba(34, 197, 94, 0.15)' : 'none',
+                }}
+                title="Click to view and switch between all available operating zones"
+              >
+                <span style={{ fontSize: 13 }}>📍</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Zone Territory
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', whiteSpace: 'nowrap' }}>
+                    {currentZoneName}
+                  </span>
+                </div>
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    backgroundColor: '#22C55E',
+                    marginLeft: 2,
+                    marginRight: 2,
+                  }}
+                  className="pulse-live"
+                />
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#64748B"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{
+                    transform: isZoneDropdownOpen ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 0.2s ease',
+                  }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {isZoneDropdownOpen && (
+                <div
+                  id="zone-territory-dropdown-menu"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 6px)',
+                    right: 0,
+                    minWidth: 260,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 12,
+                    border: '1px solid #E2E8F0',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    zIndex: 1000,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      backgroundColor: '#F8FAFC',
+                      borderBottom: '1px solid #E2E8F0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Select Operating Zone
+                      </div>
+                      <div style={{ fontSize: 10, color: '#64748B' }}>
+                        Live Database Zones ({availableZones.length})
+                      </div>
+                    </div>
+                    {isLoadingZones && (
+                      <span style={{ fontSize: 10, color: '#2563EB', fontWeight: 600 }}>Syncing...</span>
+                    )}
+                  </div>
+
+                  <div style={{ maxHeight: 260, overflowY: 'auto', padding: '6px 0' }}>
+                    {availableZones.length === 0 ? (
+                      <div style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', textAlign: 'center' }}>
+                        No operating zones found
+                      </div>
+                    ) : (
+                      availableZones.map((zone) => {
+                        const isSelected =
+                          zone.id.toLowerCase() === currentZoneId.toLowerCase() ||
+                          (zone.zoneName && zone.zoneName.toLowerCase() === currentZoneName.toLowerCase());
+                        return (
+                          <div
+                            key={zone.id}
+                            id={`zone-option-${zone.id}`}
+                            onClick={() => handleSelectZone(zone)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '8px 14px',
+                              cursor: 'pointer',
+                              backgroundColor: isSelected ? '#F0FDF4' : 'transparent',
+                              transition: 'background-color 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) e.currentTarget.style.backgroundColor = '#F8FAFC';
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                              <span style={{ fontSize: 14 }}>📍</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                <span
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: isSelected ? 700 : 500,
+                                    color: isSelected ? '#166534' : '#1E293B',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                  }}
+                                >
+                                  {zone.zoneName}
+                                </span>
+                                {zone.cityName && (
+                                  <span style={{ fontSize: 10, color: '#64748B' }}>
+                                    {zone.cityName}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: 600,
+                                  padding: '2px 6px',
+                                  borderRadius: 6,
+                                  backgroundColor: zone.status === 'ACTIVE' ? '#DCFCE7' : '#F1F5F9',
+                                  color: zone.status === 'ACTIVE' ? '#166534' : '#64748B',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                {zone.status || 'ACTIVE'}
+                              </span>
+                              {isSelected && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ) : assignedZone || (activeZoneId && activeZoneId !== 'ALL') ? (
             /* Locked Zone Territory Badge for Zone Admin */

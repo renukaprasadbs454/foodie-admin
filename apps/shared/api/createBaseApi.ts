@@ -10,6 +10,7 @@ import type { ApiEnvelope, UnwrappedApiError } from '../types/api';
 import { performAdminTokenRefresh } from '../auth/tokenRefresh';
 import { recordRequestId, captureNonFatalError } from '../utils/crashReporting';
 import { logger } from '../utils/logger';
+import { isMultiZoneRole } from '@/lib/routeGuards';
 
 export type IdempotentMutationArg = {
   idempotencyKey?: string;
@@ -94,19 +95,30 @@ export function createBaseApi<TagTypes extends string = string>(
       headers.set('Accept', 'application/json');
       if (typeof window !== 'undefined') {
         try {
+          const role =
+            localStorage.getItem('foodie_admin_role') ||
+            sessionStorage.getItem('foodie_admin_role') ||
+            (document.cookie.match(/foodie_admin_role=([^;]+)/)?.[1] ? decodeURIComponent(document.cookie.match(/foodie_admin_role=([^;]+)/)![1]) : null) ||
+            (document.cookie.match(/foodie_user_role=([^;]+)/)?.[1] ? decodeURIComponent(document.cookie.match(/foodie_user_role=([^;]+)/)![1]) : null);
+          const isMultiRole = isMultiZoneRole(role);
+
           const assignedZone =
             localStorage.getItem('foodie_user_assigned_zone') ||
             sessionStorage.getItem('foodie_user_assigned_zone') ||
             document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
-          const activeZone =
-            assignedZone ||
+          const rawActiveZone =
             localStorage.getItem('foodie_active_zone_id') ||
             sessionStorage.getItem('foodie_active_zone_id') ||
             document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1];
+
+          const activeZone = isMultiRole
+            ? (rawActiveZone || assignedZone)
+            : (assignedZone || rawActiveZone);
+
           if (activeZone) {
             headers.set('X-Active-Zone-Id', decodeURIComponent(activeZone));
           }
-          if (assignedZone) {
+          if (assignedZone && !isMultiRole) {
             headers.set('X-Assigned-Zone-Id', decodeURIComponent(assignedZone));
           }
         } catch {

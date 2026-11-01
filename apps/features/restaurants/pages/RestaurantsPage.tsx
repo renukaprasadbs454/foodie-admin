@@ -121,13 +121,30 @@ export function RestaurantsPage() {
   }, []);
 
   const { profile } = usePermissions();
-  const assignedZoneId = profile?.assignedZoneId || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone')) : null);
+  const [activeZone, setActiveZone] = useState<string | undefined>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('foodie_active_zone_id') || localStorage.getItem('foodie_user_assigned_zone') || profile?.assignedZoneId || undefined;
+    }
+    return profile?.assignedZoneId || undefined;
+  });
 
   const { data: adminData, refetch } = useGetAdminRestaurantsQuery({
     status: (activeTab === 'ALL' || activeTab === 'TOP_RESTAURANTS') ? undefined : activeTab,
     size: 100,
-    zoneId: assignedZoneId || undefined,
+    zoneId: activeZone || undefined,
   });
+
+  useEffect(() => {
+    const handleZoneChange = (e: Event) => {
+      const detail = (e as CustomEvent<{ zoneId: string; zoneName: string }>)?.detail;
+      if (detail?.zoneId) {
+        setActiveZone(detail.zoneId);
+      }
+      refetch();
+    };
+    window.addEventListener('foodie:zone-change', handleZoneChange);
+    return () => window.removeEventListener('foodie:zone-change', handleZoneChange);
+  }, [refetch]);
 
   const stores: StoreItem[] = adminData?.items?.map(r => ({
     id: r.restaurantId || '',
