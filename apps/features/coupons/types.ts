@@ -99,6 +99,21 @@ export function isZoneMatching(bannerTargetZone: string, customerZone: string): 
   const isCustomerTmk = cleanCustomer.includes('tumkur') || cleanCustomer.includes('tumakuru') || cleanCustomer.includes('tmk');
   if (isTargetTmk && isCustomerTmk) return true;
 
+  const isTargetHub = cleanTarget.includes('hubballi') || cleanTarget.includes('hubli') || cleanTarget.includes('hbl');
+  const isCustomerHub = cleanCustomer.includes('hubballi') || cleanCustomer.includes('hubli') || cleanCustomer.includes('hbl');
+  if (isTargetHub && isCustomerHub) return true;
+
+  const isTargetMys = cleanTarget.includes('mysore') || cleanTarget.includes('mysuru');
+  const isCustomerMys = cleanCustomer.includes('mysore') || cleanCustomer.includes('mysuru');
+  if (isTargetMys && isCustomerMys) return true;
+
+  const isTargetHas = cleanTarget.includes('hassan');
+  const isCustomerHas = cleanCustomer.includes('hassan');
+  if (isTargetHas && isCustomerHas) return true;
+
+  const strip = (s: string) => s.replace(/^dz-/, '').replace(/-zone$/, '').replace(/\s+zone$/i, '').trim();
+  if (strip(cleanTarget) === strip(cleanCustomer)) return true;
+
   return false;
 }
 

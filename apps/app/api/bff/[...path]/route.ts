@@ -2243,6 +2243,21 @@ async function handleBanners(request: Request, targetPath: string, accessToken: 
     const isCTmk = c.includes('tumkur') || c.includes('tumakuru') || c.includes('tmk');
     if (isTTmk && isCTmk) return true;
 
+    const isTHub = t.includes('hubballi') || t.includes('hubli') || t.includes('hbl');
+    const isCHub = c.includes('hubballi') || c.includes('hubli') || c.includes('hbl');
+    if (isTHub && isCHub) return true;
+
+    const isTMys = t.includes('mysore') || t.includes('mysuru');
+    const isCMys = c.includes('mysore') || c.includes('mysuru');
+    if (isTMys && isCMys) return true;
+
+    const isTHas = t.includes('hassan');
+    const isCHas = c.includes('hassan');
+    if (isTHas && isCHas) return true;
+
+    const strip = (s: string) => s.replace(/^dz-/, '').replace(/-zone$/, '').replace(/\s+zone$/i, '').trim();
+    if (strip(t) === strip(c)) return true;
+
     return false;
   };
 
@@ -2533,6 +2548,407 @@ async function handleBanners(request: Request, targetPath: string, accessToken: 
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
     }, { status: 200 });
+  }
+
+  return null;
+}
+
+function getCouponsPersistenceFile(): string {
+  const dataDir = path.join(process.cwd(), "data");
+  if (fs.existsSync(dataDir)) {
+    return path.join(dataDir, "coupons.json");
+  }
+  return path.join(os.tmpdir(), "foodie_admin_coupons_v1.json");
+}
+
+function getDefaultInitialCoupons(): any[] {
+  return [
+    {
+      couponId: "c-blr-01",
+      code: "FOODIE50",
+      discountType: "PERCENT",
+      funderType: "FOODIE",
+      couponType: "GENERIC",
+      benefitMode: "PERCENTAGE",
+      approvalStatus: "APPROVED",
+      value: 50,
+      minOrderAmount: 300,
+      maxDiscountAmount: 150,
+      expiryDate: "2026-12-31T23:59:59Z",
+      usageLimitTotal: null,
+      usageLimitPerUser: 1,
+      restaurantId: null,
+      isActive: true,
+      zoneId: "dz-bangalore",
+      zoneName: "Bangalore Zone",
+    },
+    {
+      couponId: "c-blr-02",
+      code: "BLR150",
+      discountType: "FLAT",
+      funderType: "FOODIE",
+      couponType: "GENERIC",
+      benefitMode: "FLAT",
+      approvalStatus: "APPROVED",
+      value: 150,
+      minOrderAmount: 600,
+      maxDiscountAmount: null,
+      expiryDate: "2026-12-31T23:59:59Z",
+      usageLimitTotal: null,
+      usageLimitPerUser: 1,
+      restaurantId: null,
+      isActive: true,
+      zoneId: "dz-bangalore",
+      zoneName: "Bangalore Zone",
+    },
+    {
+      couponId: "c-tmk-01",
+      code: "PIZZA100",
+      discountType: "FLAT",
+      funderType: "FOODIE",
+      couponType: "GENERIC",
+      benefitMode: "FLAT",
+      approvalStatus: "APPROVED",
+      value: 100,
+      minOrderAmount: 500,
+      maxDiscountAmount: null,
+      expiryDate: "2026-12-31T23:59:59Z",
+      usageLimitTotal: null,
+      usageLimitPerUser: 1,
+      restaurantId: null,
+      isActive: true,
+      zoneId: "dz-tumkur",
+      zoneName: "Tumkur Zone",
+    },
+    {
+      couponId: "c-tmk-02",
+      code: "TMK80",
+      discountType: "FLAT",
+      funderType: "FOODIE",
+      couponType: "GENERIC",
+      benefitMode: "FLAT",
+      approvalStatus: "APPROVED",
+      value: 80,
+      minOrderAmount: 250,
+      maxDiscountAmount: null,
+      expiryDate: "2026-12-31T23:59:59Z",
+      usageLimitTotal: null,
+      usageLimitPerUser: 1,
+      restaurantId: null,
+      isActive: true,
+      zoneId: "dz-tumkur",
+      zoneName: "Tumkur Zone",
+    },
+    {
+      couponId: "c-hub-01",
+      code: "HUBBALLI124",
+      discountType: "PERCENT",
+      funderType: "FOODIE",
+      couponType: "GENERIC",
+      benefitMode: "PERCENTAGE",
+      approvalStatus: "APPROVED",
+      value: 50,
+      minOrderAmount: 99,
+      maxDiscountAmount: 100,
+      expiryDate: "2026-12-31T23:59:59Z",
+      usageLimitTotal: null,
+      usageLimitPerUser: 1,
+      restaurantId: null,
+      isActive: true,
+      zoneId: "dz-hubballi-zone",
+      zoneName: "Hubballi Zone",
+    },
+    {
+      couponId: "c-all-01",
+      code: "WELCOME50",
+      discountType: "PERCENT",
+      funderType: "FOODIE",
+      couponType: "GENERIC",
+      benefitMode: "PERCENTAGE",
+      approvalStatus: "APPROVED",
+      value: 50,
+      minOrderAmount: 99,
+      maxDiscountAmount: 100,
+      expiryDate: "2026-12-31T23:59:59Z",
+      usageLimitTotal: null,
+      usageLimitPerUser: 1,
+      restaurantId: null,
+      isActive: true,
+      zoneId: null,
+      zoneName: "All Zones",
+    },
+    {
+      couponId: "c-all-02",
+      code: "FOODIE17",
+      discountType: "PERCENT",
+      funderType: "FOODIE",
+      couponType: "GENERIC",
+      benefitMode: "PERCENTAGE",
+      approvalStatus: "APPROVED",
+      value: 50,
+      minOrderAmount: 599,
+      maxDiscountAmount: 100,
+      expiryDate: "2026-12-31T23:59:59Z",
+      usageLimitTotal: null,
+      usageLimitPerUser: 1,
+      restaurantId: null,
+      isActive: true,
+      zoneId: null,
+      zoneName: "All Zones",
+    },
+    {
+      couponId: "c-all-03",
+      code: "FOODIE45",
+      discountType: "FLAT",
+      funderType: "FOODIE",
+      couponType: "GENERIC",
+      benefitMode: "FLAT",
+      approvalStatus: "APPROVED",
+      value: 29,
+      minOrderAmount: 87,
+      maxDiscountAmount: null,
+      expiryDate: "2026-12-31T23:59:59Z",
+      usageLimitTotal: null,
+      usageLimitPerUser: 1,
+      restaurantId: null,
+      isActive: true,
+      zoneId: null,
+      zoneName: "All Zones",
+    },
+  ];
+}
+
+function loadPersistentCouponsState(): any[] {
+  try {
+    const filePath = getCouponsPersistenceFile();
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, "utf8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed?.coupons) && parsed.coupons.length > 0) return parsed.coupons;
+    }
+  } catch {}
+  return getDefaultInitialCoupons();
+}
+
+function savePersistentCouponsState(coupons: any[]) {
+  try {
+    const filePath = getCouponsPersistenceFile();
+    fs.writeFileSync(filePath, JSON.stringify(coupons, null, 2), "utf8");
+  } catch {}
+  try {
+    const tmpPath = path.join(os.tmpdir(), "foodie_admin_coupons_v1.json");
+    fs.writeFileSync(tmpPath, JSON.stringify(coupons, null, 2), "utf8");
+  } catch {}
+}
+
+async function handleCoupons(request: Request, targetPath: string, accessToken: string | null) {
+  const backendUrl = ENV.apiBaseUrl.replace(/\/$/, "");
+  const devToken = await getDevBackendToken();
+  const token = (accessToken && !accessToken.startsWith("demo-")) ? accessToken : (devToken || "demo-admin-token");
+  const incomingUrl = new URL(request.url);
+
+  if (!globalAny.MOCK_COUPONS || !Array.isArray(globalAny.MOCK_COUPONS) || globalAny.MOCK_COUPONS.length === 0) {
+    globalAny.MOCK_COUPONS = loadPersistentCouponsState();
+  }
+  const couponsStore = globalAny.MOCK_COUPONS as any[];
+
+  const isTargetMatch = (target: string, customerZone: string): boolean => {
+    if (!target || !customerZone) return false;
+    const t = target.trim().toLowerCase();
+    const c = customerZone.trim().toLowerCase();
+    if (t === "all" || c === "all") return true;
+    if (t === c) return true;
+
+    const isTBlr = t.includes("bangalore") || t.includes("bengaluru") || t.includes("blr");
+    const isCBlr = c.includes("bangalore") || c.includes("bengaluru") || c.includes("blr");
+    if (isTBlr && isCBlr) return true;
+
+    const isTTmk = t.includes("tumkur") || t.includes("tumakuru") || t.includes("tmk");
+    const isCTmk = c.includes("tumkur") || c.includes("tumakuru") || c.includes("tmk");
+    if (isTTmk && isCTmk) return true;
+
+    const isTHub = t.includes("hubballi") || t.includes("hubli") || t.includes("hbl");
+    const isCHub = c.includes("hubballi") || c.includes("hubli") || c.includes("hbl");
+    if (isTHub && isCHub) return true;
+
+    const isTMys = t.includes("mysore") || t.includes("mysuru");
+    const isCMys = c.includes("mysore") || c.includes("mysuru");
+    if (isTMys && isCMys) return true;
+
+    const isTHas = t.includes("hassan");
+    const isCHas = c.includes("hassan");
+    if (isTHas && isCHas) return true;
+
+    const strip = (s: string) => s.replace(/^dz-/, "").replace(/-zone$/, "").replace(/\s+zone$/i, "").trim();
+    if (strip(t) === strip(c)) return true;
+
+    return false;
+  };
+
+  // 1. GET admin/coupons OR coupons/active OR coupons/eligible
+  if (
+    (targetPath === "admin/coupons" || targetPath === "coupons/active" || targetPath === "coupons/eligible" || targetPath === "customer/coupons") &&
+    request.method === "GET"
+  ) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    const qZone = incomingUrl.searchParams.get("zoneId") || incomingUrl.searchParams.get("zone") || "";
+    const headerZone = request.headers.get("x-active-zone-id") || "";
+    const cookieZone = cookieHeader.match(/foodie_active_zone_id=([^;]+)/)?.[1] ||
+      cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] || "";
+    const rawCustomerZone = decodeURIComponent(qZone || headerZone || cookieZone || "").trim();
+
+    const isCustomerView = targetPath === "coupons/active" || targetPath === "coupons/eligible" || targetPath === "customer/coupons" || !targetPath.includes("admin");
+
+    const filtered = couponsStore.filter((coupon) => {
+      // For customer view, coupon MUST be active
+      if (isCustomerView && coupon.isActive === false) return false;
+
+      // If coupon is global (no zone or ALL)
+      const isGlobal = !coupon.zoneId || coupon.zoneId === "ALL" || coupon.isAllZones === true;
+      if (isGlobal) return true;
+
+      // If customer zone is provided, match against it
+      if (rawCustomerZone && rawCustomerZone !== "ALL") {
+        return isTargetMatch(coupon.zoneId, rawCustomerZone) ||
+          Boolean(coupon.zoneName && isTargetMatch(coupon.zoneName, rawCustomerZone));
+      }
+
+      // If admin and viewing specific zone or ALL
+      return !isCustomerView;
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: filtered,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+      },
+    });
+  }
+
+  // 2. POST admin/coupons
+  if (targetPath === "admin/coupons" && request.method === "POST") {
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
+    }
+
+    const cleanCode = (body.code || "").trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
+    const cleanZoneId = (body.zoneId && body.zoneId !== "ALL") ? body.zoneId.trim() : null;
+    let cleanZoneName = body.zoneName || null;
+    if (cleanZoneId && !cleanZoneName) {
+      if (cleanZoneId.includes("bangalore") || cleanZoneId.includes("bengaluru")) cleanZoneName = "Bangalore Zone";
+      else if (cleanZoneId.includes("tumkur")) cleanZoneName = "Tumkur Zone";
+      else if (cleanZoneId.includes("hubballi") || cleanZoneId.includes("hubli")) cleanZoneName = "Hubballi Zone";
+      else cleanZoneName = cleanZoneId;
+    }
+
+    const newCoupon = {
+      couponId: "c-" + Date.now().toString().slice(-4),
+      code: cleanCode || ("COUPON_" + Date.now().toString().slice(-4)),
+      discountType: body.discountType || "PERCENT",
+      funderType: body.funderType || "FOODIE",
+      couponType: body.couponType || "GENERIC",
+      benefitMode: body.benefitMode || (body.discountType === "FLAT" ? "FLAT" : "PERCENTAGE"),
+      approvalStatus: "APPROVED",
+      value: Number(body.value) || 10,
+      minOrderAmount: Number(body.minOrderAmount) || 0,
+      maxDiscountAmount: body.maxDiscountAmount ? Number(body.maxDiscountAmount) : null,
+      expiryDate: body.expiryDate || "2099-12-31T23:59:59Z",
+      usageLimitTotal: body.usageLimitTotal ? Number(body.usageLimitTotal) : null,
+      usageLimitPerUser: Number(body.usageLimitPerUser) || 1,
+      restaurantId: body.restaurantId || null,
+      isActive: true,
+      zoneId: cleanZoneId,
+      zoneName: cleanZoneName,
+    };
+
+    couponsStore.unshift(newCoupon);
+    savePersistentCouponsState(couponsStore);
+
+    try {
+      await safeFetch(backendUrl + "/api/v1/admin/coupons", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify(body),
+        timeoutMs: 3000,
+      });
+    } catch {}
+
+    return NextResponse.json({
+      success: true,
+      data: newCoupon,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, {
+      status: 201,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+      },
+    });
+  }
+
+  // 3. ACTIVATE / DEACTIVATE: PATCH admin/coupons/:id/(activate|deactivate)
+  const actMatch = targetPath.match(/^admin\/coupons\/([^\/]+)\/(activate|deactivate)$/);
+  if (actMatch && (request.method === "PATCH" || request.method === "POST")) {
+    const couponId = actMatch[1];
+    const isActivate = actMatch[2] === "activate";
+    const coupon = couponsStore.find((c) => c.couponId === couponId || c.id === couponId || c.code === couponId);
+    if (coupon) {
+      coupon.isActive = isActivate;
+      savePersistentCouponsState(couponsStore);
+    }
+    return NextResponse.json({
+      success: true,
+      data: { couponId, isActive: isActivate },
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+      },
+    });
+  }
+
+  // 4. DELETE: DELETE admin/coupons/:id
+  const delMatch = targetPath.match(/^admin\/coupons\/([^\/]+)$/);
+  if (delMatch && request.method === "DELETE") {
+    const couponId = delMatch[1];
+    const idx = couponsStore.findIndex((c) => c.couponId === couponId || c.id === couponId || c.code === couponId);
+    if (idx !== -1) {
+      couponsStore.splice(idx, 1);
+      savePersistentCouponsState(couponsStore);
+    }
+    return NextResponse.json({
+      success: true,
+      data: true,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+      },
+    });
   }
 
   return null;
@@ -4491,9 +4907,6 @@ const CUSTOMER_CONTROLS_FILE = path.join(process.cwd(), 'data', 'customer_contro
 
 function loadCustomerControls(): Record<string, CustomerControlRecord> {
   const g = global as unknown as Record<string, unknown>;
-  if (g.__CUSTOMER_CONTROLS) {
-    return g.__CUSTOMER_CONTROLS as Record<string, CustomerControlRecord>;
-  }
   try {
     if (fs.existsSync(CUSTOMER_CONTROLS_FILE)) {
       const data = JSON.parse(fs.readFileSync(CUSTOMER_CONTROLS_FILE, 'utf8'));
@@ -4502,6 +4915,9 @@ function loadCustomerControls(): Record<string, CustomerControlRecord> {
     }
   } catch (err) {
     console.warn('Failed to load customer_controls.json', err);
+  }
+  if (g.__CUSTOMER_CONTROLS) {
+    return g.__CUSTOMER_CONTROLS as Record<string, CustomerControlRecord>;
   }
   const initial: Record<string, CustomerControlRecord> = {};
   g.__CUSTOMER_CONTROLS = initial;
@@ -4810,39 +5226,64 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
 
     const url = new URL(request.url);
     const qId = url.searchParams.get('id') || '';
-    const qEmail = (url.searchParams.get('email') || '').toLowerCase().trim();
     const qPhone = (url.searchParams.get('phone') || '').trim();
     const normPhone = qPhone.replace(/[\s\-()]/g, '');
 
     let matched: any = null;
-    if (qId && controls[qId]) matched = controls[qId];
-    if (!matched && qEmail && controls[qEmail]) matched = controls[qEmail];
-    if (!matched && qPhone && controls[qPhone]) matched = controls[qPhone];
-    if (!matched && normPhone && controls[normPhone]) matched = controls[normPhone];
-
-    // If not found by direct key, match against registered customers to resolve ID
-    if (!matched && (qEmail || qPhone || qId)) {
-      try {
-        const custRes = await safeFetch('http://localhost:8082/api/v1/admin/customers', {
-          headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + devToken },
-          timeoutMs: 1500,
-        });
-        if (custRes.response && custRes.response.ok) {
-          const cj = await custRes.response.json();
-          const list = cj?.data?.customers || cj?.data || [];
-          for (const c of list) {
-            const matchesId = qId && (c.id === qId);
-            const matchesEmail = qEmail && c.email && (c.email.toLowerCase().trim() === qEmail);
-            const matchesPhone = qPhone && c.phone && (c.phone.replace(/[\s\-()]/g, '') === normPhone);
-            if (matchesId || matchesEmail || matchesPhone) {
-              if (controls[c.id]) {
-                matched = controls[c.id];
-                break;
+    if (qId) {
+      if (controls[qId]) {
+        matched = controls[qId];
+      } else {
+        try {
+          const custRes = await safeFetch('http://localhost:8082/api/v1/admin/customers', {
+            headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + devToken },
+            timeoutMs: 1500,
+          });
+          if (custRes.response && custRes.response.ok) {
+            const cj = await custRes.response.json();
+            const list = cj?.data?.customers || cj?.data || [];
+            const found = list.find((c: any) => c.id === qId);
+            if (found) {
+              const isSusp = found.accountStatus === 'SUSPENDED';
+              matched = {
+                isSuspended: isSusp,
+                accountStatus: isSusp ? 'SUSPENDED' : 'ACTIVE',
+                suspensionReason: found.suspensionReason || (isSusp ? 'Account suspended by administrator for policy review.' : ''),
+                isCodDisabled: Boolean(found.isCodDisabled),
+              };
+            }
+          }
+        } catch {}
+      }
+    } else if (normPhone) {
+      if (controls[qPhone]) matched = controls[qPhone];
+      if (!matched && controls[normPhone]) matched = controls[normPhone];
+      if (!matched) {
+        try {
+          const custRes = await safeFetch('http://localhost:8082/api/v1/admin/customers', {
+            headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + devToken },
+            timeoutMs: 1500,
+          });
+          if (custRes.response && custRes.response.ok) {
+            const cj = await custRes.response.json();
+            const list = cj?.data?.customers || cj?.data || [];
+            const found = list.find((c: any) => c.phone && c.phone.replace(/[\s\-()]/g, '') === normPhone);
+            if (found) {
+              if (controls[found.id]) {
+                matched = controls[found.id];
+              } else {
+                const isSusp = found.accountStatus === 'SUSPENDED';
+                matched = {
+                  isSuspended: isSusp,
+                  accountStatus: isSusp ? 'SUSPENDED' : 'ACTIVE',
+                  suspensionReason: found.suspensionReason || (isSusp ? 'Account suspended by administrator for policy review.' : ''),
+                  isCodDisabled: Boolean(found.isCodDisabled),
+                };
               }
             }
           }
-        }
-      } catch {}
+        } catch {}
+      }
     }
 
     const isSuspended = Boolean(matched?.isSuspended);
@@ -4890,7 +5331,7 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
     controls[id].suspensionReason = accountStatus === 'SUSPENDED' ? reason : '';
     controls[id].updatedAt = new Date().toISOString();
 
-    // Query customer list to extract email, phone, name to alias the suspension record
+    // Query customer list to extract unique phone to alias ONLY for this customer's exact phone (never by name or generic email)
     try {
       const endpointsToTry = [
         'http://localhost:8082/api/v1/admin/customers',
@@ -4905,39 +5346,16 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
           if (cRes.response && cRes.response.ok) {
             const cj = await cRes.response.json();
             const list = cj?.data?.customers || cj?.data || [];
-            const found = list.find((c: any) => c.id === id || c.email === id || c.phone === id);
-            if (found) {
-              if (found.email) controls[found.email.toLowerCase().trim()] = { ...controls[id] };
-              if (found.phone) {
-                controls[found.phone.trim()] = { ...controls[id] };
-                controls[found.phone.replace(/\D/g, '')] = { ...controls[id] };
-              }
-              if (found.name) controls[found.name.toLowerCase().trim()] = { ...controls[id] };
+            const found = list.find((c: any) => c.id === id);
+            if (found && found.phone) {
+              const cleanPhone = found.phone.trim();
+              const digitsOnly = cleanPhone.replace(/\D/g, '');
+              controls[cleanPhone] = { ...controls[id] };
+              controls[digitsOnly] = { ...controls[id] };
               break;
             }
           }
         } catch {}
-      }
-    } catch {}
-
-    // Also look up customer in recent list or backend to cross-index by email and phone
-    try {
-      const custResp = await safeFetch('http://localhost:8082/api/v1/admin/customers', {
-        headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + devToken },
-        timeoutMs: 1500,
-      });
-      if (custResp.response && custResp.response.ok) {
-        const cj = await custResp.response.json();
-        const list = cj?.data?.customers || cj?.data || [];
-        const found = list.find((c: any) => c.id === id || c.email === id || c.phone === id);
-        if (found) {
-          if (found.email) controls[found.email.toLowerCase().trim()] = { ...controls[id] };
-          if (found.phone) {
-            controls[found.phone.trim()] = { ...controls[id] };
-            controls[found.phone.replace(/[\s\-()]/g, '')] = { ...controls[id] };
-          }
-          if (found.name) controls[found.name.toLowerCase().trim()] = { ...controls[id] };
-        }
       }
     } catch {}
 
@@ -6031,6 +6449,17 @@ async function handleAdminRoles() {
 
   if (targetPath.startsWith('admin/users') && targetPath !== 'admin/users/me') {
     return handleAdminUsers(request, targetPath, accessToken);
+  }
+
+    if (
+    targetPath.startsWith('admin/coupons') ||
+    targetPath === 'coupons/active' ||
+    targetPath === 'coupons/eligible' ||
+    targetPath.startsWith('coupons/') ||
+    targetPath.startsWith('customer/coupons')
+  ) {
+    const couponRes = await handleCoupons(request, targetPath, accessToken);
+    if (couponRes) return couponRes;
   }
 
   if (

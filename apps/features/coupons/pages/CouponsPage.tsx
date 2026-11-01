@@ -263,6 +263,13 @@ export function CouponsPage() {
   const [cmpCategory, setCmpCategory] = useState('All Food Delivery');
   const [cmpBudget, setCmpBudget] = useState('');
 
+  const [couponTargetZoneId, setCouponTargetZoneId] = useState<string>(activeZoneId || 'ALL');
+
+  useEffect(() => {
+    if (activeZoneId) {
+      setCouponTargetZoneId(activeZoneId);
+    }
+  }, [activeZoneId]);
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -281,6 +288,17 @@ export function CouponsPage() {
       return;
     }
 
+    const effectiveZoneId = couponTargetZoneId && couponTargetZoneId !== 'ALL' ? couponTargetZoneId : undefined;
+    const effectiveZoneName = effectiveZoneId
+      ? (effectiveZoneId.includes('bangalore') || effectiveZoneId.includes('bengaluru')
+          ? 'Bangalore Zone'
+          : effectiveZoneId.includes('tumkur')
+          ? 'Tumkur Zone'
+          : effectiveZoneId.includes('hubballi') || effectiveZoneId.includes('hubli')
+          ? 'Hubballi Zone'
+          : effectiveZoneId)
+      : 'All Zones';
+
     const newCoupon: CouponRecord = {
       id: `c-${Date.now().toString().slice(-4)}`,
       code: cleanCode,
@@ -292,6 +310,8 @@ export function CouponsPage() {
       module,
       expiryDate: '1/1/2100',
       status: 'ACTIVE',
+      zoneId: effectiveZoneId,
+      zoneName: effectiveZoneName,
     };
 
     try {
@@ -306,7 +326,9 @@ export function CouponsPage() {
         maxDiscountAmount: discountType === 'PERCENT' ? cleanVal * 2 : undefined,
         expiryDate: '2099-12-31',
         usageLimitPerUser: 1,
-      }).unwrap();
+        zoneId: effectiveZoneId,
+        zoneName: effectiveZoneName,
+      } as any).unwrap();
 
       setLocalCoupons((prev) => [newCoupon, ...prev]);
     } catch {
@@ -720,6 +742,23 @@ export function CouponsPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Target Zone</label>
+              <select
+                id="coupon-zone-select"
+                value={couponTargetZoneId}
+                onChange={(e) => setCouponTargetZoneId(e.target.value)}
+                style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
+              >
+                <option value="ALL">🌐 All Zones (Platform-wide)</option>
+                <option value="dz-bangalore">📍 Bangalore Zone</option>
+                <option value="dz-tumkur">📍 Tumkur Zone</option>
+                <option value="dz-hubballi-zone">📍 Hubballi Zone</option>
+                <option value="dz-mysore-heritage-zone">📍 Mysore Heritage Zone</option>
+                <option value="dz-hassan">📍 Hassan Zone</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>Minimum Purchase (₹)</label>
               <input
                 type="number"
@@ -807,9 +846,22 @@ export function CouponsPage() {
                         ₹{c.minPurchase}
                       </td>
                       <td style={{ padding: '16px 20px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '3px 8px', borderRadius: 6 }}>
-                          {c.module}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, backgroundColor: '#E3F2FD', color: '#2196F3', padding: '3px 8px', borderRadius: 6, alignSelf: 'flex-start' }}>
+                            {c.module}
+                          </span>
+                          <span style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            backgroundColor: c.zoneId ? '#FEF3C7' : '#F3F4F6',
+                            color: c.zoneId ? '#92400E' : '#4B5563',
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            alignSelf: 'flex-start',
+                          }}>
+                            {c.zoneName || (c.zoneId ? `Zone: ${c.zoneId}` : '🌐 All Zones')}
+                          </span>
+                        </div>
                       </td>
                       <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>{c.expiryDate}</td>
                       <td style={{ padding: '16px 20px' }}>
