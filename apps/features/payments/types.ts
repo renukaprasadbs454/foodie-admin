@@ -188,39 +188,54 @@ export interface SettlementEarningsBreakdown {
 
 export function calculateSettlementEarnings(
   s: PaymentSettlementRecord,
-  config: CommissionConfig = DEFAULT_COMMISSION_CONFIG
+  config?: CommissionConfig
 ): SettlementEarningsBreakdown {
-  const restRate = s.restaurantFoodCommissionRate ?? config.restaurantCommissionRate ?? 14;
-  const delivRate = s.deliveryPartnerCommissionRate ?? config.deliveryCommissionRate ?? 10;
-  const fixedFee = s.platformFee ?? config.platformFixedFee ?? 40;
+  const activeConfig = config ?? DEFAULT_COMMISSION_CONFIG;
+  const isCustomConfig = Boolean(
+    config &&
+    (config.restaurantCommissionRate !== DEFAULT_COMMISSION_CONFIG.restaurantCommissionRate ||
+     config.deliveryCommissionRate !== DEFAULT_COMMISSION_CONFIG.deliveryCommissionRate ||
+     config.platformFixedFee !== DEFAULT_COMMISSION_CONFIG.platformFixedFee)
+  );
+
+  const restRate = activeConfig.restaurantCommissionRate ?? s.restaurantFoodCommissionRate ?? 14;
+  const delivRate = activeConfig.deliveryCommissionRate ?? s.deliveryPartnerCommissionRate ?? 10;
+  const fixedFee = activeConfig.platformFixedFee ?? s.platformFee ?? 40;
 
   // 1. Food Commission
   let foodCommission = 0;
-  if (typeof s.restaurantFoodCommission === 'number' && !isNaN(s.restaurantFoodCommission) && s.restaurantFoodCommission > 0) {
+  if (!isCustomConfig && typeof s.restaurantFoodCommission === 'number' && !isNaN(s.restaurantFoodCommission) && s.restaurantFoodCommission > 0) {
     foodCommission = Number(s.restaurantFoodCommission);
   } else if (typeof s.foodSubtotal === 'number' && !isNaN(s.foodSubtotal) && s.foodSubtotal > 0) {
     foodCommission = Number(((s.foodSubtotal * restRate) / 100).toFixed(2));
   } else if (typeof s.restaurantNetShare === 'number' && !isNaN(s.restaurantNetShare) && s.restaurantNetShare > 0) {
     const netShareRate = Math.max(1, 100 - restRate);
     foodCommission = Number(((s.restaurantNetShare * restRate) / netShareRate).toFixed(2));
+  } else if (typeof s.restaurantFoodCommission === 'number' && !isNaN(s.restaurantFoodCommission) && s.restaurantFoodCommission > 0) {
+    foodCommission = Number(s.restaurantFoodCommission);
   }
 
   // 2. Delivery Commission
   let deliveryCommission = 0;
-  if (typeof s.deliveryPartnerCommission === 'number' && !isNaN(s.deliveryPartnerCommission) && s.deliveryPartnerCommission > 0) {
+  if (!isCustomConfig && typeof s.deliveryPartnerCommission === 'number' && !isNaN(s.deliveryPartnerCommission) && s.deliveryPartnerCommission > 0) {
     deliveryCommission = Number(s.deliveryPartnerCommission);
   } else if (typeof s.deliveryFee === 'number' && !isNaN(s.deliveryFee) && s.deliveryFee > 0) {
     deliveryCommission = Number(((s.deliveryFee * delivRate) / 100).toFixed(2));
   } else if (typeof s.deliveryPartnerNetShare === 'number' && !isNaN(s.deliveryPartnerNetShare) && s.deliveryPartnerNetShare > 0) {
     const netShareRate = Math.max(1, 100 - delivRate);
     deliveryCommission = Number(((s.deliveryPartnerNetShare * delivRate) / netShareRate).toFixed(2));
+  } else if (typeof s.deliveryPartnerCommission === 'number' && !isNaN(s.deliveryPartnerCommission) && s.deliveryPartnerCommission > 0) {
+    deliveryCommission = Number(s.deliveryPartnerCommission);
   }
 
   // 3. Platform Fee
-  const platformFee = Number(fixedFee);
+  let platformFee = Number(fixedFee);
+  if (!isCustomConfig && typeof s.platformFee === 'number' && !isNaN(s.platformFee)) {
+    platformFee = Number(s.platformFee);
+  }
 
   // 4. Admin Total Revenue
-  const adminTotalRevenue = Number((s.adminTotalRevenue ?? (foodCommission + deliveryCommission + platformFee)).toFixed(2));
+  const adminTotalRevenue = Number((foodCommission + deliveryCommission + platformFee).toFixed(2));
 
   return {
     foodCommission,

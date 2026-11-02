@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import type { AdminRole } from 'foodie-shared-web';
-import type { AdminUser, UserAccountStatus } from '../types/usersTypes';
-import { formatRoleBadge, formatStatusBadge } from '../types/usersTypes';
+import type { AdminUser, UserAccountStatus, DropdownAdminRole } from '../types/usersTypes';
+import { formatRoleBadge, formatStatusBadge, normalizeRoleToDropdownValue, getRoleDisplayName } from '../types/usersTypes';
 
 import {
   useGetAdminUsersQuery,
+  useLazyGetAdminUserByIdQuery,
   useCreateAdminUserMutation,
   useUpdateAdminUserRoleMutation,
   useUpdateAdminUserStatusMutation,
@@ -36,6 +37,8 @@ export function UserManagementStudio() {
   const isSuperAdmin = !hasAssignedZone && Boolean((role && role.toUpperCase() === 'SUPER_ADMIN') || (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN'));
 
   const { data: rawUsers = [], isLoading, isError, refetch } = useGetAdminUsersQuery(undefined, { skip: !isSuperAdmin });
+  const [fetchUserById, { isFetching: isFetchingUserDetails }] = useLazyGetAdminUserByIdQuery();
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [createAdminUser] = useCreateAdminUserMutation();
   const [updateAdminUserRole] = useUpdateAdminUserRoleMutation();
   const [updateAdminUserStatus] = useUpdateAdminUserStatusMutation();
@@ -130,7 +133,7 @@ export function UserManagementStudio() {
   };
 
   const handleDeleteUser = async (user: AdminUser) => {
-    if (user.role === 'SUPER_ADMIN') {
+    if (normalizeRoleToDropdownValue(user.role) === 'SUPER_ADMIN') {
       showToast('Super Admin accounts cannot be deleted.');
       return;
     }
@@ -226,7 +229,25 @@ export function UserManagementStudio() {
 
   const [selectedUserForStatus, setSelectedUserForStatus] = useState<AdminUser | null>(null);
   const [selectedUserForRole, setSelectedUserForRole] = useState<AdminUser | null>(null);
-  const [targetRole, setTargetRole] = useState<AdminRole>('OPS');
+  const [targetRole, setTargetRole] = useState<DropdownAdminRole>('OPS');
+
+  const handleOpenEditRole = async (user: AdminUser) => {
+    const latestUser = users.find((u) => u.id === user.id) || user;
+    const initialRole = normalizeRoleToDropdownValue(latestUser.role);
+    setSelectedUserForRole(latestUser);
+    setTargetRole(initialRole);
+
+    try {
+      const freshUser = await fetchUserById(latestUser.id).unwrap();
+      if (freshUser && freshUser.role) {
+        const freshRole = normalizeRoleToDropdownValue(freshUser.role);
+        setTargetRole(freshRole);
+        setSelectedUserForRole((prev) => (prev && prev.id === latestUser.id ? { ...prev, ...freshUser } : prev));
+      }
+    } catch {
+      // Retain initial mapped role
+    }
+  };
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -242,7 +263,7 @@ export function UserManagementStudio() {
       (u.assignedZoneName && u.assignedZoneName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.assignedZoneId && u.assignedZoneId.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
+    const matchesRole = roleFilter === 'ALL' || normalizeRoleToDropdownValue(u.role) === roleFilter;
     const matchesStatus = statusFilter === 'ALL' || u.accountStatus === statusFilter;
 
     return matchesSearch && matchesRole && matchesStatus;
@@ -308,13 +329,17 @@ export function UserManagementStudio() {
 
   const handleUpdateRole = async () => {
     if (!selectedUserForRole) return;
+    const finalRoleToSave = normalizeRoleToDropdownValue(targetRole || selectedUserForRole.role);
+    setIsUpdatingRole(true);
     try {
-      await updateAdminUserRole({ userId: selectedUserForRole.id, role: targetRole }).unwrap();
-      showToast(`Updated ${selectedUserForRole.fullName}'s role to ${targetRole}`);
+      await updateAdminUserRole({ userId: selectedUserForRole.id, role: finalRoleToSave }).unwrap();
+      showToast(`Updated ${selectedUserForRole.fullName}'s role to ${getRoleDisplayName(finalRoleToSave)}`);
       setSelectedUserForRole(null);
-      refetch();
+      await refetch();
     } catch {
       showToast(`Failed to update role for ${selectedUserForRole.fullName}`);
+    } finally {
+      setIsUpdatingRole(false);
     }
   };
 
@@ -830,10 +855,7 @@ export function UserManagementStudio() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
                           <button
                             type="button"
-                            onClick={() => {
-                              setSelectedUserForRole(user);
-                              setTargetRole(user.role);
-                            }}
+                            onClick={() => handleOpenEditRole(user)}
                             style={{
                               padding: '6px 12px',
                               borderRadius: 8,
@@ -865,7 +887,7 @@ export function UserManagementStudio() {
                             {user.accountStatus === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
                           </button>
 
-                          {user.role !== 'SUPER_ADMIN' && (
+                          {normalizeRoleToDropdownValue(user.role) !== 'SUPER_ADMIN' && (
                             <button
                               type="button"
                               onClick={() => handleDeleteUser(user)}
@@ -1638,8 +1660,8 @@ export function UserManagementStudio() {
                 Select Target Role Privilege
               </label>
               <select
-                value={targetRole}
-                onChange={(e) => setTargetRole(e.target.value as AdminRole)}
+                value={normalizeRoleToDropdownValue(targetRole || selectedUserForRole.role)}
+                onChange={(e) => setTargetRole(normalizeRoleToDropdownValue(e.target.value))}
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontWeight: 600, color: '#111827', backgroundColor: '#FFFFFF', boxSizing: 'border-box' }}
               >
                 <option value="SUPER_ADMIN">Super Admin (Full Control)</option>
@@ -1660,6 +1682,7 @@ export function UserManagementStudio() {
               <button
                 type="button"
                 onClick={handleUpdateRole}
+                disabled={isUpdatingRole}
                 style={{
                   padding: '9px 18px',
                   borderRadius: 10,
@@ -1668,11 +1691,12 @@ export function UserManagementStudio() {
                   color: '#FFFFFF',
                   fontSize: 13,
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: isUpdatingRole ? 'not-allowed' : 'pointer',
+                  opacity: isUpdatingRole ? 0.7 : 1,
                   boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
                 }}
               >
-                Save Role Privilege
+                {isUpdatingRole ? 'Saving...' : 'Save Role Privilege'}
               </button>
             </div>
           </div>

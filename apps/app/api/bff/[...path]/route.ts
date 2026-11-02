@@ -104,6 +104,38 @@ function writeSharedRestaurantCommissions(map: Record<string, any>) {
   } catch {}
 }
 
+const SHARED_GLOBAL_COMMISSION_RULES_FILE = path.join(os.tmpdir(), 'foodie_global_commission_rules.json');
+function readSharedGlobalCommissionRules(): { restaurantCommissionRate: number; deliveryCommissionRate: number; platformFixedFee: number } {
+  try {
+    if (fs.existsSync(SHARED_GLOBAL_COMMISSION_RULES_FILE)) {
+      const data = fs.readFileSync(SHARED_GLOBAL_COMMISSION_RULES_FILE, 'utf8');
+      const parsed = JSON.parse(data);
+      if (parsed && typeof parsed.restaurantCommissionRate === 'number') {
+        return {
+          restaurantCommissionRate: Number(parsed.restaurantCommissionRate),
+          deliveryCommissionRate: Number(parsed.deliveryCommissionRate ?? 10),
+          platformFixedFee: Number(parsed.platformFixedFee ?? 40),
+        };
+      }
+    }
+  } catch {}
+  return {
+    restaurantCommissionRate: 14,
+    deliveryCommissionRate: 10,
+    platformFixedFee: 40,
+  };
+}
+
+function writeSharedGlobalCommissionRules(rules: { restaurantCommissionRate: number; deliveryCommissionRate: number; platformFixedFee: number }) {
+  try {
+    fs.writeFileSync(SHARED_GLOBAL_COMMISSION_RULES_FILE, JSON.stringify(rules, null, 2), 'utf8');
+  } catch {}
+}
+
+if (!globalAny.ADMIN_COMMISSION_RULES) {
+  globalAny.ADMIN_COMMISSION_RULES = readSharedGlobalCommissionRules();
+}
+
 async function handleRestaurantDocumentAction(request: Request, targetPath: string, accessToken: string | null) {
   const match = targetPath.match(/^(?:admin\/)?restaurants\/([^/]+)\/documents\/([^/]+)\/(verify|approve|reject|reset)$/);
   if (!match) return null;
@@ -6286,13 +6318,36 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
 
   const roleMatch = targetPath.match(/^admin\/users\/([^/]+)\/role$/);
   if (request.method === 'PATCH' && roleMatch) {
-    const userId = roleMatch[1];
+    const userId = decodeURIComponent(roleMatch[1]).trim();
     let body: any = {};
     try { body = await request.json(); } catch { body = {}; }
-    const targetUser = usersStore.find((u) => u.id === userId || u.id.toLowerCase() === userId.toLowerCase());
+    const targetUser = usersStore.find(
+      (u) =>
+        (u.id && u.id.toLowerCase() === userId.toLowerCase()) ||
+        (u.email && u.email.toLowerCase() === userId.toLowerCase())
+    );
     if (targetUser) {
       targetUser.role = body.role || targetUser.role;
+      globalAny.ADMIN_USERS_STORE = usersStore;
       savePersistentAdminUsers(usersStore);
+      purgeBffCache('admin/users');
+      purgeBffCache('auth/admin-roles');
+      purgeBffCache('auth/roles');
+
+      const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+      const backendToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : await getDevBackendToken();
+      safeFetch(`${backendUrl}/api/v1/admin/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${backendToken}` },
+        body: JSON.stringify({
+          fullName: targetUser.fullName,
+          phoneNumber: targetUser.phone,
+          email: targetUser.email,
+          role: targetUser.role,
+          assignedZoneId: targetUser.assignedZoneId,
+        }),
+        timeoutMs: 3000,
+      }).catch(() => null);
     }
     const safeTarget = targetUser ? (({ passwordHash: _, ...rest }) => rest)(targetUser) : null;
     return NextResponse.json({
@@ -6380,6 +6435,30 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
     }, { status: 200 });
+  }
+
+  const getUserMatch = targetPath.match(/^admin\/users\/([^/]+)$/);
+  if (request.method === 'GET' && getUserMatch) {
+    const rawId = decodeURIComponent(getUserMatch[1]).trim();
+    const targetUser = usersStore.find(
+      (u) =>
+        (u.id && u.id.toLowerCase() === rawId.toLowerCase()) ||
+        (u.email && u.email.toLowerCase() === rawId.toLowerCase())
+    );
+    if (targetUser) {
+      const safeTarget = (({ passwordHash: _, ...rest }) => rest)(targetUser);
+      return NextResponse.json({
+        success: true,
+        data: safeTarget,
+        error: null,
+        meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+      }, { status: 200 });
+    }
+    return NextResponse.json({
+      success: false,
+      data: null,
+      error: { code: 'NOT_FOUND', message: `Admin user ${rawId} not found` },
+    }, { status: 404 });
   }
 
   const deleteUserMatch = targetPath.match(/^admin\/users\/([^/]+)$/);
@@ -6938,6 +7017,159 @@ async function handleAdminRoles() {
         pagination: null,
       },
     }, { status: 200 });
+  }
+
+  if (targetPath === 'admin/payments/commission-rules') {
+    if (request.method === 'GET') {
+      const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
+      const upstreamUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/commission-rules${incomingUrl.search}`;
+      const headers: Record<string, string> = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${upstreamToken}`,
+      };
+      if (incomingActiveZone) {
+        headers['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+      }
+      try {
+        const { response: upRes } = await safeFetch(upstreamUrl, {
+          method: 'GET',
+          headers,
+          timeoutMs: 4000,
+        });
+        if (upRes && upRes.ok) {
+          const json = await upRes.json();
+          if (json && json.data) {
+            const rRate = Number(json.data.restaurantCommissionRate ?? 14);
+            const dRate = Number(json.data.deliveryCommissionRate ?? 10);
+            const pFee = Number(json.data.platformFixedFee ?? 40);
+            const syncedRules = { restaurantCommissionRate: rRate, deliveryCommissionRate: dRate, platformFixedFee: pFee };
+            globalAny.ADMIN_COMMISSION_RULES = syncedRules;
+            writeSharedGlobalCommissionRules(syncedRules);
+            return NextResponse.json({
+              success: true,
+              data: syncedRules,
+              error: null,
+              meta: json.meta || {
+                timestamp: new Date().toISOString(),
+                requestId: crypto.randomUUID(),
+                pagination: null,
+              },
+            });
+          }
+        }
+      } catch {
+        // Fall through to shared rules
+      }
+
+      const currentRules = (globalAny.ADMIN_COMMISSION_RULES as any) || readSharedGlobalCommissionRules();
+      return NextResponse.json({
+        success: true,
+        data: currentRules,
+        error: null,
+        meta: {
+          timestamp: new Date().toISOString(),
+          requestId: crypto.randomUUID(),
+          pagination: null,
+        },
+      });
+    }
+
+    if (request.method === 'POST') {
+      let body: any = {};
+      try {
+        body = await request.json();
+      } catch {
+        body = {};
+      }
+
+      const rRate = Math.min(100, Math.max(0, Number(body.restaurantCommissionRate ?? 14)));
+      const dRate = Math.min(100, Math.max(0, Number(body.deliveryCommissionRate ?? 10)));
+      const pFee = Math.max(0, Number(body.platformFixedFee ?? 40));
+
+      const updatedRules = {
+        restaurantCommissionRate: rRate,
+        deliveryCommissionRate: dRate,
+        platformFixedFee: pFee,
+      };
+
+      globalAny.ADMIN_COMMISSION_RULES = updatedRules;
+      writeSharedGlobalCommissionRules(updatedRules);
+
+      purgeBffCache('admin/payments/commission-rules');
+      purgeBffCache('admin/payments/settlements');
+      purgeBffCache('admin/payments/transactions');
+      purgeBffCache('admin/payments/ledger');
+      BFF_CACHE.clear();
+
+      try {
+        const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
+        const upstreamUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/commission-rules${incomingUrl.search}`;
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${upstreamToken}`,
+        };
+        if (incomingActiveZone) {
+          headers['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+        }
+        await safeFetch(upstreamUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(updatedRules),
+          timeoutMs: 4000,
+        });
+      } catch {
+        // Fall through
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: updatedRules,
+        error: null,
+        meta: {
+          timestamp: new Date().toISOString(),
+          requestId: crypto.randomUUID(),
+          pagination: null,
+        },
+      });
+    }
+  }
+
+  if (targetPath === 'admin/payments/calculate-split' && request.method === 'POST') {
+    const foodSubtotal = parseFloat(incomingUrl.searchParams.get('foodSubtotal') || '0') || 0;
+    const deliveryFee = parseFloat(incomingUrl.searchParams.get('deliveryFee') || '0') || 0;
+    const rules = (globalAny.ADMIN_COMMISSION_RULES as any) || readSharedGlobalCommissionRules();
+    const rRate = rules.restaurantCommissionRate ?? 14;
+    const dRate = rules.deliveryCommissionRate ?? 10;
+    const pFee = rules.platformFixedFee ?? 40;
+
+    const adminFoodCommission = Number(((foodSubtotal * rRate) / 100).toFixed(2));
+    const adminDeliveryCommission = Number(((deliveryFee * dRate) / 100).toFixed(2));
+    const adminTotalRevenue = Number((adminFoodCommission + adminDeliveryCommission + pFee).toFixed(2));
+    const restaurantNetShare = Number((foodSubtotal - adminFoodCommission).toFixed(2));
+    const deliveryPartnerNetShare = Number((deliveryFee - adminDeliveryCommission).toFixed(2));
+    const totalPaid = Number((foodSubtotal + deliveryFee + pFee).toFixed(2));
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        totalPaid,
+        foodSubtotal,
+        deliveryFee,
+        platformFee: pFee,
+        adminFoodCommission,
+        adminDeliveryCommission,
+        adminTotalRevenue,
+        restaurantNetShare,
+        deliveryPartnerNetShare,
+      },
+      error: null,
+      meta: {
+        timestamp: new Date().toISOString(),
+        requestId: crypto.randomUUID(),
+        pagination: null,
+      },
+    });
   }
 
   const isGet = request.method === 'GET' || request.method === 'HEAD';

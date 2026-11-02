@@ -292,8 +292,8 @@ export function PaymentsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('OVERVIEW');
 
   // Backend RTK Queries
-  const { data: serverRules, isLoading: rulesLoading } = useGetCommissionRulesQuery();
-  const { data: serverSettlements = [], isLoading: settlementsLoading } = useGetSettlementsQuery();
+  const { data: serverRules, isLoading: rulesLoading, refetch: refetchRules } = useGetCommissionRulesQuery();
+  const { data: serverSettlements = [], isLoading: settlementsLoading, refetch: refetchSettlements } = useGetSettlementsQuery();
   const { data: serverTransactions = [], isLoading: transactionsLoading } = useGetTransactionsQuery();
   const { data: serverLedger = [], isLoading: ledgerLoading } = useGetLedgerQuery();
   const { data: restaurantSettlements = [], isLoading: restSettlementsLoading } = useGetRestaurantSettlementsQuery();
@@ -866,10 +866,16 @@ export function PaymentsPage() {
     };
 
     try {
-      await updateRules(payload).unwrap();
-      setCommissionConfig(payload);
+      const res = await updateRules(payload).unwrap();
+      const updatedConfig = (res && typeof res.restaurantCommissionRate === 'number') ? res : payload;
+      setCommissionConfig(updatedConfig);
+      setConfigRestRate(updatedConfig.restaurantCommissionRate.toString());
+      setConfigDelivRate(updatedConfig.deliveryCommissionRate.toString());
+      setConfigPlatformFee(updatedConfig.platformFixedFee.toString());
       setIsConfigOpen(false);
-      showToast(`Successfully updated Commission Rules: Restaurant ${rRate}%, Delivery ${dRate}%, Platform Fee ₹${pFee}`);
+      refetchRules?.();
+      refetchSettlements?.();
+      showToast(`Successfully updated Commission Rules: Restaurant ${updatedConfig.restaurantCommissionRate}%, Delivery ${updatedConfig.deliveryCommissionRate}%, Platform Fee ₹${updatedConfig.platformFixedFee}`);
     } catch (err: any) {
       showToast(`Failed to update rules: ${err?.data?.error?.message || err?.message || 'Server error'}`);
     }
@@ -927,7 +933,14 @@ export function PaymentsPage() {
           <button
             key={t.key}
             type="button"
-            onClick={() => setActiveTab(t.key as TabKey)}
+            onClick={() => {
+            setActiveTab(t.key as TabKey);
+            if (t.key === 'COMMISSION_RULES') {
+              setConfigRestRate(commissionConfig.restaurantCommissionRate.toString());
+              setConfigDelivRate(commissionConfig.deliveryCommissionRate.toString());
+              setConfigPlatformFee(commissionConfig.platformFixedFee.toString());
+            }
+          }}
             style={{
               padding: '8px 16px',
               border: isActive ? '1px solid #BFDBFE' : '1px solid transparent',
@@ -1005,7 +1018,7 @@ export function PaymentsPage() {
               transition: 'transform 0.15s ease',
             }}
           >
-            Edit Commission Rules (14% / 10% / ₹40)
+            Edit Commission Rules ({commissionConfig.restaurantCommissionRate}% / {commissionConfig.deliveryCommissionRate}% / ₹{commissionConfig.platformFixedFee})
           </button>
         </div>
       </div>
@@ -1212,7 +1225,7 @@ export function PaymentsPage() {
                 ₹{totalAdminNetRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </Text>
               <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 500, marginTop: 6 }}>
-                14% Rest. Comm + 10% Driver Comm + ₹{commissionConfig.platformFixedFee} Service Fee
+                {commissionConfig.restaurantCommissionRate}% Rest. Comm + {commissionConfig.deliveryCommissionRate}% Driver Comm + ₹{commissionConfig.platformFixedFee} Service Fee
               </div>
             </div>
 
@@ -1277,7 +1290,7 @@ export function PaymentsPage() {
                 </p>
               </div>
               <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: '#E3F2FD', color: '#2196F3', border: '1px solid #BFDBFE', padding: '6px 12px', borderRadius: 20 }}>
-                ACTIVE BACKEND RULES: 14% Rest Comm | 10% Driver Comm | ₹40 Platform Fee
+                ACTIVE BACKEND RULES: {commissionConfig.restaurantCommissionRate}% Rest Comm | {commissionConfig.deliveryCommissionRate}% Driver Comm | ₹{commissionConfig.platformFixedFee} Platform Fee
               </span>
             </div>
 
@@ -1387,15 +1400,15 @@ export function PaymentsPage() {
                     </div>
 
                     <div style={{ fontSize: 12, color: '#6B7280', paddingLeft: 12, marginTop: -4, lineHeight: 1.5 }}>
-                      • 14% Food Commission: ₹{livePreviewSplit.adminFoodCommission.toFixed(2)}
+                      • {commissionConfig.restaurantCommissionRate}% Food Commission: ₹{livePreviewSplit.adminFoodCommission.toFixed(2)}
                       <br />
-                      • 10% Driver Commission: ₹{livePreviewSplit.adminDeliveryCommission.toFixed(2)}
+                      • {commissionConfig.deliveryCommissionRate}% Driver Commission: ₹{livePreviewSplit.adminDeliveryCommission.toFixed(2)}
                       <br />
                       • Fixed Service Fee: ₹{livePreviewSplit.platformFee.toFixed(2)}
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#111827', fontWeight: 700, paddingTop: 4 }}>
-                      <span> Restaurant Net Payout (86%):</span>
+                      <span> Restaurant Net Payout ({100 - commissionConfig.restaurantCommissionRate}%):</span>
                       <span style={{ color: '#111827', fontWeight: 800 }}>₹{livePreviewSplit.restaurantNetShare.toFixed(2)}</span>
                     </div>
 
@@ -1688,7 +1701,7 @@ export function PaymentsPage() {
                 Order Payment Settlement & Distribution Ledger
               </Text>
               <Text as="p" variant="caption" color="#6B7280" style={{ margin: '2px 0 0' }}>
-                Real backend settlements showing exact breakdown: Customer Payment → 14% Food Comm → 10% Driver Comm → ₹40 Platform Fee → Net Distributions.
+                Real backend settlements showing exact breakdown: Customer Payment → {commissionConfig.restaurantCommissionRate}% Food Comm → {commissionConfig.deliveryCommissionRate}% Driver Comm → ₹{commissionConfig.platformFixedFee} Platform Fee → Net Distributions.
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3', backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '4px 10px', borderRadius: 20 }}>
@@ -1973,10 +1986,10 @@ export function PaymentsPage() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <Text as="h2" variant="heading3" color="#111827" style={{ margin: 0, fontWeight: 700 }}>
-                Restaurant Order Settlements (14% Comm)
+                Restaurant Order Settlements ({commissionConfig.restaurantCommissionRate}% Comm)
               </Text>
               <Text as="p" variant="caption" color="#6B7280" style={{ margin: '2px 0 0' }}>
-                Accumulated net 86% food revenue payouts to restaurant partners with formal disbursement tracking.
+                Accumulated net {100 - commissionConfig.restaurantCommissionRate}% food revenue payouts to restaurant partners with formal disbursement tracking.
               </Text>
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#2196F3', backgroundColor: '#E3F2FD', border: '1px solid #BFDBFE', padding: '4px 10px', borderRadius: 20 }}>
@@ -2007,7 +2020,7 @@ export function PaymentsPage() {
                   <th style={{ padding: '12px 16px' }}>Period</th>
                   <th style={{ padding: '12px 16px' }}>Orders Count</th>
                   <th style={{ padding: '12px 16px' }}>Food Subtotal</th>
-                  <th style={{ padding: '12px 16px' }}>14% Comm Deducted</th>
+                  <th style={{ padding: '12px 16px' }}>{commissionConfig.restaurantCommissionRate}% Comm Deducted</th>
                   <th style={{ padding: '12px 16px' }}>Net Payout Amount</th>
                   <th style={{ padding: '12px 16px' }}>Status</th>
                   <th style={{ padding: '12px 16px', textAlign: 'right' }}>Action</th>
@@ -2653,19 +2666,19 @@ export function PaymentsPage() {
             {/* Revenue Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
               <div style={{ backgroundColor: '#F9FAFB', padding: 20, borderRadius: 16, border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>14% Food Item Commission</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>{commissionConfig.restaurantCommissionRate}% Food Item Commission</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#111827', margin: '8px 0' }}>
                   ₹{totalFoodCommission.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div style={{ fontSize: 11, color: '#6B7280' }}>14% retained on total food subtotal</div>
+                <div style={{ fontSize: 11, color: '#6B7280' }}>{commissionConfig.restaurantCommissionRate}% retained on total food subtotal</div>
               </div>
 
               <div style={{ backgroundColor: '#F9FAFB', padding: 20, borderRadius: 16, border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>10% Delivery Fee Commission</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>{commissionConfig.deliveryCommissionRate}% Delivery Fee Commission</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#111827', margin: '8px 0' }}>
                   ₹{totalDeliveryCommission.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div style={{ fontSize: 11, color: '#6B7280' }}>10% retained on total delivery fee</div>
+                <div style={{ fontSize: 11, color: '#6B7280' }}>{commissionConfig.deliveryCommissionRate}% retained on total delivery fee</div>
               </div>
 
               <div style={{ backgroundColor: '#F9FAFB', padding: 20, borderRadius: 16, border: '1px solid #E5E7EB' }}>

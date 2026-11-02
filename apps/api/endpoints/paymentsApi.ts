@@ -134,7 +134,12 @@ export const paymentsApi = baseApi.injectEndpoints({
         headers: zoneId ? { 'X-Active-Zone-Id': zoneId } : undefined,
       }),
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
-      invalidatesTags: [{ type: 'Payment', id: 'RULES' }],
+      invalidatesTags: [
+        { type: 'Payment', id: 'RULES' },
+        { type: 'Payment', id: 'SETTLEMENTS' },
+        { type: 'Payment', id: 'TRANSACTIONS' },
+        { type: 'Payment', id: 'LEDGER' },
+      ],
     }),
 
     calculateSplit: builder.mutation<

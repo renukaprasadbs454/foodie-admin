@@ -26,6 +26,14 @@ export const usersApi = baseApi.injectEndpoints({
       },
       providesTags: ['Admin', { type: 'Admin', id: 'USERS_LIST' }],
     }),
+    getAdminUserById: builder.query<AdminUser, string>({
+      query: (userId) => `/api/bff/admin/users/${encodeURIComponent(userId)}`,
+      transformResponse: (response: any) => {
+        if (response?.data) return response.data;
+        return response;
+      },
+      providesTags: (_result, _error, id) => ['Admin', { type: 'Admin', id }],
+    }),
     createAdminUser: builder.mutation<AdminUser, CreateAdminUserBody>({
       query: (body) => ({
         url: '/api/bff/admin/users',
@@ -36,7 +44,7 @@ export const usersApi = baseApi.injectEndpoints({
     }),
     updateAdminUserRole: builder.mutation<AdminUser, { userId: string; role: AdminRole }>({
       query: ({ userId, role }) => ({
-        url: `/api/bff/admin/users/${userId}/role`,
+        url: `/api/bff/admin/users/${encodeURIComponent(userId)}/role`,
         method: 'PATCH',
         body: { role },
       }),
@@ -44,7 +52,7 @@ export const usersApi = baseApi.injectEndpoints({
     }),
     updateAdminUserStatus: builder.mutation<AdminUser, { userId: string; status: UserAccountStatus }>({
       query: ({ userId, status }) => ({
-        url: `/api/bff/admin/users/${userId}/status`,
+        url: `/api/bff/admin/users/${encodeURIComponent(userId)}/status`,
         method: 'PATCH',
         body: { status },
       }),
@@ -70,6 +78,8 @@ export const usersApi = baseApi.injectEndpoints({
 
 export const {
   useGetAdminUsersQuery,
+  useGetAdminUserByIdQuery,
+  useLazyGetAdminUserByIdQuery,
   useCreateAdminUserMutation,
   useUpdateAdminUserRoleMutation,
   useUpdateAdminUserStatusMutation,
