@@ -68,6 +68,26 @@ export const locationApi = baseApi.injectEndpoints({
             query: () => `/api/bff/admin/location/zones`,
             providesTags: ['LocationZone'],
         }),
+        getZoneById: builder.query<LocationZoneDto, string>({
+            query: (id) => `/api/bff/admin/location/zones/${encodeURIComponent(id)}`,
+            providesTags: (result, error, id) => [{ type: 'LocationZone', id }],
+        }),
+        updateZone: builder.mutation<LocationZoneDto, { id: string } & Partial<LocationZoneDto> & {
+            createZoneAdmin?: boolean;
+            zoneAdminName?: string;
+            zoneAdminEmail?: string;
+            zoneAdminPhone?: string;
+            zoneAdminRole?: string;
+            zoneAdminDept?: string;
+            zoneAdminPassword?: string;
+        }>({
+            query: ({ id, ...body }) => ({
+                url: `/api/bff/admin/location/zones/${encodeURIComponent(id)}`,
+                method: 'PUT',
+                body,
+            }),
+            invalidatesTags: ['LocationZone', 'City'],
+        }),
         createZone: builder.mutation<LocationZoneDto, Partial<LocationZoneDto>>({
             query: (body) => ({
                 url: '/api/bff/admin/location/zones',
@@ -222,7 +242,10 @@ export const locationApi = baseApi.injectEndpoints({
 
 export const {
     useGetZonesQuery,
+    useGetZoneByIdQuery,
+    useLazyGetZoneByIdQuery,
     useCreateZoneMutation,
+    useUpdateZoneMutation,
     useUpdateZoneTogglesMutation,
     useGetCitiesQuery,
     useCreateCityMutation,

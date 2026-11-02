@@ -3701,13 +3701,212 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
     return NextResponse.json({ success: true, data: zone || { id: zoneId, status: newStatus }, error: null }, { status: 200 });
   }
 
-  // 5. DELETE admin/location/zones/:id
-  const deleteMatch = targetPath.match(/^admin\/location\/zones\/([^/]+)$/);
-  if (deleteMatch && request.method === 'DELETE') {
+  // 5. GET, PUT, DELETE admin/location/zones/:id
+  const singleZoneMatch = targetPath.match(/^admin\/location\/zones\/([^/]+)$/);
+  if (singleZoneMatch) {
+    const rawZoneId = decodeURIComponent(singleZoneMatch[1]).trim();
+    const zoneIdLower = rawZoneId.toLowerCase();
+
+    // 5a. GET admin/location/zones/:id
+    if (request.method === 'GET') {
+      let foundZone = dynamicZonesStore.find(
+        (z) =>
+          (z.id || '').toLowerCase() === zoneIdLower ||
+          (z.zoneName || '').toLowerCase() === zoneIdLower ||
+          (z.id || '').toLowerCase().replace(/^dz-/, '') === zoneIdLower.replace(/^dz-/, '')
+      );
+
+      if (!foundZone) {
+        if (zoneIdLower === 'dz-bangalore' || zoneIdLower === 'bangalore') {
+          foundZone = {
+            id: 'dz-bangalore',
+            zoneName: 'Bangalore Zone',
+            cityName: 'Bangalore',
+            latitude: 12.9716,
+            longitude: 77.5946,
+            radiusKm: 25.0,
+            polygonCoordinates: '12.9716,77.5946 | 13.0000,77.6200 | 12.9500,77.5800',
+            activeDrivers: 45,
+            surgeMultiplier: 1.0,
+            status: 'ACTIVE',
+            restaurantEnabled: true,
+            deliveryPartnerEnabled: true,
+            customerOrderingEnabled: true,
+          };
+        } else if (zoneIdLower === 'dz-tumkur' || zoneIdLower === 'tumkur') {
+          foundZone = {
+            id: 'dz-tumkur',
+            zoneName: 'Tumkur Zone',
+            cityName: 'Tumkur',
+            latitude: 13.3379,
+            longitude: 77.1173,
+            radiusKm: 20.0,
+            polygonCoordinates: '13.3379,77.1173 | 13.3500,77.1300 | 13.3200,77.1000',
+            activeDrivers: 22,
+            surgeMultiplier: 1.0,
+            status: 'ACTIVE',
+            restaurantEnabled: true,
+            deliveryPartnerEnabled: true,
+            customerOrderingEnabled: true,
+          };
+        }
+      }
+
+      // Try upstream backend
+      try {
+        const up = await safeFetch(`${backendUrl}/api/v1/admin/location/zones/${encodeURIComponent(rawZoneId)}`, {
+          method: 'GET',
+          headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+          timeoutMs: 3000,
+        });
+        if (up.response && up.response.ok) {
+          const upJson = await up.response.json().catch(() => null);
+          const upData = upJson?.data || upJson;
+          if (upData && upData.id) {
+            foundZone = { ...(foundZone || {}), ...upData };
+          }
+        }
+      } catch {}
+
+      if (foundZone) {
+        const clone = { ...foundZone };
+        if (globalAny.ADMIN_USERS_STORE) {
+          const adminUser = (globalAny.ADMIN_USERS_STORE as any[]).find(
+            (u) =>
+              (u.assignedZoneId && u.assignedZoneId.toLowerCase() === (clone.id || '').toLowerCase()) ||
+              (u.assignedZoneName && u.assignedZoneName.toLowerCase() === (clone.zoneName || '').toLowerCase()) ||
+              (clone.id && u.assignedZoneId && u.assignedZoneId.toLowerCase().includes(clone.id.toLowerCase()))
+          );
+          if (adminUser) {
+            clone.adminName = adminUser.fullName || adminUser.name || '';
+            clone.adminEmail = adminUser.email || '';
+            clone.adminPhone = adminUser.phone || adminUser.phoneNumber || '';
+            clone.adminRole = adminUser.role || 'OPS';
+            clone.adminDept = adminUser.department || 'Zone Operations';
+          }
+        }
+        return NextResponse.json({ success: true, data: clone, error: null }, { status: 200 });
+      }
+
+      return NextResponse.json(
+        { success: false, data: null, error: { code: 'NOT_FOUND', message: `Zone not found: ${rawZoneId}` } },
+        { status: 404 }
+      );
+    }
+
+    // 5b. PUT/PATCH admin/location/zones/:id
+    if (request.method === 'PUT' || request.method === 'PATCH') {
+      let body: any = {};
+      try {
+        body = await request.json();
+      } catch {}
+
+      let zone = dynamicZonesStore.find(
+        (z) =>
+          (z.id || '').toLowerCase() === zoneIdLower ||
+          (z.zoneName || '').toLowerCase() === zoneIdLower ||
+          (z.id || '').toLowerCase().replace(/^dz-/, '') === zoneIdLower.replace(/^dz-/, '')
+      );
+
+      if (!zone) {
+        zone = {
+          id: rawZoneId,
+          zoneName: body.zoneName || rawZoneId,
+          cityName: body.cityName || 'Bangalore',
+          latitude: parseFloat(body.latitude) || 12.9716,
+          longitude: parseFloat(body.longitude) || 77.5946,
+          radiusKm: parseFloat(body.radiusKm) || 15.0,
+          polygonCoordinates: body.polygonCoordinates || '',
+          activeDrivers: body.activeDrivers || 10,
+          surgeMultiplier: parseFloat(body.surgeMultiplier) || 1.0,
+          status: body.status || 'ACTIVE',
+          restaurantEnabled: body.restaurantEnabled !== undefined ? Boolean(body.restaurantEnabled) : true,
+          deliveryPartnerEnabled: body.deliveryPartnerEnabled !== undefined ? Boolean(body.deliveryPartnerEnabled) : true,
+          customerOrderingEnabled: body.customerOrderingEnabled !== undefined ? Boolean(body.customerOrderingEnabled) : true,
+        };
+        dynamicZonesStore.push(zone);
+      } else {
+        if (body.zoneName !== undefined) zone.zoneName = body.zoneName;
+        if (body.cityName !== undefined) zone.cityName = body.cityName;
+        if (body.latitude !== undefined) zone.latitude = parseFloat(body.latitude) || zone.latitude;
+        if (body.longitude !== undefined) zone.longitude = parseFloat(body.longitude) || zone.longitude;
+        if (body.radiusKm !== undefined) zone.radiusKm = parseFloat(body.radiusKm) || zone.radiusKm;
+        if (body.polygonCoordinates !== undefined) zone.polygonCoordinates = body.polygonCoordinates;
+        if (body.surgeMultiplier !== undefined) zone.surgeMultiplier = parseFloat(body.surgeMultiplier) || zone.surgeMultiplier;
+        if (body.status !== undefined) zone.status = body.status;
+        if (body.restaurantEnabled !== undefined) zone.restaurantEnabled = Boolean(body.restaurantEnabled);
+        if (body.deliveryPartnerEnabled !== undefined) zone.deliveryPartnerEnabled = Boolean(body.deliveryPartnerEnabled);
+        if (body.customerOrderingEnabled !== undefined) zone.customerOrderingEnabled = Boolean(body.customerOrderingEnabled);
+      }
+
+      // Provision or update zone admin user if provided
+      if (body.createZoneAdmin && body.zoneAdminEmail) {
+        if (!globalAny.ADMIN_USERS_STORE) {
+          globalAny.ADMIN_USERS_STORE = [];
+        }
+        const users = globalAny.ADMIN_USERS_STORE as any[];
+        const existingUserIdx = users.findIndex(
+          (u) =>
+            u.email?.toLowerCase() === body.zoneAdminEmail.toLowerCase() ||
+            u.assignedZoneId?.toLowerCase() === zone.id?.toLowerCase()
+        );
+        const userPayload = {
+          id: existingUserIdx >= 0 ? users[existingUserIdx].id : `usr-${crypto.randomUUID().slice(0, 8)}`,
+          fullName: body.zoneAdminName || 'Zone Administrator',
+          email: body.zoneAdminEmail,
+          phone: body.zoneAdminPhone || '',
+          role: body.zoneAdminRole || 'OPS',
+          department: body.zoneAdminDept || 'Zone Operations',
+          assignedZoneId: zone.id,
+          assignedZoneName: zone.zoneName,
+          status: 'ACTIVE',
+        };
+        if (existingUserIdx >= 0) {
+          users[existingUserIdx] = { ...users[existingUserIdx], ...userPayload };
+        } else {
+          users.push(userPayload);
+        }
+        savePersistentAdminUsers(users);
+      }
+
+      if (!globalAny.ADMIN_DELETED_ZONES) {
+        globalAny.ADMIN_DELETED_ZONES = new Set<string>();
+      }
+      const deleted = globalAny.ADMIN_DELETED_ZONES as Set<string>;
+      savePersistentZonesState(deleted, dynamicZonesStore);
+
+      const backendToken = (token && !token.startsWith('demo-')) ? token : await getDevBackendToken();
+      try {
+        await safeFetch(`${backendUrl}/api/v1/admin/location/zones/${encodeURIComponent(rawZoneId)}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${backendToken}`,
+          },
+          body: JSON.stringify(zone),
+          timeoutMs: 6000,
+        });
+      } catch {}
+
+      purgeBffCache('admin/location');
+      purgeBffCache('admin/zones');
+
+      return NextResponse.json({
+        success: true,
+        data: zone,
+        error: null,
+        meta: { timestamp: new Date().toISOString() },
+      }, { status: 200 });
+    }
+
+    // 5c. DELETE admin/location/zones/:id
+    if (request.method === 'DELETE') {
     if (!isSuperAdmin) {
       return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Deleting zones is reserved for Super Admins.' } }, { status: 403 });
     }
-    const rawZoneId = decodeURIComponent(deleteMatch[1]).trim();
+    // rawZoneId already defined in singleZoneMatch
+    // const rawZoneId = decodeURIComponent(singleZoneMatch[1]).trim();
     const zoneIdLower = rawZoneId.toLowerCase();
 
     if (!globalAny.ADMIN_DELETED_ZONES) {
@@ -3825,6 +4024,8 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
     purgeBffCache('auth/roles');
 
     return NextResponse.json({ success: true, data: true, error: null }, { status: 200 });
+  }
+
   }
 
   return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: `Unhandled location route: ${targetPath}` } }, { status: 404 });

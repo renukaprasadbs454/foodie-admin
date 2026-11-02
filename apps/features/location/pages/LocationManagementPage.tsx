@@ -7,6 +7,9 @@ import { State, City } from 'country-state-city';
 import {
   useGetZonesQuery,
   useCreateZoneMutation,
+  useGetZoneByIdQuery,
+  useLazyGetZoneByIdQuery,
+  useUpdateZoneMutation,
   useUpdateZoneTogglesMutation,
   useUpdateZoneStatusMutation,
   useDeleteZoneMutation,
@@ -46,6 +49,8 @@ export function LocationManagementPage() {
   const [createCity] = useCreateCityMutation();
   const { data: dbDeliveryZones = [], isLoading: isLoadingZones, isError: isErrorZones, refetch: refetchZones } = useGetZonesQuery();
   const [createZone] = useCreateZoneMutation();
+  const [getZoneByIdTrigger, { isFetching: isFetchingZoneDetails }] = useLazyGetZoneByIdQuery();
+  const [updateZone, { isLoading: isUpdatingZone }] = useUpdateZoneMutation();
   const [createAdminUser] = useCreateAdminUserMutation();
   const [updateZoneToggles] = useUpdateZoneTogglesMutation();
   const [updateZoneStatus] = useUpdateZoneStatusMutation();
@@ -119,6 +124,10 @@ export function LocationManagementPage() {
   const [newStateIsoCode, setNewStateIsoCode] = useState('');
 
   const [isCreatingZone, setIsCreatingZone] = useState(false);
+  const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
+  const [editingZoneName, setEditingZoneName] = useState<string>('');
+  const [zoneSurgeMultiplier, setZoneSurgeMultiplier] = useState('1.0');
+  const [zoneStatus, setZoneStatus] = useState('ACTIVE');
   const [newZoneName, setNewZoneName] = useState('');
   const [newZoneCity, setNewZoneCity] = useState('');
 
@@ -198,9 +207,9 @@ export function LocationManagementPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cities]);
 
-  // editingZoneMap scroll lock
+  // Scroll lock for full screen modals
   useEffect(() => {
-    if (editingZoneMap) {
+    if (editingZoneMap || editingZoneId) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -208,7 +217,7 @@ export function LocationManagementPage() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [editingZoneMap]);
+  }, [editingZoneMap, editingZoneId]);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -318,6 +327,135 @@ export function LocationManagementPage() {
   const hasZoneLowerCase = /[a-z]/.test(zoneAdminPassword);
   const hasZoneNumberOrSymbol = /[0-9!@#$%^&*(),.?":{}|<>]/.test(zoneAdminPassword);
   const isZonePasswordValid = isZonePasswordLengthValid && hasZoneUpperCase && hasZoneLowerCase && hasZoneNumberOrSymbol;
+
+  const handleOpenCreateZone = () => {
+    setEditingZoneId(null);
+    setEditingZoneName('');
+    setIsCreatingZone(true);
+    setNewZoneName('');
+    setNewZoneCity(cities[0]?.cityName ?? 'Bangalore');
+    setNewLat('12.9716');
+    setNewLng('77.5946');
+    setNewRadiusKm('10.0');
+    setNewPolygon('12.9716,77.5946 | 12.9800,77.6000 | 12.9600,77.6100');
+    setNewRestEnabled(true);
+    setNewDriverEnabled(true);
+    setNewCustomerEnabled(true);
+    setZoneSurgeMultiplier('1.0');
+    setZoneStatus('ACTIVE');
+    setCreateZoneAdmin(true);
+    setZoneAdminName('');
+    setZoneAdminEmail('');
+    setZoneAdminPhone('');
+    setZoneAdminRole('OPS');
+    setZoneAdminDept('Zone Operations');
+    setZoneAdminPassword('');
+  };
+
+  const handleOpenEditZone = async (dz: DeliveryZoneRecord) => {
+    setIsCreatingZone(false);
+    setEditingZoneId(dz.id);
+    setEditingZoneName(dz.zoneName);
+
+    // Initial prefill from table row immediately
+    setNewZoneName(dz.zoneName || '');
+    setNewZoneCity(dz.cityName || cities[0]?.cityName || 'Bangalore');
+    setNewLat(String(dz.latitude ?? 12.9716));
+    setNewLng(String(dz.longitude ?? 77.5946));
+    setNewRadiusKm(String(dz.radiusKm ?? 10.0));
+    setNewPolygon(dz.polygonCoordinates || '');
+    setNewRestEnabled(dz.restaurantEnabled ?? true);
+    setNewDriverEnabled(dz.deliveryPartnerEnabled ?? true);
+    setNewCustomerEnabled(dz.customerOrderingEnabled ?? true);
+    setZoneSurgeMultiplier(String(dz.surgeMultiplier ?? 1.0));
+    setZoneStatus(dz.status || 'ACTIVE');
+
+    // Fetch full data via getZoneById API
+    try {
+      const res = await getZoneByIdTrigger(dz.id, true).unwrap();
+      if (res) {
+        if (res.zoneName) setNewZoneName(res.zoneName);
+        if (res.cityName) setNewZoneCity(res.cityName);
+        if (res.latitude != null) setNewLat(String(res.latitude));
+        if (res.longitude != null) setNewLng(String(res.longitude));
+        if (res.radiusKm != null) setNewRadiusKm(String(res.radiusKm));
+        if (res.polygonCoordinates != null) setNewPolygon(res.polygonCoordinates);
+        if (res.restaurantEnabled != null) setNewRestEnabled(res.restaurantEnabled);
+        if (res.deliveryPartnerEnabled != null) setNewDriverEnabled(res.deliveryPartnerEnabled);
+        if (res.customerOrderingEnabled != null) setNewCustomerEnabled(res.customerOrderingEnabled);
+        if (res.surgeMultiplier != null) setZoneSurgeMultiplier(String(res.surgeMultiplier));
+        if (res.status) setZoneStatus(res.status);
+
+        const anyRes = res as any;
+        if (anyRes.adminName || anyRes.adminEmail) {
+          setCreateZoneAdmin(true);
+          setZoneAdminName(anyRes.adminName || '');
+          setZoneAdminEmail(anyRes.adminEmail || '');
+          setZoneAdminPhone(anyRes.adminPhone || '');
+          setZoneAdminRole((anyRes.adminRole as AdminRole) || 'OPS');
+          setZoneAdminDept(anyRes.adminDept || 'Zone Operations');
+          setZoneAdminPassword(anyRes.adminPassword || '');
+        } else {
+          setCreateZoneAdmin(false);
+          setZoneAdminName('');
+          setZoneAdminEmail('');
+          setZoneAdminPhone('');
+          setZoneAdminPassword('');
+        }
+      }
+    } catch (err) {
+      console.warn('getZoneById query warning:', err);
+    }
+  };
+
+  const handleSaveEditZone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingZoneId) return;
+
+    if (!newZoneName.trim()) {
+      alert('Please enter a Zone Name');
+      return;
+    }
+
+    if (createZoneAdmin) {
+      if (!zoneAdminName.trim() || !zoneAdminEmail.trim() || !zoneAdminPhone.trim()) {
+        alert('Please fill out all required fields for the Zone Administrator (Name, Email, Mobile Phone).');
+        return;
+      }
+    }
+
+    try {
+      await updateZone({
+        id: editingZoneId,
+        zoneName: newZoneName.trim(),
+        cityName: newZoneCity || (cities[0]?.cityName ?? 'Bangalore'),
+        latitude: parseFloat(newLat) || 12.9716,
+        longitude: parseFloat(newLng) || 77.5946,
+        radiusKm: parseFloat(newRadiusKm) || 5.0,
+        polygonCoordinates: newPolygon.trim(),
+        surgeMultiplier: parseFloat(zoneSurgeMultiplier) || 1.0,
+        status: zoneStatus,
+        restaurantEnabled: newRestEnabled,
+        deliveryPartnerEnabled: newDriverEnabled,
+        customerOrderingEnabled: newCustomerEnabled,
+        createZoneAdmin,
+        zoneAdminName: zoneAdminName.trim(),
+        zoneAdminEmail: zoneAdminEmail.trim(),
+        zoneAdminPhone: zoneAdminPhone.trim(),
+        zoneAdminRole,
+        zoneAdminDept: zoneAdminDept.trim() || 'Zone Operations',
+        zoneAdminPassword: zoneAdminPassword || undefined,
+      }).unwrap();
+
+      showToast('Zone updated');
+      setEditingZoneId(null);
+      setEditingZoneName('');
+      void refetchZones();
+      void refetchCities();
+    } catch (err: any) {
+      showToast(`Failed to update zone: ${err?.data?.message || err?.message || 'Server Error'}`);
+    }
+  };
 
   const handleCreateZone = (e: React.FormEvent) => {
     e.preventDefault();
@@ -459,6 +597,468 @@ export function LocationManagementPage() {
     });
   };
 
+
+  const renderZoneForm = (isEdit: boolean) => (
+    <form
+      onSubmit={isEdit ? handleSaveEditZone : handleCreateZone}
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: 24,
+        border: '1px solid #E5E7EB',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 20,
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+            {isEdit ? `Edit Zone - ${editingZoneName || newZoneName}` : 'Create Multi-Zone & 3-Way Power Switches'}
+          </h3>
+          {isEdit && (
+            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 3 }}>
+              Update zone boundary, coverage radius, surge multiplier, power switches, and administrator credentials.
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (isEdit) {
+              setEditingZoneId(null);
+              setEditingZoneName('');
+            } else {
+              setIsCreatingZone(false);
+            }
+          }}
+          style={{ padding: '6px 12px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, fontWeight: 600, cursor: 'pointer', color: '#374151' }}
+        >
+          Close
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            Zone Name *
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. Whitefield Tech Corridor"
+            value={newZoneName}
+            onChange={(e) => setNewZoneName(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+            required
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            City
+          </label>
+          <select
+            value={newZoneCity}
+            onChange={(e) => {
+              setNewZoneCity(e.target.value);
+              void handleCityMapUpdate(e.target.value);
+            }}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+          >
+            {cities.map((c) => (
+              <option key={c.id} value={c.cityName}>
+                {c.cityName} ({c.state})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            Operational Radius (KM)
+          </label>
+          <input
+            type="number"
+            step="0.5"
+            value={newRadiusKm}
+            onChange={(e) => setNewRadiusKm(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            Center Latitude
+          </label>
+          <input
+            type="number"
+            step="0.0001"
+            value={newLat}
+            onChange={(e) => setNewLat(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            Center Longitude
+          </label>
+          <input
+            type="number"
+            step="0.0001"
+            value={newLng}
+            onChange={(e) => setNewLng(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            Surge Multiplier
+          </label>
+          <input
+            type="number"
+            step="0.05"
+            value={zoneSurgeMultiplier}
+            onChange={(e) => setZoneSurgeMultiplier(e.target.value)}
+            placeholder="1.0"
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            Operating Status
+          </label>
+          <select
+            value={zoneStatus}
+            onChange={(e) => setZoneStatus(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+          >
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="INACTIVE">INACTIVE</option>
+          </select>
+        </div>
+
+        <div style={{ gridColumn: '1 / -1' }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            Polygon Boundary Coordinates String (lat1,lng1 | lat2,lng2 | ...)
+          </label>
+          <input
+            type="text"
+            value={newPolygon}
+            onChange={(e) => setNewPolygon(e.target.value)}
+            placeholder="e.g. 12.9716,77.5946 | 12.9800,77.6000 | 12.9600,77.6100"
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontFamily: 'monospace', backgroundColor: '#FFFFFF', color: '#111827' }}
+          />
+        </div>
+      </div>
+
+      <GoogleMapsPolygonPinPicker
+        centerLat={parseFloat(newLat) || 12.9716}
+        centerLng={parseFloat(newLng) || 77.5946}
+        radiusKm={parseFloat(newRadiusKm) || 5.0}
+        polygonString={newPolygon}
+        onChangePolygon={(str) => setNewPolygon(str)}
+        title={isEdit ? `Interactive Boundary Pin Picker — ${newZoneName}` : 'Interactive Multi-Zone Pin Picker & Polygon Builder'}
+        mapHeight={isEdit ? 480 : 420}
+      />
+
+      {/* 3-WAY POWER SWITCHES */}
+      <div style={{ backgroundColor: '#F9FAFB', padding: 20, borderRadius: 14, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
+          Service Power Switches (Enable / Disable per Zone)
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+          <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Restaurant Onboarding</div>
+              <div style={{ fontSize: 11, color: '#6B7280' }}>Allow restaurants to register & accept orders</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={newRestEnabled}
+              onChange={(e) => setNewRestEnabled(e.target.checked)}
+              style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2196F3' }}
+            />
+          </div>
+
+          <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Delivery Partner Dispatch</div>
+              <div style={{ fontSize: 11, color: '#6B7280' }}>Allow driver fleet dispatch & payouts</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={newDriverEnabled}
+              onChange={(e) => setNewDriverEnabled(e.target.checked)}
+              style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2196F3' }}
+            />
+          </div>
+
+          <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Customer Ordering</div>
+              <div style={{ fontSize: 11, color: '#6B7280' }}>Allow customers to place food orders</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={newCustomerEnabled}
+              onChange={(e) => setNewCustomerEnabled(e.target.checked)}
+              style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2196F3' }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ZONE ADMINISTRATOR USER PROVISIONING */}
+      <div style={{ backgroundColor: '#F8FAFC', padding: 20, borderRadius: 14, border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
+              Zone Administrator Account Credentials
+            </div>
+            <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+              {isEdit ? 'Administrative user account bound to this zone' : 'Create an administrative user account bound exclusively to this newly created zone'}
+            </div>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#2563EB' }}>
+            <input
+              type="checkbox"
+              checked={createZoneAdmin}
+              onChange={(e) => setCreateZoneAdmin(e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: '#2196F3' }}
+            />
+            {isEdit ? 'Provision / Update Zone Admin' : 'Create Zone User'}
+          </label>
+        </div>
+
+        {createZoneAdmin && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Administrator Name *
+              </label>
+              <input
+                type="text"
+                required={createZoneAdmin}
+                placeholder="e.g. Zone Operations Manager"
+                value={zoneAdminName}
+                onChange={(e) => setZoneAdminName(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Work Email *
+              </label>
+              <input
+                type="email"
+                required={createZoneAdmin}
+                placeholder="e.g. manager.zone@foodie.com"
+                value={zoneAdminEmail}
+                onChange={(e) => setZoneAdminEmail(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Mobile Phone *
+              </label>
+              <input
+                type="tel"
+                required={createZoneAdmin}
+                placeholder="e.g. +91 98000 00000"
+                value={zoneAdminPhone}
+                onChange={(e) => setZoneAdminPhone(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                System Role Privilege *
+              </label>
+              <select
+                value={zoneAdminRole}
+                onChange={(e) => setZoneAdminRole(e.target.value as AdminRole)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontWeight: 600, backgroundColor: '#FFFFFF', color: '#111827' }}
+              >
+                <option value="OPS">Operations (OPS)</option>
+                <option value="FINANCE">Finance (FINANCE)</option>
+                <option value="SUPPORT">Support (SUPPORT)</option>
+                <option value="SUPER_ADMIN">Super Admin (SUPER_ADMIN)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Department
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Zone Logistics"
+                value={zoneAdminDept}
+                onChange={(e) => setZoneAdminDept(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Assigned Zone
+              </label>
+              <input
+                type="text"
+                disabled
+                value={newZoneName ? `${newZoneName} (Current Zone)` : 'Bound to Zone'}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, backgroundColor: '#F1F5F9', color: '#475569', fontWeight: 600 }}
+              />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                {isEdit ? 'Update Admin Password (leave blank to keep unchanged)' : 'Admin-Created Password *'}
+              </label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showZoneAdminPassword ? 'text' : 'password'}
+                  required={createZoneAdmin && !isEdit}
+                  placeholder={isEdit ? 'Enter new password if updating, otherwise leave blank' : 'Enter initial password for zone administrator (min 8 chars)'}
+                  value={zoneAdminPassword}
+                  onChange={(e) => setZoneAdminPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 40px 10px 12px',
+                    borderRadius: 10,
+                    border: `1px solid ${zoneAdminPassword && !isZonePasswordValid ? '#F87171' : '#E5E7EB'}`,
+                    fontSize: 13,
+                    backgroundColor: '#FFFFFF',
+                    color: '#111827',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowZoneAdminPassword(!showZoneAdminPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: 10,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#6B7280',
+                  }}
+                  title={showZoneAdminPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showZoneAdminPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+              {zoneAdminPassword ? (
+                <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    backgroundColor: isZonePasswordLengthValid ? '#DCFCE7' : '#F3F4F6',
+                    color: isZonePasswordLengthValid ? '#15803D' : '#6B7280',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}>
+                    {isZonePasswordLengthValid ? '✓' : '○'} 8+ Chars
+                  </span>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    backgroundColor: hasZoneUpperCase ? '#DCFCE7' : '#F3F4F6',
+                    color: hasZoneUpperCase ? '#15803D' : '#6B7280',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}>
+                    {hasZoneUpperCase ? '✓' : '○'} Uppercase
+                  </span>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    backgroundColor: hasZoneLowerCase ? '#DCFCE7' : '#F3F4F6',
+                    color: hasZoneLowerCase ? '#15803D' : '#6B7280',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}>
+                    {hasZoneLowerCase ? '✓' : '○'} Lowercase
+                  </span>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    backgroundColor: hasZoneNumberOrSymbol ? '#DCFCE7' : '#F3F4F6',
+                    color: hasZoneNumberOrSymbol ? '#15803D' : '#6B7280',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}>
+                    {hasZoneNumberOrSymbol ? '✓' : '○'} Number/Symbol
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <button
+          type="button"
+          onClick={() => {
+            if (isEdit) {
+              setEditingZoneId(null);
+              setEditingZoneName('');
+            } else {
+              setIsCreatingZone(false);
+            }
+          }}
+          style={{ padding: '10px 18px', backgroundColor: '#F3F4F6', color: '#374151', border: '1px solid #E5E7EB', borderRadius: 10, fontWeight: 600, cursor: 'pointer' }}
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isEdit && isUpdatingZone}
+          style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}
+        >
+          {isEdit ? (isUpdatingZone ? 'Saving...' : 'Save Changes') : 'Create Multi-Zone Now'}
+        </button>
+      </div>
+    </form>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 40 }}>
       {/* Toast Alert */}
@@ -516,7 +1116,7 @@ export function LocationManagementPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setIsCreatingZone(true)}
+                onClick={handleOpenCreateZone}
                 style={{
                   padding: '10px 18px',
                   background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
@@ -583,413 +1183,11 @@ export function LocationManagementPage() {
         })}
       </div>
 
-      {/* MULTI-ZONE CREATION DRAWER */}
-      {isSuperAdmin && isCreatingZone && (
-        <form
-          onSubmit={handleCreateZone}
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 20,
-            padding: 24,
-            border: '1px solid #E5E7EB',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 20,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
-              Create Multi-Zone & 3-Way Power Switches
-            </h3>
-            <button
-              type="button"
-              onClick={() => setIsCreatingZone(false)}
-              style={{ padding: '6px 12px', backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 8, fontWeight: 600, cursor: 'pointer', color: '#374151' }}
-            >
-              Close
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Zone Name *
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Whitefield Tech Corridor"
-                value={newZoneName}
-                onChange={(e) => setNewZoneName(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
-                required
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                City
-              </label>
-              <select
-                value={newZoneCity}
-                onChange={(e) => {
-                  setNewZoneCity(e.target.value);
-                  void handleCityMapUpdate(e.target.value);
-                }}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
-              >
-                {cities.map((c) => (
-                  <option key={c.id} value={c.cityName}>
-                    {c.cityName} ({c.state})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Operational Radius (KM)
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                value={newRadiusKm}
-                onChange={(e) => setNewRadiusKm(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Center Latitude
-              </label>
-              <input
-                type="number"
-                step="0.0001"
-                value={newLat}
-                onChange={(e) => setNewLat(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Center Longitude
-              </label>
-              <input
-                type="number"
-                step="0.0001"
-                value={newLng}
-                onChange={(e) => setNewLng(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
-              />
-            </div>
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Polygon Boundary Coordinates String (lat1,lng1 | lat2,lng2 | ...)
-              </label>
-              <input
-                type="text"
-                value={newPolygon}
-                onChange={(e) => setNewPolygon(e.target.value)}
-                placeholder="e.g. 12.9716,77.5946 | 12.9800,77.6000 | 12.9600,77.6100"
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontFamily: 'monospace', backgroundColor: '#FFFFFF', color: '#111827' }}
-              />
-            </div>
-          </div>
-
-          <GoogleMapsPolygonPinPicker
-            centerLat={parseFloat(newLat) || 12.9716}
-            centerLng={parseFloat(newLng) || 77.5946}
-            radiusKm={parseFloat(newRadiusKm) || 5.0}
-            polygonString={newPolygon}
-            onChangePolygon={(str) => setNewPolygon(str)}
-            title="Interactive Multi-Zone Pin Picker & Polygon Builder"
-          />
-
-          {/* 3-WAY POWER SWITCHES */}
-          <div style={{ backgroundColor: '#F9FAFB', padding: 20, borderRadius: 14, border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
-              Service Power Switches (Enable / Disable per Zone)
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-              <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Restaurant Onboarding</div>
-                  <div style={{ fontSize: 11, color: '#6B7280' }}>Allow restaurants to register & accept orders</div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={newRestEnabled}
-                  onChange={(e) => setNewRestEnabled(e.target.checked)}
-                  style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2196F3' }}
-                />
-              </div>
-
-              <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Delivery Partner Dispatch</div>
-                  <div style={{ fontSize: 11, color: '#6B7280' }}>Allow driver fleet dispatch & payouts</div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={newDriverEnabled}
-                  onChange={(e) => setNewDriverEnabled(e.target.checked)}
-                  style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2196F3' }}
-                />
-              </div>
-
-              <div style={{ backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Customer Ordering</div>
-                  <div style={{ fontSize: 11, color: '#6B7280' }}>Allow customers to place food orders</div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={newCustomerEnabled}
-                  onChange={(e) => setNewCustomerEnabled(e.target.checked)}
-                  style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2196F3' }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* ZONE ADMINISTRATOR USER PROVISIONING */}
-          <div style={{ backgroundColor: '#F8FAFC', padding: 20, borderRadius: 14, border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
-                  Zone Administrator Account Provisioning
-                </div>
-                <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
-                  Create an administrative user account bound exclusively to this newly created zone
-                </div>
-              </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#2563EB' }}>
-                <input
-                  type="checkbox"
-                  checked={createZoneAdmin}
-                  onChange={(e) => setCreateZoneAdmin(e.target.checked)}
-                  style={{ width: 16, height: 16, accentColor: '#2196F3' }}
-                />
-                Create Zone User
-              </label>
-            </div>
-
-            {createZoneAdmin && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                    Administrator Name *
-                  </label>
-                  <input
-                    type="text"
-                    required={createZoneAdmin}
-                    placeholder="e.g. Zone Operations Manager"
-                    value={zoneAdminName}
-                    onChange={(e) => setZoneAdminName(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                    Work Email *
-                  </label>
-                  <input
-                    type="email"
-                    required={createZoneAdmin}
-                    placeholder="e.g. manager.zone@foodie.com"
-                    value={zoneAdminEmail}
-                    onChange={(e) => setZoneAdminEmail(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                    Mobile Phone *
-                  </label>
-                  <input
-                    type="tel"
-                    required={createZoneAdmin}
-                    placeholder="e.g. +91 98000 00000"
-                    value={zoneAdminPhone}
-                    onChange={(e) => setZoneAdminPhone(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                    System Role Privilege *
-                  </label>
-                  <select
-                    value={zoneAdminRole}
-                    onChange={(e) => setZoneAdminRole(e.target.value as AdminRole)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontWeight: 600, backgroundColor: '#FFFFFF', color: '#111827' }}
-                  >
-                    <option value="OPS">Operations (OPS)</option>
-                    <option value="FINANCE">Finance (FINANCE)</option>
-                    <option value="SUPPORT">Support (SUPPORT)</option>
-                    <option value="SUPER_ADMIN">Super Admin (SUPER_ADMIN)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                    Department
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Zone Logistics"
-                    value={zoneAdminDept}
-                    onChange={(e) => setZoneAdminDept(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, backgroundColor: '#FFFFFF', color: '#111827' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                    Assigned Zone
-                  </label>
-                  <input
-                    type="text"
-                    disabled
-                    value={newZoneName ? `${newZoneName} (Current Zone)` : 'Bound to Created Zone'}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, backgroundColor: '#F1F5F9', color: '#475569', fontWeight: 600 }}
-                  />
-                </div>
-
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                    Admin-Created Password *
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input
-                      type={showZoneAdminPassword ? 'text' : 'password'}
-                      required={createZoneAdmin}
-                      placeholder="Enter initial password for zone administrator (min 8 chars)"
-                      value={zoneAdminPassword}
-                      onChange={(e) => setZoneAdminPassword(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 40px 10px 12px',
-                        borderRadius: 10,
-                        border: `1px solid ${zoneAdminPassword && !isZonePasswordValid ? '#F87171' : '#E5E7EB'}`,
-                        fontSize: 13,
-                        backgroundColor: '#FFFFFF',
-                        color: '#111827',
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowZoneAdminPassword(!showZoneAdminPassword)}
-                      style={{
-                        position: 'absolute',
-                        right: 10,
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: 4,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#6B7280',
-                      }}
-                      title={showZoneAdminPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showZoneAdminPassword ? (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                          <line x1="1" y1="1" x2="23" y2="23" />
-                        </svg>
-                      ) : (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-
-                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: '2px 8px',
-                      borderRadius: 6,
-                      backgroundColor: isZonePasswordLengthValid ? '#DCFCE7' : '#F3F4F6',
-                      color: isZonePasswordLengthValid ? '#15803D' : '#6B7280',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}>
-                      {isZonePasswordLengthValid ? '✓' : '○'} 8+ Chars
-                    </span>
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: '2px 8px',
-                      borderRadius: 6,
-                      backgroundColor: hasZoneUpperCase ? '#DCFCE7' : '#F3F4F6',
-                      color: hasZoneUpperCase ? '#15803D' : '#6B7280',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}>
-                      {hasZoneUpperCase ? '✓' : '○'} Uppercase
-                    </span>
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: '2px 8px',
-                      borderRadius: 6,
-                      backgroundColor: hasZoneLowerCase ? '#DCFCE7' : '#F3F4F6',
-                      color: hasZoneLowerCase ? '#15803D' : '#6B7280',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}>
-                      {hasZoneLowerCase ? '✓' : '○'} Lowercase
-                    </span>
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: '2px 8px',
-                      borderRadius: 6,
-                      backgroundColor: hasZoneNumberOrSymbol ? '#DCFCE7' : '#F3F4F6',
-                      color: hasZoneNumberOrSymbol ? '#15803D' : '#6B7280',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}>
-                      {hasZoneNumberOrSymbol ? '✓' : '○'} Number/Symbol
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => setIsCreatingZone(false)}
-              style={{ padding: '10px 18px', backgroundColor: '#F3F4F6', color: '#374151', border: '1px solid #E5E7EB', borderRadius: 10, fontWeight: 600, cursor: 'pointer' }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)', color: '#FFFFFF', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)' }}
-            >
-              Create Multi-Zone Now
-            </button>
-          </div>
-        </form>
+        {/* MULTI-ZONE CREATION DRAWER */}
+      {isSuperAdmin && isCreatingZone && !editingZoneId && (
+        <div style={{ marginBottom: 20 }}>
+          {renderZoneForm(false)}
+        </div>
       )}
 
       {/* TAB 1: DELIVERY MULTI-ZONES TABLE */}
@@ -1174,7 +1372,7 @@ export function LocationManagementPage() {
                     <td style={{ padding: '16px 20px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button
                         type="button"
-                        onClick={() => setEditingZoneMap(dz)}
+                        onClick={() => handleOpenEditZone(dz)}
                         style={{
                           padding: '6px 12px',
                           background: '#FFFFFF',
@@ -1218,6 +1416,143 @@ export function LocationManagementPage() {
         </>
       )}
     </div>
+      )}
+
+      
+      {/* EDIT ZONE MODAL / PAGE OVERLAY — FULL DATA PREFILL */}
+      {editingZoneId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            backgroundColor: '#F8FAFC',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          {/* Top Header Bar */}
+          <div
+            style={{
+              padding: '16px 32px',
+              backgroundColor: '#FFFFFF',
+              borderBottom: '1px solid #E5E7EB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              zIndex: 10,
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingZoneId(null);
+                  setEditingZoneName('');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 16px',
+                  backgroundColor: '#F3F4F6',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  color: '#374151',
+                }}
+              >
+                ← Back to Locations
+              </button>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', margin: 0 }}>
+                    Edit Zone - {editingZoneName || newZoneName}
+                  </h2>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      backgroundColor: zoneStatus === 'ACTIVE' ? '#DCFCE7' : '#FEE2E2',
+                      color: zoneStatus === 'ACTIVE' ? '#15803D' : '#991B1B',
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                    }}
+                  >
+                    {zoneStatus}
+                  </span>
+                  {isFetchingZoneDetails && (
+                    <span style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic' }}>
+                      (Loading latest details...)
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: '#6B7280', marginTop: 3 }}>
+                  City: <strong style={{ color: '#374151' }}>{newZoneCity}</strong> | Center: <strong style={{ color: '#374151' }}>{newLat}, {newLng}</strong> | Coverage Radius: <strong style={{ color: '#374151' }}>{newRadiusKm} KM</strong> | Surge: <strong style={{ color: '#374151' }}>{zoneSurgeMultiplier}x</strong>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingZoneId(null);
+                  setEditingZoneName('');
+                }}
+                style={{
+                  padding: '8px 18px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  color: '#4B5563',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEditZone as any}
+                disabled={isUpdatingZone}
+                style={{
+                  padding: '8px 22px',
+                  background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(33, 150, 243, 0.25)',
+                }}
+              >
+                {isUpdatingZone ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable Body containing the Form */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
+            <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+              {renderZoneForm(true)}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Existing Zone Map Pins Edit Modal — Full Screen */}
