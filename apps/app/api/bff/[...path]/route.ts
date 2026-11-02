@@ -5034,7 +5034,7 @@ async function getDevBackendToken(): Promise<string | null> {
     const res = await safeFetch(`${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ email: 'admin@foodie.local', password: 'ChangeMe@123', deviceInfo: 'Foodie Admin Dev' }),
+      body: JSON.stringify({ email: 'admin@foodie.local', password: 'Admin@12345', deviceInfo: 'Foodie Admin Dev' }),
       timeoutMs: 3000,
     });
     if (res.response && res.response.ok) {
