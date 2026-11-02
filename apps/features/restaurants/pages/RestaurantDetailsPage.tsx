@@ -26,6 +26,7 @@ import { canManageRestaurants } from '@/lib/routeGuards';
 import { PermissionDenied } from '@/features/analytics/components/PermissionDenied';
 import { RestaurantDetailSkeleton } from '../components/RestaurantDetailSkeleton';
 import { SuspendReasonModal } from '../components/SuspendReasonModal';
+import { RestaurantMenuSection } from '../components/RestaurantMenuSection';
 import {
   RestaurantCommissionModal,
   CommissionSettingsData,
@@ -1088,6 +1089,14 @@ export function RestaurantDetailsPage({ restaurantId }: Props) {
               </div>
             </div>
           </div>
+
+          {/* ========================================================================= */}
+          {/* SECTION 6: COMPLETE FOOD MENU CATALOG & AVAILABILITY                      */}
+          {/* ========================================================================= */}
+          <RestaurantMenuSection
+            restaurantId={restaurantId}
+            restaurantName={data.name}
+          />
         </>
       ) : null}
 

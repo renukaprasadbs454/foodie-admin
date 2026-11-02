@@ -4,6 +4,8 @@ import type {
   RestaurantDetail,
   RestaurantReview,
   SuspendRestaurantBody,
+  FullMenuData,
+  MenuCategoryData,
 } from '../../features/restaurants/types';
 
 function normalizeReviewList(data: unknown): RestaurantReview[] {
@@ -192,9 +194,69 @@ export const restaurantsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Admin', 'Restaurant', { type: 'Admin', id: 'LIST' }],
     }),
-    getRestaurantMenu: builder.query<any, string>({
+    getRestaurantMenu: builder.query<FullMenuData, string>({
       query: (restaurantId) => `/api/bff/menu/restaurants/${restaurantId}`,
-      providesTags: (_result, _error, id) => [{ type: 'Restaurant', id: `MENU_${id}` }],
+      transformResponse: (response: any, _meta, restaurantId) => {
+        const rawData = (response && typeof response === "object" && "data" in response) ? response.data : response;
+        const baseUrl = ENV.apiBaseUrl.replace(/\/$/, "");
+        const resolveUrl = (url?: string | null) => {
+          if (!url) return null;
+          if (url.startsWith("http://") || url.startsWith("https://")) return url;
+          if (url.startsWith("/api")) return `${baseUrl}${url}`;
+          return `${baseUrl}/${url.replace(/^\/+/, "")}`;
+        };
+
+        if (!rawData) {
+          return { restaurantId: restaurantId || "", categories: [] };
+        }
+
+        let categoriesList: any[] = [];
+        if (Array.isArray(rawData)) {
+          categoriesList = rawData;
+        } else if (Array.isArray(rawData.categories)) {
+          categoriesList = rawData.categories;
+        }
+
+        const normalizedCategories: MenuCategoryData[] = categoriesList.map((cat: any, index: number) => {
+          const itemsList = Array.isArray(cat.items) ? cat.items : [];
+          const categoryName = cat.name || "General";
+          const categoryId = cat.categoryId || cat.id || `cat-${index}`;
+
+          return {
+            categoryId,
+            name: categoryName,
+            displayOrder: typeof cat.displayOrder === "number" ? cat.displayOrder : index,
+            items: itemsList.map((item: any) => ({
+              menuItemId: item.menuItemId || item.id || crypto.randomUUID(),
+              id: item.menuItemId || item.id,
+              price: typeof item.basePrice === 'number' ? item.basePrice : Number(item.basePrice || 0),
+              categoryId,
+              categoryName,
+              name: item.name || "Unnamed Item",
+              description: item.description || "",
+              basePrice: typeof item.basePrice === "number" ? item.basePrice : Number(item.basePrice || 0),
+              isVeg: Boolean(item.isVeg ?? (item.foodType === "VEG")),
+              foodType: item.foodType || (item.isVeg ? "VEG" : "NON_VEG"),
+              isAvailable: item.isAvailable !== false && item.available !== false,
+              imageUrl: item.imageUrl ? resolveUrl(item.imageUrl) : null,
+              packageSize: item.packageSize || null,
+              preparationTime: item.preparationTime || null,
+              gstPct: item.gstPct != null ? Number(item.gstPct) : null,
+              variants: Array.isArray(item.variants) ? item.variants : [],
+              avgRating: item.avgRating != null ? Number(item.avgRating) : null,
+              reviewCount: item.reviewCount != null ? Number(item.reviewCount) : null,
+            })),
+          };
+        });
+
+        return {
+          restaurantId: rawData.restaurantId || restaurantId || "",
+          categories: normalizedCategories,
+          avgRating: rawData.avgRating != null ? Number(rawData.avgRating) : null,
+        };
+      },
+      providesTags: (_result, _error, id) => [{ type: "Restaurant", id: `MENU_${id}` }],
+      keepUnusedDataFor: 60,
     }),
     verifyRestaurantDocument: builder.mutation<
       RestaurantDetail,

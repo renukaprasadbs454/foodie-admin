@@ -102,3 +102,46 @@ export function formatCommissionPct(
   if (!Number.isFinite(n)) return '—';
   return `${n}%`;
 }
+
+export type MenuItemVariant = {
+  id?: string;
+  name: string;
+  priceDelta?: number | string | null;
+};
+
+export type MenuItemData = {
+  menuItemId: string;
+  id: string;
+  name: string;
+  description?: string | null;
+  basePrice: number;
+  price?: number;
+  isVeg: boolean;
+  foodType?: string | null;
+  isAvailable: boolean;
+  imageUrl?: string | null;
+  packageSize?: string | null;
+  preparationTime?: string | null;
+  gstPct?: number | null;
+  variants?: MenuItemVariant[] | null;
+  avgRating?: number | null;
+  reviewCount?: number | null;
+  review_count?: number | null;
+  salesCount?: number | null;
+  orderCount?: number | null;
+  categoryId?: string;
+  categoryName?: string;
+};
+
+export type MenuCategoryData = {
+  categoryId: string;
+  name: string;
+  displayOrder: number;
+  items: MenuItemData[];
+};
+
+export type FullMenuData = {
+  restaurantId: string;
+  categories: MenuCategoryData[];
+  avgRating?: number | null;
+};

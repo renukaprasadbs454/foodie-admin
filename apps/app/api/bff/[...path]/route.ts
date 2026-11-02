@@ -8493,6 +8493,22 @@ async function handleAdminRoles() {
 
     // Graceful fallback for GET endpoints when backend is unreachable or returns 404/500/502/503
     if (request.method === 'GET') {
+      if (targetPath.startsWith('menu/restaurants/')) {
+        const restId = targetPath.replace('menu/restaurants/', '');
+        return NextResponse.json(
+          {
+            success: true,
+            data: {
+              restaurantId: restId,
+              categories: [],
+              avgRating: 0,
+            },
+            error: null,
+            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+          },
+          { status: 200 }
+        );
+      }
       if (targetPath.includes('analytics/dashboard-summary')) {
         return NextResponse.json(
           {
@@ -8709,6 +8725,22 @@ async function handleAdminRoles() {
 
 
     if (request.method === 'GET') {
+      if (targetPath.startsWith('menu/restaurants/')) {
+        const restId = targetPath.replace('menu/restaurants/', '');
+        return NextResponse.json(
+          {
+            success: true,
+            data: {
+              restaurantId: restId,
+              categories: [],
+              avgRating: 0,
+            },
+            error: null,
+            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+          },
+          { status: 200 }
+        );
+      }
 
       if (targetPath.includes('admin/delivery-partners')) {
         return NextResponse.json(

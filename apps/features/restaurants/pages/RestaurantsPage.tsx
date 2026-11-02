@@ -455,7 +455,34 @@ export function RestaurantsPage() {
               {filteredStores.map((store) => (
                 <tr key={store.id} style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s ease' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9FAFB')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
                   <td style={{ padding: '14px 20px' }}>
-                    <div style={{ fontWeight: 600, color: '#111827' }}>{store.name}</div>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/restaurants/${store.id}`)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        margin: 0,
+                        fontWeight: 600,
+                        color: '#111827',
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'inline-block',
+                        transition: 'color 0.15s ease, text-decoration 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = '#0284C7';
+                        e.currentTarget.style.textDecoration = 'underline';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = '#111827';
+                        e.currentTarget.style.textDecoration = 'none';
+                      }}
+                      title={`View details for ${store.name}`}
+                    >
+                      {store.name}
+                    </button>
                     <div style={{ fontSize: 11, color: '#6B7280', fontFamily: 'monospace' }}>{store.id}</div>
                   </td>
                   <td style={{ padding: '14px 20px' }}>
