@@ -62,6 +62,8 @@ export type AdminOrder = {
   orderNumber: string;
   status: OrderStatus | string;
   customerId?: string;
+  customerName?: string | null;
+  customerPhone?: string | null;
   restaurantId?: string;
   addressId?: string;
   subtotal?: number | string;
