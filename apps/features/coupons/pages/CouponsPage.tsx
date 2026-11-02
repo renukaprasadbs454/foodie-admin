@@ -15,6 +15,7 @@ import {
 import { BannerManagement } from '../components/BannerManagement';
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
+import { useGetAvailableZonesQuery, type OperatingZone } from '@/api/endpoints/zoneApi';
 
 export interface CouponRecord {
   id: string;
@@ -181,6 +182,7 @@ export function CouponsPage() {
 
   const [activeTab, setActiveTab] = useState<CouponTab>('PROMO_COUPONS');
   const { data: serverCoupons, isLoading: isCouponsLoading } = useGetCouponsQuery();
+  const { data: operatingZones = [] } = useGetAvailableZonesQuery();
   const [createCouponApi, { isLoading: isCreatingCoupon }] = useCreateCouponMutation();
   const [deactivateCouponApi, { isLoading: isDeactivatingCoupon }] = useDeactivateCouponMutation();
   const [activateCouponApi, { isLoading: isActivatingCoupon }] = useActivateCouponMutation();
@@ -750,11 +752,11 @@ export function CouponsPage() {
                 style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, outline: 'none', color: '#111827', backgroundColor: '#FFFFFF' }}
               >
                 <option value="ALL">🌐 All Zones (Platform-wide)</option>
-                <option value="dz-bangalore">📍 Bangalore Zone</option>
-                <option value="dz-tumkur">📍 Tumkur Zone</option>
-                <option value="dz-hubballi-zone">📍 Hubballi Zone</option>
-                <option value="dz-mysore-heritage-zone">📍 Mysore Heritage Zone</option>
-                <option value="dz-hassan">📍 Hassan Zone</option>
+                {operatingZones.map((z: OperatingZone) => (
+                  <option key={z.id} value={z.id}>
+                    📍 {z.zoneName}
+                  </option>
+                ))}
               </select>
             </div>
 

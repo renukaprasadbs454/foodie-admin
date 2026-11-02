@@ -2126,83 +2126,7 @@ function getBannersPersistenceFile(): string {
 }
 
 function getDefaultInitialBanners(): any[] {
-  return [
-    {
-      id: 'banner-hubballi-promo-01',
-      title: 'Hubballi offer card',
-      subtitle: 'Testing zone promo',
-      imageUrl: 'auto-generated',
-      ctaText: 'EXPLORE NOW',
-      ctaType: 'OPEN_COUPON',
-      ctaTarget: 'WELCOME50',
-      status: 'ACTIVE',
-      displayOrder: 1,
-      targetZoneIds: ['dz-hubballi'],
-      targetZoneNames: ['Hubballi Zone'],
-      isAllZones: false,
-      createdAt: '2026-10-30T10:00:00.000Z',
-    },
-    {
-      id: 'banner-weekend-special-02',
-      title: 'Weekend special offer',
-      subtitle: 'upto 50% offer',
-      imageUrl: 'auto-generated',
-      ctaText: 'EXPLORE NOW',
-      ctaType: 'OPEN_COUPON',
-      ctaTarget: 'WELCOME50',
-      status: 'ACTIVE',
-      displayOrder: 2,
-      targetZoneIds: ['ALL'],
-      targetZoneNames: ['All Zones'],
-      isAllZones: true,
-      createdAt: '2026-10-30T11:00:00.000Z',
-    },
-    {
-      id: 'banner-bangalore-weekend-03',
-      title: 'Bangalore Weekend Feast',
-      subtitle: 'Exclusive discounts across Bangalore restaurants',
-      imageUrl: 'auto-generated',
-      ctaText: 'ORDER NOW',
-      ctaType: 'OPEN_COUPON',
-      ctaTarget: 'BLR50',
-      status: 'ACTIVE',
-      displayOrder: 3,
-      targetZoneIds: ['dz-bangalore'],
-      targetZoneNames: ['Bangalore Zone'],
-      isAllZones: false,
-      createdAt: '2026-10-30T12:00:00.000Z',
-    },
-    {
-      id: 'banner-tumkur-bites-04',
-      title: 'Tumkur Express Bites',
-      subtitle: 'Flat ₹50 off on breakfast in Tumkur',
-      imageUrl: 'auto-generated',
-      ctaText: 'GRAB OFFER',
-      ctaType: 'OPEN_COUPON',
-      ctaTarget: 'TMK50',
-      status: 'ACTIVE',
-      displayOrder: 4,
-      targetZoneIds: ['dz-tumkur'],
-      targetZoneNames: ['Tumkur Zone'],
-      isAllZones: false,
-      createdAt: '2026-10-30T13:00:00.000Z',
-    },
-    {
-      id: 'banner-festival-global-05',
-      title: 'Mega Foodie Festival',
-      subtitle: 'Available across all operational zones',
-      imageUrl: 'auto-generated',
-      ctaText: 'EXPLORE',
-      ctaType: 'OPEN_COUPON',
-      ctaTarget: 'FESTIVAL',
-      status: 'ACTIVE',
-      displayOrder: 5,
-      targetZoneIds: ['ALL'],
-      targetZoneNames: ['All Zones'],
-      isAllZones: true,
-      createdAt: '2026-10-30T14:00:00.000Z',
-    },
-  ];
+  return [];
 }
 
 function loadPersistentBannersState(): any[] {
@@ -2211,18 +2135,18 @@ function loadPersistentBannersState(): any[] {
     if (fs.existsSync(filePath)) {
       const raw = fs.readFileSync(filePath, 'utf-8');
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      if (Array.isArray(parsed?.banners) && parsed.banners.length > 0) return parsed.banners;
+      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed?.banners)) return parsed.banners;
     }
     const tmpPath = path.join(os.tmpdir(), 'foodie_admin_banners_v1.json');
     if (fs.existsSync(tmpPath)) {
       const raw = fs.readFileSync(tmpPath, 'utf-8');
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      if (Array.isArray(parsed?.banners) && parsed.banners.length > 0) return parsed.banners;
+      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed?.banners)) return parsed.banners;
     }
   } catch {}
-  return getDefaultInitialBanners();
+  return [];
 }
 
 function savePersistentBannersState(banners: any[]) {
@@ -2242,16 +2166,15 @@ async function handleBanners(request: Request, targetPath: string, accessToken: 
   const token = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : (devToken || 'demo-admin-token');
   const incomingUrl = new URL(request.url);
 
-  if (!globalAny.MOCK_BANNERS || !Array.isArray(globalAny.MOCK_BANNERS) || globalAny.MOCK_BANNERS.length === 0) {
-    globalAny.MOCK_BANNERS = loadPersistentBannersState();
-  }
+  globalAny.MOCK_BANNERS = loadPersistentBannersState();
   const bannersStore = globalAny.MOCK_BANNERS as any[];
 
   // Helper to resolve zone name from ID
   const resolveZoneName = (zoneId: string): string => {
     if (zoneId === 'ALL') return 'All Zones';
-    if (zoneId === 'dz-bangalore') return 'Bangalore Zone';
-    if (zoneId === 'dz-tumkur') return 'Tumkur Zone';
+    const lower = (zoneId || '').toLowerCase();
+    if (lower.includes('tumkur') || lower.includes('tumakuru')) return 'Tumkur Zone';
+    if (lower.includes('bangalore') || lower.includes('bengaluru')) return 'Bangalore Zone';
     if (globalAny.ADMIN_DYNAMIC_ZONES) {
       const found = (globalAny.ADMIN_DYNAMIC_ZONES as any[]).find((z) => z.id === zoneId || z.zoneName === zoneId);
       if (found) return found.zoneName;
@@ -2320,11 +2243,10 @@ async function handleBanners(request: Request, targetPath: string, accessToken: 
         if (!isNaN(start) && now < start) return false;
       }
 
-      // If banner targets All Zones (or legacy banner with no zone set)
+      // Explicit All Zones check
       const isAll = banner.isAllZones === true ||
-        !banner.targetZoneIds ||
-        banner.targetZoneIds.length === 0 ||
-        banner.targetZoneIds.includes('ALL');
+        banner.targetZoneIds?.includes('ALL') ||
+        banner.targetZoneNames?.includes('All Zones');
 
       if (isAll) return true;
 

@@ -52,6 +52,8 @@ export function AdminLoginForm({
 
   const DEFAULT_ROLE_OPTIONS: AdminRoleOption[] = [
     { key: 'SUPER_ADMIN', role: 'SUPER_ADMIN', label: 'Super Admin', defaultEmail: 'admin@foodie.local' },
+    { key: 'ZONE_ADMIN_dz-bangalore', role: 'OPS', label: 'Bangalore Zone Admin', zoneId: 'dz-bangalore', zoneName: 'Bangalore Zone', defaultEmail: 'ops@foodie.local' },
+    { key: 'ZONE_ADMIN_dz-tumkur', role: 'OPS', label: 'Tumkur Zone Admin', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone', defaultEmail: 'finance@foodie.local' },
     { key: 'AUDITOR', role: 'AUDITOR', label: 'Compliance Auditor', defaultEmail: 'auditor@foodie.local' },
     { key: 'FINANCE_ADMIN', role: 'FINANCE_ADMIN', label: 'Finance Admin', defaultEmail: 'finance@foodie.local' },
     { key: 'OPERATIONS_ADMIN', role: 'OPERATIONS_ADMIN', label: 'Operations Admin', defaultEmail: 'ops@foodie.local' },
@@ -60,7 +62,23 @@ export function AdminLoginForm({
     { key: 'DARKSTORE_ADMIN', role: 'DARKSTORE_ADMIN', label: 'Darkstore Admin', defaultEmail: 'darkstore@foodie.local' },
   ];
 
-  const roleOptions: AdminRoleOption[] = (dynamicRoles.length > 0 ? dynamicRoles : DEFAULT_ROLE_OPTIONS)
+  const baseRoles = dynamicRoles.length > 0 ? dynamicRoles : DEFAULT_ROLE_OPTIONS;
+  const hasTumkur = baseRoles.some((r) => {
+    const k = (r.key || '').toLowerCase();
+    const l = (r.label || '').toLowerCase();
+    const z = (r.zoneId || '').toLowerCase();
+    return k.includes('tumkur') || l.includes('tumkur') || z.includes('tumkur');
+  });
+
+  const mergedRoles = hasTumkur
+    ? baseRoles
+    : [
+        ...baseRoles.slice(0, 2),
+        { key: 'ZONE_ADMIN_dz-tumkur', role: 'OPS', label: 'Tumkur Zone Admin', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone', defaultEmail: 'finance@foodie.local' },
+        ...baseRoles.slice(2),
+      ];
+
+  const roleOptions: AdminRoleOption[] = mergedRoles
     .filter((r) => {
       const l = (r.label || '').toLowerCase();
       const zn = (r.zoneName || '').toLowerCase();

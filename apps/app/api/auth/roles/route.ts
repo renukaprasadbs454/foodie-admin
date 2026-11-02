@@ -55,11 +55,52 @@ export async function GET() {
           if (!id && !name) return false;
           const idL = (id || '').trim().toLowerCase();
           const nameL = (name || '').trim().toLowerCase();
+          // Protected canonical zones cannot be deleted
+          if (idL.includes('tumkur') || idL.includes('bangalore') || idL.includes('bengaluru') ||
+              nameL.includes('tumkur') || nameL.includes('bangalore') || nameL.includes('bengaluru')) {
+            return false;
+          }
           return deletedZones.has(idL) || deletedZones.has(nameL);
         };
-        const usersStore = (globalAny.ADMIN_USERS_STORE as any[]) || [];
-        const combined = rawData
+
+        // Filter out hardcoded/mock zones that are not admin-created
+        const isMockZone = (id?: string | null, label?: string | null) => {
+          const s = ((id || '') + ' ' + (label || '')).toLowerCase();
+          return s.includes('hassan') || s.includes('mysore') || s.includes('temporary') || s.includes('hubballi');
+        };
+
+        const dynamicZonesList = (globalAny.ADMIN_DYNAMIC_ZONES as any[]) || [];
+        const dynamicZoneIds = new Set(dynamicZonesList.map((z: any) => (z.id || '').toLowerCase()));
+
+        let combined = rawData
           .map((r: any) => {
+            const rawZId = (r.zoneId || (r.key && r.key.startsWith('ZONE_ADMIN_') ? r.key.replace(/^ZONE_ADMIN_/, '') : '') || '').toLowerCase();
+            const zName = (r.zoneName || r.label || '').toLowerCase();
+
+            // Canonical normalization for Tumkur
+            if (rawZId.includes('tumkur') || zName.includes('tumkur')) {
+              return {
+                ...r,
+                key: 'ZONE_ADMIN_dz-tumkur',
+                zoneId: 'dz-tumkur',
+                zoneName: 'Tumkur Zone',
+                label: 'Tumkur Zone Admin',
+                defaultEmail: r.defaultEmail || 'finance@foodie.local',
+              };
+            }
+
+            // Canonical normalization for Bangalore
+            if (rawZId.includes('bangalore') || rawZId.includes('bengaluru') || zName.includes('bangalore') || zName.includes('bengaluru')) {
+              return {
+                ...r,
+                key: 'ZONE_ADMIN_dz-bangalore',
+                zoneId: 'dz-bangalore',
+                zoneName: 'Bangalore Zone',
+                label: 'Bangalore Zone Admin',
+                defaultEmail: r.defaultEmail || 'ops@foodie.local',
+              };
+            }
+
             if (r.zoneId && !r.defaultEmail) {
               const zLower = (r.zoneId + ' ' + (r.zoneName || '')).toLowerCase();
               if (zLower.includes('bangalore') || zLower.includes('bengaluru')) {
@@ -74,11 +115,39 @@ export async function GET() {
             if (isCustomerDedicatedRole(r.label, r.zoneName, r.key)) return false;
             if (r.zoneId && isDeleted(r.zoneId, r.zoneName)) return false;
             if (r.key && r.key.startsWith('ZONE_ADMIN_')) {
-              const rawZId = r.key.replace(/^ZONE_ADMIN_/, '');
+              const rawZId = r.key.replace(/^ZONE_ADMIN_/, '').toLowerCase();
               if (isDeleted(rawZId, r.label)) return false;
+              // Only allow canonical zones (bangalore, tumkur) or explicitly created dynamic zones
+              const isCanonical = rawZId.includes('bangalore') || rawZId.includes('tumkur');
+              if (!isCanonical && !dynamicZoneIds.has(rawZId) && isMockZone(rawZId, r.label)) {
+                return false;
+              }
             }
             return true;
           });
+
+        // Ensure Tumkur Zone Admin is always present
+        const hasTumkur = combined.some((r: any) => {
+          const s = ((r.key || '') + ' ' + (r.label || '') + ' ' + (r.zoneId || '')).toLowerCase();
+          return s.includes('tumkur');
+        });
+        if (!hasTumkur) {
+          const insertIdx = combined.findIndex((r: any) => (r.key || '').includes('dz-bangalore'));
+          const tumkurOpt = {
+            key: 'ZONE_ADMIN_dz-tumkur',
+            role: 'OPS',
+            label: 'Tumkur Zone Admin',
+            zoneId: 'dz-tumkur',
+            zoneName: 'Tumkur Zone',
+            defaultEmail: 'finance@foodie.local',
+          };
+          if (insertIdx !== -1) {
+            combined.splice(insertIdx + 1, 0, tumkurOpt);
+          } else {
+            combined.push(tumkurOpt);
+          }
+        }
+
         return NextResponse.json({
           success: true,
           data: combined,
@@ -99,6 +168,10 @@ export async function GET() {
     if (!id && !name) return false;
     const idL = (id || '').trim().toLowerCase();
     const nameL = (name || '').trim().toLowerCase();
+    if (idL.includes('tumkur') || idL.includes('bangalore') || idL.includes('bengaluru') ||
+        nameL.includes('tumkur') || nameL.includes('bangalore') || nameL.includes('bengaluru')) {
+      return false;
+    }
     return deletedZones.has(idL) || deletedZones.has(nameL);
   };
 
@@ -112,12 +185,8 @@ export async function GET() {
   };
 
   const zonesMap = new Map<string, { id: string; zoneName: string }>();
-  if (!isDeleted('dz-bangalore', 'Bangalore Zone')) {
-    zonesMap.set('dz-bangalore', defaultBangalore);
-  }
-  if (!isDeleted('dz-tumkur', 'Tumkur Zone')) {
-    zonesMap.set('dz-tumkur', defaultTumkur);
-  }
+  zonesMap.set('dz-bangalore', defaultBangalore);
+  zonesMap.set('dz-tumkur', defaultTumkur);
 
   // Collect any custom zones created in ADMIN_USERS_STORE
   for (const u of usersStore) {
