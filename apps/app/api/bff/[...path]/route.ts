@@ -2759,7 +2759,7 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       if (isCustomerView && coupon.isActive === false) return false;
 
       // If coupon is global (no zone or ALL)
-      const isGlobal = !coupon.zoneId || coupon.zoneId === "ALL" || coupon.isAllZones === true;
+      const isGlobal = !coupon.zoneId || coupon.zoneId === "ALL" || coupon.isAllZones === true || (coupon.zoneName && coupon.zoneName.toLowerCase().includes("all"));
       if (isGlobal) return true;
 
       // If customer zone is provided, match against it
@@ -2768,7 +2768,11 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
           Boolean(coupon.zoneName && isTargetMatch(coupon.zoneName, rawCustomerZone));
       }
 
-      // If admin and viewing specific zone or ALL
+      // If customer zone is not specified or ALL, return active coupons
+      if (isCustomerView) {
+        return true;
+      }
+
       return !isCustomerView;
     });
 
@@ -2805,6 +2809,9 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       else if (cleanZoneId.includes("hubballi") || cleanZoneId.includes("hubli")) cleanZoneName = "Hubballi Zone";
       else cleanZoneName = cleanZoneId;
     }
+    if (!cleanZoneId) {
+      cleanZoneName = "All Zones";
+    }
 
     const newCoupon = {
       couponId: "c-" + Date.now().toString().slice(-4),
@@ -2824,6 +2831,7 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       isActive: true,
       zoneId: cleanZoneId,
       zoneName: cleanZoneName,
+      isAllZones: !cleanZoneId,
     };
 
     couponsStore.unshift(newCoupon);
@@ -2895,6 +2903,123 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       data: true,
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+      },
+    });
+  }
+
+  // 5. APPLY COUPON: POST coupons/apply or admin/coupons/apply
+  if ((targetPath === "coupons/apply" || targetPath === "admin/coupons/apply" || targetPath.endsWith("/coupons/apply")) && request.method === "POST") {
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {}
+
+    const reqCode = (body.code || "").trim().toUpperCase();
+    const cartTotal = Number(body.cartTotal || body.orderAmount || 0);
+    const reqZoneId = (body.zoneId || "").trim();
+
+    const coupon = couponsStore.find((c) => (c.code || "").trim().toUpperCase() === reqCode);
+    if (!coupon) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: { code: "NOT_FOUND", message: `Coupon code '${reqCode}' is invalid.` },
+        meta: { timestamp: new Date().toISOString() },
+      }, {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+        },
+      });
+    }
+
+    if (coupon.isActive === false) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: { code: "INACTIVE", message: `Coupon '${reqCode}' is no longer active.` },
+        meta: { timestamp: new Date().toISOString() },
+      }, {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+        },
+      });
+    }
+
+    // Zone eligibility check
+    const isGlobal = !coupon.zoneId || coupon.zoneId === "ALL" || coupon.isAllZones === true || (coupon.zoneName && coupon.zoneName.toLowerCase().includes("all"));
+    if (!isGlobal && reqZoneId && reqZoneId.toLowerCase() !== "all") {
+      const match = isTargetMatch(coupon.zoneId, reqZoneId) || (coupon.zoneName && isTargetMatch(coupon.zoneName, reqZoneId));
+      if (!match) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: { code: "ZONE_MISMATCH", message: `Coupon '${reqCode}' is valid only in ${coupon.zoneName || coupon.zoneId}.` },
+          meta: { timestamp: new Date().toISOString() },
+        }, {
+          status: 400,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+          },
+        });
+      }
+    }
+
+    const minAmount = Number(coupon.minOrderAmount || coupon.minPurchase || 0);
+    if (cartTotal < minAmount) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: { code: "MIN_ORDER_NOT_MET", message: `Minimum cart value of ₹${minAmount} required for coupon '${reqCode}'.` },
+        meta: { timestamp: new Date().toISOString() },
+      }, {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+        },
+      });
+    }
+
+    // Calculate discount
+    const discType = (coupon.discountType || (coupon.benefitMode === "FLAT" ? "FLAT" : "PERCENT")).toUpperCase();
+    const val = Number(coupon.value || coupon.discountValue || 0);
+    let discountAmount = 0;
+    if (discType === "FLAT") {
+      discountAmount = Math.min(val, cartTotal);
+    } else {
+      discountAmount = Math.round((cartTotal * val) / 100);
+      const maxDisc = coupon.maxDiscountAmount ? Number(coupon.maxDiscountAmount) : (coupon.maxDiscount ? Number(coupon.maxDiscount) : null);
+      if (maxDisc != null && discountAmount > maxDisc) {
+        discountAmount = maxDisc;
+      }
+    }
+    const finalTotal = Math.max(0, cartTotal - discountAmount);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        code: coupon.code,
+        discountAmount,
+        finalTotal,
+        message: `Coupon '${coupon.code}' applied successfully! Saved ₹${discountAmount}.`,
+      },
+      error: null,
+      meta: { timestamp: new Date().toISOString() },
     }, {
       status: 200,
       headers: {
@@ -6969,8 +7094,12 @@ function toBackendZoneId(zid?: string | null): string | null {
     targetPath.startsWith('admin/coupons') ||
     targetPath === 'coupons/active' ||
     targetPath === 'coupons/eligible' ||
+    targetPath === 'coupons/apply' ||
     targetPath.startsWith('coupons/') ||
-    targetPath.startsWith('customer/coupons')
+    targetPath.startsWith('customer/coupons') ||
+    targetPath.includes('coupons/eligible') ||
+    targetPath.includes('coupons/active') ||
+    targetPath.includes('coupons/apply')
   ) {
     const couponRes = await handleCoupons(request, targetPath, accessToken);
     if (couponRes) return couponRes;
