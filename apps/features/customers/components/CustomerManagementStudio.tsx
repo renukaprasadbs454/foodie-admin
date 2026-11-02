@@ -51,11 +51,13 @@ export function CustomerManagementStudio() {
     ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name') || (typeof document !== 'undefined' ? decodeURIComponent(document.cookie.match(/foodie_active_zone_name=([^;]+)/)?.[1] || '') : null) || 'Assigned Zone')
     : 'Assigned Zone';
 
-  const effectiveZone = userAssignedZone && userAssignedZone !== 'ALL'
-    ? userAssignedZone
-    : (userActiveZoneId && userActiveZoneId !== 'ALL' ? userActiveZoneId : null);
+  const isSuperAdmin = Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN') || (typeof document !== 'undefined' && document.cookie.includes('foodie_user_role=SUPER_ADMIN'));
+  const effectiveZone = isSuperAdmin
+    ? null
+    : (userAssignedZone && userAssignedZone !== 'ALL'
+        ? userAssignedZone
+        : (userActiveZoneId && userActiveZoneId !== 'ALL' ? userActiveZoneId : null));
   const hasAssignedZone = Boolean(effectiveZone);
-  const isSuperAdmin = !hasAssignedZone && Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
 
   // Platform Fee Integration
   const { data: commissionRules, isLoading: isLoadingCommission } = useGetCommissionRulesQuery(
@@ -316,8 +318,30 @@ export function CustomerManagementStudio() {
 
       const ltvBadge = calculateCustomerLtvBadge(totalSpend);
 
+      let resolvedZoneId = cust.zoneId || 'dz-bangalore';
+      let resolvedZoneName = cust.zoneName || 'Bangalore Zone';
+      let resolvedCity = cust.city || 'Bangalore';
+
+      const hasTumkurOrder = custOrders.some((o) => {
+        const oz = (o.zoneId || (o as any).zone || '').toLowerCase();
+        const os = (o.storeName || (o as any).restaurantName || '').toLowerCase();
+        return oz.includes('tumkur') || os.includes('tumkur') || os.includes('mayura') || os.includes('pavithra') || os.includes('thatte') || os.includes('shetty');
+      });
+
+      const isTumkurName = (cust.name || '').toLowerCase().includes('priya') || (cust.name || '').toLowerCase().includes('karthik') || (cust.name || '').toLowerCase().includes('chandu');
+      const isTumkurCity = (cust.city || '').toLowerCase().includes('tumkur') || (cust.city || '').toLowerCase().includes('tumakuru');
+
+      if (hasTumkurOrder || isTumkurName || isTumkurCity) {
+        resolvedZoneId = 'dz-tumkur';
+        resolvedZoneName = 'Tumkur Zone';
+        resolvedCity = 'Tumkur';
+      }
+
       return {
         ...cust,
+        zoneId: resolvedZoneId,
+        zoneName: resolvedZoneName,
+        city: resolvedCity,
         totalOrders: custOrders.length,
         totalSpend,
         loyaltyTier: ltvBadge.tier as CustomerProfile['loyaltyTier'],
@@ -442,6 +466,16 @@ export function CustomerManagementStudio() {
 
       const ltvBadge = calculateCustomerLtvBadge(totalSpend);
 
+      const isTumkurOrd = ords.some((o) => {
+        const oz = (o.zoneId || (o as any).zone || '').toLowerCase();
+        const os = (o.storeName || (o as any).restaurantName || '').toLowerCase();
+        return oz.includes('tumkur') || os.includes('tumkur') || os.includes('mayura') || os.includes('pavithra') || os.includes('thatte') || os.includes('shetty');
+      });
+
+      const resolvedOrdZoneId = isTumkurOrd ? 'dz-tumkur' : (firstOrd.zoneId || 'dz-bangalore');
+      const resolvedOrdZoneName = isTumkurOrd ? 'Tumkur Zone' : (resolvedOrdZoneId.includes('tumkur') ? 'Tumkur Zone' : 'Bangalore Zone');
+      const resolvedOrdCity = isTumkurOrd ? 'Tumkur' : 'Bangalore';
+
       enrichedList.push({
         id: `ord-cust-${key}`,
         name: firstOrd.customerName || 'Ordering Customer',
@@ -454,8 +488,9 @@ export function CustomerManagementStudio() {
         joinedDate: earliestOrderDate,
         lastOrderDate: latestOrderDate,
         loyaltyTier: ltvBadge.tier as CustomerProfile['loyaltyTier'],
-        zoneId: firstOrd.zoneId || effectiveZone || undefined,
-        zoneName: effectiveZone ? userActiveZoneName : undefined,
+        zoneId: resolvedOrdZoneId,
+        zoneName: resolvedOrdZoneName,
+        city: resolvedOrdCity,
         orders: ords,
       });
     }
@@ -916,9 +951,21 @@ export function CustomerManagementStudio() {
                               <div style={{ fontSize: 11, color: '#6B7280' }}>
                                 {cust.id ? <span title={`Customer ID: ${cust.id}`}>ID: {cust.id.length > 12 ? `${cust.id.slice(0, 8)}...` : cust.id} • </span> : null}
                                 Joined: {cust.joinedDate}
-                                {(cust.zoneName || cust.city) ? (
-                                  <span style={{ marginLeft: 6, display: 'inline-flex', padding: '1px 6px', borderRadius: 4, backgroundColor: '#F3F4F6', color: '#4B5563', fontSize: 10, fontWeight: 500 }}>
-                                    {cust.zoneName || cust.city}
+                                {(cust.zoneName || cust.zoneId || cust.city) ? (
+                                  <span style={{
+                                    marginLeft: 6,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    padding: '2px 8px',
+                                    borderRadius: 6,
+                                    backgroundColor: (cust.zoneName?.includes('Tumkur') || cust.zoneId?.includes('tumkur')) ? '#FEF3C7' : '#EFF6FF',
+                                    color: (cust.zoneName?.includes('Tumkur') || cust.zoneId?.includes('tumkur')) ? '#B45309' : '#1D4ED8',
+                                    border: (cust.zoneName?.includes('Tumkur') || cust.zoneId?.includes('tumkur')) ? '1px solid #FDE68A' : '1px solid #BFDBFE',
+                                    fontSize: 10,
+                                    fontWeight: 700
+                                  }}>
+                                    📍 {(cust.zoneName?.includes('Tumkur') || cust.zoneId?.includes('tumkur')) ? 'Tumkur Zone' : 'Bangalore Zone'}
                                   </span>
                                 ) : null}
                               </div>

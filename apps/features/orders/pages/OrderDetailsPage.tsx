@@ -505,6 +505,8 @@ export function OrderDetailsPage({ orderId }: Props) {
       <CustomerFullDetailsDrawer
         open={isCustomerDrawerOpen}
         customerId={data?.customerId}
+        customerName={data?.customerName}
+        customerPhone={data?.customerPhone}
         onClose={() => setIsCustomerDrawerOpen(false)}
       />
       <AssignDeliveryPartnerModal

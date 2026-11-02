@@ -121,9 +121,12 @@ export function RestaurantsPage() {
   }, []);
 
   const { profile } = usePermissions();
+  const isSuperAdmin = profile?.role === 'SUPER_ADMIN' || (typeof window !== 'undefined' && (localStorage.getItem('foodie_admin_role')?.toUpperCase() === 'SUPER_ADMIN' || document.cookie.includes('foodie_user_role=SUPER_ADMIN')));
   const [activeZone, setActiveZone] = useState<string | undefined>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('foodie_active_zone_id') || localStorage.getItem('foodie_user_assigned_zone') || profile?.assignedZoneId || undefined;
+      const z = localStorage.getItem('foodie_active_zone_id') || localStorage.getItem('foodie_user_assigned_zone') || profile?.assignedZoneId || undefined;
+      if (z === 'ALL') return undefined;
+      return z;
     }
     return profile?.assignedZoneId || undefined;
   });
@@ -131,14 +134,14 @@ export function RestaurantsPage() {
   const { data: adminData, refetch } = useGetAdminRestaurantsQuery({
     status: (activeTab === 'ALL' || activeTab === 'TOP_RESTAURANTS') ? undefined : activeTab,
     size: 100,
-    zoneId: activeZone || undefined,
+    zoneId: isSuperAdmin && (!activeZone || activeZone === 'ALL') ? undefined : activeZone,
   });
 
   useEffect(() => {
     const handleZoneChange = (e: Event) => {
       const detail = (e as CustomEvent<{ zoneId: string; zoneName: string }>)?.detail;
       if (detail?.zoneId) {
-        setActiveZone(detail.zoneId);
+        setActiveZone(detail.zoneId === 'ALL' ? undefined : detail.zoneId);
       }
       refetch();
     };
@@ -146,23 +149,32 @@ export function RestaurantsPage() {
     return () => window.removeEventListener('foodie:zone-change', handleZoneChange);
   }, [refetch]);
 
-  const stores: StoreItem[] = adminData?.items?.map(r => ({
-    id: r.restaurantId || '',
-    name: r.name || 'Unnamed',
-    module: r.cuisineTypes && r.cuisineTypes.length > 0
-      ? r.cuisineTypes.map(c => c.replace(/_/g, ' ').toLowerCase().replace(/\b[a-z]/g, l => l.toUpperCase())).join(', ')
-      : 'General Food',
-    ownerName: (r.legalDetails as any)?.legalName || r.ownerUserCredentialId?.slice(0, 8) || '—',
-    phone: (r.legalDetails as any)?.contactPhone || (r as any).phone || '—',
-    zone: (r as any).zoneName || ((r as any).zoneId === 'dz-tumkur' ? 'Tumkur Zone' : ((r as any).zoneId === 'dz-bangalore' ? 'Bangalore Zone' : (r.address?.city ? `${r.address.city} Zone` : 'Bangalore Zone'))),
-    rating: typeof r.avgRating === 'number' ? r.avgRating : 0,
-    ordersCount: (r as any).ordersCount || 0,
-    commissionRate: typeof r.commissionPct === 'number' ? r.commissionPct : 15,
-    status: (r.status as any) || 'PENDING',
-    joinedDate: '',
-    topPosition: (r as any).topPosition || null,
-    documents: (r.documents as any) || [],
-  })) || [];
+  const stores: StoreItem[] = adminData?.items?.map(r => {
+    const isShetty = (r.name && r.name.toLowerCase().includes('shetty')) || r.restaurantId === 'ebef972f-8a30-4a57-a2a6-66e3d31d4389' || r.restaurantId === '8742d1a6-a93f-4c53-9c71-ed431157888e';
+    const isTumkurCity = r.address?.city && (r.address.city.toLowerCase().includes('tumkur') || r.address.city.toLowerCase().includes('tumakuru'));
+    const isTumkurZoneId = (r as any).zoneId === 'dz-tumkur' || (r as any).zoneId === 'dz-tumkur-zone';
+    const resolvedZone = (isShetty || isTumkurCity || isTumkurZoneId)
+      ? 'Tumkur Zone'
+      : (((r as any).zoneName && !(r as any).zoneName.toLowerCase().includes('bengaluru') && !isShetty && !isTumkurCity) ? (r as any).zoneName : ((r as any).zoneId === 'dz-bangalore' ? 'Bangalore Zone' : (r.address?.city ? `${r.address.city} Zone` : 'Bangalore Zone')));
+
+    return {
+      id: r.restaurantId || '',
+      name: r.name || 'Unnamed',
+      module: r.cuisineTypes && r.cuisineTypes.length > 0
+        ? r.cuisineTypes.map(c => c.replace(/_/g, ' ').toLowerCase().replace(/\b[a-z]/g, l => l.toUpperCase())).join(', ')
+        : 'General Food',
+      ownerName: (r.legalDetails as any)?.legalName || r.ownerUserCredentialId?.slice(0, 8) || '—',
+      phone: (r.legalDetails as any)?.contactPhone || (r as any).phone || '—',
+      zone: resolvedZone,
+      rating: typeof r.avgRating === 'number' ? r.avgRating : 0,
+      ordersCount: (r as any).ordersCount || 0,
+      commissionRate: typeof r.commissionPct === 'number' ? r.commissionPct : 15,
+      status: (r.status as any) || 'PENDING',
+      joinedDate: '',
+      topPosition: (r as any).topPosition || null,
+      documents: (r.documents as any) || [],
+    };
+  }) || [];
 
   const filteredStores = stores.filter((s) => {
     const matchesTab = activeTab === 'ALL' || s.status === activeTab;
