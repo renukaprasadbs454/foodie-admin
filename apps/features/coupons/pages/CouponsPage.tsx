@@ -312,14 +312,30 @@ export function CouponsPage() {
   }, [serverCoupons]);
 
   const coupons: CouponRecord[] = React.useMemo(() => {
-    if (isSuperAdmin && (!activeZoneId || activeZoneId === 'ALL')) return localCoupons;
-    if (!activeZoneId) return localCoupons;
-    const cleanZone = decodeURIComponent(activeZoneId).trim().toLowerCase();
-    return localCoupons.filter((c: any) => {
-      if (!c.zoneId) return true;
-      const z = c.zoneId.trim().toLowerCase();
-      return z === cleanZone || cleanZone.includes(z) || z.includes(cleanZone);
-    });
+    const rawList = (isSuperAdmin && (!activeZoneId || activeZoneId === 'ALL'))
+      ? localCoupons
+      : (!activeZoneId
+          ? localCoupons
+          : localCoupons.filter((c: any) => {
+              if (!c.zoneId) return true;
+              const z = c.zoneId.trim().toLowerCase();
+              const cleanZone = decodeURIComponent(activeZoneId).trim().toLowerCase();
+              return z === cleanZone || cleanZone.includes(z) || z.includes(cleanZone);
+            }));
+
+    // Deduplicate coupons by id and by code+zoneId+restaurantId to ensure no coupon appears twice
+    const seen = new Set<string>();
+    const uniqueList: CouponRecord[] = [];
+    for (const c of rawList) {
+      if (!c || !c.code) continue;
+      const dedupeKey = `${c.code.trim().toUpperCase()}_${(c.zoneId || 'ALL').trim().toLowerCase()}_${(c.restaurantId || '').trim().toLowerCase()}`;
+      if (!seen.has(dedupeKey) && !seen.has(c.id)) {
+        seen.add(dedupeKey);
+        seen.add(c.id);
+        uniqueList.push(c);
+      }
+    }
+    return uniqueList;
   }, [localCoupons, isSuperAdmin, activeZoneId]);
 
   const [firstOrderOffers, setFirstOrderOffers] = useState<FirstOrderOfferRecord[]>(MOCK_FIRST_ORDER_OFFERS);
@@ -432,9 +448,33 @@ export function CouponsPage() {
         zoneName: effectiveZoneName,
       } as any).unwrap();
 
-      setLocalCoupons((prev) => [newCoupon, ...prev]);
+      setLocalCoupons((prev) => {
+        const exists = prev.some(
+          (c) => c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
+        );
+        if (exists) {
+          return prev.map((c) =>
+            c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
+              ? newCoupon
+              : c
+          );
+        }
+        return [newCoupon, ...prev];
+      });
     } catch {
-      setLocalCoupons((prev) => [newCoupon, ...prev]);
+      setLocalCoupons((prev) => {
+        const exists = prev.some(
+          (c) => c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
+        );
+        if (exists) {
+          return prev.map((c) =>
+            c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
+              ? newCoupon
+              : c
+          );
+        }
+        return [newCoupon, ...prev];
+      });
     }
 
     setCode('');
@@ -629,7 +669,19 @@ export function CouponsPage() {
         }).unwrap();
       } catch {}
 
-      setLocalCoupons((prev) => [newCouponRecord, ...prev]);
+      setLocalCoupons((prev) => {
+        const exists = prev.some(
+          (c) => c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
+        );
+        if (exists) {
+          return prev.map((c) =>
+            c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
+              ? newCouponRecord
+              : c
+          );
+        }
+        return [newCouponRecord, ...prev];
+      });
       setToastMsg(`Restaurant coupon ${cleanCode} created for ${targetZoneName}!`);
       setRestCode('');
       setRestDiscountValue('');
@@ -646,7 +698,19 @@ export function CouponsPage() {
         }).unwrap();
       } catch {}
 
-      setLocalCoupons((prev) => [newCouponRecord, ...prev]);
+      setLocalCoupons((prev) => {
+        const exists = prev.some(
+          (c) => c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
+        );
+        if (exists) {
+          return prev.map((c) =>
+            c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
+              ? newCouponRecord
+              : c
+          );
+        }
+        return [newCouponRecord, ...prev];
+      });
       setToastMsg(`Restaurant coupon ${cleanCode} created for ${targetZoneName}!`);
       setRestCode('');
       setRestDiscountValue('');

@@ -2942,10 +2942,19 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       return !isCustomerView;
     });
 
-    const mappedCoupons = filtered.map(c => ({
-      ...c,
-      expiryDate: extractCouponDateOnly(c.expiryDate) || c.expiryDate,
-    }));
+    const seenCoupons = new Set<string>();
+    const mappedCoupons = filtered
+      .filter((c) => {
+        if (!c || !c.code) return false;
+        const key = `${c.code.trim().toUpperCase()}_${(c.zoneId || 'ALL').trim().toLowerCase()}_${(c.restaurantId || '').trim().toLowerCase()}`;
+        if (seenCoupons.has(key)) return false;
+        seenCoupons.add(key);
+        return true;
+      })
+      .map(c => ({
+        ...c,
+        expiryDate: extractCouponDateOnly(c.expiryDate) || c.expiryDate,
+      }));
 
     return NextResponse.json({
       success: true,
@@ -3013,7 +3022,19 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       isAllZones: isAll,
     };
 
-    couponsStore.unshift(newCoupon);
+    const existingIdx = couponsStore.findIndex(
+      (c) => c.code.toUpperCase() === newCoupon.code.toUpperCase() &&
+             (c.zoneId || "ALL").toLowerCase() === (newCoupon.zoneId || "ALL").toLowerCase()
+    );
+    if (existingIdx >= 0) {
+      couponsStore[existingIdx] = {
+        ...couponsStore[existingIdx],
+        ...newCoupon,
+        couponId: couponsStore[existingIdx].couponId || newCoupon.couponId,
+      };
+    } else {
+      couponsStore.unshift(newCoupon);
+    }
     savePersistentCouponsState(couponsStore);
 
     if (cleanZoneId) {

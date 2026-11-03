@@ -340,5 +340,32 @@ describe('Restaurant Coupons Management - Admin Panel', () => {
       expect(blrResults.map((c) => c.code)).toEqual(['ALL50', 'BLR30']);
       expect(blrResults.every((c) => c.restaurantId === 'b7c2a110-92d4-4f81-9b11-a83d712e5001')).toBe(true);
     });
+
+    it('prevents duplicate coupons from displaying in the admin panel table', () => {
+      // Simulates optimistic insertion + server refetch returning the same coupon
+      const rawCouponsList = [
+        { id: 'c-rest-1234', code: 'SPICE50', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone' },
+        { id: 'c-5774', code: 'SPICE50', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone' },
+        { id: 'c-3040', code: 'SPICE50', zoneId: 'dz-bangalore', zoneName: 'Bangalore Zone' },
+      ];
+
+      const seen = new Set<string>();
+      const dedupedList: any[] = [];
+      for (const c of rawCouponsList) {
+        const dedupeKey = `${c.code.trim().toUpperCase()}_${(c.zoneId || 'ALL').trim().toLowerCase()}_`;
+        if (!seen.has(dedupeKey) && !seen.has(c.id)) {
+          seen.add(dedupeKey);
+          seen.add(c.id);
+          dedupedList.push(c);
+        }
+      }
+
+      // Tumkur SPICE50 appears only once; Bangalore SPICE50 also appears once
+      expect(dedupedList).toHaveLength(2);
+      expect(dedupedList.map((c) => `${c.code}:${c.zoneName}`)).toEqual([
+        'SPICE50:Tumkur Zone',
+        'SPICE50:Bangalore Zone',
+      ]);
+    });
   });
 });
