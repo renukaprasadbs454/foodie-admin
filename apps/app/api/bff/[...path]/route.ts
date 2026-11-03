@@ -1599,7 +1599,7 @@ async function handleAdminNotifications(request: Request, targetPath: string, ac
       sentAt: payload.scheduledAt ? null : new Date().toISOString(),
       recipientsCount: 1,
       deliveryStatus: payload.scheduledAt ? 'SCHEDULED' : 'SENT',
-      zoneId: incomingActiveZone ? decodeURIComponent(incomingActiveZone) : null,
+      zoneId: reqBody.zoneId || (incomingActiveZone ? decodeURIComponent(incomingActiveZone) : null),
     };
     mockList.unshift(fallbackRecord);
 
@@ -1642,8 +1642,9 @@ async function handleAdminNotifications(request: Request, targetPath: string, ac
                        rawFilter.startsWith('DELIV') || rawFilter.startsWith('DRIVER') ? 'DELIVERY_PARTNER' :
                        rawFilter.toUpperCase();
 
-    const zoneFilteredMock = incomingActiveZone
-      ? mockList.filter((item: any) => !item.zoneId || item.zoneId === decodeURIComponent(incomingActiveZone) || item.zoneId === 'ALL')
+    const targetZoneFilter = incomingUrl.searchParams.get('zoneId') || (incomingActiveZone ? decodeURIComponent(incomingActiveZone) : '');
+    const zoneFilteredMock = targetZoneFilter && targetZoneFilter !== 'ALL'
+      ? mockList.filter((item: any) => !item.zoneId || item.zoneId === 'ALL' || item.zoneId.toLowerCase() === targetZoneFilter.toLowerCase())
       : mockList;
 
     const filteredMock = rawFilter
@@ -2507,6 +2508,40 @@ async function handleBanners(request: Request, targetPath: string, accessToken: 
   return null;
 }
 
+function extractCouponDateOnly(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  const s = String(dateStr).trim();
+
+  // 1. Matches YYYY-MM-DD (e.g. 2026-12-03 or 2026-12-03T23:59:59Z)
+  const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  // 2. Matches DD-MM-YYYY (e.g. 03-12-2026)
+  const dmyMatch = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
+  if (dmyMatch) {
+    const [, d, m, y] = dmyMatch;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  // 3. Matches D/M/YYYY or M/D/YYYY from legacy string
+  const slashMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slashMatch) {
+    let [, p1, p2, y] = slashMatch;
+    let day = p1;
+    let month = p2;
+    if (Number(p1) <= 12 && Number(p2) > 12) {
+      day = p2;
+      month = p1;
+    }
+    return `${y}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  return s;
+}
+
 function getCouponsPersistenceFile(): string {
   const dataDir = path.join(process.cwd(), "data");
   if (fs.existsSync(dataDir)) {
@@ -2528,7 +2563,7 @@ function getDefaultInitialCoupons(): any[] {
       value: 50,
       minOrderAmount: 300,
       maxDiscountAmount: 150,
-      expiryDate: "2026-12-31T23:59:59Z",
+      expiryDate: "2026-12-31",
       usageLimitTotal: null,
       usageLimitPerUser: 1,
       restaurantId: null,
@@ -2547,7 +2582,7 @@ function getDefaultInitialCoupons(): any[] {
       value: 150,
       minOrderAmount: 600,
       maxDiscountAmount: null,
-      expiryDate: "2026-12-31T23:59:59Z",
+      expiryDate: "2026-12-31",
       usageLimitTotal: null,
       usageLimitPerUser: 1,
       restaurantId: null,
@@ -2566,7 +2601,7 @@ function getDefaultInitialCoupons(): any[] {
       value: 100,
       minOrderAmount: 500,
       maxDiscountAmount: null,
-      expiryDate: "2026-12-31T23:59:59Z",
+      expiryDate: "2026-12-31",
       usageLimitTotal: null,
       usageLimitPerUser: 1,
       restaurantId: null,
@@ -2585,7 +2620,7 @@ function getDefaultInitialCoupons(): any[] {
       value: 80,
       minOrderAmount: 250,
       maxDiscountAmount: null,
-      expiryDate: "2026-12-31T23:59:59Z",
+      expiryDate: "2026-12-31",
       usageLimitTotal: null,
       usageLimitPerUser: 1,
       restaurantId: null,
@@ -2604,7 +2639,7 @@ function getDefaultInitialCoupons(): any[] {
       value: 50,
       minOrderAmount: 99,
       maxDiscountAmount: 100,
-      expiryDate: "2026-12-31T23:59:59Z",
+      expiryDate: "2026-12-31",
       usageLimitTotal: null,
       usageLimitPerUser: 1,
       restaurantId: null,
@@ -2623,7 +2658,7 @@ function getDefaultInitialCoupons(): any[] {
       value: 50,
       minOrderAmount: 99,
       maxDiscountAmount: 100,
-      expiryDate: "2026-12-31T23:59:59Z",
+      expiryDate: "2026-12-31",
       usageLimitTotal: null,
       usageLimitPerUser: 1,
       restaurantId: null,
@@ -2642,7 +2677,7 @@ function getDefaultInitialCoupons(): any[] {
       value: 50,
       minOrderAmount: 599,
       maxDiscountAmount: 100,
-      expiryDate: "2026-12-31T23:59:59Z",
+      expiryDate: "2026-12-31",
       usageLimitTotal: null,
       usageLimitPerUser: 1,
       restaurantId: null,
@@ -2661,13 +2696,34 @@ function getDefaultInitialCoupons(): any[] {
       value: 29,
       minOrderAmount: 87,
       maxDiscountAmount: null,
-      expiryDate: "2026-12-31T23:59:59Z",
+      expiryDate: "2026-12-31",
       usageLimitTotal: null,
       usageLimitPerUser: 1,
       restaurantId: null,
       isActive: true,
       zoneId: null,
       zoneName: "All Zones",
+    },
+    {
+      couponId: "c-rest-01",
+      code: "ROYAL25",
+      discountType: "PERCENT",
+      funderType: "MERCHANT",
+      couponType: "RESTAURANT",
+      benefitMode: "PERCENTAGE",
+      approvalStatus: "APPROVED",
+      value: 25,
+      minOrderAmount: 250,
+      maxDiscountAmount: 100,
+      expiryDate: "2026-12-31",
+      usageLimitTotal: null,
+      usageLimitPerUser: 1,
+      restaurantId: "b7c2a110-92d4-4f81-9b11-a83d712e5001",
+      restaurantName: "Royal Biryani House",
+      module: "Royal Biryani House",
+      isActive: true,
+      zoneId: "dz-bangalore",
+      zoneName: "Bangalore Zone",
     },
   ];
 }
@@ -2678,8 +2734,13 @@ function loadPersistentCouponsState(): any[] {
     if (fs.existsSync(filePath)) {
       const raw = fs.readFileSync(filePath, "utf8");
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      if (Array.isArray(parsed?.coupons) && parsed.coupons.length > 0) return parsed.coupons;
+      const list = Array.isArray(parsed) && parsed.length > 0 ? parsed : (Array.isArray(parsed?.coupons) && parsed.coupons.length > 0 ? parsed.coupons : null);
+      if (list) {
+        return list.map((c: any) => ({
+          ...c,
+          expiryDate: extractCouponDateOnly(c.expiryDate) || c.expiryDate,
+        }));
+      }
     }
   } catch {}
   return getDefaultInitialCoupons();
@@ -2740,23 +2801,128 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
     return false;
   };
 
-  // 1. GET admin/coupons OR coupons/active OR coupons/eligible
+  // 1. GET admin/coupons OR coupons/active OR coupons/eligible OR restaurant promos
   if (
-    (targetPath === "admin/coupons" || targetPath === "coupons/active" || targetPath === "coupons/eligible" || targetPath === "customer/coupons") &&
+    (
+      targetPath === "admin/coupons" ||
+      targetPath === "coupons/active" ||
+      targetPath === "coupons/eligible" ||
+      targetPath === "customer/coupons" ||
+      targetPath === "restaurant/coupons" ||
+      targetPath === "restaurant/promos" ||
+      (targetPath.startsWith("restaurants/") && (targetPath.endsWith("/coupons") || targetPath.endsWith("/promos")))
+    ) &&
     request.method === "GET"
   ) {
     const cookieHeader = request.headers.get("cookie") || "";
     const qZone = incomingUrl.searchParams.get("zoneId") || incomingUrl.searchParams.get("zone") || "";
+    const qRestaurantId = incomingUrl.searchParams.get("restaurantId") ||
+      incomingUrl.searchParams.get("storeId") ||
+      (targetPath.match(/^restaurants\/([^\/]+)\/(coupons|promos)$/)?.[1] || "");
     const headerZone = request.headers.get("x-active-zone-id") || "";
     const cookieZone = cookieHeader.match(/foodie_active_zone_id=([^;]+)/)?.[1] ||
       cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] || "";
     const rawCustomerZone = decodeURIComponent(qZone || headerZone || cookieZone || "").trim();
+
+    const getRestaurantZone = (rId: string): string => {
+      const clean = (rId || '').trim().toLowerCase();
+      // Tumkur restaurants
+      if (
+        clean === 'c8d3b221-03e5-5f92-ac22-b94e823f6002' ||
+        clean === 'rest-tumkur-101' ||
+        clean === '8742d1a6-a93f-4c53-9c71-ed431157888e' ||
+        clean === 'ebef972f-8a30-4a57-a2a6-66e3d31d4389' ||
+        clean === 'b0005826-32e2-41ce-bc4e-917f8183707b' ||
+        clean.includes('tumkur') ||
+        clean.includes('mayura')
+      ) {
+        return 'dz-tumkur';
+      }
+      // Bangalore restaurants
+      if (
+        clean === 'b7c2a110-92d4-4f81-9b11-a83d712e5001' ||
+        clean === 'd9e4c332-14f6-6fa3-bd33-ca5f934a7003' ||
+        clean === 'e1f5d443-25a7-70b4-ce44-db60a45b8004' ||
+        clean.includes('bangalore') ||
+        clean.includes('royal')
+      ) {
+        return 'dz-bangalore';
+      }
+      const prev = couponsStore.find(c => c.restaurantId && c.restaurantId.toLowerCase() === clean && c.zoneId);
+      if (prev && prev.zoneId) return prev.zoneId;
+      return '';
+    };
+
+    // If a specific restaurant is querying its own coupons/promos
+    if (qRestaurantId && (targetPath.includes("restaurant") || targetPath.includes("promos"))) {
+      let targetRestZone = qZone || headerZone || getRestaurantZone(qRestaurantId);
+      if (!targetRestZone) {
+        try {
+          const restRes = await safeFetch(`${backendUrl}/api/v1/restaurants/${encodeURIComponent(qRestaurantId)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            timeoutMs: 1500,
+          });
+          if (restRes.response && restRes.response.ok) {
+            const rData = await restRes.response.json();
+            const rObj = rData?.data || rData;
+            if (rObj?.zoneId) targetRestZone = rObj.zoneId;
+            else if (rObj?.zoneName) targetRestZone = rObj.zoneName;
+            else if (rObj?.address?.city) targetRestZone = rObj.address.city;
+          }
+        } catch {}
+      }
+
+      const restCoupons = couponsStore
+        .filter(c => {
+          // 1. Direct restaurant match
+          if (c.restaurantId && c.restaurantId.toLowerCase() === qRestaurantId.toLowerCase()) return true;
+          // 2. Dedicated to a different restaurant
+          if (c.restaurantId && c.restaurantId.toLowerCase() !== qRestaurantId.toLowerCase()) return false;
+          // 3. Zone-wise coupon: available to all restaurants in that zone
+          if (c.zoneId && targetRestZone) {
+            if (isTargetMatch(c.zoneId, targetRestZone) || Boolean(c.zoneName && isTargetMatch(c.zoneName, targetRestZone))) {
+              return true;
+            }
+          }
+          // 4. Global coupon (no zone or ALL or All Locations)
+          if (!c.zoneId || c.zoneId === 'ALL' || c.isAllZones === true || c.zoneId === 'all-locations' || (c.zoneName && isTargetMatch(c.zoneName, 'ALL'))) {
+            return true;
+          }
+          return false;
+        })
+        .map(c => ({
+          ...c,
+          restaurantId: c.restaurantId || qRestaurantId,
+          expiryDate: extractCouponDateOnly(c.expiryDate) || c.expiryDate,
+        }));
+      return NextResponse.json({
+        success: true,
+        data: restCoupons,
+        error: null,
+        meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+      }, {
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+          "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+          "Pragma": "no-cache",
+          "Expires": "0",
+        },
+      });
+    }
 
     const isCustomerView = targetPath === "coupons/active" || targetPath === "coupons/eligible" || targetPath === "customer/coupons" || !targetPath.includes("admin");
 
     const filtered = couponsStore.filter((coupon) => {
       // For customer view, coupon MUST be active
       if (isCustomerView && coupon.isActive === false) return false;
+
+      // Restaurant scoping in customer cart context: if order is for restaurant A, do not show coupons for restaurant B
+      if (isCustomerView && coupon.restaurantId && qRestaurantId && coupon.restaurantId !== qRestaurantId) {
+        return false;
+      }
 
       // If coupon is global (no zone or ALL)
       const isGlobal = !coupon.zoneId || coupon.zoneId === "ALL" || coupon.isAllZones === true || (coupon.zoneName && coupon.zoneName.toLowerCase().includes("all"));
@@ -2776,9 +2942,14 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       return !isCustomerView;
     });
 
+    const mappedCoupons = filtered.map(c => ({
+      ...c,
+      expiryDate: extractCouponDateOnly(c.expiryDate) || c.expiryDate,
+    }));
+
     return NextResponse.json({
       success: true,
-      data: filtered,
+      data: mappedCoupons,
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
     }, {
@@ -2787,6 +2958,9 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
         "Access-Control-Allow-Headers": "*",
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
       },
     });
   }
@@ -2801,41 +2975,65 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
     }
 
     const cleanCode = (body.code || "").trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
-    const cleanZoneId = (body.zoneId && body.zoneId !== "ALL") ? body.zoneId.trim() : null;
+    const isAll = !body.zoneId || body.zoneId === "ALL" || String(body.zoneId).toLowerCase() === "all" || body.zoneId === "all-locations";
+    const cleanZoneId = isAll ? "ALL" : body.zoneId.trim();
     let cleanZoneName = body.zoneName || null;
-    if (cleanZoneId && !cleanZoneName) {
+    if (isAll) {
+      cleanZoneName = "All Locations";
+    } else if (cleanZoneId && !cleanZoneName) {
       if (cleanZoneId.includes("bangalore") || cleanZoneId.includes("bengaluru")) cleanZoneName = "Bangalore Zone";
       else if (cleanZoneId.includes("tumkur")) cleanZoneName = "Tumkur Zone";
       else if (cleanZoneId.includes("hubballi") || cleanZoneId.includes("hubli")) cleanZoneName = "Hubballi Zone";
       else cleanZoneName = cleanZoneId;
     }
-    if (!cleanZoneId) {
-      cleanZoneName = "All Zones";
-    }
+
+    const cleanExpiry = extractCouponDateOnly(body.expiryDate) || (body.expiryDate ? String(body.expiryDate).slice(0, 10) : "2099-12-31");
 
     const newCoupon = {
       couponId: "c-" + Date.now().toString().slice(-4),
       code: cleanCode || ("COUPON_" + Date.now().toString().slice(-4)),
+      title: body.title || `${cleanCode} • ${cleanZoneName}`,
       discountType: body.discountType || "PERCENT",
-      funderType: body.funderType || "FOODIE",
-      couponType: body.couponType || "GENERIC",
+      funderType: body.funderType || (body.restaurantId ? "MERCHANT" : (cleanZoneId ? "MERCHANT" : "FOODIE")),
+      couponType: body.couponType || (body.restaurantId || cleanZoneId ? "RESTAURANT" : "GENERIC"),
       benefitMode: body.benefitMode || (body.discountType === "FLAT" ? "FLAT" : "PERCENTAGE"),
       approvalStatus: "APPROVED",
       value: Number(body.value) || 10,
       minOrderAmount: Number(body.minOrderAmount) || 0,
       maxDiscountAmount: body.maxDiscountAmount ? Number(body.maxDiscountAmount) : null,
-      expiryDate: body.expiryDate || "2099-12-31T23:59:59Z",
+      expiryDate: cleanExpiry,
       usageLimitTotal: body.usageLimitTotal ? Number(body.usageLimitTotal) : null,
       usageLimitPerUser: Number(body.usageLimitPerUser) || 1,
       restaurantId: body.restaurantId || null,
+      restaurantName: body.restaurantName || null,
+      module: body.restaurantName || (body.restaurantId ? "Specific Restaurant" : (cleanZoneName ? `${cleanZoneName} Restaurants` : (body.module || "All Food Delivery"))),
       isActive: true,
       zoneId: cleanZoneId,
       zoneName: cleanZoneName,
-      isAllZones: !cleanZoneId,
+      isAllZones: isAll,
     };
 
     couponsStore.unshift(newCoupon);
     savePersistentCouponsState(couponsStore);
+
+    if (cleanZoneId) {
+      if (!globalAny.MOCK_NOTIFICATIONS) {
+        globalAny.MOCK_NOTIFICATIONS = [];
+      }
+      const notifList = globalAny.MOCK_NOTIFICATIONS as any[];
+      const notifDiscountText = newCoupon.discountType === 'PERCENT' ? `${newCoupon.value}%` : `₹${newCoupon.value}`;
+      notifList.unshift({
+        id: `notif-coupon-${Date.now()}`,
+        title: 'New Restaurant Coupon Available!',
+        body: `Admin has created a new coupon for your zone. Coupon Code: ${newCoupon.code}. Discount: ${notifDiscountText}. Please visit Promos to Enable or Disable this coupon.`,
+        targetAudience: 'RESTAURANTS',
+        actionUrl: '/promos',
+        zoneId: cleanZoneId,
+        sentAt: new Date().toISOString(),
+        recipientsCount: 1,
+        deliveryStatus: 'SENT',
+      });
+    }
 
     try {
       await safeFetch(backendUrl + "/api/v1/admin/coupons", {
@@ -2844,7 +3042,10 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
           "Content-Type": "application/json",
           Authorization: "Bearer " + token,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          ...body,
+          expiryDate: cleanExpiry,
+        }),
         timeoutMs: 3000,
       });
     } catch {}
@@ -2864,8 +3065,8 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
     });
   }
 
-  // 3. ACTIVATE / DEACTIVATE: PATCH admin/coupons/:id/(activate|deactivate)
-  const actMatch = targetPath.match(/^admin\/coupons\/([^\/]+)\/(activate|deactivate)$/);
+  // 3. ACTIVATE / DEACTIVATE: PATCH admin/coupons/:id/(activate|deactivate) OR restaurant/coupons/:id/(activate|deactivate)
+  const actMatch = targetPath.match(/^(?:admin|restaurant|restaurants)\/coupons\/([^\/]+)\/(activate|deactivate)$/);
   if (actMatch && (request.method === "PATCH" || request.method === "POST")) {
     const couponId = actMatch[1];
     const isActivate = actMatch[2] === "activate";
@@ -2884,6 +3085,36 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+      },
+    });
+  }
+
+  // 3.1 STATUS TOGGLE: PATCH/POST restaurant/coupons/:id/status
+  const statusMatch = targetPath.match(/^(?:admin|restaurant|restaurants)\/coupons\/([^\/]+)\/status$/);
+  if (statusMatch && (request.method === "PATCH" || request.method === "POST" || request.method === "PUT")) {
+    const couponId = statusMatch[1];
+    let body: any = {};
+    try { body = await request.json(); } catch {}
+    const isActivate = incomingUrl.searchParams.get("isActive") === "true" ||
+      incomingUrl.searchParams.get("active") === "true" ||
+      body.isActive === true ||
+      body.active === true;
+    const coupon = couponsStore.find((c) => c.couponId === couponId || c.id === couponId || c.code === couponId);
+    if (coupon) {
+      coupon.isActive = isActivate;
+      savePersistentCouponsState(couponsStore);
+    }
+    return NextResponse.json({
+      success: true,
+      data: { couponId, isActive: isActivate },
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+    }, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
         "Access-Control-Allow-Headers": "*",
       },
     });
@@ -2957,6 +3188,30 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       });
     }
 
+    // Expiry check - calendar date based, valid through end of calendar day (23:59:59.999)
+    if (coupon.expiryDate) {
+      const cleanExp = extractCouponDateOnly(coupon.expiryDate);
+      if (cleanExp) {
+        const [y, m, d] = cleanExp.split('-').map(Number);
+        const endOfDay = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
+        if (Date.now() > endOfDay) {
+          return NextResponse.json({
+            success: false,
+            data: null,
+            error: { code: "COUPON_EXPIRED", message: `Coupon '${reqCode}' has expired.` },
+            meta: { timestamp: new Date().toISOString() },
+          }, {
+            status: 400,
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+              "Access-Control-Allow-Headers": "*",
+            },
+          });
+        }
+      }
+    }
+
     // Zone eligibility check
     const isGlobal = !coupon.zoneId || coupon.zoneId === "ALL" || coupon.isAllZones === true || (coupon.zoneName && coupon.zoneName.toLowerCase().includes("all"));
     if (!isGlobal && reqZoneId && reqZoneId.toLowerCase() !== "all") {
@@ -2976,6 +3231,24 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
           },
         });
       }
+    }
+
+    // Restaurant eligibility check
+    const reqRestaurantId = (body.restaurantId || "").trim();
+    if (coupon.restaurantId && reqRestaurantId && coupon.restaurantId !== reqRestaurantId) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: { code: "RESTAURANT_MISMATCH", message: `Coupon '${reqCode}' is valid only for ${coupon.restaurantName || 'the assigned restaurant'}.` },
+        meta: { timestamp: new Date().toISOString() },
+      }, {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+        },
+      });
     }
 
     const minAmount = Number(coupon.minOrderAmount || coupon.minPurchase || 0);
@@ -7097,6 +7370,9 @@ function toBackendZoneId(zid?: string | null): string | null {
     targetPath === 'coupons/apply' ||
     targetPath.startsWith('coupons/') ||
     targetPath.startsWith('customer/coupons') ||
+    targetPath.startsWith('restaurant/coupons') ||
+    targetPath.startsWith('restaurant/promos') ||
+    (targetPath.startsWith('restaurants/') && (targetPath.endsWith('/coupons') || targetPath.endsWith('/promos'))) ||
     targetPath.includes('coupons/eligible') ||
     targetPath.includes('coupons/active') ||
     targetPath.includes('coupons/apply')

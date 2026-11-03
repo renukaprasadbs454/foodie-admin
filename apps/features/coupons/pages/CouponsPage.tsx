@@ -13,9 +13,13 @@ import {
   useRejectCouponMutation,
 } from '@/api/endpoints/couponsApi';
 import { BannerManagement } from '../components/BannerManagement';
+import { useGetAdminRestaurantsQuery } from '@/api/endpoints/restaurantsApi';
+import { extractDateOnly, formatCouponValidityDate } from '../types';
 import { useAppSelector } from '@/store/hooks';
 import { selectActiveModule } from '@/store/moduleSlice';
 import { useGetAvailableZonesQuery, type OperatingZone } from '@/api/endpoints/zoneApi';
+import { useGetZonesQuery } from '@/api/endpoints/locationApi';
+import { useSendBroadcastNotificationMutation } from '@/api/endpoints/notificationsApi';
 
 export interface CouponRecord {
   id: string;
@@ -25,12 +29,16 @@ export interface CouponRecord {
   discountValue: number;
   minPurchase: number;
   maxDiscount: number;
+  maxDiscountAmount?: number;
   module: string;
   approvalStatus?: string;
   expiryDate: string;
   status: 'ACTIVE' | 'DEACTIVATED';
   zoneId?: string;
   zoneName?: string;
+  restaurantId?: string;
+  restaurantName?: string;
+  couponType?: string;
 }
 
 export interface FirstOrderOfferRecord {
@@ -56,6 +64,14 @@ export interface CampaignRecord {
   status: 'LIVE' | 'SCHEDULED' | 'ENDED';
 }
 
+const FALLBACK_RESTAURANTS = [
+  { id: 'b7c2a110-92d4-4f81-9b11-a83d712e5001', name: 'Royal Biryani House', zoneName: 'Bangalore Zone' },
+  { id: 'c8d3b221-03e5-5f92-ac22-b94e823f6002', name: 'Bella Italia Pizzeria', zoneName: 'Tumkur Zone' },
+  { id: 'd9e4c332-14f6-6fa3-bd33-ca5f934a7003', name: 'Sweet Dreams Bakery & Cafe', zoneName: 'Bangalore Zone' },
+  { id: 'e1f5d443-25a7-70b4-ce44-db60a45b8004', name: 'Green Bowl Salads', zoneName: 'Bangalore Zone' },
+  { id: 'rest-tumkur-101', name: 'Tumkur Heritage Kitchen', zoneName: 'Tumkur Zone' },
+];
+
 const MOCK_COUPONS: CouponRecord[] = [
   {
     id: 'c111',
@@ -79,7 +95,10 @@ const MOCK_COUPONS: CouponRecord[] = [
     discountValue: 100,
     minPurchase: 500,
     maxDiscount: 100,
-    module: 'Fine Dining & Pizzerias',
+    module: 'Bella Italia Pizzeria',
+    restaurantId: 'c8d3b221-03e5-5f92-ac22-b94e823f6002',
+    restaurantName: 'Bella Italia Pizzeria',
+    couponType: 'RESTAURANT',
     expiryDate: '2026-10-15',
     status: 'ACTIVE',
     zoneId: 'dz-tumkur',
@@ -107,7 +126,10 @@ const MOCK_COUPONS: CouponRecord[] = [
     discountValue: 30,
     minPurchase: 250,
     maxDiscount: 120,
-    module: 'All Food Delivery',
+    module: 'Tumkur Heritage Kitchen',
+    restaurantId: 'rest-tumkur-101',
+    restaurantName: 'Tumkur Heritage Kitchen',
+    couponType: 'RESTAURANT',
     expiryDate: '2026-12-31',
     status: 'ACTIVE',
     zoneId: 'dz-tumkur',
@@ -174,7 +196,7 @@ const MOCK_CAMPAIGNS: CampaignRecord[] = [
   },
 ];
 
-type CouponTab = 'PROMO_COUPONS' | 'FIRST_ORDER_OFFERS' | 'REFERRAL_OFFERS' | 'CAMPAIGN_MANAGEMENT' | 'PENDING_APPROVALS' | 'BANNERS';
+type CouponTab = 'PROMO_COUPONS' | 'RESTAURANT_COUPONS' | 'FIRST_ORDER_OFFERS' | 'REFERRAL_OFFERS' | 'CAMPAIGN_MANAGEMENT' | 'PENDING_APPROVALS' | 'BANNERS';
 
 export function CouponsPage() {
   const { tokens } = useTheme();
@@ -182,15 +204,54 @@ export function CouponsPage() {
 
   const [activeTab, setActiveTab] = useState<CouponTab>('PROMO_COUPONS');
   const { data: serverCoupons, isLoading: isCouponsLoading } = useGetCouponsQuery();
+  const { data: adminRestaurantsData } = useGetAdminRestaurantsQuery({ size: 100 });
   const { data: operatingZones = [] } = useGetAvailableZonesQuery();
+  const { data: dbLocationZones = [] } = useGetZonesQuery();
   const [createCouponApi, { isLoading: isCreatingCoupon }] = useCreateCouponMutation();
   const [deactivateCouponApi, { isLoading: isDeactivatingCoupon }] = useDeactivateCouponMutation();
   const [activateCouponApi, { isLoading: isActivatingCoupon }] = useActivateCouponMutation();
   const [deleteCouponApi, { isLoading: isDeletingCoupon }] = useDeleteCouponMutation();
   const [approveCouponApi, { isLoading: isApprovingCoupon }] = useApproveCouponMutation();
   const [rejectCouponApi, { isLoading: isRejectingCoupon }] = useRejectCouponMutation();
+  const [sendBroadcastNotification] = useSendBroadcastNotificationMutation();
 
   const [localCoupons, setLocalCoupons] = useState<CouponRecord[]>(MOCK_COUPONS);
+
+  const allLocationZones = React.useMemo(() => {
+    const map = new Map<string, { id: string; zoneName: string; cityName?: string }>();
+    map.set('all', { id: 'ALL', zoneName: 'All Locations', cityName: 'All' });
+    for (const z of dbLocationZones) {
+      if (z && z.id && z.status !== 'DELETED') {
+        map.set(z.id.toLowerCase(), { id: z.id, zoneName: z.zoneName, cityName: z.cityName });
+      }
+    }
+    for (const z of operatingZones) {
+      if (z && z.id && z.status !== 'DELETED' && !map.has(z.id.toLowerCase())) {
+        map.set(z.id.toLowerCase(), { id: z.id, zoneName: z.zoneName, cityName: z.cityName });
+      }
+    }
+    if (!map.has('dz-tumkur')) {
+      map.set('dz-tumkur', { id: 'dz-tumkur', zoneName: 'Tumkur Zone', cityName: 'Tumkur' });
+    }
+    if (!map.has('dz-bangalore')) {
+      map.set('dz-bangalore', { id: 'dz-bangalore', zoneName: 'Bangalore Zone', cityName: 'Bangalore' });
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.id === 'ALL') return -1;
+      if (b.id === 'ALL') return 1;
+      if (a.id === 'dz-tumkur') return -1;
+      if (b.id === 'dz-tumkur') return 1;
+      if (a.id === 'dz-bangalore') return -1;
+      if (b.id === 'dz-bangalore') return 1;
+      return a.zoneName.localeCompare(b.zoneName);
+    });
+  }, [dbLocationZones, operatingZones]);
+
+  const availableRestaurants = React.useMemo(() => {
+    const fetched = adminRestaurantsData?.items;
+    if (Array.isArray(fetched) && fetched.length > 0) return fetched;
+    return FALLBACK_RESTAURANTS;
+  }, [adminRestaurantsData]);
 
   const userStoredRole = typeof window !== 'undefined' ? localStorage.getItem('foodie_admin_role') : null;
   const isSuperAdmin = Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
@@ -205,21 +266,46 @@ export function CouponsPage() {
     : 'Assigned Zone';
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const tabParam = new URLSearchParams(window.location.search).get('tab');
+      if (tabParam) {
+        const lower = tabParam.toLowerCase();
+        if (lower.includes('restaurant') || lower.includes('pending')) {
+          setActiveTab('RESTAURANT_COUPONS');
+        } else if (lower.includes('banner')) {
+          setActiveTab('BANNERS');
+        } else if (lower.includes('first')) {
+          setActiveTab('FIRST_ORDER_OFFERS');
+        } else if (lower.includes('referral')) {
+          setActiveTab('REFERRAL_OFFERS');
+        } else if (lower.includes('campaign')) {
+          setActiveTab('CAMPAIGN_MANAGEMENT');
+        } else if (lower.includes('promo')) {
+          setActiveTab('PROMO_COUPONS');
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (serverCoupons && serverCoupons.length > 0) {
       const formatted: CouponRecord[] = serverCoupons.map((c: any) => ({
         id: c.couponId || c.id,
         code: c.code,
-        title: `${c.discountType === 'PERCENT' ? `${c.value || c.discountValue}% OFF` : `₹${c.value || c.discountValue} FLAT`} Promo`,
+        title: c.title || `${c.discountType === 'PERCENT' ? `${c.value || c.discountValue}% OFF` : `₹${c.value || c.discountValue} FLAT`} Promo`,
         discountType: c.discountType === 'FLAT' ? 'FIXED' : c.discountType,
-        discountValue: c.value || c.discountValue || 0,
-        minPurchase: c.minOrderAmount || c.minPurchase || 0,
-        maxDiscount: c.maxDiscountAmount || c.maxDiscount || 0,
-        module: c.restaurantId ? 'Specific Restaurant' : (c.module || 'All Food Delivery'),
+        discountValue: Number(c.value ?? c.discountValue) || 0,
+        minPurchase: Number(c.minOrderAmount ?? c.minPurchase) || 0,
+        maxDiscount: Number(c.maxDiscountAmount ?? c.maxDiscount) || 0,
+        module: c.restaurantName || (c.restaurantId ? 'Specific Restaurant' : (c.module || 'All Food Delivery')),
         approvalStatus: c.approvalStatus,
-        expiryDate: c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : '1/1/2100',
+        expiryDate: c.expiryDate ? extractDateOnly(c.expiryDate) : '2099-12-31',
         status: c.isActive || c.status === 'ACTIVE' ? 'ACTIVE' : 'DEACTIVATED',
         zoneId: c.zoneId || c.assignedZoneId,
         zoneName: c.zoneName,
+        restaurantId: c.restaurantId || undefined,
+        restaurantName: c.restaurantName || undefined,
+        couponType: c.couponType || (c.restaurantId ? 'RESTAURANT' : 'GENERIC'),
       }));
       setLocalCoupons(formatted);
     }
@@ -265,6 +351,20 @@ export function CouponsPage() {
   const [cmpCategory, setCmpCategory] = useState('All Food Delivery');
   const [cmpBudget, setCmpBudget] = useState('');
 
+  // Form State - Restaurant Campaign (Matches Attached Screenshot)
+  const [restCode, setRestCode] = useState('');
+  const [restDiscountType, setRestDiscountType] = useState<'PERCENT' | 'FIXED'>('PERCENT');
+  const [restDiscountValue, setRestDiscountValue] = useState('');
+  const [restMaxDiscount, setRestMaxDiscount] = useState('');
+  const [restMinOrder, setRestMinOrder] = useState('0');
+  const [restZoneId, setRestZoneId] = useState('');
+  const [restExpiryDate, setRestExpiryDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [isSubmittingRestCoupon, setIsSubmittingRestCoupon] = useState(false);
+
   const [couponTargetZoneId, setCouponTargetZoneId] = useState<string>(activeZoneId || 'ALL');
 
   useEffect(() => {
@@ -293,12 +393,12 @@ export function CouponsPage() {
     const effectiveZoneId = couponTargetZoneId && couponTargetZoneId !== 'ALL' ? couponTargetZoneId : undefined;
     const effectiveZoneName = effectiveZoneId
       ? (effectiveZoneId.includes('bangalore') || effectiveZoneId.includes('bengaluru')
-          ? 'Bangalore Zone'
-          : effectiveZoneId.includes('tumkur')
+        ? 'Bangalore Zone'
+        : effectiveZoneId.includes('tumkur')
           ? 'Tumkur Zone'
           : effectiveZoneId.includes('hubballi') || effectiveZoneId.includes('hubli')
-          ? 'Hubballi Zone'
-          : effectiveZoneId)
+            ? 'Hubballi Zone'
+            : effectiveZoneId)
       : 'All Zones';
 
     const newCoupon: CouponRecord = {
@@ -448,8 +548,155 @@ export function CouponsPage() {
     setTimeout(() => setToastMsg(null), 3000);
   };
 
-  const pendingCoupons = coupons.filter((c) => c.approvalStatus === 'PENDING');
-  const activeCoupons = coupons.filter((c) => c.approvalStatus !== 'PENDING');
+  const handleCreateRestaurantCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanCode = restCode.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '');
+    const cleanVal = Number(restDiscountValue);
+    const minAmt = Number(restMinOrder) || 0;
+    const maxDisc = restDiscountType === 'PERCENT'
+      ? (restMaxDiscount ? Number(restMaxDiscount) : cleanVal * 2)
+      : undefined;
+
+    if (!cleanCode) {
+      alert('Please enter a valid Coupon Code.');
+      return;
+    }
+    if (isNaN(cleanVal) || cleanVal <= 0) {
+      alert(`Please enter a valid ${restDiscountType === 'PERCENT' ? 'Discount Percentage' : 'Fixed Discount Amount'}.`);
+      return;
+    }
+    if (restDiscountType === 'PERCENT' && cleanVal > 100) {
+      alert('Discount Percentage cannot exceed 100%.');
+      return;
+    }
+    if (!restZoneId) {
+      alert('Please select a target zone to assign this coupon.');
+      return;
+    }
+
+    const isAll = restZoneId === 'ALL' || restZoneId.toLowerCase() === 'all';
+    const selectedZone = allLocationZones.find(
+      (z) => z.id.toLowerCase() === restZoneId.toLowerCase()
+    );
+    const targetZoneName = isAll
+      ? 'All Locations'
+      : (selectedZone?.zoneName || (restZoneId === 'dz-tumkur' ? 'Tumkur Zone' : (restZoneId === 'dz-bangalore' ? 'Bangalore Zone' : 'Target Zone')));
+    const effectiveZoneId = isAll ? 'ALL' : restZoneId;
+    const cleanExpiry = extractDateOnly(restExpiryDate) || '2099-12-31';
+    const discountText = restDiscountType === 'PERCENT' ? `${cleanVal}%` : `₹${cleanVal}`;
+
+    const newCouponRecord: CouponRecord = {
+      id: `c-rest-${Date.now().toString().slice(-4)}`,
+      code: cleanCode,
+      title: `${cleanCode} • ${targetZoneName}`,
+      discountType: restDiscountType,
+      discountValue: cleanVal,
+      minPurchase: minAmt,
+      maxDiscount: maxDisc || 0,
+      maxDiscountAmount: maxDisc,
+      module: isAll ? 'All Locations Restaurants' : `${targetZoneName} Restaurants`,
+      expiryDate: cleanExpiry,
+      status: 'ACTIVE',
+      couponType: 'RESTAURANT',
+      zoneId: effectiveZoneId,
+      zoneName: targetZoneName,
+    };
+
+    setIsSubmittingRestCoupon(true);
+    try {
+      await createCouponApi({
+        code: cleanCode,
+        title: `${cleanCode} • ${targetZoneName}`,
+        discountType: restDiscountType === 'FIXED' ? 'FLAT' : 'PERCENT',
+        funderType: 'MERCHANT',
+        couponType: 'RESTAURANT',
+        benefitMode: restDiscountType === 'FIXED' ? 'FLAT' : 'PERCENTAGE',
+        value: cleanVal,
+        minOrderAmount: minAmt,
+        maxDiscountAmount: maxDisc,
+        expiryDate: cleanExpiry,
+        usageLimitPerUser: 1,
+        zoneId: effectiveZoneId,
+        zoneName: targetZoneName,
+      } as any).unwrap();
+
+      try {
+        await sendBroadcastNotification({
+          title: 'New Restaurant Coupon Available!',
+          body: `Admin has created a new coupon for your zone. Coupon Code: ${cleanCode}. Discount: ${discountText}. Please visit Promos to Enable or Disable this coupon.`,
+          targetAudience: 'RESTAURANTS',
+          zoneId: effectiveZoneId,
+        }).unwrap();
+      } catch {}
+
+      setLocalCoupons((prev) => [newCouponRecord, ...prev]);
+      setToastMsg(`Restaurant coupon ${cleanCode} created for ${targetZoneName}!`);
+      setRestCode('');
+      setRestDiscountValue('');
+      setRestMaxDiscount('');
+      setRestMinOrder('0');
+      setRestZoneId('');
+    } catch {
+      try {
+        await sendBroadcastNotification({
+          title: 'New Restaurant Coupon Available!',
+          body: `Admin has created a new coupon for your zone. Coupon Code: ${cleanCode}. Discount: ${discountText}. Please visit Promos to Enable or Disable this coupon.`,
+          targetAudience: 'RESTAURANTS',
+          zoneId: effectiveZoneId,
+        }).unwrap();
+      } catch {}
+
+      setLocalCoupons((prev) => [newCouponRecord, ...prev]);
+      setToastMsg(`Restaurant coupon ${cleanCode} created for ${targetZoneName}!`);
+      setRestCode('');
+      setRestDiscountValue('');
+      setRestMaxDiscount('');
+      setRestMinOrder('0');
+      setRestZoneId('');
+    } finally {
+      setIsSubmittingRestCoupon(false);
+      setTimeout(() => setToastMsg(null), 3500);
+    }
+  };
+
+  const restaurantCoupons = coupons.filter(
+    (c) =>
+      Boolean(c.restaurantId) ||
+      c.module === 'Specific Restaurant' ||
+      (c as any).couponType === 'RESTAURANT' ||
+      c.approvalStatus === 'PENDING' ||
+      Boolean(c.zoneId && (c.module?.includes('Restaurant') || c.title?.includes('Restaurant')))
+  );
+  const activePromoCoupons = coupons.filter(
+    (c) =>
+      !c.restaurantId &&
+      c.module !== 'Specific Restaurant' &&
+      (c as any).couponType !== 'RESTAURANT' &&
+      c.approvalStatus !== 'PENDING' &&
+      !(c.zoneId && (c.module?.includes('Restaurant') || c.title?.includes('Restaurant')))
+  );
+
+  const filteredPromoCoupons = activePromoCoupons.filter((c) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return c.code.toLowerCase().includes(q) || c.title.toLowerCase().includes(q) || c.module.toLowerCase().includes(q);
+  });
+
+  const filteredRestaurantCoupons = restaurantCoupons.filter((c) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      c.code.toLowerCase().includes(q) ||
+      c.title.toLowerCase().includes(q) ||
+      (c.restaurantName && c.restaurantName.toLowerCase().includes(q)) ||
+      (c.zoneName && c.zoneName.toLowerCase().includes(q)) ||
+      (c.zoneId && c.zoneId.toLowerCase().includes(q)) ||
+      c.module.toLowerCase().includes(q)
+    );
+  });
+
+  const pendingCoupons = restaurantCoupons;
+  const activeCoupons = activePromoCoupons;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1400, margin: '0 auto' }}>
@@ -574,19 +821,19 @@ export function CouponsPage() {
             transition: 'all 0.15s ease',
           }}
         >
-          Promo Coupons ({activeCoupons.length})
+          Promo Coupons ({activePromoCoupons.length})
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('PENDING_APPROVALS')}
+          onClick={() => setActiveTab('RESTAURANT_COUPONS')}
           style={{
             padding: '10px 20px',
             borderRadius: 12,
             border: 'none',
-            background: activeTab === 'PENDING_APPROVALS' ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
-            color: activeTab === 'PENDING_APPROVALS' ? '#FFFFFF' : '#6B7280',
-            boxShadow: activeTab === 'PENDING_APPROVALS' ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
+            background: (activeTab === 'RESTAURANT_COUPONS' || (activeTab as any) === 'PENDING_APPROVALS') ? 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)' : 'transparent',
+            color: (activeTab === 'RESTAURANT_COUPONS' || (activeTab as any) === 'PENDING_APPROVALS') ? '#FFFFFF' : '#6B7280',
+            boxShadow: (activeTab === 'RESTAURANT_COUPONS' || (activeTab as any) === 'PENDING_APPROVALS') ? '0 2px 6px rgba(33, 150, 243, 0.25)' : 'none',
             fontSize: 13,
             fontWeight: 600,
             cursor: 'pointer',
@@ -594,7 +841,7 @@ export function CouponsPage() {
             transition: 'all 0.15s ease',
           }}
         >
-          Pending Approvals ({pendingCoupons.length})
+          Restaurant Coupons ({restaurantCoupons.length})
         </button>
 
         <button
@@ -820,7 +1067,7 @@ export function CouponsPage() {
                 </tr>
               </thead>
               <tbody>
-                {coupons
+                {activePromoCoupons
                   .filter((c) => {
                     const q = searchQuery.trim().toLowerCase();
                     const matchesSearch =
@@ -865,7 +1112,7 @@ export function CouponsPage() {
                           </span>
                         </div>
                       </td>
-                      <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>{c.expiryDate}</td>
+                      <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>{formatCouponValidityDate(c.expiryDate)}</td>
                       <td style={{ padding: '16px 20px' }}>
                         <span
                           style={{
@@ -929,9 +1176,249 @@ export function CouponsPage() {
         </div>
       )}
 
-      {/* PENDING APPROVALS */}
-      {activeTab === 'PENDING_APPROVALS' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* RESTAURANT COUPONS MANAGEMENT */}
+      {(activeTab === 'RESTAURANT_COUPONS' || (activeTab as any) === 'PENDING_APPROVALS') && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 420px) 1fr', gap: 24, alignItems: 'start' }}>
+          {/* Restaurant Campaigns Creation Form (Matches Attached Screenshot) */}
+          <form
+            onSubmit={handleCreateRestaurantCoupon}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              border: '1px solid #E5E7EB',
+              padding: '24px 28px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 18,
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+            }}
+          >
+            {/* Page Heading */}
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+              Restaurant Campaigns
+            </h2>
+
+            {/* Field 1: Coupon Code */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>
+                Coupon Code
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. SPICE20"
+                value={restCode}
+                onChange={(e) => setRestCode(e.target.value.toUpperCase())}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: 10,
+                  border: '1px solid #CBD5E1',
+                  fontSize: 14,
+                  outline: 'none',
+                  textTransform: 'uppercase',
+                  color: '#0F172A',
+                  backgroundColor: '#FFFFFF',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Field 2: Discount Type Toggle */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>
+                Discount Type
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => setRestDiscountType('PERCENT')}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    border: 'none',
+                    backgroundColor: restDiscountType === 'PERCENT' ? '#FBBF24' : '#F1F5F9',
+                    color: restDiscountType === 'PERCENT' ? '#0F172A' : '#475569',
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Percentage (%)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRestDiscountType('FIXED')}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    border: 'none',
+                    backgroundColor: restDiscountType === 'FIXED' ? '#FBBF24' : '#F1F5F9',
+                    color: restDiscountType === 'FIXED' ? '#0F172A' : '#475569',
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Fixed Amount (₹)
+                </button>
+              </div>
+            </div>
+
+            {/* Field 3: Dynamic Discount Value */}
+            {restDiscountType === 'PERCENT' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>
+                  Discount Percentage (%)
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 15"
+                  min="1"
+                  max="100"
+                  value={restDiscountValue}
+                  onChange={(e) => setRestDiscountValue(e.target.value)}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    border: '1px solid #CBD5E1',
+                    fontSize: 14,
+                    outline: 'none',
+                    color: '#0F172A',
+                    backgroundColor: '#FFFFFF',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>
+                  Fixed Discount Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 100"
+                  min="1"
+                  value={restDiscountValue}
+                  onChange={(e) => setRestDiscountValue(e.target.value)}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    border: '1px solid #CBD5E1',
+                    fontSize: 14,
+                    outline: 'none',
+                    color: '#0F172A',
+                    backgroundColor: '#FFFFFF',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Field 5: Minimum Order Amount */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>
+                Minimum Order Amount (₹)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={restMinOrder}
+                onChange={(e) => setRestMinOrder(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: 10,
+                  border: '1px solid #CBD5E1',
+                  fontSize: 14,
+                  outline: 'none',
+                  color: '#0F172A',
+                  backgroundColor: '#FFFFFF',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Field 6: Zone Selection – Select Target Zone */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>
+                Zone Selection – Select Target Zone
+              </label>
+              <select
+                value={restZoneId}
+                onChange={(e) => setRestZoneId(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: 10,
+                  border: '1px solid #CBD5E1',
+                  fontSize: 14,
+                  outline: 'none',
+                  color: restZoneId ? '#0F172A' : '#64748B',
+                  backgroundColor: '#FFFFFF',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value="">Select Target Zone...</option>
+                {allLocationZones.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.zoneName} {z.cityName ? `(${z.cityName})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Field 7: Coupon Validity */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>
+                Coupon Validity
+              </label>
+              <input
+                type="date"
+                value={restExpiryDate}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setRestExpiryDate(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: 10,
+                  border: '1px solid #CBD5E1',
+                  fontSize: 14,
+                  outline: 'none',
+                  color: '#0F172A',
+                  backgroundColor: '#FFFFFF',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Field 8: Create Coupon / Save button */}
+            <button
+              type="submit"
+              disabled={isSubmittingRestCoupon}
+              style={{
+                padding: '13px 20px',
+                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: isSubmittingRestCoupon ? 'not-allowed' : 'pointer',
+                marginTop: 6,
+                boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
+                opacity: isSubmittingRestCoupon ? 0.7 : 1,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {isSubmittingRestCoupon ? 'Saving Coupon...' : 'Save & Publish Restaurant Coupon'}
+            </button>
+          </form>
+
+          {/* Directory Table for Restaurant Coupons */}
           <div
             style={{
               backgroundColor: '#FFFFFF',
@@ -939,94 +1426,156 @@ export function CouponsPage() {
               border: '1px solid #E5E7EB',
               overflow: 'hidden',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+              minWidth: 0,
             }}
           >
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>
-                Restaurant Campaigns Pending Approval
-              </h2>
+            <div
+              style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid #E5E7EB',
+                backgroundColor: '#F9FAFB',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 10,
+              }}
+            >
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
+                  Active Restaurant Coupons ({filteredRestaurantCoupons.length})
+                </h3>
+                <p style={{ fontSize: 13, color: '#6B7280', margin: '4px 0 0 0' }}>
+                  Exclusive discount campaigns deployed for merchant partners
+                </p>
+              </div>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  backgroundColor: '#E0F2FE',
+                  color: '#0369A1',
+                  padding: '4px 10px',
+                  borderRadius: 12,
+                }}
+              >
+                Zone Scoped
+              </span>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '14px 20px' }}>CODE</th>
-                  <th style={{ padding: '14px 20px' }}>TITLE</th>
-                  <th style={{ padding: '14px 20px' }}>RESTAURANT</th>
-                  <th style={{ padding: '14px 20px' }}>DISCOUNT</th>
-                  <th style={{ padding: '14px 20px' }}>MIN / MAX</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'right' }}>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingCoupons.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} style={{ padding: '28px', textAlign: 'center', color: '#6B7280', fontWeight: 500 }}>
-                      No pending campaigns found.
-                    </td>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <th style={{ padding: '14px 20px' }}>COUPON CODE</th>
+                    <th style={{ padding: '14px 20px' }}>ASSIGNED ZONE</th>
+                    <th style={{ padding: '14px 20px' }}>DISCOUNT</th>
+                    <th style={{ padding: '14px 20px' }}>MIN / MAX</th>
+                    <th style={{ padding: '14px 20px' }}>VALIDITY</th>
+                    <th style={{ padding: '14px 20px' }}>STATUS</th>
+                    <th style={{ padding: '14px 20px', textAlign: 'right' }}>ACTIONS</th>
                   </tr>
-                ) : (
-                  pendingCoupons.map((coupon) => (
-                    <tr key={coupon.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                      <td style={{ padding: '16px 20px', fontWeight: 700, color: '#111827' }}>
-                        {coupon.code}
-                      </td>
-                      <td style={{ padding: '16px 20px', color: '#111827' }}>
-                        {coupon.title}
-                      </td>
-                      <td style={{ padding: '16px 20px', color: '#6B7280' }}>
-                        {coupon.module}
-                      </td>
-                      <td style={{ padding: '16px 20px' }}>
-                        <span style={{ backgroundColor: '#E3F2FD', color: '#2196F3', padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
-                          {coupon.discountType === 'PERCENT' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`}
-                        </span>
-                      </td>
-                      <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>
-                        Min ₹{coupon.minPurchase}
-                        {coupon.maxDiscount > 0 && <span> <br />Max ₹{coupon.maxDiscount}</span>}
-                      </td>
-                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleApprove(coupon.id)}
-                            style={{
-                              padding: '6px 14px',
-                              background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: 8,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              boxShadow: '0 2px 6px rgba(33, 150, 243, 0.25)',
-                            }}
-                          >
-                            Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleReject(coupon.id)}
-                            style={{
-                              padding: '6px 14px',
-                              backgroundColor: '#FEE2E2',
-                              color: '#EF4444',
-                              border: '1px solid #FECACA',
-                              borderRadius: 8,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            Reject
-                          </button>
-                        </div>
+                </thead>
+                <tbody>
+                  {filteredRestaurantCoupons.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#6B7280', fontWeight: 500 }}>
+                        No restaurant coupons found. Use the Restaurant Campaigns form to create one.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredRestaurantCoupons.map((coupon) => (
+                      <tr key={coupon.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                        <td style={{ padding: '16px 20px', fontWeight: 700, color: '#111827' }}>
+                          <span style={{ fontFamily: 'monospace', letterSpacing: '0.5px' }}>{coupon.code}</span>
+                        </td>
+                        <td style={{ padding: '16px 20px', color: '#111827' }}>
+                          <div style={{ fontWeight: 600 }}>{coupon.zoneName || coupon.zoneId || coupon.restaurantName || coupon.module || 'Target Zone'}</div>
+                          {coupon.restaurantName && coupon.restaurantName !== coupon.zoneName && (
+                            <div style={{ fontSize: 11, color: '#6B7280' }}>{coupon.restaurantName}</div>
+                          )}
+                        </td>
+                        <td style={{ padding: '16px 20px' }}>
+                          <span
+                            style={{
+                              backgroundColor: coupon.discountType === 'PERCENT' ? '#FEF3C7' : '#E0F2FE',
+                              color: coupon.discountType === 'PERCENT' ? '#92400E' : '#0369A1',
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {coupon.discountType === 'PERCENT' ? `${coupon.discountValue}% OFF` : `₹${coupon.discountValue} FLAT`}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>
+                          <div>Min: ₹{coupon.minPurchase}</div>
+                          {coupon.maxDiscount > 0 && <div>Max: ₹{coupon.maxDiscount}</div>}
+                        </td>
+                        <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>
+                          {formatCouponValidityDate(coupon.expiryDate)}
+                        </td>
+                        <td style={{ padding: '16px 20px' }}>
+                          <span
+                            style={{
+                              backgroundColor: coupon.status === 'ACTIVE' ? '#DEF7EC' : '#F3F4F6',
+                              color: coupon.status === 'ACTIVE' ? '#03543F' : '#6B7280',
+                              padding: '4px 10px',
+                              borderRadius: 12,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {coupon.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(coupon.id, coupon.status)}
+                              disabled={isDeactivatingCoupon || isActivatingCoupon}
+                              style={{
+                                padding: '6px 12px',
+                                backgroundColor: coupon.status === 'ACTIVE' ? '#FEF3C7' : '#DCFCE7',
+                                color: coupon.status === 'ACTIVE' ? '#92400E' : '#15803D',
+                                border: 'none',
+                                borderRadius: 8,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: isDeactivatingCoupon || isActivatingCoupon ? 'not-allowed' : 'pointer',
+                                opacity: isDeactivatingCoupon || isActivatingCoupon ? 0.5 : 1,
+                              }}
+                            >
+                              {coupon.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCoupon(coupon.id, coupon.status)}
+                              disabled={isDeletingCoupon}
+                              style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#FEE2E2',
+                                color: '#EF4444',
+                                border: '1px solid #FECACA',
+                                borderRadius: 8,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: isDeletingCoupon ? 'not-allowed' : 'pointer',
+                                opacity: isDeletingCoupon ? 0.5 : 1,
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

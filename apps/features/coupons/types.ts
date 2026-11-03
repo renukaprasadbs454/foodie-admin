@@ -16,6 +16,8 @@ export interface CreateCouponBody {
   usageLimitTotal?: number;
   usageLimitPerUser: number;
   restaurantId?: string;
+  zoneId?: string;
+  zoneName?: string;
   funderType?: string;
   couponType?: string;
   benefitMode?: string;
@@ -37,6 +39,8 @@ export interface Coupon {
   usageLimitTotal?: number | null;
   usageLimitPerUser: number;
   restaurantId?: string | null;
+  zoneId?: string | null;
+  zoneName?: string | null;
   isActive: boolean;
 };
 
@@ -185,9 +189,11 @@ export type CreateCouponFormInput = {
   minOrderAmount: string;
   maxDiscountAmount: string;
   expiryDate: string;
-  usageLimitTotal: string;
+  usageLimitTotal?: string;
   usageLimitPerUser: string;
-  restaurantId: string;
+  restaurantId?: string;
+  zoneId?: string;
+  zoneName?: string;
 };
 
 export function validateCreateCoupon(
@@ -216,7 +222,7 @@ export function validateCreateCoupon(
   }
 
   let maxDiscountAmount: number | undefined;
-  if (input.maxDiscountAmount.trim()) {
+  if (input.maxDiscountAmount && input.maxDiscountAmount.trim()) {
     maxDiscountAmount = Number(input.maxDiscountAmount);
     if (!Number.isFinite(maxDiscountAmount) || maxDiscountAmount <= 0) {
       return { ok: false, message: 'Max discount must be greater than 0 when set.' };
@@ -252,7 +258,7 @@ export function validateCreateCoupon(
   }
 
   let usageLimitTotal: number | undefined;
-  if (input.usageLimitTotal.trim()) {
+  if (input.usageLimitTotal && input.usageLimitTotal.trim()) {
     usageLimitTotal = Number(input.usageLimitTotal);
     if (!Number.isInteger(usageLimitTotal) || usageLimitTotal < 1) {
       return { ok: false, message: 'Usage limit total must be an integer ≥ 1.' };
@@ -262,13 +268,18 @@ export function validateCreateCoupon(
   }
 
   let restaurantId: string | undefined;
-  if (input.restaurantId.trim()) {
+  if (input.restaurantId && input.restaurantId.trim()) {
     if (!UUID_RE.test(input.restaurantId.trim())) {
       return { ok: false, message: 'Restaurant ID must be a valid UUID when set.' };
     }
     restaurantId = input.restaurantId.trim();
   } else {
     restaurantId = undefined;
+  }
+
+  let zoneId: string | undefined;
+  if (input.zoneId && input.zoneId.trim()) {
+    zoneId = input.zoneId.trim();
   }
 
   return {
@@ -283,6 +294,84 @@ export function validateCreateCoupon(
       usageLimitTotal,
       usageLimitPerUser,
       restaurantId,
+      zoneId,
+      zoneName: input.zoneName,
     },
   };
+}
+
+/**
+ * Preserves the exact calendar date (YYYY-MM-DD) from user input or server payload
+ * without applying unintended UTC/local timezone conversion shifts.
+ */
+export function extractDateOnly(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  const s = String(dateStr).trim();
+
+  // 1. Matches YYYY-MM-DD (e.g. 2026-12-03 or 2026-12-03T23:59:59Z)
+  const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  // 2. Matches DD-MM-YYYY (e.g. 03-12-2026)
+  const dmyMatch = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
+  if (dmyMatch) {
+    const [, d, m, y] = dmyMatch;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  // 3. Matches D/M/YYYY or M/D/YYYY from legacy string
+  const slashMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slashMatch) {
+    let [, p1, p2, y] = slashMatch;
+    let day = p1;
+    let month = p2;
+    if (Number(p1) <= 12 && Number(p2) > 12) {
+      day = p2;
+      month = p1;
+    }
+    return `${y}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  return s;
+}
+
+/**
+ * Formats coupon validity date to standard DD-MM-YYYY display format
+ * without timezone modification.
+ */
+export function formatCouponValidityDate(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  const s = String(dateStr).trim();
+
+  // 1. Matches YYYY-MM-DD (or YYYY-MM-DDTHH:mm:ss...)
+  const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y}`;
+  }
+
+  // 2. Matches DD-MM-YYYY
+  const dmyMatch = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
+  if (dmyMatch) {
+    const [, d, m, y] = dmyMatch;
+    return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y}`;
+  }
+
+  // 3. Matches D/M/YYYY or M/D/YYYY from legacy
+  const slashMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slashMatch) {
+    let [, p1, p2, y] = slashMatch;
+    let day = p1;
+    let month = p2;
+    if (Number(p1) <= 12 && Number(p2) > 12) {
+      day = p2;
+      month = p1;
+    }
+    return `${day.padStart(2, '0')}-${month.padStart(2, '0')}-${y}`;
+  }
+
+  return s;
 }

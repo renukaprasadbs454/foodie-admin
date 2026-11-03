@@ -6,6 +6,7 @@ export interface BroadcastNotificationPayload {
   targetAudience: 'ALL' | 'CUSTOMERS' | 'RESTAURANTS' | 'DELIVERY_PARTNERS' | 'CUSTOMER' | 'RESTAURANT' | 'DELIVERY_PARTNER';
   actionUrl?: string;
   scheduledAt?: string | null;
+  zoneId?: string;
 }
 
 export interface BroadcastNotificationResponse {
