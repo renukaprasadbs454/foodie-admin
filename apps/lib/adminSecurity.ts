@@ -204,7 +204,23 @@ export function getDefaultAdminUsers() {
       department: 'Regional Operations',
       assignedZoneId: 'dz-tumkur',
       assignedZoneName: 'Tumkur Zone',
+      assignedZoneIds: ['dz-tumkur'],
       passwordHash: hashPassword('TmkSecure@2026'),
+    },
+    {
+      id: 'USR-3995',
+      fullName: 'Restaurant Manager',
+      email: 'manager@foodie.local',
+      phone: '+91 99999 99997',
+      role: 'RESTAURANT_MANAGER',
+      accountStatus: 'ACTIVE',
+      joinedDate: '2026-10-26',
+      lastActive: 'Active',
+      department: 'Platform Administration',
+      assignedZoneId: null,
+      assignedZoneName: null,
+      assignedZoneIds: [],
+      passwordHash: hashPassword('ChangeMe@123'),
     },
   ];
 }

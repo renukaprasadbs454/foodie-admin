@@ -22,6 +22,16 @@ import {
 import { AdminHeaderBar } from '@/components/AdminHeaderBar';
 import { AiAssistantWidget } from '@/components/AiAssistantWidget';
 
+function formatZoneDisplayName(zoneId?: string | null, zoneName?: string | null): string {
+  if (zoneName && zoneName !== zoneId && !zoneName.startsWith('dz-')) return zoneName;
+  const z = (zoneName || zoneId || '').toLowerCase();
+  if (z.includes('bangalore') || z.includes('bengaluru')) return 'Bengaluru Zone';
+  if (z.includes('tumkur') || z.includes('tumakuru')) return 'Tumkur Zone';
+  if (z.includes('kunigal')) return 'Kunigal';
+  if (z.includes('hassan')) return 'Hassan';
+  return zoneName || zoneId || 'Operating Zone';
+}
+
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const dispatch = useAppDispatch();
@@ -76,7 +86,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             userId: savedUserId,
             role: savedRole as AdminRole,
             userType: 'ADMIN',
-            fullName: savedRole === 'AUDITOR' ? 'Compliance Auditor' : (savedRole === 'FINANCE_ADMIN' ? 'Finance Admin' : 'Admin Operator'),
+            fullName: savedRole === 'AUDITOR'
+              ? 'Compliance Auditor'
+              : (savedRole === 'FINANCE_ADMIN'
+                ? 'Finance Admin'
+                : (savedRole === 'RESTAURANT_MANAGER'
+                  ? 'Restaurant Manager'
+                  : 'Admin Operator')),
           }),
         );
       }
@@ -113,8 +129,15 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN') ||
         (meProfile.role && meProfile.role.toUpperCase() === 'SUPER_ADMIN')
       );
+      const isRestaurant = Boolean(
+        (storedRole && storedRole.toUpperCase().includes('RESTAURANT')) ||
+        (meProfile.role && meProfile.role.toUpperCase().includes('RESTAURANT')) ||
+        (role && role.toUpperCase().includes('RESTAURANT'))
+      );
       const finalRole = isSuperAdminCandidate
         ? 'SUPER_ADMIN'
+        : isRestaurant
+        ? 'RESTAURANT_MANAGER'
         : (isAuditorPath || storedRole === 'AUDITOR' || meProfile.role === 'AUDITOR')
         ? 'AUDITOR'
         : (!hasAssignedZone && (isFinancePath || storedRole === 'FINANCE_ADMIN' || (storedRole && storedRole.toUpperCase().includes('FINANCE')) || meProfile.role === 'FINANCE_ADMIN'))
@@ -127,7 +150,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           userId: meProfile.adminUserId || userId || '44444444-4444-4444-4444-444444444001',
           role: finalRole as AdminRole,
           userType: 'ADMIN',
-          fullName: finalRole === 'AUDITOR' ? 'Compliance Auditor' : (finalRole === 'FINANCE_ADMIN' ? 'Finance Admin' : (meProfile.fullName || 'Admin Operator')),
+          fullName: finalRole === 'RESTAURANT_MANAGER'
+            ? 'Restaurant Manager'
+            : (finalRole === 'AUDITOR'
+              ? 'Compliance Auditor'
+              : (finalRole === 'FINANCE_ADMIN'
+                ? 'Finance Admin'
+                : (meProfile.fullName || 'Admin Operator'))),
           email: (meProfile as any).email || storedEmail || undefined,
           phone: (meProfile as any).phone || storedPhone || undefined,
           permissions: meProfile.permissions || [],
@@ -231,13 +260,18 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN')
   );
 
-  const isAuditorContext = !isSuperAdmin && (
+  const isRestaurantManager = Boolean(
+    (role && role.toUpperCase().includes('RESTAURANT')) ||
+    (storedRole && storedRole.toUpperCase().includes('RESTAURANT'))
+  );
+
+  const isAuditorContext = !isSuperAdmin && !isRestaurantManager && (
     Boolean(pathname && pathname.startsWith('/compliance-auditor')) ||
     role === 'AUDITOR' ||
     storedRole === 'AUDITOR'
   );
 
-  const isFinanceContext = !isSuperAdmin && !hasAssignedZone && (
+  const isFinanceContext = !isSuperAdmin && !isRestaurantManager && !hasAssignedZone && (
     Boolean(pathname && (
       pathname.startsWith('/finance-admin') ||
       pathname.startsWith('/delivery-payouts') ||
@@ -250,11 +284,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const effectiveRole = isSuperAdmin
     ? 'SUPER_ADMIN'
-    : (isAuditorContext
-      ? 'AUDITOR'
-      : (isFinanceContext
-        ? 'FINANCE_ADMIN'
-        : (hasAssignedZone ? 'OPS' : (role || (storedRole as AdminRole | null) || 'SUPER_ADMIN'))));
+    : isRestaurantManager
+    ? 'RESTAURANT_MANAGER'
+    : isAuditorContext
+    ? 'AUDITOR'
+    : isFinanceContext
+    ? 'FINANCE_ADMIN'
+    : (hasAssignedZone ? 'OPS' : (role || (storedRole as AdminRole | null) || 'SUPER_ADMIN'));
   const effectiveUserId = userId || (typeof window !== 'undefined' ? localStorage.getItem('foodie_admin_user_id') : null);
   const activeRole = effectiveRole;
   const activeUserId = effectiveUserId || '44444444-4444-4444-4444-444444444001';
@@ -333,14 +369,20 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                 }}
-                title={`Active Role: ${activeRole === 'AUDITOR' ? 'COMPLIANCE AUDITOR' : activeRole}`}
+                title={`Active Role: ${activeRole === 'AUDITOR' ? 'COMPLIANCE AUDITOR' : (activeRole === 'RESTAURANT_MANAGER' ? 'Restaurant Manager' : (activeRole === 'FINANCE_ADMIN' ? 'FINANCE ADMIN' : activeRole))}`}
               >
                 <div>
                   <div style={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
                     Active Role
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap' }}>
-                    {activeRole === 'AUDITOR' ? 'COMPLIANCE AUDITOR' : (activeRole === 'FINANCE_ADMIN' ? 'FINANCE ADMIN' : activeRole)}
+                    {activeRole === 'AUDITOR'
+                      ? 'COMPLIANCE AUDITOR'
+                      : (activeRole === 'FINANCE_ADMIN'
+                        ? 'FINANCE ADMIN'
+                        : (activeRole === 'RESTAURANT_MANAGER'
+                          ? 'Restaurant Manager'
+                          : activeRole))}
                   </div>
                 </div>
                 <span
@@ -368,7 +410,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                   alignItems: 'center',
                   justifyContent: isCompact ? 'center' : 'space-between',
                 }}
-                title={`Assigned Operating Territory: ${activeZoneName} (Restricted to your operational region)`}
+                title={`Assigned Operating Territory: ${formatZoneDisplayName(activeZoneId, activeZoneName)} (Restricted to your operational region)`}
               >
                 {!isCompact && (
                   <div style={{ minWidth: 0, flex: 1, marginRight: 6 }}>
@@ -376,7 +418,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                       Assigned Territory
                     </div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {activeZoneName}
+                      {formatZoneDisplayName(activeZoneId, activeZoneName)}
                     </div>
                   </div>
                 )}

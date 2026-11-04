@@ -296,7 +296,19 @@ export async function POST(request: Request) {
           maxAge: 86400,
         });
 
-        if (userRole === 'SUPER_ADMIN') {
+        if (userRole === 'RESTAURANT_MANAGER') {
+          const rmZones = Array.isArray((envelope.data as any)?.assignedZoneIds) ? (envelope.data as any).assignedZoneIds : (effectiveZoneId ? [effectiveZoneId] : []);
+          response.cookies.set('foodie_user_assigned_zones', JSON.stringify(rmZones), {
+            path: '/',
+            sameSite: 'lax',
+            maxAge: 86400,
+          });
+          if (rmZones.length > 0) {
+            response.cookies.set('foodie_active_zone_id', rmZones[0], { path: '/', sameSite: 'lax', maxAge: 86400 });
+          }
+        }
+
+      if (userRole === 'SUPER_ADMIN') {
           response.cookies.delete('foodie_user_assigned_zone');
           response.cookies.set('foodie_active_zone_id', 'ALL', {
             path: '/',
@@ -417,6 +429,7 @@ export async function POST(request: Request) {
           email: matchedUser.email,
           assignedZoneId: userRole === 'SUPER_ADMIN' ? null : effectiveZoneId,
           assignedZoneName: userRole === 'SUPER_ADMIN' ? null : (matchedUser.assignedZoneName || null),
+          assignedZoneIds: userRole === 'SUPER_ADMIN' ? [] : (Array.isArray(matchedUser.assignedZoneIds) ? matchedUser.assignedZoneIds : (effectiveZoneId ? [effectiveZoneId] : [])),
         },
         error: null,
         meta: {
@@ -436,6 +449,22 @@ export async function POST(request: Request) {
         sameSite: 'lax',
         maxAge: 86400,
       });
+
+      if (userRole === 'RESTAURANT_MANAGER') {
+        const rmZones = Array.isArray(matchedUser.assignedZoneIds) ? matchedUser.assignedZoneIds : (effectiveZoneId ? [effectiveZoneId] : []);
+        response.cookies.set('foodie_user_assigned_zones', JSON.stringify(rmZones), {
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 86400,
+        });
+        if (rmZones.length > 0) {
+          const firstZone = rmZones[0];
+          response.cookies.set('foodie_active_zone_id', firstZone, { path: '/', sameSite: 'lax', maxAge: 86400 });
+        } else {
+          response.cookies.delete('foodie_active_zone_id');
+          response.cookies.delete('foodie_user_assigned_zone');
+        }
+      }
 
       if (userRole === 'SUPER_ADMIN') {
         response.cookies.delete('foodie_user_assigned_zone');

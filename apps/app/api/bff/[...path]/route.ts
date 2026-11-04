@@ -2042,6 +2042,26 @@ function isMultiZoneRole(role?: string | null): boolean {
   );
 }
 
+function isZoneEquiv(zA?: string | null, zB?: string | null): boolean {
+  if (!zA || !zB) return false;
+  const a = decodeURIComponent(zA).trim().toLowerCase();
+  const b = decodeURIComponent(zB).trim().toLowerCase();
+  if (a === b || a.includes(b) || b.includes(a)) return true;
+  const isABlr = a.includes('bangalore') || a.includes('bengaluru') || a.includes('blr');
+  const isBBlr = b.includes('bangalore') || b.includes('bengaluru') || b.includes('blr');
+  if (isABlr && isBBlr) return true;
+  const isATmk = a.includes('tumkur') || a.includes('tumakuru') || a.includes('tmk');
+  const isBTmk = b.includes('tumkur') || b.includes('tumakuru') || b.includes('tmk');
+  if (isATmk && isBTmk) return true;
+  const isAKun = a.includes('kunigal');
+  const isBKun = b.includes('kunigal');
+  if (isAKun && isBKun) return true;
+  const isAHas = a.includes('hassan');
+  const isBHas = b.includes('hassan');
+  if (isAHas && isBHas) return true;
+  return false;
+}
+
 function getCitiesPersistenceFile(): string {
   try {
     const dataDir = path.join(process.cwd(), 'data');
@@ -3337,8 +3357,19 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
   const userAssignedZoneCookie = cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
   const userRoleCookie = cookieHeader.match(/foodie_user_role=([^;]+)/)?.[1] ||
     cookieHeader.match(/foodie_admin_role=([^;]+)/)?.[1];
+  const userAssignedZonesCookie = cookieHeader?.match(/foodie_user_assigned_zones=([^;]+)/)?.[1];
   let userAssignedZoneId = userAssignedZoneCookie ? decodeURIComponent(userAssignedZoneCookie) : null;
   let userRole = userRoleCookie ? decodeURIComponent(userRoleCookie) : null;
+  let userAssignedZoneIds: string[] = [];
+  if (userAssignedZonesCookie) {
+    try {
+      userAssignedZoneIds = JSON.parse(decodeURIComponent(userAssignedZonesCookie));
+    } catch {}
+  }
+
+  if (!globalAny.ADMIN_USERS_STORE) {
+    globalAny.ADMIN_USERS_STORE = loadPersistentAdminUsers();
+  }
 
   if (globalAny.ADMIN_USERS_STORE && token) {
     const store = globalAny.ADMIN_USERS_STORE as any[];
@@ -3346,12 +3377,23 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
     if (found) {
       if (found.assignedZoneId) userAssignedZoneId = found.assignedZoneId;
       if (found.role) userRole = found.role;
+      if (Array.isArray(found.assignedZoneIds)) userAssignedZoneIds = found.assignedZoneIds;
     }
   }
 
   const isSuperAdmin = userRole === 'SUPER_ADMIN' ||
     request.headers.get('x-user-role') === 'SUPER_ADMIN' ||
     (!userAssignedZoneId && (token.includes('super_admin') || token.includes('USR-1001') || token.includes('demo-admin')));
+
+  if (userRole === 'RESTAURANT_MANAGER' || request.headers.get('x-user-role') === 'RESTAURANT_MANAGER') {
+    userRole = 'RESTAURANT_MANAGER';
+    if (globalAny.ADMIN_USERS_STORE) {
+      const rm = (globalAny.ADMIN_USERS_STORE as any[]).find((u) => u.role === 'RESTAURANT_MANAGER' || u.id === 'USR-3995');
+      if (rm && Array.isArray(rm.assignedZoneIds)) {
+        userAssignedZoneIds = rm.assignedZoneIds;
+      }
+    }
+  }
 
   const isMultiRole = isMultiZoneRole(userRole) || isMultiZoneRole(request.headers.get('x-user-role'));
 
@@ -3423,6 +3465,34 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
       }
     }
 
+    // Include assigned zones from users store
+    if (globalAny.ADMIN_USERS_STORE) {
+      for (const u of (globalAny.ADMIN_USERS_STORE as any[])) {
+        if (u.assignedZoneId && !isZoneDeleted(u.assignedZoneId, u.assignedZoneName)) {
+          const zIdLower = u.assignedZoneId.trim().toLowerCase();
+          if (!zoneMap.has(zIdLower)) {
+            const zName = u.assignedZoneName || (zIdLower.includes('kunigal') ? 'Kunigal' : (zIdLower.includes('hassan') ? 'Hassan' : u.assignedZoneId.trim()));
+            const cName = zIdLower.includes('kunigal') ? 'Kunigal' : (zIdLower.includes('hassan') ? 'Hassan' : 'Operating Zone');
+            zoneMap.set(zIdLower, {
+              id: u.assignedZoneId.trim(),
+              zoneName: zName,
+              cityName: cName,
+              latitude: 12.9716,
+              longitude: 77.5946,
+              radiusKm: 15.0,
+              polygonCoordinates: '',
+              status: 'ACTIVE',
+              restaurantEnabled: true,
+              deliveryPartnerEnabled: true,
+              customerOrderingEnabled: true,
+              activeDrivers: 10,
+              surgeMultiplier: 1.0,
+            });
+          }
+        }
+      }
+    }
+
     // Merge in dynamic zones created in memory
     const dynamicZonesStore = (globalAny.ADMIN_DYNAMIC_ZONES as any[]) || [];
     for (const dz of dynamicZonesStore) {
@@ -3449,12 +3519,32 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
         return (a.zoneName || a.id).localeCompare(b.zoneName || b.id);
       });
 
-    // Zone data isolation: Non-super-admins only see their assigned operating zone
-    if (!isSuperAdmin && userAssignedZoneId) {
-      return allZones.filter((z) => z.id.toLowerCase() === userAssignedZoneId!.toLowerCase());
+    // Restaurant Manager: return ALL registered zones with dynamic ACTIVE / INACTIVE status
+    if (userRole === 'RESTAURANT_MANAGER') {
+      return allZones.map((z) => {
+        const isAssigned = userAssignedZoneIds.some(
+          (aid) => aid.toLowerCase() === z.id.toLowerCase() || isZoneEquiv(aid, z.id)
+        );
+        return {
+          ...z,
+          status: isAssigned ? 'ACTIVE' : 'INACTIVE',
+          assigned: isAssigned,
+          selectable: isAssigned,
+        };
+      });
     }
 
-    return allZones;
+    // Zone data isolation: Non-super-admins and non-multi-role only see their assigned operating zone
+    if (!isSuperAdmin && userAssignedZoneId) {
+      return allZones.filter((z) => z.id.toLowerCase() === userAssignedZoneId!.toLowerCase()).map((z) => ({ ...z, status: z.status || 'ACTIVE', assigned: true, selectable: true }));
+    }
+
+    return allZones.map((z) => ({
+      ...z,
+      status: z.status || 'ACTIVE',
+      assigned: true,
+      selectable: true,
+    }));
   };
 
   // 1. GET admin/zones/available
@@ -3553,6 +3643,22 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
     }
 
     // Backend Security: Prevent cross-zone access
+    if (userRole === 'RESTAURANT_MANAGER') {
+      const isAssigned = userAssignedZoneIds.some(
+        (aid) => aid.toLowerCase() === selectedZoneId.toLowerCase() || isZoneEquiv(aid, selectedZoneId)
+      );
+      if (!isAssigned) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Access denied: Operating zone '${selectedZoneId}' is not assigned to your account. Only Super Admin assigned active zones can be selected.`,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    } else
     if (!isSuperAdmin && userAssignedZoneId && selectedZoneId.toLowerCase() !== userAssignedZoneId.toLowerCase()) {
       return NextResponse.json({
         success: false,
@@ -3718,8 +3824,19 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
   const userAssignedZoneCookie = cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
   const userRoleCookie = cookieHeader.match(/foodie_user_role=([^;]+)/)?.[1] ||
     cookieHeader.match(/foodie_admin_role=([^;]+)/)?.[1];
+  const userAssignedZonesCookie = cookieHeader?.match(/foodie_user_assigned_zones=([^;]+)/)?.[1];
   let userAssignedZoneId = userAssignedZoneCookie ? decodeURIComponent(userAssignedZoneCookie) : null;
   let userRole = userRoleCookie ? decodeURIComponent(userRoleCookie) : null;
+  let userAssignedZoneIds: string[] = [];
+  if (userAssignedZonesCookie) {
+    try {
+      userAssignedZoneIds = JSON.parse(decodeURIComponent(userAssignedZonesCookie));
+    } catch {}
+  }
+
+  if (!globalAny.ADMIN_USERS_STORE) {
+    globalAny.ADMIN_USERS_STORE = loadPersistentAdminUsers();
+  }
 
   if (globalAny.ADMIN_USERS_STORE && token) {
     const store = globalAny.ADMIN_USERS_STORE as any[];
@@ -3727,6 +3844,7 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
     if (found) {
       if (found.assignedZoneId) userAssignedZoneId = found.assignedZoneId;
       if (found.role) userRole = found.role;
+      if (Array.isArray(found.assignedZoneIds)) userAssignedZoneIds = found.assignedZoneIds;
     }
   }
 
@@ -6644,6 +6762,7 @@ async function proxy(request: Request, pathSegments: string[]) {
     let email = 'admin@foodie.local';
     let assignedZoneId: string | null = null;
     let assignedZoneName: string | null = null;
+    let assignedZoneIds: string[] = [];
 
     if (globalAny.ADMIN_USERS_STORE) {
       const store = globalAny.ADMIN_USERS_STORE as any[];
@@ -6654,6 +6773,7 @@ async function proxy(request: Request, pathSegments: string[]) {
         email = found.email || email;
         assignedZoneId = found.assignedZoneId || null;
         assignedZoneName = found.assignedZoneName || null;
+        assignedZoneIds = Array.isArray(found.assignedZoneIds) ? found.assignedZoneIds : (found.assignedZoneId ? [found.assignedZoneId] : []);
       }
     }
 
@@ -6662,6 +6782,16 @@ async function proxy(request: Request, pathSegments: string[]) {
         cookieHeader?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
       if (zoneCookie) {
         assignedZoneId = decodeURIComponent(zoneCookie);
+      }
+    }
+
+    const userRoleCookie = cookieHeader?.match(/foodie_user_role=([^;]+)/)?.[1] || request.headers.get('x-user-role');
+    if (userRoleCookie) {
+      const decodedRole = decodeURIComponent(userRoleCookie).toUpperCase();
+      if (decodedRole.includes('RESTAURANT')) {
+        role = 'RESTAURANT_MANAGER';
+        fullName = 'Restaurant Manager';
+        email = 'manager@foodie.local';
       }
     }
 
@@ -6701,6 +6831,7 @@ async function proxy(request: Request, pathSegments: string[]) {
         status: 'ACTIVE',
         assignedZoneId,
         assignedZoneName,
+        assignedZoneIds,
         permissions: ['*'],
       },
       error: null,
@@ -6793,7 +6924,10 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
       }
     } catch {}
 
-    const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => rest);
+    const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => ({
+      ...rest,
+      assignedZoneIds: Array.isArray(rest.assignedZoneIds) ? rest.assignedZoneIds : (rest.assignedZoneId ? [rest.assignedZoneId] : []),
+    }));
     return NextResponse.json({
       success: true,
       data: safeUsers,
@@ -6899,6 +7033,7 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
       department: body.department || 'Platform Administration',
       assignedZoneId: body.assignedZoneId || null,
       assignedZoneName: body.assignedZoneName || (body.assignedZoneId ? (body.assignedZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone') : null),
+      assignedZoneIds: Array.isArray(body.assignedZoneIds) ? body.assignedZoneIds : (body.assignedZoneId ? [body.assignedZoneId] : []),
       passwordHash,
     };
     usersStore.push(newUser);
@@ -6977,6 +7112,64 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
       }).catch(() => null);
     }
     const safeTarget = targetUser ? (({ passwordHash: _, ...rest }) => rest)(targetUser) : null;
+    return NextResponse.json({
+      success: true,
+      data: safeTarget,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  const userZonesMatch = targetPath.match(/^admin\/users\/([^/]+)\/zones$/);
+  if (request.method === 'PATCH' && userZonesMatch) {
+    const userId = decodeURIComponent(userZonesMatch[1]).trim();
+    let body: any = {};
+    try { body = await request.json(); } catch { body = {}; }
+    const targetUser = usersStore.find(
+      (u) =>
+        (u.id && u.id.toLowerCase() === userId.toLowerCase()) ||
+        (u.email && u.email.toLowerCase() === userId.toLowerCase())
+    );
+    if (targetUser) {
+      const assignedZoneIds: string[] = Array.isArray(body.assignedZoneIds) ? body.assignedZoneIds : [];
+      targetUser.assignedZoneIds = assignedZoneIds;
+      if (assignedZoneIds.length > 0) {
+        targetUser.assignedZoneId = assignedZoneIds[0];
+        const dynamicZones = (globalAny.ADMIN_DYNAMIC_ZONES as any[]) || [];
+        const foundZone = dynamicZones.find((z: any) => z.id === assignedZoneIds[0]) ||
+          (assignedZoneIds[0] === 'dz-bangalore' ? { zoneName: 'Bangalore Zone' } : (assignedZoneIds[0] === 'dz-tumkur' ? { zoneName: 'Tumkur Zone' } : null));
+        targetUser.assignedZoneName = foundZone?.zoneName || assignedZoneIds[0];
+      } else {
+        targetUser.assignedZoneId = null;
+        targetUser.assignedZoneName = null;
+      }
+      globalAny.ADMIN_USERS_STORE = usersStore;
+      savePersistentAdminUsers(usersStore);
+      purgeBffCache('admin/users');
+      purgeBffCache('admin/zones');
+      purgeBffCache('auth/admin-roles');
+      purgeBffCache('auth/roles');
+      BFF_CACHE.clear();
+
+      const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+      const backendToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : await getDevBackendToken();
+      safeFetch(`${backendUrl}/api/v1/admin/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${backendToken}` },
+        body: JSON.stringify({
+          fullName: targetUser.fullName,
+          phoneNumber: targetUser.phone,
+          email: targetUser.email,
+          role: targetUser.role,
+          assignedZoneId: targetUser.assignedZoneId,
+        }),
+        timeoutMs: 3000,
+      }).catch(() => null);
+    }
+    const safeTarget = targetUser ? (({ passwordHash: _, ...rest }) => ({
+      ...rest,
+      assignedZoneIds: Array.isArray(rest.assignedZoneIds) ? rest.assignedZoneIds : (rest.assignedZoneId ? [rest.assignedZoneId] : []),
+    }))(targetUser) : null;
     return NextResponse.json({
       success: true,
       data: safeTarget,
@@ -7117,7 +7310,10 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     }, { status: 200 });
   }
 
-  const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => rest);
+  const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => ({
+    ...rest,
+    assignedZoneIds: Array.isArray(rest.assignedZoneIds) ? rest.assignedZoneIds : (rest.assignedZoneId ? [rest.assignedZoneId] : []),
+  }));
   return NextResponse.json({
     success: true,
     data: safeUsers,
@@ -7248,6 +7444,13 @@ function toBackendZoneId(zid?: string | null): string | null {
   const incomingReqUrl = new URL(request.url);
   const userAssignedZoneCookieEarly = cookieHeader?.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
   const userRoleCookieEarly = cookieHeader?.match(/foodie_user_role=([^;]+)/)?.[1];
+  const userAssignedZonesCookieEarly = cookieHeader?.match(/foodie_user_assigned_zones=([^;]+)/)?.[1];
+  let earlyAssignedZoneIds: string[] = [];
+  if (userAssignedZonesCookieEarly) {
+    try {
+      earlyAssignedZoneIds = JSON.parse(decodeURIComponent(userAssignedZonesCookieEarly));
+    } catch {}
+  }
   let earlyAssignedZoneId = userAssignedZoneCookieEarly ? decodeURIComponent(userAssignedZoneCookieEarly) : null;
   let earlyUserRole = userRoleCookieEarly ? decodeURIComponent(userRoleCookieEarly) : null;
 
@@ -7256,6 +7459,7 @@ function toBackendZoneId(zid?: string | null): string | null {
     const found = store.find((u) => accessToken.includes(u.id));
     if (found) {
       if (found.assignedZoneId) earlyAssignedZoneId = found.assignedZoneId;
+      if (Array.isArray(found.assignedZoneIds)) earlyAssignedZoneIds = found.assignedZoneIds;
       if (found.role) earlyUserRole = found.role;
     }
   }
@@ -7278,7 +7482,53 @@ function toBackendZoneId(zid?: string | null): string | null {
     earlyAssignedZoneId = null;
   }
 
-  if (!isEarlySuperAdmin && earlyAssignedZoneId) {
+  if (earlyUserRole === 'RESTAURANT_MANAGER' || request.headers.get('x-user-role') === 'RESTAURANT_MANAGER') {
+    earlyUserRole = 'RESTAURANT_MANAGER';
+    if (globalAny.ADMIN_USERS_STORE) {
+      const rm = (globalAny.ADMIN_USERS_STORE as any[]).find((u) => u.role === 'RESTAURANT_MANAGER' || u.id === 'USR-3995');
+      if (rm && Array.isArray(rm.assignedZoneIds)) {
+        earlyAssignedZoneIds = rm.assignedZoneIds;
+      }
+    }
+  }
+
+  if (!isEarlySuperAdmin && earlyUserRole === 'RESTAURANT_MANAGER') {
+    const explicitTargetZone = request.headers.get('x-active-zone-id') ||
+      incomingReqUrl.searchParams.get('zoneId') ||
+      cookieHeader?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
+
+    if (earlyAssignedZoneIds.length === 0) {
+      if (targetPath.startsWith('admin/restaurants') || targetPath.startsWith('admin/orders') || targetPath.startsWith('admin/delivery-partners') || targetPath.startsWith('admin/customers')) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Access denied: No operating zones are currently assigned to your account. Please contact Super Admin.',
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    } else if (explicitTargetZone) {
+      const cleanTarget = decodeURIComponent(explicitTargetZone).trim().toLowerCase();
+      const isAssigned = cleanTarget !== 'all' && earlyAssignedZoneIds.some(
+        (aid) => aid.toLowerCase() === cleanTarget || isZoneEquiv(aid, explicitTargetZone)
+      );
+      if (!isAssigned) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Cross-zone access denied: Operating zone '${explicitTargetZone}' is not assigned to your account.`,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    }
+  }
+
+  if (!isEarlySuperAdmin && earlyUserRole !== 'RESTAURANT_MANAGER' && earlyAssignedZoneId) {
     const explicitTargetZone = request.headers.get('x-active-zone-id') ||
       incomingReqUrl.searchParams.get('zoneId');
 
@@ -7550,8 +7800,15 @@ function toBackendZoneId(zid?: string | null): string | null {
 
   const userAssignedZoneCookie = cookieHeader?.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
   const userRoleCookie = cookieHeader?.match(/foodie_user_role=([^;]+)/)?.[1];
+  const userAssignedZonesCookie = cookieHeader?.match(/foodie_user_assigned_zones=([^;]+)/)?.[1];
   let userAssignedZoneId = userAssignedZoneCookie ? decodeURIComponent(userAssignedZoneCookie) : null;
   let userRole = userRoleCookie ? decodeURIComponent(userRoleCookie) : null;
+  let userAssignedZoneIds: string[] = [];
+  if (userAssignedZonesCookie) {
+    try {
+      userAssignedZoneIds = JSON.parse(decodeURIComponent(userAssignedZonesCookie));
+    } catch {}
+  }
 
   if (globalAny.ADMIN_USERS_STORE && accessToken) {
     const store = globalAny.ADMIN_USERS_STORE as any[];
@@ -7559,6 +7816,7 @@ function toBackendZoneId(zid?: string | null): string | null {
     if (found) {
       if (found.assignedZoneId) userAssignedZoneId = found.assignedZoneId;
       if (found.role) userRole = found.role;
+      if (Array.isArray(found.assignedZoneIds)) userAssignedZoneIds = found.assignedZoneIds;
     }
   }
 
@@ -7579,9 +7837,60 @@ function toBackendZoneId(zid?: string | null): string | null {
   if (isSuperAdmin) {
     userAssignedZoneId = null;
   }
+  if (userRole === 'RESTAURANT_MANAGER' || request.headers.get('x-user-role') === 'RESTAURANT_MANAGER') {
+    userRole = 'RESTAURANT_MANAGER';
+    if (globalAny.ADMIN_USERS_STORE) {
+      const rm = (globalAny.ADMIN_USERS_STORE as any[]).find((u) => u.role === 'RESTAURANT_MANAGER' || u.id === 'USR-3995');
+      if (rm && Array.isArray(rm.assignedZoneIds)) {
+        userAssignedZoneIds = rm.assignedZoneIds;
+      }
+    }
+  }
+
   const isMultiRole = isMultiZoneRole(userRole) || isMultiZoneRole(request.headers.get('x-user-role'));
 
   // Backend Security & Data Isolation Enforcement (Task items 4, 5, 6)
+  if (!isSuperAdmin && userRole === 'RESTAURANT_MANAGER') {
+    const explicitZone = request.headers.get('x-active-zone-id') ||
+      incomingUrl.searchParams.get('zoneId') ||
+      request.headers.get('cookie')?.match(/foodie_active_zone_id=([^;]+)/)?.[1];
+
+    if (userAssignedZoneIds.length === 0) {
+      if (targetPath.startsWith('admin/restaurants') || targetPath.startsWith('admin/orders') || targetPath.startsWith('admin/delivery-partners') || targetPath.startsWith('admin/customers')) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Access denied: No operating zones are currently assigned to your account. Please contact Super Admin.',
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    } else if (explicitZone) {
+      const cleanExplicit = decodeURIComponent(explicitZone).trim().toLowerCase();
+      const isAssigned = cleanExplicit !== 'all' && userAssignedZoneIds.some(
+        (aid) => aid.toLowerCase() === cleanExplicit || isZoneEquiv(aid, explicitZone)
+      );
+      if (!isAssigned) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Cross-zone access denied: Operating zone '${explicitZone}' is not assigned to your account.`,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+      headers.set('X-Active-Zone-Id', explicitZone);
+      incomingUrl.searchParams.set('zoneId', explicitZone);
+    } else {
+      const firstZone = userAssignedZoneIds[0];
+      headers.set('X-Active-Zone-Id', firstZone);
+      incomingUrl.searchParams.set('zoneId', firstZone);
+    }
+  } else
   if (!isSuperAdmin && userAssignedZoneId) {
     const explicitZone = request.headers.get('x-active-zone-id') ||
       incomingUrl.searchParams.get('zoneId');
@@ -7635,6 +7944,7 @@ function toBackendZoneId(zid?: string | null): string | null {
     let email = 'admin@foodie.local';
     let assignedZoneId: string | null = userAssignedZoneId || null;
     let assignedZoneName: string | null = null;
+    let assignedZoneIds: string[] = [];
 
     if (globalAny.ADMIN_USERS_STORE) {
       const store = globalAny.ADMIN_USERS_STORE as any[];
@@ -7645,6 +7955,17 @@ function toBackendZoneId(zid?: string | null): string | null {
         email = found.email || email;
         assignedZoneId = found.assignedZoneId || assignedZoneId;
         assignedZoneName = found.assignedZoneName || null;
+        assignedZoneIds = Array.isArray(found.assignedZoneIds) ? found.assignedZoneIds : (found.assignedZoneId ? [found.assignedZoneId] : []);
+      }
+    }
+
+    const earlyRoleCookie = cookieHeader?.match(/foodie_user_role=([^;]+)/)?.[1] || request.headers.get('x-user-role');
+    if (earlyRoleCookie) {
+      const decodedRole = decodeURIComponent(earlyRoleCookie).toUpperCase();
+      if (decodedRole.includes('RESTAURANT')) {
+        role = 'RESTAURANT_MANAGER';
+        fullName = 'Restaurant Manager';
+        email = 'manager@foodie.local';
       }
     }
 
@@ -7684,6 +8005,7 @@ function toBackendZoneId(zid?: string | null): string | null {
         status: 'ACTIVE',
         assignedZoneId,
         assignedZoneName,
+        assignedZoneIds,
         permissions: ['*'],
       },
       error: null,
@@ -8877,9 +9199,11 @@ function toBackendZoneId(zid?: string | null): string | null {
           if (json && json.data) {
             let modified = false;
 
-            const effectiveFilterZone = isMultiRole
+            const effectiveFilterZone = userRole === 'RESTAURANT_MANAGER'
+              ? (incomingActiveZone && incomingActiveZone !== 'ALL' ? incomingActiveZone : (userAssignedZoneIds[0] || null))
+              : (isMultiRole
               ? (incomingActiveZone && incomingActiveZone !== 'ALL' ? incomingActiveZone : null)
-              : userAssignedZoneId;
+              : userAssignedZoneId);
 
             if (!isSuperAdmin && effectiveFilterZone) {
               const cleanAssigned = effectiveFilterZone.trim().toLowerCase();
@@ -8912,6 +9236,15 @@ function toBackendZoneId(zid?: string | null): string | null {
                   const isZTmk = cleanZ.includes('tumkur') || cleanZ.includes('tumakuru') || cleanZ.includes('tmk');
                   if (isZTmk && isATmk) return true;
                   if ((isZBlr && isATmk) || (isZTmk && isABlr)) return false;
+                  const isZKun = cleanZ.includes('kunigal');
+                  const isAKun = cleanAssigned.includes('kunigal');
+                  if (isZKun && isAKun) return true;
+                  if ((isZKun && !isAKun) || (!isZKun && isAKun && (isZBlr || isZTmk))) return false;
+                  const isZHas = cleanZ.includes('hassan');
+                  const isAHas = cleanAssigned.includes('hassan');
+                  if (isZHas && isAHas) return true;
+                  if ((isZHas && !isAHas) || (!isZHas && isAHas && (isZBlr || isZTmk))) return false;
+                  if (cleanZ.startsWith('dz-') && cleanAssigned.startsWith('dz-') && cleanZ !== cleanAssigned) return false;
                 }
 
                 // 2. City (from root, address, or deliveryAddress)

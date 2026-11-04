@@ -222,9 +222,17 @@ export function AdminLoginForm({
           (finalZoneId ? currentRoleInfo.zoneName : null) ||
           (finalZoneId === 'dz-tumkur' ? 'Tumkur Zone' : (finalZoneId === 'dz-bangalore' ? 'Bangalore Zone' : null)));
 
+      const isRestaurantAttempt =
+        lowerEmail === 'manager@foodie.local' ||
+        selectedRoleKey === 'RESTAURANT_MANAGER' ||
+        currentRoleInfo.role === 'RESTAURANT_MANAGER' ||
+        Boolean(identity.role && (identity.role as string).toUpperCase().includes('RESTAURANT'));
+
       let backendRole: AdminRole = isSuperResult
         ? 'SUPER_ADMIN'
-        : ((identity.role || (finalZoneId ? 'OPS' : (currentRoleInfo.role || 'SUPER_ADMIN'))) as AdminRole);
+        : (isRestaurantAttempt
+          ? 'RESTAURANT_MANAGER'
+          : ((identity.role || (finalZoneId ? 'OPS' : (currentRoleInfo.role || 'SUPER_ADMIN'))) as AdminRole));
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('foodie_admin_role', backendRole);
@@ -235,6 +243,16 @@ export function AdminLoginForm({
         sessionStorage.setItem('foodie_admin_user_id', identity.userId || '33333333-3333-3333-3333-333333333001');
         localStorage.setItem('foodie_admin_email', userEmail);
         sessionStorage.setItem('foodie_admin_email', userEmail);
+
+        const rmAssignedZones = (identity as any)?.assignedZoneIds || [];
+        if (Array.isArray(rmAssignedZones) && rmAssignedZones.length > 0) {
+          localStorage.setItem('foodie_user_assigned_zones', JSON.stringify(rmAssignedZones));
+          sessionStorage.setItem('foodie_user_assigned_zones', JSON.stringify(rmAssignedZones));
+          document.cookie = `foodie_user_assigned_zones=${encodeURIComponent(JSON.stringify(rmAssignedZones))}; path=/; max-age=86400; SameSite=Lax`;
+          if (!finalZoneId && backendRole === 'RESTAURANT_MANAGER') {
+            finalZoneId = rmAssignedZones[0];
+          }
+        }
 
         if (finalZoneId) {
           localStorage.setItem('foodie_active_zone_id', finalZoneId);
@@ -272,17 +290,21 @@ export function AdminLoginForm({
             identity.fullName ||
             (isSuperResult
               ? 'Super Admin'
+              : (backendRole === 'RESTAURANT_MANAGER'
+              ? 'Restaurant Manager'
               : (finalZoneId
               ? `${finalZoneName} Admin`
               : (backendRole === 'AUDITOR'
               ? 'Compliance Auditor'
-              : currentRoleInfo.label || 'Admin Operator'))),
+              : currentRoleInfo.label || 'Admin Operator')))),
           email: userEmail,
         }),
       );
 
       trackAnalyticsEvent('admin_auth_succeeded', { role: backendRole });
-      if (finalZoneId) {
+      if (backendRole === 'RESTAURANT_MANAGER') {
+        window.location.href = '/restaurants';
+      } else if (finalZoneId) {
         window.location.href = '/dashboard';
       } else {
         const redirectPath = getHomeRouteForRole(backendRole);

@@ -50,6 +50,14 @@ export const usersApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Admin', { type: 'Admin', id: 'USERS_LIST' }],
     }),
+    updateAdminUserZones: builder.mutation<AdminUser, { userId: string; assignedZoneIds: string[] }>({
+      query: ({ userId, assignedZoneIds }) => ({
+        url: `/api/bff/admin/users/${encodeURIComponent(userId)}/zones`,
+        method: 'PATCH',
+        body: { assignedZoneIds },
+      }),
+      invalidatesTags: ['Admin', { type: 'Admin', id: 'USERS_LIST' }],
+    }),
     updateAdminUserStatus: builder.mutation<AdminUser, { userId: string; status: UserAccountStatus }>({
       query: ({ userId, status }) => ({
         url: `/api/bff/admin/users/${encodeURIComponent(userId)}/status`,
@@ -82,6 +90,7 @@ export const {
   useLazyGetAdminUserByIdQuery,
   useCreateAdminUserMutation,
   useUpdateAdminUserRoleMutation,
+  useUpdateAdminUserZonesMutation,
   useUpdateAdminUserStatusMutation,
   useUpdateAdminUserPasswordMutation,
   useDeleteAdminUserMutation,

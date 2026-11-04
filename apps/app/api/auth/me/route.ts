@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     let email = 'admin@foodie.local';
     let assignedZoneId: string | null = null;
     let assignedZoneName: string | null = null;
+    let assignedZoneIds: string[] = [];
 
     const globalAny = global as unknown as Record<string, unknown>;
     if (globalAny.ADMIN_USERS_STORE) {
@@ -48,6 +49,7 @@ export async function GET(request: Request) {
         email = matched.email || email;
         assignedZoneId = matched.assignedZoneId || null;
         assignedZoneName = matched.assignedZoneName || null;
+        assignedZoneIds = Array.isArray(matched.assignedZoneIds) ? matched.assignedZoneIds : (matched.assignedZoneId ? [matched.assignedZoneId] : []);
       }
     }
 
@@ -114,6 +116,7 @@ export async function GET(request: Request) {
         status: 'ACTIVE',
         assignedZoneId,
         assignedZoneName,
+        assignedZoneIds,
         permissions: ['*'],
       },
       error: null,

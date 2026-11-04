@@ -10,6 +10,7 @@ import {
   useLazyGetAdminUserByIdQuery,
   useCreateAdminUserMutation,
   useUpdateAdminUserRoleMutation,
+  useUpdateAdminUserZonesMutation,
   useUpdateAdminUserStatusMutation,
   useUpdateAdminUserPasswordMutation,
   useDeleteAdminUserMutation,
@@ -20,6 +21,7 @@ import {
 } from '@/api/endpoints/zoneApi';
 import { useAppSelector } from '@/store/hooks';
 import { selectAdminRole } from '@/features/auth/authSlice';
+import { RmZoneMultiSelectDropdown } from './RmZoneMultiSelectDropdown';
 
 const DEFAULT_ZONE_ADMIN_PASSWORDS: Record<string, string> = {
   'blr.admin@foodie.local': 'BlrSecure@2026',
@@ -41,6 +43,19 @@ export function UserManagementStudio() {
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [createAdminUser] = useCreateAdminUserMutation();
   const [updateAdminUserRole] = useUpdateAdminUserRoleMutation();
+  const [updateAdminUserZones] = useUpdateAdminUserZonesMutation();
+  const [openZoneDropdownUserId, setOpenZoneDropdownUserId] = useState<string | null>(null);
+  const rmZoneDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutsideRmZone(event: MouseEvent) {
+      if (rmZoneDropdownRef.current && !rmZoneDropdownRef.current.contains(event.target as Node)) {
+        setOpenZoneDropdownUserId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutsideRmZone);
+    return () => document.removeEventListener('mousedown', handleClickOutsideRmZone);
+  }, []);
   const [updateAdminUserStatus] = useUpdateAdminUserStatusMutation();
   const [updateAdminUserPassword] = useUpdateAdminUserPasswordMutation();
   const [deleteAdminUser] = useDeleteAdminUserMutation();
@@ -189,6 +204,31 @@ export function UserManagementStudio() {
   });
 
   const { data: availableZones = [] } = useGetAvailableZonesQuery();
+
+  const handleToggleRmZone = async (targetUser: AdminUser, zoneId: string) => {
+    const currentList = Array.isArray(targetUser.assignedZoneIds)
+      ? [...targetUser.assignedZoneIds]
+      : (targetUser.assignedZoneId ? [targetUser.assignedZoneId] : []);
+
+    const exists = currentList.some((id) => id.toLowerCase() === zoneId.toLowerCase());
+    let nextList: string[];
+    if (exists) {
+      nextList = currentList.filter((id) => id.toLowerCase() !== zoneId.toLowerCase());
+    } else {
+      nextList = [...currentList, zoneId];
+    }
+
+    try {
+      await updateAdminUserZones({
+        userId: targetUser.id,
+        assignedZoneIds: nextList,
+      }).unwrap();
+      showToast(`Updated assigned zones for ${targetUser.fullName}`);
+      await refetch();
+    } catch (err: any) {
+      showToast(err?.data?.error?.message || 'Failed to update assigned zones');
+    }
+  };
 
   const formatLoginTimestamp = (isoString?: string) => {
     if (!isoString) return '—';
@@ -813,23 +853,39 @@ export function UserManagementStudio() {
                         })()}
                       </td>
 
-                      <td style={{ padding: '14px 16px' }}>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: '4px 8px',
-                            borderRadius: 6,
-                            backgroundColor: user.assignedZoneId ? '#EFF6FF' : '#F3F4F6',
-                            color: user.assignedZoneId ? '#1D4ED8' : '#4B5563',
-                            border: `1px solid ${user.assignedZoneId ? '#BFDBFE' : '#E5E7EB'}`,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                          }}
-                        >
-                          {user.assignedZoneId ? '📍 ' + (user.assignedZoneName || user.assignedZoneId) : '🌐 All Zones'}
-                        </span>
+                      <td style={{ padding: '14px 16px', position: 'relative' }}>
+                        {user.role === 'RESTAURANT_MANAGER' || (user.role as string) === 'ROLE_RESTAURANT_MANAGER' ? (
+                          <RmZoneMultiSelectDropdown
+                            user={user}
+                            availableZones={availableZones}
+                            onUpdateAssignedZones={async (userId, next) => {
+                              try {
+                                await updateAdminUserZones({ userId, assignedZoneIds: next }).unwrap();
+                                showToast('Updated assigned zones for ' + user.fullName);
+                                await refetch();
+                              } catch (err: any) {
+                                showToast(err?.data?.error?.message || 'Failed to update assigned zones');
+                              }
+                            }}
+                          />
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              backgroundColor: user.assignedZoneId ? '#EFF6FF' : '#F3F4F6',
+                              color: user.assignedZoneId ? '#1D4ED8' : '#4B5563',
+                              border: user.assignedZoneId ? '1px solid #BFDBFE' : '1px solid #E5E7EB',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                            }}
+                          >
+                            {user.assignedZoneId ? '📍 ' + (user.assignedZoneName || user.assignedZoneId) : '🌐 All Zones'}
+                          </span>
+                        )}
                       </td>
 
                       <td style={{ padding: '14px 16px' }}>

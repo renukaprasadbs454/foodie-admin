@@ -17,6 +17,7 @@ export interface AdminUser {
   avatarUrl?: string;
   assignedZoneId?: string;
   assignedZoneName?: string;
+  assignedZoneIds?: string[];
 }
 
 /**

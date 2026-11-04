@@ -42,8 +42,16 @@ export function AdminHeaderBar({
     (storedRole && storedRole.toUpperCase() === 'SUPER_ADMIN')
   );
 
+  const isRestaurantUser = Boolean(
+    (role && role.toUpperCase().includes('RESTAURANT')) ||
+    (authState.role && authState.role.toUpperCase().includes('RESTAURANT')) ||
+    (storedRole && storedRole.toUpperCase().includes('RESTAURANT'))
+  );
+
   const currentUserRole = isSuperAdmin
     ? 'SUPER_ADMIN'
+    : isRestaurantUser
+    ? 'RESTAURANT_MANAGER'
     : hasAssignedZone
     ? (role || authState.role || storedRole || 'OPS')
     : (role || authState.role || storedRole || 'SUPER_ADMIN');
@@ -53,6 +61,13 @@ export function AdminHeaderBar({
     isMultiZoneRole(role) ||
     isMultiZoneRole(authState.role) ||
     isMultiZoneRole(storedRole)
+  );
+
+  const isRestaurantManager = Boolean(
+    currentUserRole === 'RESTAURANT_MANAGER' ||
+    role === 'RESTAURANT_MANAGER' ||
+    authState.role === 'RESTAURANT_MANAGER' ||
+    storedRole === 'RESTAURANT_MANAGER'
   );
 
   const [currentZoneId, setCurrentZoneId] = useState<string>(() => {
@@ -93,6 +108,24 @@ export function AdminHeaderBar({
       }
     }
   }, [availableZones, currentZoneId, currentZoneName]);
+
+  React.useEffect(() => {
+    // Restaurant Manager zone assignment check
+    if (isRestaurantManager && availableZones.length > 0) {
+      const activeZones = availableZones.filter((z) => z.status === 'ACTIVE');
+      const isCurrentActive = activeZones.some(
+        (z) => z.id.toLowerCase() === currentZoneId.toLowerCase() ||
+               (z.zoneName && z.zoneName.toLowerCase() === currentZoneName.toLowerCase())
+      );
+      if (!isCurrentActive) {
+        if (activeZones.length > 0) {
+          handleSelectZone(activeZones[0]);
+        } else {
+          setCurrentZoneName('No Zones Assigned');
+        }
+      }
+    }
+  }, [isRestaurantManager, availableZones, currentZoneId, currentZoneName]);
 
   React.useEffect(() => {
     function handleClickOutsideZone(event: MouseEvent) {
@@ -157,8 +190,8 @@ export function AdminHeaderBar({
     ? (localStorage.getItem('foodie_active_zone_name') || sessionStorage.getItem('foodie_active_zone_name') || (typeof document !== 'undefined' ? decodeURIComponent(document.cookie.match(/foodie_active_zone_name=([^;]+)/)?.[1] || '') : null) || (activeZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone'))
     : (activeZoneId === 'dz-tumkur' ? 'Tumkur Zone' : 'Bangalore Zone');
 
-  const currentUserEmail = authState.email || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null) || (userId && userId.includes('@') ? userId : null) || (isSuperAdmin ? 'admin@foodie.local' : 'ops@foodie.local');
-  const currentUserName = authState.fullName || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_fullname') || sessionStorage.getItem('foodie_admin_fullname')) : null) || (hasAssignedZone ? `${activeZoneName} Admin` : (isSuperAdmin ? 'Super Admin' : 'Admin Operator'));
+  const currentUserEmail = authState.email || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null) || (userId && userId.includes('@') ? userId : null) || (isSuperAdmin ? 'admin@foodie.local' : (isRestaurantUser ? 'manager@foodie.local' : 'ops@foodie.local'));
+  const currentUserName = authState.fullName || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_fullname') || sessionStorage.getItem('foodie_admin_fullname')) : null) || (isRestaurantUser ? 'Restaurant Manager' : (hasAssignedZone ? `${activeZoneName} Admin` : (isSuperAdmin ? 'Super Admin' : 'Admin Operator')));
   const currentUserPhone = authState.phone || (typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_phone') || sessionStorage.getItem('foodie_admin_phone')) : null) || '+91 98765 43210';
 
 
@@ -458,7 +491,7 @@ export function AdminHeaderBar({
               </div>
 
               <div className="profile-user-role">
-                {currentUserRole}
+                {currentUserRole === 'RESTAURANT_MANAGER' ? 'Restaurant Manager' : currentUserRole}
               </div>
             </div>
           </div>
@@ -852,18 +885,25 @@ export function AdminHeaderBar({
                           <div
                             key={zone.id}
                             id={`zone-option-${zone.id}`}
-                            onClick={() => handleSelectZone(zone)}
+                            onClick={() => {
+                              const isZoneActive = isRestaurantManager ? (zone.status === 'ACTIVE') : (zone.status !== 'INACTIVE');
+                              if (isZoneActive) {
+                                handleSelectZone(zone);
+                              }
+                            }}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               padding: '8px 14px',
-                              cursor: 'pointer',
+                              cursor: (isRestaurantManager ? (zone.status === 'ACTIVE') : (zone.status !== 'INACTIVE')) ? 'pointer' : 'not-allowed',
+                              opacity: (isRestaurantManager ? (zone.status === 'ACTIVE') : (zone.status !== 'INACTIVE')) ? 1 : 0.55,
                               backgroundColor: isSelected ? '#F0FDF4' : 'transparent',
                               transition: 'background-color 0.15s ease',
                             }}
                             onMouseEnter={(e) => {
-                              if (!isSelected) e.currentTarget.style.backgroundColor = '#F8FAFC';
+                              const isZoneActive = isRestaurantManager ? (zone.status === 'ACTIVE') : (zone.status !== 'INACTIVE');
+                              if (!isSelected && isZoneActive) e.currentTarget.style.backgroundColor = '#F8FAFC';
                             }}
                             onMouseLeave={(e) => {
                               if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
@@ -876,7 +916,7 @@ export function AdminHeaderBar({
                                   style={{
                                     fontSize: 12,
                                     fontWeight: isSelected ? 700 : 500,
-                                    color: isSelected ? '#166534' : '#1E293B',
+                                    color: isSelected ? '#166534' : ((isRestaurantManager ? (zone.status === 'ACTIVE') : (zone.status !== 'INACTIVE')) ? '#1E293B' : '#64748B'),
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
@@ -899,14 +939,14 @@ export function AdminHeaderBar({
                                   fontWeight: 600,
                                   padding: '2px 6px',
                                   borderRadius: 6,
-                                  backgroundColor: zone.status === 'ACTIVE' ? '#DCFCE7' : '#F1F5F9',
-                                  color: zone.status === 'ACTIVE' ? '#166534' : '#64748B',
+                                  backgroundColor: (isRestaurantManager ? (zone.status === 'ACTIVE') : (zone.status !== 'INACTIVE')) ? '#DCFCE7' : '#F1F5F9',
+                                  color: (isRestaurantManager ? (zone.status === 'ACTIVE') : (zone.status !== 'INACTIVE')) ? '#166534' : '#64748B',
                                   textTransform: 'uppercase',
                                 }}
                               >
-                                {zone.status || 'ACTIVE'}
+                                {isRestaurantManager ? (zone.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE') : (zone.status || 'ACTIVE')}
                               </span>
-                              {isSelected && (
+                              {isSelected && (!isRestaurantManager || zone.status === 'ACTIVE') && (
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                   <polyline points="20 6 9 17 4 12" />
                                 </svg>
