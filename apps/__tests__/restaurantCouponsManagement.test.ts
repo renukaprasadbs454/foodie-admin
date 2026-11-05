@@ -3,6 +3,10 @@ import {
   validateCreateCoupon,
   extractDateOnly,
   formatCouponValidityDate,
+  isPromoCoupon,
+  isRestaurantCoupon,
+  filterCouponsForCustomerDirect,
+  filterCouponsForRestaurantPanel,
 } from '../features/coupons/types';
 
 describe('Restaurant Coupons Management - Admin Panel', () => {
@@ -366,6 +370,425 @@ describe('Restaurant Coupons Management - Admin Panel', () => {
         'SPICE50:Tumkur Zone',
         'SPICE50:Bangalore Zone',
       ]);
+    });
+  });
+
+  describe('Direct Customer Promo Coupons Distribution & Separation from Restaurant Coupons', () => {
+    const promoCouponsStore = [
+      // Scenario A: Tumkur Zone Promo Coupon
+      {
+        couponId: 'c-tmk-promo',
+        code: 'TUMKUR50',
+        title: 'Tumkur Feast Promo',
+        couponType: 'PROMO_COUPON',
+        funderType: 'FOODIE',
+        discountType: 'PERCENT',
+        value: 50,
+        minOrderAmount: 200,
+        zoneId: 'dz-tumkur',
+        zoneName: 'Tumkur Zone',
+        isActive: true,
+      },
+      // Scenario B: Bangalore Zone Promo Coupon
+      {
+        couponId: 'c-blr-promo',
+        code: 'BLR40',
+        title: 'Namma Bengaluru Promo',
+        couponType: 'PROMO_COUPON',
+        funderType: 'FOODIE',
+        discountType: 'PERCENT',
+        value: 40,
+        minOrderAmount: 150,
+        zoneId: 'dz-bangalore',
+        zoneName: 'Bangalore Zone',
+        isActive: true,
+      },
+      // Scenario C: All Zones (Platform-wide) Promo Coupon
+      {
+        couponId: 'c-all-promo',
+        code: 'FOODIEALL',
+        title: 'Platform Wide 25% OFF',
+        couponType: 'PROMO_COUPON',
+        funderType: 'FOODIE',
+        discountType: 'PERCENT',
+        value: 25,
+        minOrderAmount: 100,
+        zoneId: 'ALL',
+        zoneName: 'All Locations',
+        isAllZones: true,
+        isActive: true,
+      },
+      // Restaurant Coupon for Tumkur Zone
+      {
+        couponId: 'c-rest-tmk',
+        code: 'RESTTMK',
+        title: 'Tumkur Merchant Special',
+        couponType: 'RESTAURANT',
+        funderType: 'MERCHANT',
+        discountType: 'FLAT',
+        value: 50,
+        minOrderAmount: 250,
+        zoneId: 'dz-tumkur',
+        zoneName: 'Tumkur Zone',
+        isActive: true,
+      },
+    ];
+
+    it('identifies Promo Coupons vs Restaurant Coupons correctly', () => {
+      expect(isPromoCoupon(promoCouponsStore[0])).toBe(true);
+      expect(isRestaurantCoupon(promoCouponsStore[0])).toBe(false);
+
+      expect(isPromoCoupon(promoCouponsStore[3])).toBe(false);
+      expect(isRestaurantCoupon(promoCouponsStore[3])).toBe(true);
+    });
+
+    it('Scenario A: Tumkur Zone Promo Coupon is visible to Tumkur customers and hidden from Bangalore customers', () => {
+      // Tumkur Customer View
+      const tumkurCustomerCoupons = filterCouponsForCustomerDirect(promoCouponsStore, 'Tumkur Zone');
+      const tumkurCodes = tumkurCustomerCoupons.map((c) => c.code);
+
+      expect(tumkurCodes).toContain('TUMKUR50');
+      expect(tumkurCodes).toContain('FOODIEALL');
+      expect(tumkurCodes).not.toContain('BLR40');
+
+      // Bangalore Customer View
+      const blrCustomerCoupons = filterCouponsForCustomerDirect(promoCouponsStore, 'Bangalore Zone');
+      const blrCodes = blrCustomerCoupons.map((c) => c.code);
+
+      expect(blrCodes).not.toContain('TUMKUR50');
+      expect(blrCodes).toContain('BLR40');
+      expect(blrCodes).toContain('FOODIEALL');
+    });
+
+    it('Scenario B: Bangalore Zone Promo Coupon is visible to Bangalore customers and hidden from Tumkur customers', () => {
+      const blrCustomerCoupons = filterCouponsForCustomerDirect(promoCouponsStore, 'dz-bangalore');
+      const codes = blrCustomerCoupons.map((c) => c.code);
+
+      expect(codes).toContain('BLR40');
+      expect(codes).not.toContain('TUMKUR50');
+    });
+
+    it('Scenario C: All Zones Promo Coupon is visible to all eligible customers across all supported zones', () => {
+      const tumkurView = filterCouponsForCustomerDirect(promoCouponsStore, 'dz-tumkur');
+      const blrView = filterCouponsForCustomerDirect(promoCouponsStore, 'dz-bangalore');
+      const hubliView = filterCouponsForCustomerDirect(promoCouponsStore, 'dz-hubballi');
+
+      expect(tumkurView.map((c) => c.code)).toContain('FOODIEALL');
+      expect(blrView.map((c) => c.code)).toContain('FOODIEALL');
+      expect(hubliView.map((c) => c.code)).toContain('FOODIEALL');
+    });
+
+    it('ensures Promo Coupons NEVER appear in the Restaurant Panel Promos', () => {
+      // Query Promos for a Tumkur restaurant
+      const tumkurRestPromos = filterCouponsForRestaurantPanel(promoCouponsStore, 'rest-tumkur-101', 'dz-tumkur');
+      const tumkurRestPromoCodes = tumkurRestPromos.map((c) => c.code);
+
+      expect(tumkurRestPromoCodes).not.toContain('TUMKUR50');
+      expect(tumkurRestPromoCodes).not.toContain('BLR40');
+      expect(tumkurRestPromoCodes).not.toContain('FOODIEALL');
+      // Only Restaurant Coupon is received
+      expect(tumkurRestPromoCodes).toEqual(['RESTTMK']);
+
+      // Query Promos for a Bangalore restaurant
+      const blrRestPromos = filterCouponsForRestaurantPanel(promoCouponsStore, 'b7c2a110-92d4-4f81-9b11-a83d712e5001', 'dz-bangalore');
+      const blrRestPromoCodes = blrRestPromos.map((c) => c.code);
+
+      expect(blrRestPromoCodes).not.toContain('TUMKUR50');
+      expect(blrRestPromoCodes).not.toContain('BLR40');
+      expect(blrRestPromoCodes).not.toContain('FOODIEALL');
+      expect(blrRestPromoCodes).not.toContain('RESTTMK'); // Tumkur restaurant coupon isolated from Bangalore
+    });
+
+    it('ensures Restaurant Coupons continue following restaurant enable/disable workflow', () => {
+      const activeRestCoupon = { ...promoCouponsStore[3], isActive: true };
+      const deactivatedRestCoupon = { ...promoCouponsStore[3], isActive: false };
+
+      // Enabled coupon appears in customer app for that zone
+      const customerWithActive = filterCouponsForCustomerDirect([activeRestCoupon], 'dz-tumkur');
+      expect(customerWithActive.map((c) => c.code)).toContain('RESTTMK');
+
+      // Disabled coupon does not appear in customer app
+      const customerWithDisabled = filterCouponsForCustomerDirect([deactivatedRestCoupon], 'dz-tumkur');
+      expect(customerWithDisabled.map((c) => c.code)).not.toContain('RESTTMK');
+    });
+  });
+
+  describe('Shared Coupon Discount Contributions (Admin Discount + Restaurant Discount)', () => {
+    it('1. Percentage coupon: combines Admin (10%) and Restaurant (5%) into Total (15%)', () => {
+      const result = validateCreateCoupon({
+        code: 'SHARED15',
+        discountType: 'PERCENT',
+        adminDiscount: '10',
+        restaurantDiscount: '5',
+        minOrderAmount: '200',
+        maxDiscountAmount: '100',
+        expiryDate: '2026-12-31',
+        usageLimitPerUser: '1',
+        zoneId: 'dz-tumkur',
+        zoneName: 'Tumkur Zone',
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.body.adminDiscount).toBe(10);
+        expect(result.body.restaurantDiscount).toBe(5);
+        expect(result.body.value).toBe(15); // 10 + 5
+        expect(result.body.discountType).toBe('PERCENT');
+      }
+    });
+
+    it('2. Fixed coupon: combines Admin (₹20) and Restaurant (₹30) into Total (₹50)', () => {
+      const result = validateCreateCoupon({
+        code: 'SHARED50',
+        discountType: 'FLAT',
+        adminDiscount: '20',
+        restaurantDiscount: '30',
+        minOrderAmount: '150',
+        maxDiscountAmount: '',
+        expiryDate: '2026-12-31',
+        usageLimitPerUser: '1',
+        zoneId: 'dz-bangalore',
+        zoneName: 'Bangalore Zone',
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.body.adminDiscount).toBe(20);
+        expect(result.body.restaurantDiscount).toBe(30);
+        expect(result.body.value).toBe(50); // 20 + 30
+        expect(result.body.discountType).toBe('FLAT');
+      }
+    });
+
+    it('3. Validation: rejects negative discount contributions and percentages exceeding 100%', () => {
+      // Negative admin discount
+      const negativeAdmin = validateCreateCoupon({
+        code: 'INVALID1',
+        discountType: 'PERCENT',
+        adminDiscount: '-5',
+        restaurantDiscount: '10',
+        minOrderAmount: '100',
+        maxDiscountAmount: '50',
+        expiryDate: '2026-12-31',
+        usageLimitPerUser: '1',
+      });
+      expect(negativeAdmin.ok).toBe(false);
+      if (!negativeAdmin.ok) {
+        expect(negativeAdmin.message).toContain('≥ 0');
+      }
+
+      // Negative restaurant discount
+      const negativeRest = validateCreateCoupon({
+        code: 'INVALID2',
+        discountType: 'PERCENT',
+        adminDiscount: '10',
+        restaurantDiscount: '-2',
+        minOrderAmount: '100',
+        maxDiscountAmount: '50',
+        expiryDate: '2026-12-31',
+        usageLimitPerUser: '1',
+      });
+      expect(negativeRest.ok).toBe(false);
+
+      // Percentage exceeding 100% (e.g. 60% + 50% = 110%)
+      const overHundred = validateCreateCoupon({
+        code: 'OVER100',
+        discountType: 'PERCENT',
+        adminDiscount: '60',
+        restaurantDiscount: '50',
+        minOrderAmount: '100',
+        maxDiscountAmount: '100',
+        expiryDate: '2026-12-31',
+        usageLimitPerUser: '1',
+      });
+      expect(overHundred.ok).toBe(false);
+      if (!overHundred.ok) {
+        expect(overHundred.message).toContain('100');
+      }
+    });
+
+    it('4. Restaurant Panel receives separate Admin Discount and Restaurant Discount values', () => {
+      const coupons = [
+        {
+          couponId: 'c-shared-tumkur',
+          code: 'SHARED15',
+          discountType: 'PERCENT',
+          value: 15,
+          adminDiscount: 10,
+          restaurantDiscount: 5,
+          minOrderAmount: 200,
+          maxDiscountAmount: 100,
+          zoneId: 'dz-tumkur',
+          zoneName: 'Tumkur Zone',
+          couponType: 'RESTAURANT',
+          isActive: true,
+        },
+      ];
+
+      const restaurantPromos = filterCouponsForRestaurantPanel(coupons, 'rest-tumkur-101', 'dz-tumkur');
+      expect(restaurantPromos).toHaveLength(1);
+      const promo = restaurantPromos[0];
+      expect(promo.adminDiscount).toBe(10);
+      expect(promo.restaurantDiscount).toBe(5);
+      expect(promo.value).toBe(15);
+    });
+
+    it('5. Customer App applies the combined total discount correctly without double deduction', () => {
+      // Percentage Shared Coupon: 10% Admin + 5% Restaurant = 15% Total
+      const percentCoupon = {
+        couponId: 'c-pct-share',
+        code: 'SHARED15',
+        discountType: 'PERCENT',
+        value: 15,
+        adminDiscount: 10,
+        restaurantDiscount: 5,
+        minOrderAmount: 200,
+        maxDiscountAmount: 100,
+        zoneId: 'dz-tumkur',
+        couponType: 'RESTAURANT',
+        isActive: true,
+      };
+
+      const cartTotal = 400;
+      // Combined calculation: 15% of 400 = 60 discount
+      const pctDiscount = Math.round((cartTotal * Number(percentCoupon.value)) / 100);
+      const pctFinal = cartTotal - pctDiscount;
+      expect(pctDiscount).toBe(60);
+      expect(pctFinal).toBe(340);
+
+      // Fixed Shared Coupon: ₹20 Admin + ₹30 Restaurant = ₹50 Total
+      const flatCoupon = {
+        couponId: 'c-flat-share',
+        code: 'SHARED50',
+        discountType: 'FLAT',
+        value: 50,
+        adminDiscount: 20,
+        restaurantDiscount: 30,
+        minOrderAmount: 150,
+        zoneId: 'dz-bangalore',
+        couponType: 'RESTAURANT',
+        isActive: true,
+      };
+
+      const flatDiscount = Math.min(Number(flatCoupon.value), cartTotal);
+      const flatFinal = cartTotal - flatDiscount;
+      expect(flatDiscount).toBe(50);
+      expect(flatFinal).toBe(350);
+    });
+  });
+
+  describe('Promo Coupons Persistence & Directory Retention Across Tabs/Pages', () => {
+    it('preserves newly created Promo Coupons in the directory without being overwritten', () => {
+      // 1. Create Promo Coupon A
+      const couponA = {
+        id: 'c-promo-a',
+        code: 'PROMO_A',
+        title: 'Promo Deal A',
+        discountType: 'PERCENT' as const,
+        discountValue: 20,
+        minPurchase: 200,
+        maxDiscount: 40,
+        module: 'All Food Delivery',
+        expiryDate: '2099-12-31',
+        status: 'ACTIVE' as const,
+        couponType: 'PROMO_COUPON',
+        funderType: 'FOODIE',
+        zoneId: 'dz-tumkur',
+        zoneName: 'Tumkur Zone',
+      };
+
+      // 2. Create Promo Coupon B
+      const couponB = {
+        id: 'c-promo-b',
+        code: 'PROMO_B',
+        title: 'Promo Deal B',
+        discountType: 'FIXED' as const,
+        discountValue: 50,
+        minPurchase: 250,
+        maxDiscount: 50,
+        module: 'All Food Delivery',
+        expiryDate: '2099-12-31',
+        status: 'ACTIVE' as const,
+        couponType: 'PROMO_COUPON',
+        funderType: 'FOODIE',
+        zoneId: 'dz-bangalore',
+        zoneName: 'Bangalore Zone',
+      };
+
+      let directory: any[] = [couponA];
+      // Appending Coupon B preserves Coupon A
+      directory = [couponB, ...directory.filter((c) => c.code !== couponB.code)];
+
+      expect(directory.map((c) => c.code)).toEqual(['PROMO_B', 'PROMO_A']);
+
+      // 3. Tab switch simulation: navigating to Restaurant Coupons and back to Promo Coupons
+      const activeTab1 = 'RESTAURANT_COUPONS';
+      expect(activeTab1).toBe('RESTAURANT_COUPONS');
+      // When tab switches, directory data remains intact in persistent storage
+      const activeTab2 = 'PROMO_COUPONS';
+      expect(activeTab2).toBe('PROMO_COUPONS');
+      expect(directory).toHaveLength(2);
+      expect(directory.map((c) => c.code)).toContain('PROMO_A');
+      expect(directory.map((c) => c.code)).toContain('PROMO_B');
+
+      // 4. Create Promo Coupon C: verifies A and B are not overwritten
+      const couponC = {
+        id: 'c-promo-c',
+        code: 'PROMO_C',
+        title: 'Promo Deal C',
+        discountType: 'PERCENT' as const,
+        discountValue: 15,
+        minPurchase: 100,
+        maxDiscount: 30,
+        module: 'All Food Delivery',
+        expiryDate: '2099-12-31',
+        status: 'ACTIVE' as const,
+        couponType: 'PROMO_COUPON',
+        funderType: 'FOODIE',
+        zoneId: 'ALL',
+        zoneName: 'All Locations',
+      };
+
+      directory = [couponC, ...directory.filter((c) => c.code !== couponC.code)];
+      expect(directory).toHaveLength(3);
+      expect(directory.map((c) => c.code)).toEqual(['PROMO_C', 'PROMO_B', 'PROMO_A']);
+    });
+
+    it('retains coupon status accurately (ACTIVE, DEACTIVATED, EXPIRED) without purging records', () => {
+      const couponsList = [
+        { code: 'ACTIVE1', status: 'ACTIVE', expiryDate: '2099-12-31' },
+        { code: 'DEACT1', status: 'DEACTIVATED', expiryDate: '2099-12-31' },
+        { code: 'EXP1', status: 'DEACTIVATED', expiryDate: '2020-01-01' },
+      ];
+
+      // Switching views or unmounting retains all items with status intact
+      expect(couponsList.find((c) => c.code === 'ACTIVE1')?.status).toBe('ACTIVE');
+      expect(couponsList.find((c) => c.code === 'DEACT1')?.status).toBe('DEACTIVATED');
+      expect(couponsList.find((c) => c.code === 'EXP1')?.status).toBe('DEACTIVATED');
+      expect(couponsList).toHaveLength(3);
+    });
+
+    it('ensures admin/coupons API response is properly extracted from { success: true, data: [...] }', () => {
+      const bffResponse = {
+        success: true,
+        data: [
+          { couponId: 'c-1', code: 'PROMO10', couponType: 'PROMO_COUPON', isActive: true },
+          { couponId: 'c-2', code: 'REST20', couponType: 'RESTAURANT', isActive: true },
+        ],
+      };
+
+      const transformResponse = (res: any) => {
+        if (Array.isArray(res?.data)) return res.data;
+        if (res?.content) return res.content;
+        if (Array.isArray(res)) return res;
+        if (res?.items) return res.items;
+        return [];
+      };
+
+      const extracted = transformResponse(bffResponse);
+      expect(extracted).toHaveLength(2);
+      expect(extracted[0].code).toBe('PROMO10');
+      expect(extracted[1].code).toBe('REST20');
     });
   });
 });

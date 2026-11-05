@@ -19,6 +19,7 @@ export const couponsApi = baseApi.injectEndpoints({
     getCoupons: builder.query<Coupon[], void>({
       query: () => '/api/bff/admin/coupons',
       transformResponse: (res: any) => {
+        if (Array.isArray(res?.data)) return res.data;
         if (res?.content) return res.content;
         if (Array.isArray(res)) return res;
         if (res?.items) return res.items;

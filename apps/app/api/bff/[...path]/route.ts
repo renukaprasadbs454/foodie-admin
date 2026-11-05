@@ -2894,6 +2894,20 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
 
       const restCoupons = couponsStore
         .filter(c => {
+          // Promo Coupons must NEVER go to Restaurant Panel
+          const cType = (c.couponType || '').toUpperCase();
+          const fType = (c.funderType || '').toUpperCase();
+          if (cType === 'PROMO_COUPON') return false;
+          if (cType === 'GENERIC' && fType === 'FOODIE' && !c.restaurantId && !c.module?.includes('Restaurant')) {
+            return false;
+          }
+
+          // Must be a valid restaurant coupon
+          const isRestCoupon = Boolean(c.restaurantId) || fType === 'MERCHANT' || fType === 'RESTAURANT' || cType === 'RESTAURANT' || cType === 'RESTAURANT_COUPON' || Boolean(c.module?.includes('Restaurant'));
+          if (!isRestCoupon) {
+            return false;
+          }
+
           // 1. Direct restaurant match
           if (c.restaurantId && c.restaurantId.toLowerCase() === qRestaurantId.toLowerCase()) return true;
           // 2. Dedicated to a different restaurant
@@ -2936,11 +2950,45 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
     const isCustomerView = targetPath === "coupons/active" || targetPath === "coupons/eligible" || targetPath === "customer/coupons" || !targetPath.includes("admin");
 
     const filtered = couponsStore.filter((coupon) => {
-      // For customer view, coupon MUST be active
-      if (isCustomerView && coupon.isActive === false) return false;
+      // For Admin Panel (targetPath === "admin/coupons"), preserve and return all created coupons
+      // (both Promo Coupons and Restaurant Coupons, across all zones, and with actual status).
+      if (!isCustomerView) {
+        if (rawCustomerZone && rawCustomerZone !== "ALL") {
+          const isGlobal = !coupon.zoneId || coupon.zoneId === "ALL" || coupon.isAllZones === true || (coupon.zoneName && coupon.zoneName.toLowerCase().includes("all"));
+          if (isGlobal) return true;
+          return isTargetMatch(coupon.zoneId, rawCustomerZone) || Boolean(coupon.zoneName && isTargetMatch(coupon.zoneName, rawCustomerZone));
+        }
+        return true;
+      }
 
+      // For customer view, coupon MUST be active
+      if (coupon.isActive === false) return false;
+
+      const cType = (coupon.couponType || '').toUpperCase();
+      const fType = (coupon.funderType || '').toUpperCase();
+      const isPromo = cType === 'PROMO_COUPON' || (cType === 'GENERIC' && fType === 'FOODIE' && !coupon.restaurantId && !coupon.module?.includes('Restaurant'));
+
+      // 1. Promo Coupons Flow (Direct Customer App distribution)
+      if (isPromo) {
+        // Platform-wide / All Zones: available to all eligible customers across all supported zones
+        const isGlobal = !coupon.zoneId || coupon.zoneId === "ALL" || coupon.isAllZones === true || (coupon.zoneName && coupon.zoneName.toLowerCase().includes("all"));
+        if (isGlobal) return true;
+
+        // Zone-based customer visibility:
+        // Scenario A: Tumkur Zone -> Tumkur customers see it; Bangalore customers do not
+        // Scenario B: Bangalore Zone -> Bangalore customers see it; Tumkur customers do not
+        if (rawCustomerZone && rawCustomerZone !== "ALL") {
+          return isTargetMatch(coupon.zoneId, rawCustomerZone) ||
+            Boolean(coupon.zoneName && isTargetMatch(coupon.zoneName, rawCustomerZone));
+        }
+
+        // If customer zone is not specified and coupon is zone-specific, do not show
+        return false;
+      }
+
+      // 2. Restaurant Coupons Flow
       // Restaurant scoping in customer cart context: if order is for restaurant A, do not show coupons for restaurant B
-      if (isCustomerView && coupon.restaurantId && qRestaurantId && coupon.restaurantId !== qRestaurantId) {
+      if (coupon.restaurantId && qRestaurantId && coupon.restaurantId !== qRestaurantId) {
         return false;
       }
 
@@ -2955,11 +3003,7 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       }
 
       // If customer zone is not specified or ALL, return active coupons
-      if (isCustomerView) {
-        return true;
-      }
-
-      return !isCustomerView;
+      return true;
     });
 
     const seenCoupons = new Set<string>();
@@ -3018,24 +3062,38 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
 
     const cleanExpiry = extractCouponDateOnly(body.expiryDate) || (body.expiryDate ? String(body.expiryDate).slice(0, 10) : "2099-12-31");
 
+    const reqCouponType = (body.couponType || "").toUpperCase();
+    const isPromoCoupon = reqCouponType === "PROMO_COUPON" || (reqCouponType === "GENERIC" && (body.funderType === "FOODIE" || !body.restaurantId));
+    const finalCouponType = isPromoCoupon ? "PROMO_COUPON" : (body.couponType || "RESTAURANT");
+    const finalFunderType = isPromoCoupon ? "FOODIE" : (body.funderType || (body.restaurantId ? "MERCHANT" : (cleanZoneId ? "SHARED" : "FOODIE")));
+
+    const adminDiscount = body.adminDiscount != null && body.adminDiscount !== "" ? Number(body.adminDiscount) : null;
+    const restaurantDiscount = body.restaurantDiscount != null && body.restaurantDiscount !== "" ? Number(body.restaurantDiscount) : null;
+    let computedValue = Number(body.value) || 0;
+    if (adminDiscount != null || restaurantDiscount != null) {
+      computedValue = (adminDiscount || 0) + (restaurantDiscount || 0);
+    }
+
     const newCoupon = {
       couponId: "c-" + Date.now().toString().slice(-4),
       code: cleanCode || ("COUPON_" + Date.now().toString().slice(-4)),
       title: body.title || `${cleanCode} • ${cleanZoneName}`,
       discountType: body.discountType || "PERCENT",
-      funderType: body.funderType || (body.restaurantId ? "MERCHANT" : (cleanZoneId ? "MERCHANT" : "FOODIE")),
-      couponType: body.couponType || (body.restaurantId || cleanZoneId ? "RESTAURANT" : "GENERIC"),
+      funderType: finalFunderType,
+      couponType: finalCouponType,
       benefitMode: body.benefitMode || (body.discountType === "FLAT" ? "FLAT" : "PERCENTAGE"),
       approvalStatus: "APPROVED",
-      value: Number(body.value) || 10,
+      value: computedValue,
+      adminDiscount: adminDiscount,
+      restaurantDiscount: restaurantDiscount,
       minOrderAmount: Number(body.minOrderAmount) || 0,
       maxDiscountAmount: body.maxDiscountAmount ? Number(body.maxDiscountAmount) : null,
       expiryDate: cleanExpiry,
       usageLimitTotal: body.usageLimitTotal ? Number(body.usageLimitTotal) : null,
       usageLimitPerUser: Number(body.usageLimitPerUser) || 1,
-      restaurantId: body.restaurantId || null,
-      restaurantName: body.restaurantName || null,
-      module: body.restaurantName || (body.restaurantId ? "Specific Restaurant" : (cleanZoneName ? `${cleanZoneName} Restaurants` : (body.module || "All Food Delivery"))),
+      restaurantId: isPromoCoupon ? null : (body.restaurantId || null),
+      restaurantName: isPromoCoupon ? null : (body.restaurantName || null),
+      module: body.module || (isPromoCoupon ? "All Food Delivery" : (body.restaurantName || (body.restaurantId ? "Specific Restaurant" : (cleanZoneName ? `${cleanZoneName} Restaurants` : "All Food Delivery")))),
       isActive: true,
       zoneId: cleanZoneId,
       zoneName: cleanZoneName,
@@ -3057,12 +3115,18 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
     }
     savePersistentCouponsState(couponsStore);
 
-    if (cleanZoneId) {
+    // Only notify restaurants for Restaurant Coupons (Promo Coupons go directly to Customer App)
+    if (!isPromoCoupon && cleanZoneId) {
       if (!globalAny.MOCK_NOTIFICATIONS) {
         globalAny.MOCK_NOTIFICATIONS = [];
       }
       const notifList = globalAny.MOCK_NOTIFICATIONS as any[];
-      const notifDiscountText = newCoupon.discountType === 'PERCENT' ? `${newCoupon.value}%` : `₹${newCoupon.value}`;
+      let notifDiscountText = newCoupon.discountType === 'PERCENT' ? `${newCoupon.value}%` : `₹${newCoupon.value}`;
+      if (adminDiscount != null || restaurantDiscount != null) {
+        const aText = newCoupon.discountType === 'PERCENT' ? `${adminDiscount || 0}%` : `₹${adminDiscount || 0}`;
+        const rText = newCoupon.discountType === 'PERCENT' ? `${restaurantDiscount || 0}%` : `₹${restaurantDiscount || 0}`;
+        notifDiscountText = `${notifDiscountText} (Admin: ${aText} + Restaurant: ${rText})`;
+      }
       notifList.unshift({
         id: `notif-coupon-${Date.now()}`,
         title: 'New Restaurant Coupon Available!',
@@ -3330,6 +3394,8 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
         code: coupon.code,
         discountAmount,
         finalTotal,
+        adminDiscount: coupon.adminDiscount,
+        restaurantDiscount: coupon.restaurantDiscount,
         message: `Coupon '${coupon.code}' applied successfully! Saved ₹${discountAmount}.`,
       },
       error: null,

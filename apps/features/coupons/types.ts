@@ -10,6 +10,8 @@ export interface CreateCouponBody {
   code: string;
   discountType: 'FLAT' | 'PERCENT';
   value: number;
+  adminDiscount?: number;
+  restaurantDiscount?: number;
   minOrderAmount: number;
   maxDiscountAmount?: number;
   expiryDate: string;
@@ -22,6 +24,8 @@ export interface CreateCouponBody {
   couponType?: string;
   benefitMode?: string;
   approvalStatus?: string;
+  title?: string;
+  module?: string;
 }
 
 export interface Coupon {
@@ -33,6 +37,8 @@ export interface Coupon {
   benefitMode?: string;
   approvalStatus?: string;
   value: number | string;
+  adminDiscount?: number | null;
+  restaurantDiscount?: number | null;
   minOrderAmount: number | string;
   maxDiscountAmount?: number | string | null;
   expiryDate?: string | null;
@@ -41,7 +47,10 @@ export interface Coupon {
   restaurantId?: string | null;
   zoneId?: string | null;
   zoneName?: string | null;
+  isAllZones?: boolean;
   isActive: boolean;
+  title?: string;
+  module?: string;
 };
 
 export type DeactivateCouponResult = {
@@ -185,9 +194,11 @@ export function isDiscountType(value: string): value is DiscountType {
 export type CreateCouponFormInput = {
   code: string;
   discountType: string;
-  value: string;
+  value?: string;
+  adminDiscount?: string;
+  restaurantDiscount?: string;
   minOrderAmount: string;
-  maxDiscountAmount: string;
+  maxDiscountAmount?: string;
   expiryDate: string;
   usageLimitTotal?: string;
   usageLimitPerUser: string;
@@ -209,7 +220,29 @@ export function validateCreateCoupon(
   if (!isDiscountType(input.discountType)) {
     return { ok: false, message: 'Discount type must be FLAT or PERCENT.' };
   }
-  const value = Number(input.value);
+
+  let adminDiscount: number | undefined;
+  let restaurantDiscount: number | undefined;
+  if (input.adminDiscount != null && input.adminDiscount.trim() !== '') {
+    adminDiscount = Number(input.adminDiscount);
+    if (!Number.isFinite(adminDiscount) || adminDiscount < 0) {
+      return { ok: false, message: 'Admin discount must be ≥ 0.' };
+    }
+  }
+  if (input.restaurantDiscount != null && input.restaurantDiscount.trim() !== '') {
+    restaurantDiscount = Number(input.restaurantDiscount);
+    if (!Number.isFinite(restaurantDiscount) || restaurantDiscount < 0) {
+      return { ok: false, message: 'Restaurant discount must be ≥ 0.' };
+    }
+  }
+
+  let value: number;
+  if (adminDiscount != null || restaurantDiscount != null) {
+    value = (adminDiscount || 0) + (restaurantDiscount || 0);
+  } else {
+    value = Number(input.value);
+  }
+
   if (!Number.isFinite(value) || value < 0.01) {
     return { ok: false, message: 'Value must be at least 0.01.' };
   }
@@ -288,6 +321,8 @@ export function validateCreateCoupon(
       code,
       discountType: input.discountType,
       value,
+      adminDiscount,
+      restaurantDiscount,
       minOrderAmount,
       maxDiscountAmount,
       expiryDate: input.expiryDate,
@@ -375,3 +410,146 @@ export function formatCouponValidityDate(dateStr?: string | null): string {
 
   return s;
 }
+
+/**
+ * Checks whether a coupon is a Promo Coupon (direct customer distribution).
+ * Promo Coupons are funded by FOODIE, have couponType PROMO_COUPON (or GENERIC),
+ * are not assigned to a specific restaurant, and never go through restaurant approval.
+ */
+export function isPromoCoupon(coupon: any): boolean {
+  if (!coupon || typeof coupon !== 'object') return false;
+  const cType = String(coupon.couponType || '').toUpperCase();
+  const fType = String(coupon.funderType || '').toUpperCase();
+  if (cType === 'PROMO_COUPON') return true;
+  if (cType === 'RESTAURANT' || cType === 'RESTAURANT_COUPON') return false;
+  if (coupon.restaurantId) return false;
+  if (fType === 'MERCHANT' || fType === 'RESTAURANT') return false;
+  if (coupon.module === 'Specific Restaurant' || (coupon.module && coupon.module.includes('Restaurant'))) {
+    return false;
+  }
+  return fType === 'FOODIE' || cType === 'GENERIC';
+}
+
+/**
+ * Checks whether a coupon is a Restaurant Coupon (distributed to restaurant panel for enable/disable).
+ */
+export function isRestaurantCoupon(coupon: any): boolean {
+  if (!coupon || typeof coupon !== 'object') return false;
+  if (isPromoCoupon(coupon)) return false;
+  const cType = String(coupon.couponType || '').toUpperCase();
+  const fType = String(coupon.funderType || '').toUpperCase();
+  if (cType === 'RESTAURANT' || cType === 'RESTAURANT_COUPON') return true;
+  if (coupon.restaurantId) return true;
+  if (fType === 'MERCHANT' || fType === 'RESTAURANT') return true;
+  if (coupon.module === 'Specific Restaurant') return true;
+  if (coupon.module && coupon.module.includes('Restaurant')) return true;
+  return false;
+}
+
+/**
+ * Filters coupons for Customer App according to zone eligibility:
+ * - Scenario A (Tumkur): Tumkur customers see Tumkur promo coupons + All Zones promo coupons.
+ * - Scenario B (Bangalore): Bangalore customers see Bangalore promo coupons + All Zones promo coupons.
+ * - Scenario C (All Zones): All customers across all zones see All Zones promo coupons.
+ */
+export function filterCouponsForCustomerDirect(
+  coupons: any[],
+  customerZone?: string | null,
+  targetRestaurantId?: string | null
+): any[] {
+  if (!Array.isArray(coupons)) return [];
+  const cleanCustomerZone = customerZone ? customerZone.trim() : '';
+
+  return coupons.filter((coupon) => {
+    if (!coupon || coupon.isActive === false) return false;
+
+    // 1. Promo Coupon Flow (Direct Customer App distribution)
+    if (isPromoCoupon(coupon)) {
+      const isGlobal =
+        !coupon.zoneId ||
+        coupon.zoneId === 'ALL' ||
+        coupon.isAllZones === true ||
+        (coupon.zoneName && coupon.zoneName.toLowerCase().includes('all'));
+
+      if (isGlobal) {
+        return true;
+      }
+
+      if (!cleanCustomerZone) {
+        return false;
+      }
+
+      return (
+        isZoneMatching(coupon.zoneId, cleanCustomerZone) ||
+        Boolean(coupon.zoneName && isZoneMatching(coupon.zoneName, cleanCustomerZone))
+      );
+    }
+
+    // 2. Restaurant Coupon Flow
+    if (isRestaurantCoupon(coupon)) {
+      if (coupon.restaurantId && targetRestaurantId && coupon.restaurantId !== targetRestaurantId) {
+        return false;
+      }
+      if (cleanCustomerZone && coupon.zoneId && coupon.zoneId !== 'ALL' && !coupon.isAllZones) {
+        return isZoneMatching(coupon.zoneId, cleanCustomerZone);
+      }
+      return true;
+    }
+
+    return false;
+  });
+}
+
+/**
+ * Filters coupons for Restaurant Panel Promos:
+ * Promo Coupons must NEVER be returned to any Restaurant Panel.
+ */
+export function filterCouponsForRestaurantPanel(
+  coupons: any[],
+  restaurantId: string,
+  restaurantZone?: string | null
+): any[] {
+  if (!Array.isArray(coupons) || !restaurantId) return [];
+  const cleanRest = restaurantId.trim().toLowerCase();
+  const cleanZone = restaurantZone ? restaurantZone.trim() : '';
+
+  return coupons.filter((coupon) => {
+    // 1. Promo Coupons MUST NEVER appear in Restaurant Panel
+    if (isPromoCoupon(coupon)) {
+      return false;
+    }
+
+    // 2. Must be a valid Restaurant Coupon
+    if (!isRestaurantCoupon(coupon)) {
+      return false;
+    }
+
+    // 3. Direct restaurant match
+    if (coupon.restaurantId && coupon.restaurantId.trim().toLowerCase() === cleanRest) {
+      return true;
+    }
+
+    // 4. Assigned to a different restaurant
+    if (coupon.restaurantId && coupon.restaurantId.trim().toLowerCase() !== cleanRest) {
+      return false;
+    }
+
+    // 5. Zone-wise coupon
+    if (coupon.zoneId && cleanZone) {
+      if (
+        isZoneMatching(coupon.zoneId, cleanZone) ||
+        Boolean(coupon.zoneName && isZoneMatching(coupon.zoneName, cleanZone))
+      ) {
+        return true;
+      }
+    }
+
+    // 6. Global restaurant coupon (All Locations)
+    if (!coupon.zoneId || coupon.zoneId === 'ALL' || coupon.isAllZones === true) {
+      return true;
+    }
+
+    return false;
+  });
+}
+
