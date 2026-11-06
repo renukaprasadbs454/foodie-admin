@@ -1,5 +1,5 @@
 import { baseApi } from '../baseApi';
-import type { AdminUser, UserAccountStatus } from '@/features/users/types/usersTypes';
+import type { AdminUser, UserAccountStatus, UserLoginDevice } from '@/features/users/types/usersTypes';
 import type { AdminRole } from 'foodie-shared-web';
 
 export interface CreateAdminUserBody {
@@ -81,6 +81,26 @@ export const usersApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Admin', { type: 'Admin', id: 'USERS_LIST' }],
     }),
+    getUserLoginDevices: builder.query<UserLoginDevice[], string>({
+      query: (userId) => `/api/bff/admin/users/${encodeURIComponent(userId)}/login-devices`,
+      transformResponse: (response: any) => {
+        if (Array.isArray(response)) return response;
+        if (Array.isArray(response?.data)) return response.data;
+        return [];
+      },
+      providesTags: (_result, _error, id) => ['Admin', { type: 'Admin', id: `DEVICES_${id}` }],
+    }),
+    logoutAllUserDevices: builder.mutation<{ success: boolean }, string>({
+      query: (userId) => ({
+        url: `/api/bff/admin/users/${encodeURIComponent(userId)}/logout-all-devices`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, id) => [
+        'Admin',
+        { type: 'Admin', id: `DEVICES_${id}` },
+        { type: 'Admin', id: 'USERS_LIST' },
+      ],
+    }),
   }),
 });
 
@@ -94,4 +114,7 @@ export const {
   useUpdateAdminUserStatusMutation,
   useUpdateAdminUserPasswordMutation,
   useDeleteAdminUserMutation,
+  useGetUserLoginDevicesQuery,
+  useLazyGetUserLoginDevicesQuery,
+  useLogoutAllUserDevicesMutation,
 } = usersApi;

@@ -8,6 +8,7 @@ import {
 import { ENV } from '@/constants/env';
 import { safeFetch } from '@/lib/networkUtils';
 import { verifyPassword, getDefaultAdminUsers, loadPersistentAdminUsers } from '@/lib/adminSecurity';
+import { recordUserLoginDevice } from '@/lib/loginDeviceStore';
 
 function isSecureRequest(request: Request): boolean {
   const forwardedProto = request.headers.get('x-forwarded-proto');
@@ -290,6 +291,17 @@ export async function POST(request: Request) {
           refreshToken: envelope.data.refreshToken,
         });
 
+        try {
+          recordUserLoginDevice({
+            userId: envelope.data.userId,
+            userEmail: normalizedEmail,
+            userRole,
+            userAgent: request.headers.get('user-agent'),
+            ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip'),
+            location: request.headers.get('x-city'),
+          });
+        } catch {}
+
         response.cookies.set('foodie_user_role', userRole, {
           path: '/',
           sameSite: 'lax',
@@ -444,6 +456,17 @@ export async function POST(request: Request) {
         refreshToken: userRefresh,
       });
 
+      try {
+        recordUserLoginDevice({
+          userId: matchedUser.id,
+          userEmail: normalizedEmail,
+          userRole,
+          userAgent: request.headers.get('user-agent'),
+          ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip'),
+          location: request.headers.get('x-city'),
+        });
+      } catch {}
+
       response.cookies.set('foodie_user_role', userRole, {
         path: '/',
         sameSite: 'lax',
@@ -534,6 +557,17 @@ export async function POST(request: Request) {
       accessToken: `demo-admin-${demo.tokenKey}-token`,
       refreshToken: `demo-refresh-${demo.tokenKey}-token`,
     });
+
+    try {
+      recordUserLoginDevice({
+        userId: demo.userId,
+        userEmail: normalizedEmail,
+        userRole,
+        userAgent: request.headers.get('user-agent'),
+        ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip'),
+        location: request.headers.get('x-city'),
+      });
+    } catch {}
 
     response.cookies.set('foodie_user_role', userRole, {
       path: '/',

@@ -4,6 +4,21 @@ export type UserAccountStatus = 'ACTIVE' | 'SUSPENDED';
 
 export type DropdownAdminRole = 'SUPER_ADMIN' | 'OPS' | 'FINANCE' | 'SUPPORT';
 
+export interface UserLoginDevice {
+  id: string;
+  userId: string;
+  userRole?: string;
+  deviceName: string;
+  browser: string;
+  os: string;
+  ipAddress: string;
+  location: string;
+  loginAt: string;
+  lastActiveAt: string;
+  isCurrentActive: boolean;
+  logoutAt?: string | null;
+}
+
 export interface AdminUser {
   id: string;
   fullName: string;
@@ -18,6 +33,16 @@ export interface AdminUser {
   assignedZoneId?: string;
   assignedZoneName?: string;
   assignedZoneIds?: string[];
+  loginDevicesCount?: number;
+  activeDevicesCount?: number;
+  device_count?: number;
+  deviceCount?: number;
+  last_used?: string | null;
+  last_used_formatted?: string | null;
+  lastUsedText?: string;
+  last_active_at?: string | null;
+  is_online?: boolean;
+  devices?: UserLoginDevice[];
 }
 
 /**

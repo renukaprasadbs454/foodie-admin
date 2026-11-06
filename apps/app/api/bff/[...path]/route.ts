@@ -15,6 +15,15 @@ import {
   getRefundApprovalStatus,
 } from '../financialLedgerHelper';
 import { hashPassword, verifyPassword, isStrongPassword, getDefaultAdminUsers, loadPersistentAdminUsers, savePersistentAdminUsers } from '@/lib/adminSecurity';
+import {
+  getUserLoginDevices,
+  logoutAllUserDevices,
+  getUserDeviceCounts,
+  getUserDeviceAggregate,
+  updateLastActiveForUser,
+  isDeviceOnline,
+  maskIpAddress,
+} from '@/lib/loginDeviceStore';
 
 /**
  * Thin BFF proxy — Blueprint §7.4 / System Design §9.4.
@@ -7055,6 +7064,29 @@ async function proxy(request: Request, pathSegments: string[]) {
   const rawAccessToken = readAccessTokenFromCookieHeader(cookieHeader) || bearerToken;
   let accessToken = rawAccessToken;
 
+  // Middleware updateLastActive: On every authenticated API call, update last_active_at and is_online
+  if (rawAccessToken) {
+    let authUserId: string | null = null;
+    if (globalAny.ADMIN_USERS_STORE) {
+      const store = globalAny.ADMIN_USERS_STORE as any[];
+      const found = store.find((u) => rawAccessToken.includes(u.id) || (u.email && rawAccessToken.includes(u.email)));
+      if (found) authUserId = found.id;
+    }
+    if (!authUserId && rawAccessToken.startsWith('demo-')) {
+      if (rawAccessToken.includes('super')) authUserId = 'USR-1000';
+      else if (rawAccessToken.includes('finance')) authUserId = 'USR-1003';
+      else if (rawAccessToken.includes('ops') || rawAccessToken.includes('operation')) authUserId = 'USR-1002';
+      else if (rawAccessToken.includes('admin')) authUserId = 'USR-1001';
+      else authUserId = 'USR-1000';
+    }
+    if (authUserId) {
+      const ua = request.headers.get('user-agent');
+      const forwarded = request.headers.get('x-forwarded-for');
+      const ip = forwarded ? forwarded.split(',')[0].trim() : (request.headers.get('x-real-ip') || '49.207.215.89');
+      updateLastActiveForUser(authUserId, ua, ip);
+    }
+  }
+
   const validated = sanitizeBffPathSegments(pathSegments);
   const targetPath = validated.ok ? validated.targetPath : pathSegments.join('/');
 
@@ -7181,7 +7213,7 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
   usersStore = cleanUsers;
   globalAny.ADMIN_USERS_STORE = cleanUsers;
 
-  if (request.method === 'GET' && targetPath === 'admin/users') {
+  if (request.method === 'GET' && (targetPath === 'admin/users' || targetPath === 'users')) {
     const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
     const backendToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : await getDevBackendToken();
     try {
@@ -7199,14 +7231,17 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
             const existing = usersStore.find(u => (u.email || '').trim().toLowerCase() === email);
             if (existing) {
               if (uu.id) existing.id = uu.id;
+              if (uu.adminUserId) existing.adminUserId = uu.adminUserId;
               if (uu.assignedZoneId) existing.assignedZoneId = uu.assignedZoneId;
               if (uu.assignedZoneName) existing.assignedZoneName = uu.assignedZoneName;
               if (uu.role) existing.role = uu.role;
               if (uu.fullName) existing.fullName = uu.fullName;
               if (uu.phoneNumber) existing.phone = uu.phoneNumber;
+              if (typeof uu.loginDevicesCount === 'number') existing.loginDevicesCount = uu.loginDevicesCount;
+              if (typeof uu.activeDevicesCount === 'number') existing.activeDevicesCount = uu.activeDevicesCount;
             } else {
               usersStore.push({
-                id: uu.id || `USR-${Math.floor(1000 + Math.random() * 9000)}`,
+                id: uu.id || uu.adminUserId || `USR-${Math.floor(1000 + Math.random() * 9000)}`,
                 fullName: uu.fullName || 'Admin User',
                 email: email,
                 phone: uu.phoneNumber || '+91 98000 00000',
@@ -7218,6 +7253,8 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
                 assignedZoneId: uu.assignedZoneId || null,
                 assignedZoneName: uu.assignedZoneName || null,
                 passwordHash: '',
+                loginDevicesCount: uu.loginDevicesCount,
+                activeDevicesCount: uu.activeDevicesCount,
               });
             }
           }
@@ -7226,10 +7263,25 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
       }
     } catch {}
 
-    const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => ({
-      ...rest,
-      assignedZoneIds: Array.isArray(rest.assignedZoneIds) ? rest.assignedZoneIds : (rest.assignedZoneId ? [rest.assignedZoneId] : []),
-    }));
+    const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => {
+      const agg = getUserDeviceAggregate(rest.id, rest.email);
+      const counts = getUserDeviceCounts(rest.id, rest.email);
+      const finalDeviceCount = Math.max(agg.device_count, rest.loginDevicesCount || 0);
+      const isOnline = agg.is_online || (agg.last_active_at ? isDeviceOnline(agg.last_active_at) : false) || Boolean(rest.activeDevicesCount && rest.activeDevicesCount > 0);
+      return {
+        ...rest,
+        assignedZoneIds: Array.isArray(rest.assignedZoneIds) ? rest.assignedZoneIds : (rest.assignedZoneId ? [rest.assignedZoneId] : []),
+        device_count: finalDeviceCount,
+        loginDevicesCount: finalDeviceCount,
+        activeDevicesCount: isOnline ? Math.max(counts.active, 1) : counts.active,
+        last_used: agg.last_used,
+        last_used_formatted: agg.last_used_formatted || agg.lastUsedText,
+        lastUsedText: agg.lastUsedText,
+        last_active_at: agg.last_active_at,
+        is_online: isOnline,
+        devices: agg.devices,
+      };
+    });
     return NextResponse.json({
       success: true,
       data: safeUsers,
@@ -7559,6 +7611,60 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     }, { status: 200 });
   }
 
+  const loginDevicesMatch = targetPath.match(/^(?:admin\/)?users\/([^/]+)\/(?:login-)?devices$/);
+  if (request.method === 'GET' && loginDevicesMatch) {
+    const rawId = decodeURIComponent(loginDevicesMatch[1]).trim();
+    const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+    const backendToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : await getDevBackendToken();
+    try {
+      const { response: upstreamRes } = await safeFetch(`${backendUrl}/api/v1/admin/users/${encodeURIComponent(rawId)}/login-devices`, {
+        headers: { Accept: 'application/json', Authorization: `Bearer ${backendToken}` },
+        timeoutMs: 3000,
+      });
+      if (upstreamRes && upstreamRes.ok) {
+        const json = await upstreamRes.json();
+        const devices = Array.isArray(json) ? json : (json?.data || []);
+        if (Array.isArray(devices) && devices.length > 0) {
+          return NextResponse.json({
+            success: true,
+            data: devices,
+            error: null,
+            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+          }, { status: 200 });
+        }
+      }
+    } catch {}
+
+    const localDevices = getUserLoginDevices(rawId, false);
+    return NextResponse.json({
+      success: true,
+      data: localDevices,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  const logoutDevicesMatch = targetPath.match(/^(?:admin\/)?users\/([^/]+)\/logout-all-devices$/);
+  if (request.method === 'POST' && logoutDevicesMatch) {
+    const rawId = decodeURIComponent(logoutDevicesMatch[1]).trim();
+    logoutAllUserDevices(rawId);
+
+    const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+    const backendToken = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : await getDevBackendToken();
+    safeFetch(`${backendUrl}/api/v1/admin/users/${encodeURIComponent(rawId)}/logout-all-devices`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${backendToken}` },
+      timeoutMs: 3000,
+    }).catch(() => null);
+
+    return NextResponse.json({
+      success: true,
+      data: true,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
   const getUserMatch = targetPath.match(/^admin\/users\/([^/]+)$/);
   if (request.method === 'GET' && getUserMatch) {
     const rawId = decodeURIComponent(getUserMatch[1]).trim();
@@ -7612,10 +7718,15 @@ async function handleAdminUsers(request: Request, targetPath: string, accessToke
     }, { status: 200 });
   }
 
-  const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => ({
-    ...rest,
-    assignedZoneIds: Array.isArray(rest.assignedZoneIds) ? rest.assignedZoneIds : (rest.assignedZoneId ? [rest.assignedZoneId] : []),
-  }));
+  const safeUsers = usersStore.map(({ passwordHash: _, ...rest }) => {
+    const counts = getUserDeviceCounts(rest.id || rest.email);
+    return {
+      ...rest,
+      assignedZoneIds: Array.isArray(rest.assignedZoneIds) ? rest.assignedZoneIds : (rest.assignedZoneId ? [rest.assignedZoneId] : []),
+      loginDevicesCount: rest.loginDevicesCount ?? counts.total,
+      activeDevicesCount: rest.activeDevicesCount ?? counts.active,
+    };
+  });
   return NextResponse.json({
     success: true,
     data: safeUsers,
@@ -7932,7 +8043,7 @@ function toBackendZoneId(zid?: string | null): string | null {
     return handleAdminSupportTickets(request, targetPath, accessToken);
   }
 
-  if (targetPath.startsWith('admin/users') && targetPath !== 'admin/users/me') {
+  if ((targetPath.startsWith('admin/users') || targetPath === 'users' || targetPath.startsWith('users/')) && targetPath !== 'admin/users/me') {
     return handleAdminUsers(request, targetPath, accessToken);
   }
 
