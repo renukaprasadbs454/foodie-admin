@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { DASHBOARD_NAV, filterNavForRole, isRouteAllowedForRole } from '../lib/routeGuards';
 import {
   inferRequestSource,
@@ -9,6 +11,9 @@ import {
   resolveDocumentUrl,
   UnserviceableRequestDto,
 } from '../features/location/types';
+import { GET as bffGet, POST as bffPost, PUT as bffPut } from '../app/api/bff/[...path]/route';
+
+const makeCtx = (path: string[]) => ({ params: Promise.resolve({ path }) });
 
 describe('Unserviceable Areas Feature', () => {
   describe('Navigation & Placement', () => {
@@ -236,6 +241,339 @@ describe('Unserviceable Areas Feature', () => {
       const formatRef = (id: string | number) => `#REQ-${id}`;
       expect(formatRef('10')).toBe('#REQ-10');
       expect(formatRef(42)).toBe('#REQ-42');
+    });
+  });
+
+  describe('Zone-Based Data Isolation & Role Authorization', () => {
+    const globalAny = global as unknown as Record<string, unknown>;
+    const filePath = path.join(process.cwd(), 'data', 'unserviceable_requests.json');
+
+    const resetStorage = () => {
+      globalAny.__UNSERVICEABLE_REQUESTS = [];
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.writeFileSync(filePath, '[]', 'utf8');
+        }
+      } catch {}
+    };
+
+    beforeEach(() => {
+      // Clear in-memory and disk to start clean
+      resetStorage();
+    });
+
+    afterAll(() => {
+      // Ensure test records do not persist on disk
+      resetStorage();
+    });
+
+    it('1. Confirms all three tabs show zero requests when module is cleared', async () => {
+      const req = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        headers: {
+          cookie: 'foodie_access_token=demo-admin-super_admin-token; foodie_user_role=SUPER_ADMIN;',
+          authorization: 'Bearer demo-admin-super_admin-token',
+        },
+      });
+      const res = await bffGet(req, makeCtx(['admin', 'location', 'unserviceable-requests']));
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.data).toEqual([]);
+    });
+
+    it('2 & 3. Submits one genuine Customer request from Tumkur and verifies it appears only in Customer tab', async () => {
+      const customerReq = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requesterId: 'cust-tmk-101',
+          requesterName: 'Kavitha Devi',
+          contactPerson: 'Kavitha Devi',
+          contactPhone: '+919844011223',
+          address: 'Batawadi Extension, Tumkur',
+          cityName: 'Tumkur',
+          latitude: 13.341,
+          longitude: 77.102,
+          requestSource: 'CUSTOMER',
+          zoneId: 'dz-tumkur',
+          zoneName: 'Tumkur Zone',
+        }),
+      });
+      const postRes = await bffPost(customerReq, makeCtx(['admin', 'location', 'unserviceable-requests']));
+      expect(postRes.status).toBe(200);
+      const postBody = await postRes.json();
+      expect(postBody.success).toBe(true);
+      expect(postBody.data.requestSource).toBe('CUSTOMER');
+      expect(postBody.data.zoneId).toBe('dz-tumkur');
+
+      // Fetch list
+      const getReq = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        headers: {
+          cookie: 'foodie_access_token=demo-admin-super_admin-token; foodie_user_role=SUPER_ADMIN;',
+          authorization: 'Bearer demo-admin-super_admin-token',
+        },
+      });
+      const getRes = await bffGet(getReq, makeCtx(['admin', 'location', 'unserviceable-requests']));
+      const list: UnserviceableRequestDto[] = (await getRes.json()).data;
+      expect(list.length).toBe(1);
+
+      // Verify source categorization
+      expect(inferRequestSource(list[0])).toBe('CUSTOMER');
+      expect(inferRequestSource(list[0])).not.toBe('DELIVERY_PARTNER');
+      expect(inferRequestSource(list[0])).not.toBe('RESTAURANT');
+    });
+
+    it('4 & 5. Submits one genuine Delivery Partner request from Bangalore and verifies it appears only in Delivery Partner tab', async () => {
+      const dpReq = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requesterId: 'dp-blr-201',
+          requesterName: 'Suresh Kumar',
+          contactPerson: 'Suresh Kumar',
+          contactPhone: '+919876500112',
+          address: 'Whitefield Outer Circle, Bangalore',
+          cityName: 'Bangalore',
+          latitude: 12.9698,
+          longitude: 77.7499,
+          requestSource: 'DELIVERY_PARTNER',
+          zoneId: 'dz-bangalore',
+          zoneName: 'Bangalore Zone',
+        }),
+      });
+      const postRes = await bffPost(dpReq, makeCtx(['admin', 'location', 'unserviceable-requests']));
+      expect(postRes.status).toBe(200);
+      const postBody = await postRes.json();
+      expect(postBody.success).toBe(true);
+      expect(postBody.data.requestSource).toBe('DELIVERY_PARTNER');
+      expect(postBody.data.zoneId).toBe('dz-bangalore');
+
+      // Verify it is only categorized as DELIVERY_PARTNER
+      expect(inferRequestSource(postBody.data)).toBe('DELIVERY_PARTNER');
+      expect(inferRequestSource(postBody.data)).not.toBe('CUSTOMER');
+      expect(inferRequestSource(postBody.data)).not.toBe('RESTAURANT');
+    });
+
+    it('6 & 7. Submits one genuine Restaurant request from Tumkur and verifies it appears only in Restaurant tab', async () => {
+      const restReq = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requesterId: 'rest-tmk-301',
+          requesterName: 'Siddaganga Tiffins',
+          restaurantName: 'Siddaganga Tiffins',
+          contactPerson: 'Shivanna',
+          contactPhone: '+919844099887',
+          address: 'BH Road, Tumkur',
+          cityName: 'Tumkur',
+          latitude: 13.338,
+          longitude: 77.115,
+          requestSource: 'RESTAURANT',
+          zoneId: 'dz-tumkur',
+          zoneName: 'Tumkur Zone',
+        }),
+      });
+      const postRes = await bffPost(restReq, makeCtx(['admin', 'location', 'unserviceable-requests']));
+      expect(postRes.status).toBe(200);
+      const postBody = await postRes.json();
+      expect(postBody.success).toBe(true);
+      expect(postBody.data.requestSource).toBe('RESTAURANT');
+      expect(postBody.data.zoneId).toBe('dz-tumkur');
+
+      // Verify it is only categorized as RESTAURANT
+      expect(inferRequestSource(postBody.data)).toBe('RESTAURANT');
+      expect(inferRequestSource(postBody.data)).not.toBe('CUSTOMER');
+      expect(inferRequestSource(postBody.data)).not.toBe('DELIVERY_PARTNER');
+    });
+
+    it('8 & 9. Verifies data persistence without mutation: refreshing and polling never changes saved records', async () => {
+      // Create request
+      const createReq = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: 'req-stable-01',
+          requesterName: 'Meera',
+          contactPhone: '+919876543210',
+          address: 'Koramangala 4th Block',
+          cityName: 'Bangalore',
+          latitude: 12.935,
+          longitude: 77.624,
+          requestSource: 'CUSTOMER',
+          zoneId: 'dz-bangalore',
+          zoneName: 'Bangalore Zone',
+        }),
+      });
+      await bffPost(createReq, makeCtx(['admin', 'location', 'unserviceable-requests']));
+
+      // Repeated polling (simulating background polls over time)
+      for (let i = 0; i < 5; i++) {
+        const pollReq = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+          headers: {
+            cookie: 'foodie_access_token=demo-admin-super_admin-token; foodie_user_role=SUPER_ADMIN;',
+            authorization: 'Bearer demo-admin-super_admin-token',
+          },
+        });
+        const pollRes = await bffGet(pollReq, makeCtx(['admin', 'location', 'unserviceable-requests']));
+        const data: UnserviceableRequestDto[] = (await pollRes.json()).data;
+        const found = data.find((r) => r.id === 'req-stable-01');
+        expect(found).toBeDefined();
+        expect(found?.zoneId).toBe('dz-bangalore');
+        expect(found?.requestSource).toBe('CUSTOMER');
+        expect(found?.cityName).toBe('Bangalore');
+      }
+    });
+
+    it('10, 11 & 12. Super Admin sees all three requests; Bangalore Zone Admin sees only Bangalore; Tumkur Zone Admin sees only Tumkur', async () => {
+      // Populate the 3 requests:
+      // 1. Customer from Tumkur
+      await bffPost(new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: 'req-test-cust-tmk',
+          requesterName: 'Kavitha Devi',
+          contactPhone: '+919844011223',
+          address: 'Batawadi Extension, Tumkur',
+          cityName: 'Tumkur',
+          latitude: 13.341,
+          longitude: 77.102,
+          requestSource: 'CUSTOMER',
+          zoneId: 'dz-tumkur',
+          zoneName: 'Tumkur Zone',
+        }),
+      }), makeCtx(['admin', 'location', 'unserviceable-requests']));
+
+      // 2. Delivery Partner from Bangalore
+      await bffPost(new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: 'req-test-dp-blr',
+          requesterName: 'Suresh Kumar',
+          contactPhone: '+919876500112',
+          address: 'Whitefield Outer Circle, Bangalore',
+          cityName: 'Bangalore',
+          latitude: 12.9698,
+          longitude: 77.7499,
+          requestSource: 'DELIVERY_PARTNER',
+          zoneId: 'dz-bangalore',
+          zoneName: 'Bangalore Zone',
+        }),
+      }), makeCtx(['admin', 'location', 'unserviceable-requests']));
+
+      // 3. Restaurant from Tumkur
+      await bffPost(new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: 'req-test-rest-tmk',
+          requesterName: 'Siddaganga Tiffins',
+          restaurantName: 'Siddaganga Tiffins',
+          contactPhone: '+919844099887',
+          address: 'BH Road, Tumkur',
+          cityName: 'Tumkur',
+          latitude: 13.338,
+          longitude: 77.115,
+          requestSource: 'RESTAURANT',
+          zoneId: 'dz-tumkur',
+          zoneName: 'Tumkur Zone',
+        }),
+      }), makeCtx(['admin', 'location', 'unserviceable-requests']));
+
+      // 10. Super Admin verifies all three requests
+      const saReq = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        headers: {
+          cookie: 'foodie_access_token=demo-admin-super_admin-token; foodie_user_role=SUPER_ADMIN;',
+          authorization: 'Bearer demo-admin-super_admin-token',
+        },
+      });
+      const saRes = await bffGet(saReq, makeCtx(['admin', 'location', 'unserviceable-requests']));
+      const saData: UnserviceableRequestDto[] = (await saRes.json()).data;
+      expect(saData.length).toBe(3);
+      expect(saData.some((r) => r.id === 'req-test-cust-tmk')).toBe(true);
+      expect(saData.some((r) => r.id === 'req-test-dp-blr')).toBe(true);
+      expect(saData.some((r) => r.id === 'req-test-rest-tmk')).toBe(true);
+
+      // 11. Bangalore Zone Admin sees ONLY Bangalore requests (1 request)
+      const blrReq = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        headers: {
+          cookie: 'foodie_access_token=demo-admin-token; foodie_user_role=ZONE_ADMIN; foodie_user_assigned_zone=dz-bangalore;',
+          'x-user-role': 'ZONE_ADMIN',
+          'x-assigned-zone-id': 'dz-bangalore',
+        },
+      });
+      const blrRes = await bffGet(blrReq, makeCtx(['admin', 'location', 'unserviceable-requests']));
+      const blrData: UnserviceableRequestDto[] = (await blrRes.json()).data;
+      expect(blrData.length).toBe(1);
+      expect(blrData[0].id).toBe('req-test-dp-blr');
+      expect(blrData[0].zoneId).toBe('dz-bangalore');
+
+      // 12. Tumkur Zone Admin sees ONLY Tumkur requests (2 requests)
+      const tmkReq = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        headers: {
+          cookie: 'foodie_access_token=demo-admin-token; foodie_user_role=ZONE_ADMIN; foodie_user_assigned_zone=dz-tumkur;',
+          'x-user-role': 'ZONE_ADMIN',
+          'x-assigned-zone-id': 'dz-tumkur',
+        },
+      });
+      const tmkRes = await bffGet(tmkReq, makeCtx(['admin', 'location', 'unserviceable-requests']));
+      const tmkData: UnserviceableRequestDto[] = (await tmkRes.json()).data;
+      expect(tmkData.length).toBe(2);
+      expect(tmkData.every((r) => r.zoneId === 'dz-tumkur')).toBe(true);
+      expect(tmkData.some((r) => r.id === 'req-test-cust-tmk')).toBe(true);
+      expect(tmkData.some((r) => r.id === 'req-test-rest-tmk')).toBe(true);
+    });
+
+    it('Rejects cross-zone query parameter tampering by Zone Admin with 403 Forbidden', async () => {
+      const tamperedReq = new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests?zoneId=dz-tumkur', {
+        headers: {
+          cookie: 'foodie_access_token=demo-admin-token; foodie_user_role=ZONE_ADMIN; foodie_user_assigned_zone=dz-bangalore;',
+          'x-user-role': 'ZONE_ADMIN',
+          'x-assigned-zone-id': 'dz-bangalore',
+        },
+      });
+      const res = await bffGet(tamperedReq, makeCtx(['admin', 'location', 'unserviceable-requests']));
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error?.code).toBe('FORBIDDEN');
+    });
+
+    it('Prevents duplicate request submissions', async () => {
+      const payload = {
+        requesterName: 'Duplicate Test',
+        contactPhone: '+919876599999',
+        address: 'MG Road, Bangalore',
+        cityName: 'Bangalore',
+        requestSource: 'CUSTOMER',
+        zoneId: 'dz-bangalore',
+      };
+
+      const res1 = await bffPost(new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }), makeCtx(['admin', 'location', 'unserviceable-requests']));
+      expect(res1.status).toBe(200);
+
+      // Attempt duplicate submission
+      const res2 = await bffPost(new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }), makeCtx(['admin', 'location', 'unserviceable-requests']));
+      expect(res2.status).toBe(200);
+
+      // Verify list has only 1 record, not 2
+      const getRes = await bffGet(new Request('http://localhost:3000/api/bff/admin/location/unserviceable-requests', {
+        headers: {
+          cookie: 'foodie_access_token=demo-admin-super_admin-token; foodie_user_role=SUPER_ADMIN;',
+          authorization: 'Bearer demo-admin-super_admin-token',
+        },
+      }), makeCtx(['admin', 'location', 'unserviceable-requests']));
+      const data: UnserviceableRequestDto[] = (await getRes.json()).data;
+      expect(data.filter((r) => r.contactPhone === '+919876599999').length).toBe(1);
     });
   });
 });

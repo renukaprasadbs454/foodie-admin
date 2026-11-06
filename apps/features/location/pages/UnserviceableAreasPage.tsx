@@ -105,10 +105,16 @@ export function UnserviceableAreasPage() {
 
   // Zone isolation context
   const userAssignedZone = typeof window !== 'undefined'
-    ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
+    ? (localStorage.getItem('foodie_user_assigned_zone') ||
+       sessionStorage.getItem('foodie_user_assigned_zone') ||
+       (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
     : null;
   const userStoredRole = typeof window !== 'undefined'
-    ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role'))
+    ? (localStorage.getItem('foodie_admin_role') ||
+       sessionStorage.getItem('foodie_admin_role') ||
+       localStorage.getItem('foodie_user_role') ||
+       sessionStorage.getItem('foodie_user_role') ||
+       (typeof document !== 'undefined' ? (document.cookie.match(/foodie_admin_role=([^;]+)/)?.[1] || document.cookie.match(/foodie_user_role=([^;]+)/)?.[1]) : null))
     : null;
   const isSuperAdmin = !userStoredRole || userStoredRole.toUpperCase() === 'SUPER_ADMIN';
 
@@ -286,9 +292,9 @@ export function UnserviceableAreasPage() {
     return null;
   };
 
-  // Filter out dummy/sample records (req-1 and req-2)
+  // Filter out dummy/sample records (req-1 and req-2) and legacy test records
   const realDbRequests = useMemo(() => {
-    return dbRequests.filter((req) => req.id !== 'req-1' && req.id !== 'req-2');
+    return dbRequests.filter((req) => req.id !== 'req-1' && req.id !== 'req-2' && req.id !== 'req-mvzcjlhq-8pq6');
   }, [dbRequests]);
 
   // Zone isolation filtering: ensures particular zone admin sees requests nearest to their zone
@@ -296,6 +302,8 @@ export function UnserviceableAreasPage() {
     if (isSuperAdmin || !userAssignedZone) return realDbRequests;
     const assignedTarget = decodeURIComponent(userAssignedZone).trim().toLowerCase();
     return realDbRequests.filter((req) => {
+      if (req.zoneId && isMatchingZone(req.zoneId, assignedTarget)) return true;
+      if (req.zoneName && isMatchingZone(req.zoneName, assignedTarget)) return true;
       const city = req.cityName || '';
       if (isMatchingZone(city, assignedTarget)) return true;
       const nearestInfo = getNearestZoneForRequest(req);
@@ -312,6 +320,21 @@ export function UnserviceableAreasPage() {
     });
   }, [realDbRequests, isSuperAdmin, userAssignedZone, dbZones]);
 
+  // Scoped zones and cities available for filter dropdowns based on admin access
+  const availableZones = useMemo(() => {
+    if (isSuperAdmin || !userAssignedZone) return dbZones;
+    const target = decodeURIComponent(userAssignedZone).trim().toLowerCase();
+    const matched = dbZones.filter((z) => isMatchingZone(z.id, target) || isMatchingZone(z.zoneName, target));
+    return matched.length > 0 ? matched : dbZones;
+  }, [dbZones, isSuperAdmin, userAssignedZone]);
+
+  const availableCities = useMemo(() => {
+    if (isSuperAdmin || !userAssignedZone) return dbCities;
+    const target = decodeURIComponent(userAssignedZone).trim().toLowerCase();
+    const matched = dbCities.filter((c) => isMatchingZone(c.cityName, target) || availableZones.some((z) => isMatchingZone(z.cityName || '', c.cityName)));
+    return matched.length > 0 ? matched : dbCities;
+  }, [dbCities, isSuperAdmin, userAssignedZone, availableZones]);
+
   // Enriched and Filtered Requests
   const filteredRequests = useMemo(() => {
     return zoneFilteredRequests.filter((req) => {
@@ -322,9 +345,12 @@ export function UnserviceableAreasPage() {
 
       if (selectedZone !== 'ALL') {
         const zoneObj = dbZones.find((z) => z.id === selectedZone);
-        if (zoneObj && req.cityName && !isMatchingZone(req.cityName, zoneObj.cityName || zoneObj.zoneName)) {
-          return false;
-        }
+        const matchesZone =
+          (req.zoneId && isMatchingZone(req.zoneId, selectedZone)) ||
+          (req.zoneName && isMatchingZone(req.zoneName, selectedZone)) ||
+          (zoneObj && isMatchingZone(req.cityName || '', zoneObj.cityName || zoneObj.zoneName)) ||
+          isMatchingZone(req.cityName || '', selectedZone);
+        if (!matchesZone) return false;
       }
 
       if (searchQuery.trim()) {
@@ -447,20 +473,52 @@ export function UnserviceableAreasPage() {
       encodedRestName = `[Delivery Partner] ${newName.trim()}`;
     }
 
+    // Determine target zone based on request location / city (never logged-in admin's zone)
+    const latNum = newLat ? parseFloat(newLat) : 0;
+    const lngNum = newLng ? parseFloat(newLng) : 0;
+    let resolvedZoneId: string | undefined = undefined;
+    let resolvedZoneName: string | undefined = undefined;
+
+    if (latNum && lngNum) {
+      const distTumkur = calculateDistanceKm(latNum, lngNum, 13.3379, 77.1173);
+      const distBlr = calculateDistanceKm(latNum, lngNum, 12.9716, 77.5946);
+      if (distTumkur < distBlr && distTumkur < 80) {
+        resolvedZoneId = 'dz-tumkur';
+        resolvedZoneName = 'Tumkur Zone';
+      } else if (distBlr < 80) {
+        resolvedZoneId = 'dz-bangalore';
+        resolvedZoneName = 'Bangalore Zone';
+      }
+    }
+    if (!resolvedZoneId && newCity) {
+      if (newCity.toLowerCase().includes('tumkur')) {
+        resolvedZoneId = 'dz-tumkur';
+        resolvedZoneName = 'Tumkur Zone';
+      } else if (newCity.toLowerCase().includes('bangalore') || newCity.toLowerCase().includes('bengaluru')) {
+        resolvedZoneId = 'dz-bangalore';
+        resolvedZoneName = 'Bangalore Zone';
+      }
+    }
+
+    const requesterId = `${newSource === 'CUSTOMER' ? 'cust' : newSource === 'DELIVERY_PARTNER' ? 'dp' : 'rest'}-${Date.now().toString(36)}`;
+
     try {
       await createUnserviceableRequest({
+        requesterId,
         restaurantName: encodedRestName,
         contactPerson: newContactPerson.trim() || newName.trim(),
         contactEmail: newEmail.trim(),
         contactPhone: newPhone.trim(),
         address: newAddress.trim(),
         cityName: newCity,
-        latitude: newLat ? parseFloat(newLat) : 0,
-        longitude: newLng ? parseFloat(newLng) : 0,
+        latitude: latNum,
+        longitude: lngNum,
         status: 'PENDING',
         requestSource: newSource,
         requesterName: newName.trim(),
         requestedArea: newAddress.trim(),
+        zoneId: resolvedZoneId,
+        zoneName: resolvedZoneName,
       }).unwrap();
 
       showToast(`Unserviceable area request from ${newSource} successfully submitted to backend!`);
@@ -1794,7 +1852,7 @@ export function UnserviceableAreasPage() {
               }}
             >
               <option value="ALL">All Cities</option>
-              {dbCities.map((c) => (
+              {availableCities.map((c) => (
                 <option key={c.id} value={c.cityName}>
                   {c.cityName}
                 </option>
@@ -1803,7 +1861,7 @@ export function UnserviceableAreasPage() {
           </div>
 
           {/* Zone Filter */}
-          {dbZones.length > 0 && (
+          {availableZones.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#4B5563' }}>Zone:</label>
               <select
@@ -1821,7 +1879,7 @@ export function UnserviceableAreasPage() {
                 }}
               >
                 <option value="ALL">All Zones</option>
-                {dbZones.map((z) => (
+                {availableZones.map((z) => (
                   <option key={z.id} value={z.id}>
                     {z.zoneName}
                   </option>

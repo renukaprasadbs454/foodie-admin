@@ -5699,32 +5699,37 @@ const UNSERVICEABLE_REQUESTS_FILE = path.join(process.cwd(), 'data', 'unservicea
 
 function loadLocalUnserviceableRequests(): any[] {
   const g = global as unknown as Record<string, unknown>;
-  if (Array.isArray(g.__UNSERVICEABLE_REQUESTS)) {
-    return g.__UNSERVICEABLE_REQUESTS as any[];
-  }
   try {
     if (fs.existsSync(UNSERVICEABLE_REQUESTS_FILE)) {
       const data = JSON.parse(fs.readFileSync(UNSERVICEABLE_REQUESTS_FILE, 'utf8'));
       if (Array.isArray(data)) {
-        g.__UNSERVICEABLE_REQUESTS = data;
-        return data;
+        const filtered = data.filter((r: any) => r && r.id && r.id !== 'req-1' && r.id !== 'req-2' && r.id !== 'req-mvzcjlhq-8pq6');
+        g.__UNSERVICEABLE_REQUESTS = filtered;
+        return filtered;
       }
     }
   } catch (err) {
     console.warn('Failed to load unserviceable_requests.json', err);
   }
+  if (Array.isArray(g.__UNSERVICEABLE_REQUESTS)) {
+    const filtered = (g.__UNSERVICEABLE_REQUESTS as any[]).filter((r: any) => r && r.id && r.id !== 'req-1' && r.id !== 'req-2' && r.id !== 'req-mvzcjlhq-8pq6');
+    g.__UNSERVICEABLE_REQUESTS = filtered;
+    return filtered;
+  }
   const initial: any[] = [];
   g.__UNSERVICEABLE_REQUESTS = initial;
+  saveLocalUnserviceableRequests(initial);
   return initial;
 }
 
 function saveLocalUnserviceableRequests(list: any[]): void {
   const g = global as unknown as Record<string, unknown>;
-  g.__UNSERVICEABLE_REQUESTS = list;
+  const clean = list.filter((r: any) => r && r.id && r.id !== 'req-1' && r.id !== 'req-2' && r.id !== 'req-mvzcjlhq-8pq6');
+  g.__UNSERVICEABLE_REQUESTS = clean;
   try {
     const dir = path.dirname(UNSERVICEABLE_REQUESTS_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(UNSERVICEABLE_REQUESTS_FILE, JSON.stringify(list, null, 2), 'utf8');
+    fs.writeFileSync(UNSERVICEABLE_REQUESTS_FILE, JSON.stringify(clean, null, 2), 'utf8');
   } catch (err) {
     console.warn('Failed to save unserviceable_requests.json', err);
   }
@@ -5733,6 +5738,112 @@ function saveLocalUnserviceableRequests(list: any[]): void {
 async function handleUnserviceableRequests(request: Request, targetPath: string, accessToken: string | null) {
   const localList = loadLocalUnserviceableRequests();
   const urlObj = new URL(request.url);
+
+  // Authenticated Admin User & Role / Zone extraction
+  const cookieHeader = request.headers.get('cookie') || '';
+  const headerRole = request.headers.get('x-user-role') || request.headers.get('x-admin-role');
+  const headerAssignedZone = request.headers.get('x-assigned-zone-id');
+  const headerActiveZone = request.headers.get('x-active-zone-id');
+
+  const cookieRole = cookieHeader.match(/foodie_user_role=([^;]+)/)?.[1] ||
+    cookieHeader.match(/foodie_admin_role=([^;]+)/)?.[1];
+  const cookieAssignedZone = cookieHeader.match(/foodie_user_assigned_zone=([^;]+)/)?.[1];
+  const cookieActiveZone = cookieHeader.match(/foodie_active_zone_id=([^;]+)/)?.[1];
+
+  let userRole = (headerRole || cookieRole ? decodeURIComponent(headerRole || cookieRole!) : null);
+  let assignedZoneId = (headerAssignedZone || cookieAssignedZone ? decodeURIComponent(headerAssignedZone || cookieAssignedZone!) : null);
+
+  if (accessToken && accessToken.includes('.')) {
+    try {
+      const parts = accessToken.split('.');
+      if (parts.length === 3) {
+        const payloadJson = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+        if (!userRole && (payloadJson.adminRole || payloadJson.role)) {
+          userRole = payloadJson.adminRole || payloadJson.role;
+        }
+        if (!assignedZoneId && (payloadJson.assignedZoneId || payloadJson.zoneId)) {
+          assignedZoneId = payloadJson.assignedZoneId || payloadJson.zoneId;
+        }
+      }
+    } catch {}
+  }
+
+  if (globalAny.ADMIN_USERS_STORE && accessToken) {
+    const store = globalAny.ADMIN_USERS_STORE as any[];
+    const found = store.find((u) => accessToken.includes(u.id) || (u.email && accessToken.includes(u.email)));
+    if (found) {
+      if (!userRole && found.role) userRole = found.role;
+      if (!assignedZoneId && found.assignedZoneId) assignedZoneId = found.assignedZoneId;
+    }
+  }
+
+  if (accessToken && accessToken.includes('super_admin')) {
+    userRole = 'SUPER_ADMIN';
+  } else if (accessToken && accessToken.includes('ops') && !userRole) {
+    userRole = 'OPS';
+  }
+
+  const cleanRole = (userRole || 'SUPER_ADMIN').toUpperCase().trim();
+  const isSuperAdmin = cleanRole === 'SUPER_ADMIN' || (!assignedZoneId && (accessToken?.includes('super_admin') || accessToken?.includes('USR-1001')));
+  if (isSuperAdmin) {
+    assignedZoneId = null;
+  }
+
+  const calculateHaversine = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const isZoneMatch = (zA?: string | null, zB?: string | null): boolean => {
+    if (!zA || !zB) return false;
+    const a = decodeURIComponent(zA).trim().toLowerCase();
+    const b = decodeURIComponent(zB).trim().toLowerCase();
+    if (a === 'all' || b === 'all') return true;
+    if (a === b || a.includes(b) || b.includes(a)) return true;
+    const isABlr = a.includes('bangalore') || a.includes('bengaluru') || a.includes('blr');
+    const isBBlr = b.includes('bangalore') || b.includes('bengaluru') || b.includes('blr');
+    if (isABlr && isBBlr) return true;
+    const isATmk = a.includes('tumkur') || a.includes('tumakuru') || a.includes('tmk');
+    const isBTmk = b.includes('tumkur') || b.includes('tumakuru') || b.includes('tmk');
+    if (isATmk && isBTmk) return true;
+    const isAMys = a.includes('mysore') || a.includes('mysuru');
+    const isBMys = b.includes('mysore') || b.includes('mysuru');
+    if (isAMys && isBMys) return true;
+    const isAHub = a.includes('hubballi') || a.includes('hubli') || a.includes('hbl');
+    const isBHub = b.includes('hubballi') || b.includes('hubli') || b.includes('hbl');
+    if (isAHub && isBHub) return true;
+    const strip = (s: string) => s.replace(/^dz-/, '').replace(/-zone$/, '').replace(/\s+zone$/i, '').trim();
+    if (strip(a) === strip(b)) return true;
+    return false;
+  };
+
+  const isRequestInZone = (r: any, targetZone: string): boolean => {
+    if (!targetZone || targetZone.toLowerCase() === 'all') return true;
+    if (r.zoneId && isZoneMatch(r.zoneId, targetZone)) return true;
+    if (r.zoneName && isZoneMatch(r.zoneName, targetZone)) return true;
+    if (r.cityName && isZoneMatch(r.cityName, targetZone)) return true;
+    const text = `${r.cityName || ''} ${r.address || ''} ${r.requestedArea || ''}`;
+    if (isZoneMatch(text, targetZone)) return true;
+    if (r.latitude != null && r.longitude != null) {
+      const lat = Number(r.latitude);
+      const lng = Number(r.longitude);
+      if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+        const isTargetTumkur = isZoneMatch('dz-tumkur', targetZone);
+        const isTargetBlr = isZoneMatch('dz-bangalore', targetZone);
+        const distTumkur = calculateHaversine(lat, lng, 13.3379, 77.1173);
+        const distBlr = calculateHaversine(lat, lng, 12.9716, 77.5946);
+        if (isTargetTumkur && distTumkur < distBlr) return true;
+        if (isTargetBlr && distBlr < distTumkur) return true;
+      }
+    }
+    return false;
+  };
 
   // 1. POST admin/location/unserviceable-requests (Create or update request)
   if (targetPath === 'admin/location/unserviceable-requests' && request.method === 'POST') {
@@ -5744,25 +5855,150 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
     const reqId = body.id || ('req-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6));
     const nowIso = new Date().toISOString();
 
+    // Source Type Resolution
+    let resolvedSource: 'CUSTOMER' | 'DELIVERY_PARTNER' | 'RESTAURANT' = 'CUSTOMER';
+    if (body.requestSource) {
+      const srcUpper = String(body.requestSource).toUpperCase().trim();
+      if (srcUpper === 'CUSTOMER' || srcUpper === 'DELIVERY_PARTNER' || srcUpper === 'RESTAURANT') {
+        resolvedSource = srcUpper as any;
+      }
+    } else if (body.deliveryPartnerId || (body.restaurantName && body.restaurantName.includes('[Delivery Partner]'))) {
+      resolvedSource = 'DELIVERY_PARTNER';
+    } else if (body.restaurantId || (body.restaurantName && !body.restaurantName.includes('[Customer]'))) {
+      resolvedSource = 'RESTAURANT';
+    }
+
+    const requesterName =
+      body.requesterName ||
+      body.contactPerson ||
+      (body.restaurantName ? body.restaurantName.replace(/^\[(Customer|Delivery Partner|Restaurant)\]\s*/i, '') : 'User');
+
+    const requesterId =
+      body.requesterId ||
+      body.userId ||
+      body.customerId ||
+      body.deliveryPartnerId ||
+      body.restaurantId ||
+      (resolvedSource === 'CUSTOMER' ? 'cust-' + Math.random().toString(36).substring(2, 8) :
+       resolvedSource === 'DELIVERY_PARTNER' ? 'dp-' + Math.random().toString(36).substring(2, 8) :
+       'rest-' + Math.random().toString(36).substring(2, 8));
+
+    let restaurantDisplayName = body.restaurantName;
+    if (resolvedSource === 'CUSTOMER') {
+      restaurantDisplayName = `[Customer] ${requesterName}`;
+    } else if (resolvedSource === 'DELIVERY_PARTNER') {
+      restaurantDisplayName = `[Delivery Partner] ${requesterName}`;
+    } else {
+      restaurantDisplayName = body.restaurantName ? body.restaurantName.replace(/^\[Restaurant\]\s*/i, '') : requesterName;
+    }
+
+    // Determine zoneId based on request location / partner / restaurant (NOT the logged-in admin's zone)
+    let resolvedZoneId = body.zoneId || null;
+    let resolvedZoneName = body.zoneName || null;
+
+    if (!resolvedZoneId && body.deliveryPartnerId) {
+      const dpStore = globalAny.DELIVERY_PARTNERS_STORE as any[] | undefined;
+      const dp = dpStore?.find((p) => p.id === body.deliveryPartnerId || p.partnerId === body.deliveryPartnerId);
+      if (dp && (dp.zoneId || dp.assignedZoneId)) {
+        resolvedZoneId = dp.zoneId || dp.assignedZoneId;
+        resolvedZoneName = dp.zoneName || dp.assignedZoneName || null;
+      }
+    }
+
+    if (!resolvedZoneId && body.restaurantId) {
+      const restStore = globalAny.RESTAURANTS_STORE as any[] | undefined;
+      const rest = restStore?.find((r) => r.id === body.restaurantId || r.restaurantId === body.restaurantId);
+      if (rest && (rest.zoneId || rest.assignedZoneId)) {
+        resolvedZoneId = rest.zoneId || rest.assignedZoneId;
+        resolvedZoneName = rest.zoneName || rest.assignedZoneName || null;
+      }
+    }
+
+    const lat = body.latitude != null ? Number(body.latitude) : null;
+    const lng = body.longitude != null ? Number(body.longitude) : null;
+    if (!resolvedZoneId && lat != null && lng != null && !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+      const distTumkur = calculateHaversine(lat, lng, 13.3379, 77.1173);
+      const distBlr = calculateHaversine(lat, lng, 12.9716, 77.5946);
+      if (distTumkur < distBlr && distTumkur < 80) {
+        resolvedZoneId = 'dz-tumkur';
+        resolvedZoneName = 'Tumkur Zone';
+      } else if (distBlr < 80) {
+        resolvedZoneId = 'dz-bangalore';
+        resolvedZoneName = 'Bangalore Zone';
+      }
+    }
+
+    if (!resolvedZoneId) {
+      const text = `${body.cityName || ''} ${body.address || ''} ${body.requestedArea || ''}`.toLowerCase();
+      if (text.includes('tumkur') || text.includes('tumakuru') || text.includes('tmk')) {
+        resolvedZoneId = 'dz-tumkur';
+        resolvedZoneName = 'Tumkur Zone';
+      } else if (text.includes('bangalore') || text.includes('bengaluru') || text.includes('blr')) {
+        resolvedZoneId = 'dz-bangalore';
+        resolvedZoneName = 'Bangalore Zone';
+      } else if (text.includes('mysore') || text.includes('mysuru')) {
+        resolvedZoneId = 'dz-mysore';
+        resolvedZoneName = 'Mysore Zone';
+      } else if (text.includes('hubballi') || text.includes('hubli')) {
+        resolvedZoneId = 'dz-hubballi';
+        resolvedZoneName = 'Hubballi Zone';
+      }
+    }
+
+    if (resolvedZoneId && !resolvedZoneName) {
+      if (resolvedZoneId.includes('tumkur')) resolvedZoneName = 'Tumkur Zone';
+      else if (resolvedZoneId.includes('bangalore') || resolvedZoneId.includes('bengaluru')) resolvedZoneName = 'Bangalore Zone';
+      else resolvedZoneName = resolvedZoneId;
+    }
+
+    // Duplicate check: if a pending request with exact same phone & address already exists for this source, do not duplicate
+    const isDuplicate = localList.some((r: any) =>
+      r.status === 'PENDING' &&
+      r.requestSource === resolvedSource &&
+      (
+        (r.contactPhone && body.contactPhone && r.contactPhone.replace(/\D/g, '') === String(body.contactPhone).replace(/\D/g, '') &&
+         String(r.address || r.requestedArea || '').toLowerCase().trim() === String(body.address || body.requestedArea || '').toLowerCase().trim()) ||
+        (r.id && r.id === reqId)
+      )
+    );
+
+    if (isDuplicate) {
+      const existing = localList.find((r: any) =>
+        r.status === 'PENDING' &&
+        r.requestSource === resolvedSource &&
+        (
+          (r.contactPhone && body.contactPhone && r.contactPhone.replace(/\D/g, '') === String(body.contactPhone).replace(/\D/g, '')) ||
+          (r.id && r.id === reqId)
+        )
+      );
+      return NextResponse.json({
+        success: true,
+        data: existing || localList[0],
+        error: null,
+        meta: { timestamp: nowIso, requestId: crypto.randomUUID(), duplicateIgnored: true },
+      });
+    }
+
     const newReq = {
       id: reqId,
-      deliveryPartnerId: body.deliveryPartnerId || null,
-      restaurantName: body.restaurantName || (body.requestSource === 'CUSTOMER' ? ('[Customer] ' + (body.contactPerson || 'Customer User')) : 'Unserviceable Location Request'),
-      contactPerson: body.contactPerson || body.requesterName || 'Customer User',
+      requesterId,
+      deliveryPartnerId: body.deliveryPartnerId || (resolvedSource === 'DELIVERY_PARTNER' ? requesterId : null),
+      restaurantName: restaurantDisplayName,
+      contactPerson: body.contactPerson || requesterName,
       contactEmail: body.contactEmail || null,
       contactPhone: body.contactPhone || null,
       address: body.address || body.requestedArea || 'Live Customer Location',
-      cityName: body.cityName || 'Bangalore',
+      cityName: body.cityName || (resolvedZoneName ? resolvedZoneName.replace(' Zone', '') : 'Bangalore'),
       latitude: body.latitude != null ? Number(body.latitude) : null,
       longitude: body.longitude != null ? Number(body.longitude) : null,
       status: body.status || 'PENDING',
       createdAt: body.createdAt || nowIso,
-      requestSource: body.requestSource || 'CUSTOMER',
-      requesterName: body.requesterName || body.contactPerson || 'Customer User',
+      requestSource: resolvedSource,
+      requesterName,
       requestedArea: body.requestedArea || body.address || 'Live Customer Location',
-      zoneId: body.zoneId || null,
-      zoneName: body.zoneName || null,
-      restaurantId: body.restaurantId || null,
+      zoneId: resolvedZoneId,
+      zoneName: resolvedZoneName,
+      restaurantId: body.restaurantId || (resolvedSource === 'RESTAURANT' ? requesterId : null),
       distanceFromZoneKm: body.distanceFromZoneKm || null,
       submittedDocuments: Array.isArray(body.submittedDocuments) ? body.submittedDocuments : [],
       documentDetails: Array.isArray(body.documentDetails) ? body.documentDetails : [],
@@ -5789,14 +6025,10 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
       });
     } catch {}
 
-    // Upsert into local list
-    const existingIdx = localList.findIndex((r: any) =>
-      (r.id && r.id === reqId) ||
-      (r.contactPhone && newReq.contactPhone && r.contactPhone === newReq.contactPhone && r.status === 'PENDING')
-    );
-
+    // Save into local list
+    const existingIdx = localList.findIndex((r: any) => r.id && r.id === reqId);
     if (existingIdx >= 0) {
-      localList[existingIdx] = { ...localList[existingIdx], ...newReq, id: localList[existingIdx].id };
+      localList[existingIdx] = { ...localList[existingIdx], ...newReq, id: reqId };
     } else {
       localList.unshift(newReq);
     }
@@ -5810,52 +6042,43 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
     });
   }
 
-  // 2. GET admin/location/unserviceable-requests (List all requests)
+  // 2. GET admin/location/unserviceable-requests (List all requests with Zone Isolation)
   if (targetPath === 'admin/location/unserviceable-requests' && request.method === 'GET') {
-    let upstreamData: any[] = [];
+    const queryZone = urlObj.searchParams.get('zoneId') || urlObj.searchParams.get('zone');
 
-    // Try local backend first
-    try {
-      const localFetch = await safeFetch('http://localhost:8082/api/v1/admin/location/unserviceable-requests');
-      if (localFetch.response && localFetch.response.ok) {
-        const json = await localFetch.response.json();
-        if (Array.isArray(json.data)) upstreamData = json.data;
-      }
-    } catch {}
-
-    // Fallback or augment with remote upstream if local was empty
-    if (upstreamData.length === 0) {
-      try {
-        const upFetch = await safeFetch(ENV.apiBaseUrl.replace(/\/$/, '') + '/api/v1/admin/location/unserviceable-requests', {
-          headers: accessToken ? { Authorization: 'Bearer ' + accessToken } : {},
-        });
-        if (upFetch.response && upFetch.response.ok) {
-          const json = await upFetch.response.json();
-          if (Array.isArray(json.data)) upstreamData = json.data;
-        }
-      } catch {}
-    }
-
-    // Merge upstream data with local data (preserving any local requests)
-    const map = new Map<string, any>();
-    for (const r of upstreamData) {
-      if (r && r.id) map.set(r.id, r);
-    }
-    for (const r of localList) {
-      if (r && r.id) {
-        if (!map.has(r.id)) {
-          map.set(r.id, r);
-        } else {
-          // Merge local status updates (e.g. APPROVED)
-          const merged = { ...map.get(r.id), ...r };
-          map.set(r.id, merged);
+    // Server-side authorization check:
+    // Prevent Zone Admin from accessing another zone via query parameters
+    if (!isSuperAdmin && assignedZoneId) {
+      if (queryZone) {
+        const cleanQ = decodeURIComponent(queryZone).trim().toLowerCase();
+        if (cleanQ === 'all' || !isZoneMatch(queryZone, assignedZoneId)) {
+          return NextResponse.json({
+            success: false,
+            data: null,
+            error: {
+              code: 'FORBIDDEN',
+              message: `Cross-zone access denied: Your account is restricted to operating zone '${assignedZoneId}'.`,
+            },
+            meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+          }, { status: 403 });
         }
       }
     }
 
-    const mergedList = Array.from(map.values());
-    // Filter dummy items
-    const filtered = mergedList.filter((r) => r.id !== 'req-1' && r.id !== 'req-2');
+    // Filter dummy items if any exist
+    const cleanList = localList.filter((r) => r && r.id && r.id !== 'req-1' && r.id !== 'req-2' && r.id !== 'req-mvzcjlhq-8pq6');
+
+    let filtered = cleanList;
+
+    if (isSuperAdmin) {
+      // Super Admin: if queryZone specified and not ALL, filter by queryZone; otherwise return ALL zones
+      if (queryZone && queryZone.toLowerCase() !== 'all') {
+        filtered = cleanList.filter((r) => isRequestInZone(r, queryZone));
+      }
+    } else if (assignedZoneId) {
+      // Zone Admin: strictly filter to their assigned zone only
+      filtered = cleanList.filter((r) => isRequestInZone(r, assignedZoneId!));
+    }
 
     return NextResponse.json({
       success: true,
@@ -5873,28 +6096,25 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
 
     // Update in local file
     const found = localList.find((r: any) => r.id === id);
+
+    // Cross-zone authorization check for mutations
+    if (!isSuperAdmin && assignedZoneId && found) {
+      if (!isRequestInZone(found, assignedZoneId)) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Cross-zone access denied: Request '${id}' does not belong to your assigned zone.`,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    }
+
     if (found) {
       found.status = 'APPROVED';
       found.updatedAt = new Date().toISOString();
-
-      // Cascade approval to all duplicate requests for this requester or within 10 km
-      for (const other of localList) {
-        if (other.id !== id && other.status === 'PENDING') {
-          let matches = false;
-          if (found.contactPhone && other.contactPhone && found.contactPhone === other.contactPhone) {
-            matches = true;
-          } else if (found.latitude && found.longitude && other.latitude && other.longitude) {
-            const dist = (() => { const R = 6371; const dLat = ((other.latitude - found.latitude) * Math.PI) / 180; const dLon = ((other.longitude - found.longitude) * Math.PI) / 180; const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos((found.latitude * Math.PI) / 180) * Math.cos((other.latitude * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2); return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); })();
-            if (dist <= 10.0) matches = true;
-          }
-          if (matches) {
-            other.status = 'APPROVED';
-            other.updatedAt = new Date().toISOString();
-            if (found.zoneId) other.zoneId = found.zoneId;
-            if (found.zoneName) other.zoneName = found.zoneName;
-          }
-        }
-      }
       saveLocalUnserviceableRequests(localList);
     }
 
@@ -5933,6 +6153,22 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
     const newStatus = urlObj.searchParams.get('status') || 'APPROVED';
 
     const found = localList.find((r: any) => r.id === id);
+
+    // Cross-zone authorization check for status updates
+    if (!isSuperAdmin && assignedZoneId && found) {
+      if (!isRequestInZone(found, assignedZoneId)) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: {
+            code: 'FORBIDDEN',
+            message: `Cross-zone access denied: Request '${id}' does not belong to your assigned zone.`,
+          },
+          meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
+        }, { status: 403 });
+      }
+    }
+
     if (found) {
       found.status = newStatus;
       found.updatedAt = new Date().toISOString();

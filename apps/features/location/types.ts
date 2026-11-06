@@ -2,6 +2,7 @@ export type RequestSource = 'CUSTOMER' | 'DELIVERY_PARTNER' | 'RESTAURANT';
 
 export interface UnserviceableRequestDto {
   id: string;
+  requesterId?: string;
   restaurantName: string;
   contactPerson: string;
   contactEmail: string;

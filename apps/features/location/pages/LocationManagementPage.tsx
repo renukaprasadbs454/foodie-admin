@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { trackAnalyticsEvent, useTheme } from 'foodie-shared-web';
 import Select from 'react-select';
 import { State, City } from 'country-state-city';
@@ -70,7 +70,11 @@ export function LocationManagementPage() {
 
   const cities = dbCities as CityRecord[];
   const deliveryZones = dbDeliveryZones as DeliveryZoneRecord[];
-  const unserviceableRequests = dbUnserviceableRequests as UnserviceableRequestRecord[];
+  const unserviceableRequests: UnserviceableRequestRecord[] = useMemo(() => {
+    return (dbUnserviceableRequests as UnserviceableRequestRecord[]).filter(
+      (r: UnserviceableRequestRecord) => r.id !== 'req-1' && r.id !== 'req-2' && r.id !== 'req-mvzcjlhq-8pq6'
+    );
+  }, [dbUnserviceableRequests]);
 
   const userAssignedZone = typeof window !== 'undefined'
     ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
@@ -540,6 +544,7 @@ export function LocationManagementPage() {
       return;
     }
     createUnserviceableRequest({
+      requesterId: `rest-${Date.now().toString(36)}`,
       restaurantName: reqRestName.trim(),
       contactPerson: reqContactPerson.trim() || 'Restaurant Manager',
       contactEmail: reqEmail.trim() || 'contact@restaurant.com',
@@ -549,6 +554,7 @@ export function LocationManagementPage() {
       latitude: parseFloat(reqLat) || 12.9716,
       longitude: parseFloat(reqLng) || 77.5946,
       status: 'PENDING',
+      requestSource: 'RESTAURANT',
     }).unwrap().then(() => {
       setShowRequestModal(false);
       setReqRestName('');
