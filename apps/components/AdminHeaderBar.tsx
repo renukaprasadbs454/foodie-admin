@@ -95,6 +95,10 @@ export function AdminHeaderBar({
     refetchOnMountOrArgChange: true,
   });
 
+  const displayedZones = isRestaurantManager
+    ? availableZones.filter((zone) => zone.status === 'ACTIVE')
+    : availableZones;
+
   const [selectOperatingZoneMutation] = useSelectOperatingZoneMutation();
 
   React.useEffect(() => {
@@ -863,7 +867,7 @@ export function AdminHeaderBar({
                         Select Operating Zone
                       </div>
                       <div style={{ fontSize: 10, color: '#64748B' }}>
-                        Live Database Zones ({availableZones.length})
+                        Live Database Zones ({displayedZones.length})
                       </div>
                     </div>
                     {isLoadingZones && (
@@ -872,12 +876,12 @@ export function AdminHeaderBar({
                   </div>
 
                   <div style={{ maxHeight: 260, overflowY: 'auto', padding: '6px 0' }}>
-                    {availableZones.length === 0 ? (
+                    {displayedZones.length === 0 ? (
                       <div style={{ padding: '12px 16px', fontSize: 12, color: '#64748B', textAlign: 'center' }}>
-                        No operating zones found
+                        {isRestaurantManager ? 'No active operating zones assigned' : 'No operating zones found'}
                       </div>
                     ) : (
-                      availableZones.map((zone) => {
+                      displayedZones.map((zone) => {
                         const isSelected =
                           zone.id.toLowerCase() === currentZoneId.toLowerCase() ||
                           (zone.zoneName && zone.zoneName.toLowerCase() === currentZoneName.toLowerCase());

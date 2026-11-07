@@ -341,6 +341,30 @@ describe('Feature: Zone-Based Access Control for Restaurant Manager', () => {
       expect(json.error.code).toBe('FORBIDDEN');
     });
 
+    it('allows Restaurant Manager to access assigned Bangalore Zone and successfully fetch restaurants', async () => {
+      // Assign dz-bangalore
+      const patchReq = new Request(`http://localhost:3000/api/bff/admin/users/${managerUserId}/zones`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
+        body: JSON.stringify({ assignedZoneIds: ['dz-bangalore'] }),
+      });
+      await bffPatch(patchReq, makeCtx(['admin', 'users', managerUserId, 'zones']));
+
+      const req = new Request('http://localhost:3000/api/bff/admin/restaurants?zoneId=dz-bangalore', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${managerToken}`,
+          'X-Active-Zone-Id': 'dz-bangalore',
+          cookie: `foodie_user_role=RESTAURANT_MANAGER; foodie_user_assigned_zones=${encodeURIComponent(JSON.stringify(['dz-bangalore']))}; foodie_active_zone_id=dz-bangalore`,
+        },
+      });
+
+      const res = await bffGet(req, makeCtx(['admin', 'restaurants']));
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+    });
+
     it('blocks operational data requests with HTTP 403 when Restaurant Manager has NO assigned zones', async () => {
       // Clear all assignments
       const patchReq = new Request(`http://localhost:3000/api/bff/admin/users/${managerUserId}/zones`, {

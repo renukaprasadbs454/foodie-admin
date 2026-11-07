@@ -14,6 +14,11 @@ function loadGoogleMapsScript(): Promise<void> {
             resolve();
             return;
         }
+        if (typeof window !== 'undefined') {
+            (window as any).gm_authFailure = () => {
+                // Suppress Google Maps native alert popups when billing is not enabled
+            };
+        }
         const callbackName = '__gmapsAdminReadyCb__';
         (window as any)[callbackName] = () => resolve();
         const script = document.createElement('script');

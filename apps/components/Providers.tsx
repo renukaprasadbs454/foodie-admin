@@ -2,6 +2,26 @@
 
 import React, { useEffect, type ReactNode } from 'react';
 import { Provider } from 'react-redux';
+
+// Suppress unhandled Google Maps billing/auth errors from triggering Next.js dev overlay
+if (typeof window !== 'undefined') {
+  (window as any).gm_authFailure = () => {
+    // Suppress native alert popup when Google Maps billing is disabled
+  };
+  const originalConsoleError = console.error;
+  console.error = (...args: any[]) => {
+    const firstArg = args[0];
+    if (
+      typeof firstArg === 'string' &&
+      (firstArg.includes('BillingNotEnabledMapError') ||
+        firstArg.includes('Google Maps JavaScript API error'))
+    ) {
+      console.warn('[Foodie Admin] Handled Google Maps billing notice:', firstArg);
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+}
 import {
   ThemeProvider,
   useConnectivity,

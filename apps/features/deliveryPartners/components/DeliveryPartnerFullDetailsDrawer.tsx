@@ -18,6 +18,7 @@ import type { PayoutRecord } from '@/features/payments/types';
 import { useGetAdminReviewsQuery, type AdminReviewRecord } from '@/api/endpoints/reviewsApi';
 import { useGetAllTicketsQuery, type EnquiryRecord } from '@/api/endpoints/supportApi';
 import type { AdminDeliveryPartner, DeliveryDocument } from '../types';
+import { DeliveryPartnerLocationMap } from './DeliveryPartnerLocationMap';
 
 export interface DeliveryPartnerFullDetailsDrawerProps {
   open: boolean;
@@ -59,6 +60,23 @@ function formatDocType(type?: string): string {
     return 'Vehicle Registration (RC)';
   }
   return t.replace(/_/g, ' ');
+}
+
+function getPartnerCoordinates(partner?: {
+  latitude?: number | null;
+  longitude?: number | null;
+  zone?: string | null;
+} | null): { lat: number; lng: number } {
+  const lat = partner?.latitude != null ? Number(partner.latitude) : NaN;
+  const lng = partner?.longitude != null ? Number(partner.longitude) : NaN;
+  if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+    return { lat, lng };
+  }
+  const zone = (partner?.zone || '').toLowerCase();
+  if (zone.includes('hassan')) return { lat: 13.0033, lng: 76.1004 };
+  if (zone.includes('tumkur') || zone.includes('tumakuru')) return { lat: 13.3409, lng: 77.1010 };
+  if (zone.includes('kunigal')) return { lat: 13.0260, lng: 77.0223 };
+  return { lat: 12.9716, lng: 77.5946 };
 }
 
 export function DeliveryPartnerFullDetailsDrawer({
@@ -492,9 +510,9 @@ export function DeliveryPartnerFullDetailsDrawer({
                   <span>•</span>
                   <span>ID: <code style={{ color: '#6B7280' }}>{currentPartner.id.slice(0, 8)}...</code></span>
                   <span>•</span>
-                  <span>Vehicle: <strong style={{ color: '#111827' }}>{currentPartner.vehicleType || 'BIKE'} {currentPartner.vehicleNumber ? `(${currentPartner.vehicleNumber})` : ''}</strong></span>
+                  <span>Vehicle: <strong style={{ color: '#111827' }}>{currentPartner.vehicleType || 'N/A'}{currentPartner.vehicleNumber ? ` (${currentPartner.vehicleNumber})` : ''}</strong></span>
                   <span>•</span>
-                  <span>Zone: <strong style={{ color: '#111827' }}>{currentPartner.zone || 'Central Zone'}</strong></span>
+                  <span>Zone: <strong style={{ color: '#111827' }}>{currentPartner.zone || 'Unassigned'}</strong></span>
                 </div>
               </div>
             </div>
@@ -855,7 +873,7 @@ export function DeliveryPartnerFullDetailsDrawer({
                     </div>
                     <div>
                       <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>EMAIL ADDRESS</span>
-                      <span style={{ color: '#111827', marginTop: 3, display: 'block' }}>{currentPartner.email || `${currentPartner.fullName.toLowerCase().replace(/\s+/g, '')}@foodie.local`}</span>
+                      <span style={{ color: currentPartner.email ? '#111827' : '#9CA3AF', marginTop: 3, display: 'block' }}>{currentPartner.email || 'Not Provided'}</span>
                     </div>
                     <div>
                       <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>USER CREDENTIAL ID</span>
@@ -906,19 +924,19 @@ export function DeliveryPartnerFullDetailsDrawer({
                           fontSize: 12,
                         }}
                       >
-                        {currentPartner.vehicleType || 'BIKE'}
+                        {currentPartner.vehicleType || 'N/A'}
                       </span>
                     </div>
                     <div>
                       <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>VEHICLE REGISTRATION (RC)</span>
-                      <strong style={{ color: '#111827', marginTop: 3, display: 'block' }}>
-                        {currentPartner.vehicleNumber || 'KA-05-EQ-9876'}
+                      <strong style={{ color: currentPartner.vehicleNumber?.trim() ? '#111827' : '#9CA3AF', marginTop: 3, display: 'block' }}>
+                        {currentPartner.vehicleNumber?.trim() ? currentPartner.vehicleNumber : 'Not Provided'}
                       </strong>
                     </div>
                     <div>
                       <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>ASSIGNED ZONE</span>
-                      <span style={{ color: '#111827', marginTop: 3, display: 'block', fontWeight: 600 }}>
-                        {currentPartner.zone || 'Delivery Partner Dedicated Zone'}
+                      <span style={{ color: currentPartner.zone ? '#111827' : '#9CA3AF', marginTop: 3, display: 'block', fontWeight: 600 }}>
+                        {currentPartner.zone || 'Unassigned'}
                       </span>
                     </div>
                     <div>
@@ -954,39 +972,132 @@ export function DeliveryPartnerFullDetailsDrawer({
                 </div>
 
                 {/* Operating Zone & Live GPS Location */}
-                <div
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 14,
-                    border: '1px solid #E5E7EB',
-                    padding: '24px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                  }}
-                >
-                  <h3 style={{ margin: '0 0 16px 0', fontSize: 15, fontWeight: 700, color: '#111827' }}>
-                    Live GPS & Operating Location
-                  </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 13 }}>
-                    <div>
-                      <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>GPS LATITUDE</span>
-                      <code style={{ color: '#111827', marginTop: 3, display: 'block' }}>
-                        {currentPartner.latitude ?? 12.9716}
-                      </code>
+                {(() => {
+                  const partnerCoords = getPartnerCoordinates(currentPartner);
+                  return (
+                    <div
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 14,
+                        border: '1px solid #E5E7EB',
+                        padding: '24px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 16,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: 8,
+                        }}
+                      >
+                        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#111827' }}>
+                          Live GPS & Operating Location
+                        </h3>
+                        {currentPartner.isOnline ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '4px 10px',
+                              borderRadius: 9999,
+                              backgroundColor: '#ECFDF5',
+                              color: '#059669',
+                              border: '1px solid #A7F3D0',
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: '50%',
+                                backgroundColor: '#10B981',
+                                display: 'inline-block',
+                                boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.4)',
+                              }}
+                            />
+                            LIVE GPS TRACKING (ONLINE)
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '4px 10px',
+                              borderRadius: 9999,
+                              backgroundColor: '#F3F4F6',
+                              color: '#4B5563',
+                              border: '1px solid #E5E7EB',
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: '50%',
+                                backgroundColor: '#6B7280',
+                                display: 'inline-block',
+                              }}
+                            />
+                            LAST ACTIVE LOCATION (OFFLINE)
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Map Container */}
+                      <div>
+                        <DeliveryPartnerLocationMap
+                          partnerName={currentPartner.fullName}
+                          isOnline={Boolean(currentPartner.isOnline)}
+                          latitude={partnerCoords.lat}
+                          longitude={partnerCoords.lng}
+                          zoneName={currentPartner.zone || 'Operating Zone'}
+                          vehicleType={currentPartner.vehicleType || 'BIKE'}
+                          vehicleNumber={currentPartner.vehicleNumber || ''}
+                          height={240}
+                        />
+                      </div>
+
+                      {/* GPS Coordinates & Operating Status Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 13 }}>
+                        <div>
+                          <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>GPS LATITUDE</span>
+                          <code style={{ color: '#111827', marginTop: 3, display: 'block' }}>
+                            {partnerCoords.lat.toFixed(4)}
+                          </code>
+                        </div>
+                        <div>
+                          <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>GPS LONGITUDE</span>
+                          <code style={{ color: '#111827', marginTop: 3, display: 'block' }}>
+                            {partnerCoords.lng.toFixed(4)}
+                          </code>
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>CURRENT ZONE STATUS</span>
+                          <span style={{ color: '#059669', fontWeight: 600, marginTop: 3, display: 'block' }}>
+                            ✓ Operating inside designated service boundaries ({currentPartner.zone || 'Delivery Partner Dedicated Zone'})
+                          </span>
+                          <span style={{ color: '#6B7280', fontSize: 11, marginTop: 4, display: 'block' }}>
+                            {currentPartner.isOnline
+                              ? '● Real-time GPS connection active. Tracking partner within operating territory.'
+                              : '○ Partner currently offline. Displaying last verified GPS telemetry coordinates.'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>GPS LONGITUDE</span>
-                      <code style={{ color: '#111827', marginTop: 3, display: 'block' }}>
-                        {currentPartner.longitude ?? 77.5946}
-                      </code>
-                    </div>
-                    <div style={{ gridColumn: 'span 2' }}>
-                      <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>CURRENT ZONE STATUS</span>
-                      <span style={{ color: '#059669', fontWeight: 600, marginTop: 3, display: 'block' }}>
-                        ✓ Operating inside designated service boundaries ({currentPartner.zone || 'Delivery Partner Dedicated Zone'})
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Registered Address */}
                 <div
@@ -1002,11 +1113,18 @@ export function DeliveryPartnerFullDetailsDrawer({
                     Registered Residential Address
                   </h3>
                   <div style={{ fontSize: 13, color: '#374151', lineHeight: '1.6' }}>
-                    <div>{currentPartner.addressLine1 || 'Flat 402, Green Glen Layout, Outer Ring Road'}</div>
-                    {currentPartner.addressLine2 && <div>{currentPartner.addressLine2}</div>}
-                    <div>
-                      {currentPartner.city || 'Bengaluru'}, {currentPartner.state || 'Karnataka'} - {currentPartner.pincode || '560103'}
-                    </div>
+                    {currentPartner.addressLine1 || currentPartner.city || currentPartner.pincode ? (
+                      <>
+                        {currentPartner.addressLine1 && <div>{currentPartner.addressLine1}</div>}
+                        {currentPartner.addressLine2 && <div>{currentPartner.addressLine2}</div>}
+                        <div>
+                          {[currentPartner.city, currentPartner.state].filter(Boolean).join(', ')}
+                          {currentPartner.pincode ? ` - ${currentPartner.pincode}` : ''}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ color: '#9CA3AF' }}>No registered address provided</div>
+                    )}
                     <div style={{ marginTop: 8, fontSize: 11, color: '#6B7280' }}>
                       Verified address from identity documentation
                     </div>
