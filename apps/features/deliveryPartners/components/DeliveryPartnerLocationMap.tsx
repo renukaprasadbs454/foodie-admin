@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+
+// Google Maps API Key
+const GMAPS_API_KEY = 'AIzaSyBef3prJr9YvHFDYczEJ-mzZfSlLd2vHbE';
 
 // Guard against Google Maps billing error modal in Next.js development overlay
 if (typeof window !== 'undefined') {
@@ -20,6 +23,39 @@ if (typeof window !== 'undefined') {
     }
     originalConsoleError.apply(console, args);
   };
+}
+
+// Singleton Google Maps script loader
+let gmapsLoadPromise: Promise<void> | null = null;
+
+function loadGoogleMapsScript(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.reject(new Error('Window not available'));
+  if ((window as any).google?.maps) return Promise.resolve();
+  if (gmapsLoadPromise) return gmapsLoadPromise;
+
+  gmapsLoadPromise = new Promise<void>((resolve, reject) => {
+    if ((window as any).google?.maps) {
+      resolve();
+      return;
+    }
+    const callbackName = '__gmapsAdminPartnerMapReadyCb__';
+    (window as any)[callbackName] = () => {
+      resolve();
+    };
+
+    const script = document.createElement('script');
+    script.id = 'google-maps-partner-tracking-script';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_API_KEY}&callback=${callbackName}`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      gmapsLoadPromise = null;
+      reject(new Error('Failed to load Google Maps script'));
+    };
+    document.head.appendChild(script);
+  });
+
+  return gmapsLoadPromise;
 }
 
 export interface DeliveryPartnerLocationMapProps {
@@ -42,34 +78,195 @@ export function DeliveryPartnerLocationMap({
   zoneName = 'Designated Zone',
   vehicleType = 'BIKE',
   vehicleNumber,
-  height = 250,
+  height = 280,
   className,
 }: DeliveryPartnerLocationMapProps) {
-  const [mapMode, setMapMode] = useState<'streets' | 'radar'>('streets');
+  const [mapMode, setMapMode] = useState<'streets' | 'satellite' | 'radar'>('streets');
   const [zoomFactor, setZoomFactor] = useState<number>(1);
+  const [gmapsReady, setGmapsReady] = useState<boolean>(false);
+  const [gmapsLoadError, setGmapsLoadError] = useState<boolean>(false);
   const [isIframeLoaded, setIsIframeLoaded] = useState<boolean>(false);
 
-  // Reset zoom and iframe status when coordinates change
+  const mapDivRef = useRef<HTMLDivElement>(null);
+  const gmapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const circleRef = useRef<any>(null);
+  const infoWindowRef = useRef<any>(null);
+
+  const vehicleGlyph =
+    vehicleType?.toUpperCase().includes('CYCLE') || vehicleType?.toUpperCase().includes('BIKE')
+      ? '🏍️'
+      : vehicleType?.toUpperCase().includes('CAR')
+      ? '🚗'
+      : '🛵';
+
+  // Load Google Maps script once mounted
   useEffect(() => {
-    setZoomFactor(1);
-    setIsIframeLoaded(false);
-  }, [latitude, longitude]);
+    let isCancelled = false;
+    loadGoogleMapsScript()
+      .then(() => {
+        if (!isCancelled) {
+          setGmapsReady(true);
+        }
+      })
+      .catch((err) => {
+        console.warn('[DeliveryPartnerLocationMap] Google Maps script load fallback:', err);
+        if (!isCancelled) {
+          setGmapsLoadError(true);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  // Initialize Google Maps instance
+  useEffect(() => {
+    if (!gmapsReady || !mapDivRef.current || mapMode === 'radar') return;
+
+    try {
+      const google = (window as any).google;
+      if (!google?.maps) return;
+
+      const pos = { lat: Number(latitude), lng: Number(longitude) };
+
+      if (!gmapRef.current) {
+        const map = new google.maps.Map(mapDivRef.current, {
+          center: pos,
+          zoom: 15,
+          mapTypeId: mapMode === 'satellite' ? 'hybrid' : 'roadmap',
+          disableDefaultUI: true,
+          gestureHandling: 'greedy',
+          zoomControl: false,
+          fullscreenControl: false,
+          streetViewControl: false,
+          mapTypeControl: false,
+        });
+
+        // Partner Marker Pin
+        const marker = new google.maps.Marker({
+          position: pos,
+          map,
+          title: partnerName,
+          animation: isOnline ? google.maps.Animation.DROP : undefined,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 11,
+            fillColor: isOnline ? '#10B981' : '#6B7280',
+            fillOpacity: 1,
+            strokeColor: '#FFFFFF',
+            strokeWeight: 3,
+          },
+        });
+
+        // Operating Territory Circle
+        const circle = new google.maps.Circle({
+          map,
+          center: pos,
+          radius: 800, // 800m delivery operational radius
+          strokeColor: isOnline ? '#059669' : '#6B7280',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: isOnline ? '#10B981' : '#6B7280',
+          fillOpacity: isOnline ? 0.08 : 0.03,
+        });
+
+        // Info Window on marker click
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div style="font-family: system-ui, sans-serif; padding: 4px 6px; font-size: 12px; color: #1E293B;">
+              <div style="font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 4px; margin-bottom: 3px;">
+                <span>${vehicleGlyph}</span>
+                <span>${partnerName}</span>
+              </div>
+              <div style="font-size: 11px; color: ${isOnline ? '#059669' : '#64748B'}; font-weight: 600; margin-bottom: 2px;">
+                ${isOnline ? '🟢 Online & Live Tracking' : '⚪ Offline / Last Active Point'}
+              </div>
+              <div style="font-size: 10px; color: #64748B;">
+                Vehicle: <strong>${vehicleNumber || vehicleType || 'Not Provided'}</strong>
+              </div>
+              <div style="font-size: 10px; color: #64748B;">
+                Territory: <strong>${zoneName}</strong>
+              </div>
+            </div>
+          `,
+        });
+
+        marker.addListener('click', () => {
+          infoWindow.open(map, marker);
+        });
+
+        gmapRef.current = map;
+        markerRef.current = marker;
+        circleRef.current = circle;
+        infoWindowRef.current = infoWindow;
+      } else {
+        // Update existing Google Maps center and marker
+        gmapRef.current.panTo(pos);
+        if (markerRef.current) {
+          markerRef.current.setPosition(pos);
+          markerRef.current.setIcon({
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 11,
+            fillColor: isOnline ? '#10B981' : '#6B7280',
+            fillOpacity: 1,
+            strokeColor: '#FFFFFF',
+            strokeWeight: 3,
+          });
+        }
+        if (circleRef.current) {
+          circleRef.current.setCenter(pos);
+          circleRef.current.setOptions({
+            strokeColor: isOnline ? '#059669' : '#6B7280',
+            fillColor: isOnline ? '#10B981' : '#6B7280',
+            fillOpacity: isOnline ? 0.08 : 0.03,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[DeliveryPartnerLocationMap] Google Maps init error, using fallback:', e);
+    }
+  }, [gmapsReady, latitude, longitude, isOnline, mapMode, partnerName, vehicleGlyph, vehicleNumber, vehicleType, zoneName]);
+
+  // Handle map type changes
+  useEffect(() => {
+    if (gmapRef.current && (window as any).google?.maps) {
+      if (mapMode === 'satellite') {
+        gmapRef.current.setMapTypeId('hybrid');
+      } else if (mapMode === 'streets') {
+        gmapRef.current.setMapTypeId('roadmap');
+      }
+    }
+  }, [mapMode]);
 
   const handleRecenter = () => {
     setZoomFactor(1);
+    if (gmapRef.current && (window as any).google?.maps) {
+      gmapRef.current.panTo({ lat: Number(latitude), lng: Number(longitude) });
+      gmapRef.current.setZoom(15);
+    }
   };
 
   const handleZoomIn = () => {
     setZoomFactor((prev) => Math.min(prev * 1.5, 4));
+    if (gmapRef.current && (window as any).google?.maps) {
+      const currentZoom = gmapRef.current.getZoom() || 15;
+      gmapRef.current.setZoom(Math.min(currentZoom + 1, 20));
+    }
   };
 
   const handleZoomOut = () => {
     setZoomFactor((prev) => Math.max(prev / 1.5, 0.5));
+    if (gmapRef.current && (window as any).google?.maps) {
+      const currentZoom = gmapRef.current.getZoom() || 15;
+      gmapRef.current.setZoom(Math.max(currentZoom - 1, 3));
+    }
   };
 
   const googleMapsExternalUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
-  // Bounding box for OpenStreetMap embed
+  // Bounding box for OpenStreetMap embed fallback
   const deltaLng = 0.012 / zoomFactor;
   const deltaLat = 0.008 / zoomFactor;
   const minLng = (longitude - deltaLng).toFixed(5);
@@ -78,13 +275,6 @@ export function DeliveryPartnerLocationMap({
   const maxLat = (latitude + deltaLat).toFixed(5);
 
   const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik&marker=${latitude.toFixed(5)}%2C${longitude.toFixed(5)}`;
-
-  const vehicleGlyph =
-    vehicleType?.toUpperCase().includes('CYCLE') || vehicleType?.toUpperCase().includes('BIKE')
-      ? '🏍️'
-      : vehicleType?.toUpperCase().includes('CAR')
-      ? '🚗'
-      : '🛵';
 
   return (
     <div
@@ -127,12 +317,26 @@ export function DeliveryPartnerLocationMap({
         }
       `}</style>
 
-      {/* Layer 1: Real Street Map via OpenStreetMap Interactive Embed */}
-      {mapMode === 'streets' && (
-        <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      {/* Layer 1: Real-Time Google Maps JavaScript API (Primary) */}
+      {(mapMode === 'streets' || mapMode === 'satellite') && !gmapsLoadError && (
+        <div
+          ref={mapDivRef}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 1,
+          }}
+        />
+      )}
+
+      {/* Fallback Layer: Real Street Map via OpenStreetMap Interactive Embed (if Google Maps API fails) */}
+      {(mapMode === 'streets' || mapMode === 'satellite') && gmapsLoadError && (
+        <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }}>
           <iframe
             key={`${latitude}-${longitude}-${zoomFactor}`}
-            title="Delivery Partner Location Map"
+            title="Delivery Partner Location Map (OSM Fallback)"
             src={osmEmbedUrl}
             width="100%"
             height="100%"
@@ -160,6 +364,7 @@ export function DeliveryPartnerLocationMap({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            zIndex: 1,
           }}
         >
           <svg
@@ -193,14 +398,6 @@ export function DeliveryPartnerLocationMap({
               d="M 420 180 Q 500 160 540 220 T 470 280 Q 430 260 420 180 Z"
               fill="#ECFDF5"
               stroke="#D1FAE5"
-              strokeWidth="1.5"
-            />
-
-            {/* Simulated Water Body / Lake */}
-            <path
-              d="M 20 210 Q 70 190 120 230 T 80 290 Q 20 270 20 210 Z"
-              fill="#EFF6FF"
-              stroke="#DBEAFE"
               strokeWidth="1.5"
             />
 
@@ -296,8 +493,8 @@ export function DeliveryPartnerLocationMap({
         </div>
       )}
 
-      {/* Floating Center Partner Badge (In Street Mode: provides instant visual live pin over OSM marker) */}
-      {mapMode === 'streets' && (
+      {/* Floating Center Partner Badge (Overlaid when radar mode is active or when map is loading) */}
+      {(!gmapsReady || mapMode === 'radar') && (
         <div
           style={{
             position: 'absolute',
@@ -311,7 +508,6 @@ export function DeliveryPartnerLocationMap({
             alignItems: 'center',
           }}
         >
-          {/* Pulsing radar wave when ONLINE */}
           {isOnline && (
             <div
               style={{
@@ -430,7 +626,7 @@ export function DeliveryPartnerLocationMap({
           gap: 6,
         }}
       >
-        {/* Map Mode Switcher (Street Map vs Vector Radar) */}
+        {/* Map Mode Switcher (Google Maps Streets, Satellite, Radar) */}
         <div
           style={{
             display: 'flex',
@@ -444,7 +640,7 @@ export function DeliveryPartnerLocationMap({
           <button
             type="button"
             onClick={() => setMapMode('streets')}
-            title="Real-World Street Map"
+            title="Google Maps Street View"
             style={{
               padding: '3px 8px',
               borderRadius: 4,
@@ -457,6 +653,23 @@ export function DeliveryPartnerLocationMap({
             }}
           >
             Streets
+          </button>
+          <button
+            type="button"
+            onClick={() => setMapMode('satellite')}
+            title="Google Maps Satellite View"
+            style={{
+              padding: '3px 8px',
+              borderRadius: 4,
+              border: 'none',
+              fontSize: 10,
+              fontWeight: 600,
+              cursor: 'pointer',
+              backgroundColor: mapMode === 'satellite' ? '#2563EB' : 'transparent',
+              color: mapMode === 'satellite' ? '#FFFFFF' : '#4B5563',
+            }}
+          >
+            Satellite
           </button>
           <button
             type="button"
@@ -595,7 +808,7 @@ export function DeliveryPartnerLocationMap({
         {latitude.toFixed(4)}, {longitude.toFixed(4)} • {zoneName}
       </div>
 
-      {/* BOTTOM RIGHT: Status Detail Chip */}
+      {/* BOTTOM RIGHT: Google Maps Active Badge */}
       <div
         style={{
           position: 'absolute',
@@ -611,9 +824,13 @@ export function DeliveryPartnerLocationMap({
           border: '1px solid #E5E7EB',
           boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
           pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
         }}
       >
-        {isOnline ? '🟢 Connected to Live GPS' : '⚪ Showing Last Active GPS Point'}
+        <span style={{ fontSize: 11 }}>🗺️</span>
+        <span>{isOnline ? '🟢 Google Maps Live GPS' : '⚪ Google Maps Last Known'}</span>
       </div>
     </div>
   );
