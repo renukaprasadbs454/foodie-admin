@@ -115,7 +115,18 @@ export function getNormalizedDocuments(req: UnserviceableRequestDto): DocumentDe
 }
 
 export function inferRequestSource(req: UnserviceableRequestDto): RequestSource {
-  if (req.requestSource) return req.requestSource;
+  if (req.requestSource) {
+    const s = String(req.requestSource).toUpperCase().trim();
+    if (s === 'CUSTOMER' || s === 'DELIVERY_PARTNER' || s === 'RESTAURANT') {
+      return s as RequestSource;
+    }
+  }
+  if (req.deliveryPartnerId) {
+    return 'DELIVERY_PARTNER';
+  }
+  if (req.restaurantId) {
+    return 'RESTAURANT';
+  }
   const name = (req.restaurantName || '').toLowerCase();
   const contact = (req.contactPerson || '').toLowerCase();
   if (name.includes('[customer]') || name.startsWith('customer:') || contact.includes('customer')) {

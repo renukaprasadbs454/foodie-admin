@@ -245,13 +245,25 @@ export function UnserviceableAreasPage() {
     if (!z || !t) return false;
     const cleanZ = z.trim().toLowerCase();
     const cleanT = t.trim().toLowerCase();
+    if (cleanZ === 'all' || cleanT === 'all') return true;
     if (cleanZ === cleanT || cleanZ.includes(cleanT) || cleanT.includes(cleanZ)) return true;
+    const strip = (s: string) => s.replace(/^dz-/, '').replace(/-zone$/, '').replace(/\s+zone$/i, '').trim();
+    if (strip(cleanZ) === strip(cleanT)) return true;
     const isZBlr = cleanZ.includes('bangalore') || cleanZ.includes('bengaluru') || cleanZ.includes('blr');
     const isTBlr = cleanT.includes('bangalore') || cleanT.includes('bengaluru') || cleanT.includes('blr');
     if (isZBlr && isTBlr) return true;
     const isZTmk = cleanZ.includes('tumkur') || cleanZ.includes('tumakuru') || cleanZ.includes('tmk');
     const isTTmk = cleanT.includes('tumkur') || cleanT.includes('tumakuru') || cleanT.includes('tmk');
     if (isZTmk && isTTmk) return true;
+    const isZHsn = cleanZ.includes('hassan') || cleanZ.includes('hasan');
+    const isTHsn = cleanT.includes('hassan') || cleanT.includes('hasan');
+    if (isZHsn && isTHsn) return true;
+    const isZMys = cleanZ.includes('mysore') || cleanZ.includes('mysuru');
+    const isTMys = cleanT.includes('mysore') || cleanT.includes('mysuru');
+    if (isZMys && isTMys) return true;
+    const isZHub = cleanZ.includes('hubballi') || cleanZ.includes('hubli') || cleanZ.includes('hbl');
+    const isTHub = cleanT.includes('hubballi') || cleanT.includes('hubli') || cleanT.includes('hbl');
+    if (isZHub && isTHub) return true;
     return false;
   };
 
@@ -302,20 +314,28 @@ export function UnserviceableAreasPage() {
     if (isSuperAdmin || !userAssignedZone) return realDbRequests;
     const assignedTarget = decodeURIComponent(userAssignedZone).trim().toLowerCase();
     return realDbRequests.filter((req) => {
+      // 1. If valid geographic coordinates exist, determine matching zone strictly by nearest-zone geography
+      const reqLat = Number(req.latitude);
+      const reqLng = Number(req.longitude);
+      if (!isNaN(reqLat) && !isNaN(reqLng) && reqLat !== 0 && reqLng !== 0) {
+        const nearestInfo = getNearestZoneForRequest(req);
+        if (nearestInfo) {
+          return (
+            isMatchingZone(nearestInfo.zone.id, assignedTarget) ||
+            isMatchingZone(nearestInfo.zone.zoneName, assignedTarget) ||
+            isMatchingZone(nearestInfo.zone.cityName || '', assignedTarget)
+          );
+        }
+      }
+
+      // 2. If coordinates are missing, fall back to explicit zoneId and text matching
       if (req.zoneId && isMatchingZone(req.zoneId, assignedTarget)) return true;
       if (req.zoneName && isMatchingZone(req.zoneName, assignedTarget)) return true;
       const city = req.cityName || '';
       if (isMatchingZone(city, assignedTarget)) return true;
-      const nearestInfo = getNearestZoneForRequest(req);
-      if (nearestInfo) {
-        if (
-          isMatchingZone(nearestInfo.zone.id, assignedTarget) ||
-          isMatchingZone(nearestInfo.zone.zoneName, assignedTarget) ||
-          isMatchingZone(nearestInfo.zone.cityName || '', assignedTarget)
-        ) {
-          return true;
-        }
-      }
+      const text = `${req.cityName || ''} ${req.address || ''} ${req.requestedArea || ''} ${req.restaurantName || ''}`;
+      if (isMatchingZone(text, assignedTarget)) return true;
+
       return false;
     });
   }, [realDbRequests, isSuperAdmin, userAssignedZone, dbZones]);
@@ -479,24 +499,31 @@ export function UnserviceableAreasPage() {
     let resolvedZoneId: string | undefined = undefined;
     let resolvedZoneName: string | undefined = undefined;
 
-    if (latNum && lngNum) {
-      const distTumkur = calculateDistanceKm(latNum, lngNum, 13.3379, 77.1173);
-      const distBlr = calculateDistanceKm(latNum, lngNum, 12.9716, 77.5946);
-      if (distTumkur < distBlr && distTumkur < 80) {
-        resolvedZoneId = 'dz-tumkur';
-        resolvedZoneName = 'Tumkur Zone';
-      } else if (distBlr < 80) {
-        resolvedZoneId = 'dz-bangalore';
-        resolvedZoneName = 'Bangalore Zone';
+    if (latNum && lngNum && dbZones && dbZones.length > 0) {
+      let nearestZ: (typeof dbZones)[0] | null = null;
+      let minD = Infinity;
+      for (const z of dbZones) {
+        if (z.status === 'DELETED') continue;
+        const zLat = Number(z.latitude);
+        const zLng = Number(z.longitude);
+        if (!isNaN(zLat) && !isNaN(zLng) && (zLat !== 0 || zLng !== 0)) {
+          const d = calculateDistanceKm(latNum, lngNum, zLat, zLng);
+          if (d < minD) {
+            minD = d;
+            nearestZ = z;
+          }
+        }
+      }
+      if (nearestZ) {
+        resolvedZoneId = nearestZ.id;
+        resolvedZoneName = nearestZ.zoneName;
       }
     }
-    if (!resolvedZoneId && newCity) {
-      if (newCity.toLowerCase().includes('tumkur')) {
-        resolvedZoneId = 'dz-tumkur';
-        resolvedZoneName = 'Tumkur Zone';
-      } else if (newCity.toLowerCase().includes('bangalore') || newCity.toLowerCase().includes('bengaluru')) {
-        resolvedZoneId = 'dz-bangalore';
-        resolvedZoneName = 'Bangalore Zone';
+    if (!resolvedZoneId && newCity && dbZones) {
+      const cityMatched = dbZones.find((z) => isMatchingZone(newCity, z.cityName || z.zoneName));
+      if (cityMatched) {
+        resolvedZoneId = cityMatched.id;
+        resolvedZoneName = cityMatched.zoneName;
       }
     }
 

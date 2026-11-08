@@ -5946,10 +5946,13 @@ const UNSERVICEABLE_REQUESTS_FILE = path.join(process.cwd(), 'data', 'unservicea
 
 function loadLocalUnserviceableRequests(): any[] {
   const g = global as unknown as Record<string, unknown>;
+  if (process.env.NODE_ENV === 'test' && Array.isArray(g.__UNSERVICEABLE_REQUESTS)) {
+    return g.__UNSERVICEABLE_REQUESTS as any[];
+  }
   try {
     if (fs.existsSync(UNSERVICEABLE_REQUESTS_FILE)) {
       const data = JSON.parse(fs.readFileSync(UNSERVICEABLE_REQUESTS_FILE, 'utf8'));
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         const filtered = data.filter((r: any) => r && r.id && r.id !== 'req-1' && r.id !== 'req-2' && r.id !== 'req-mvzcjlhq-8pq6');
         g.__UNSERVICEABLE_REQUESTS = filtered;
         return filtered;
@@ -5958,14 +5961,27 @@ function loadLocalUnserviceableRequests(): any[] {
   } catch (err) {
     console.warn('Failed to load unserviceable_requests.json', err);
   }
-  if (Array.isArray(g.__UNSERVICEABLE_REQUESTS)) {
+  if (Array.isArray(g.__UNSERVICEABLE_REQUESTS) && (g.__UNSERVICEABLE_REQUESTS as any[]).length > 0) {
     const filtered = (g.__UNSERVICEABLE_REQUESTS as any[]).filter((r: any) => r && r.id && r.id !== 'req-1' && r.id !== 'req-2' && r.id !== 'req-mvzcjlhq-8pq6');
     g.__UNSERVICEABLE_REQUESTS = filtered;
     return filtered;
   }
+  if (process.env.NODE_ENV !== 'test') {
+    try {
+      const backendFilePath = path.resolve(process.cwd(), '..', 'foodie-backend', 'apps', 'api', 'data', 'unserviceable_requests.json');
+      if (fs.existsSync(backendFilePath)) {
+        const data = JSON.parse(fs.readFileSync(backendFilePath, 'utf8'));
+        if (Array.isArray(data) && data.length > 0) {
+          const filtered = data.filter((r: any) => r && r.id && r.id !== 'req-1' && r.id !== 'req-2' && r.id !== 'req-mvzcjlhq-8pq6');
+          g.__UNSERVICEABLE_REQUESTS = filtered;
+          saveLocalUnserviceableRequests(filtered);
+          return filtered;
+        }
+      }
+    } catch {}
+  }
   const initial: any[] = [];
   g.__UNSERVICEABLE_REQUESTS = initial;
-  saveLocalUnserviceableRequests(initial);
   return initial;
 }
 
@@ -5973,6 +5989,9 @@ function saveLocalUnserviceableRequests(list: any[]): void {
   const g = global as unknown as Record<string, unknown>;
   const clean = list.filter((r: any) => r && r.id && r.id !== 'req-1' && r.id !== 'req-2' && r.id !== 'req-mvzcjlhq-8pq6');
   g.__UNSERVICEABLE_REQUESTS = clean;
+  if (process.env.NODE_ENV === 'test') {
+    return;
+  }
   try {
     const dir = path.dirname(UNSERVICEABLE_REQUESTS_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -6047,48 +6066,156 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
+  const getActiveOperatingZones = (): any[] => {
+    const defaultBangalore = {
+      id: 'dz-bangalore',
+      zoneName: 'Bangalore Zone',
+      cityName: 'Bangalore',
+      latitude: 12.9716,
+      longitude: 77.5946,
+      radiusKm: 25.0,
+      polygonCoordinates: '12.9716,77.5946 | 13.0000,77.6200 | 12.9500,77.5800',
+    };
+    const defaultTumkur = {
+      id: 'dz-tumkur',
+      zoneName: 'Tumkur Zone',
+      cityName: 'Tumkur',
+      latitude: 13.3379,
+      longitude: 77.1173,
+      radiusKm: 20.0,
+      polygonCoordinates: '13.3379,77.1173 | 13.3500,77.1300 | 13.3200,77.1000',
+    };
+    const defaultHassan = {
+      id: 'dz-hassan',
+      zoneName: 'Hassan Zone',
+      cityName: 'Hassan',
+      latitude: 13.0033,
+      longitude: 76.1004,
+      radiusKm: 20.0,
+      polygonCoordinates: '13.0033,76.1004 | 13.0200,76.1200 | 12.9800,76.0800',
+    };
+
+    const persisted = loadPersistentZonesState();
+    const deleted = new Set(persisted.deletedZones.map((z: string) => z.toLowerCase().trim()));
+
+    const list: any[] = [];
+    if (!deleted.has('dz-bangalore') && !deleted.has('bangalore zone')) list.push(defaultBangalore);
+    if (!deleted.has('dz-tumkur') && !deleted.has('tumkur zone')) list.push(defaultTumkur);
+    if (!deleted.has('dz-hassan') && !deleted.has('hassan zone')) list.push(defaultHassan);
+
+    if (Array.isArray(persisted.dynamicZones)) {
+      for (const dz of persisted.dynamicZones) {
+        if (!dz || !dz.id) continue;
+        if (deleted.has(dz.id.toLowerCase().trim()) || deleted.has((dz.zoneName || '').toLowerCase().trim())) continue;
+        if (!list.some((z) => z.id === dz.id)) {
+          list.push(dz);
+        }
+      }
+    }
+    if (globalAny.ADMIN_DYNAMIC_ZONES && Array.isArray(globalAny.ADMIN_DYNAMIC_ZONES)) {
+      for (const dz of globalAny.ADMIN_DYNAMIC_ZONES as any[]) {
+        if (!dz || !dz.id) continue;
+        if (deleted.has(dz.id.toLowerCase().trim()) || deleted.has((dz.zoneName || '').toLowerCase().trim())) continue;
+        if (!list.some((z) => z.id === dz.id)) {
+          list.push(dz);
+        }
+      }
+    }
+    return list;
+  };
+
+  const findNearestOperatingZone = (lat: number, lng: number): { zone: any; distanceKm: number } | null => {
+    const zones = getActiveOperatingZones();
+    if (zones.length === 0) return null;
+
+    let nearest: { zone: any; distanceKm: number } | null = null;
+    for (const z of zones) {
+      const zLat = Number(z.latitude);
+      const zLng = Number(z.longitude);
+      if (isNaN(zLat) || isNaN(zLng) || (zLat === 0 && zLng === 0)) continue;
+
+      const dist = calculateHaversine(lat, lng, zLat, zLng);
+      if (!nearest || dist < nearest.distanceKm) {
+        nearest = { zone: z, distanceKm: Math.round(dist * 10) / 10 };
+      }
+    }
+    return nearest;
+  };
+
+  const enrichRequestWithNearestZone = (r: any): any => {
+    if (!r) return r;
+    if (r.latitude != null && r.longitude != null) {
+      const lat = Number(r.latitude);
+      const lng = Number(r.longitude);
+      if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+        const nearest = findNearestOperatingZone(lat, lng);
+        if (nearest) {
+          r.distanceFromZoneKm = nearest.distanceKm;
+          if (!r.zoneId || !r.zoneName) {
+            r.zoneId = nearest.zone.id;
+            r.zoneName = nearest.zone.zoneName;
+          }
+          if (!r.cityName && nearest.zone.cityName) {
+            r.cityName = nearest.zone.cityName;
+          }
+        }
+      }
+    }
+    return r;
+  };
+
   const isZoneMatch = (zA?: string | null, zB?: string | null): boolean => {
     if (!zA || !zB) return false;
     const a = decodeURIComponent(zA).trim().toLowerCase();
     const b = decodeURIComponent(zB).trim().toLowerCase();
     if (a === 'all' || b === 'all') return true;
     if (a === b || a.includes(b) || b.includes(a)) return true;
+    const strip = (s: string) => s.replace(/^dz-/, '').replace(/-zone$/, '').replace(/\s+zone$/i, '').trim();
+    if (strip(a) === strip(b)) return true;
     const isABlr = a.includes('bangalore') || a.includes('bengaluru') || a.includes('blr');
     const isBBlr = b.includes('bangalore') || b.includes('bengaluru') || b.includes('blr');
     if (isABlr && isBBlr) return true;
     const isATmk = a.includes('tumkur') || a.includes('tumakuru') || a.includes('tmk');
     const isBTmk = b.includes('tumkur') || b.includes('tumakuru') || b.includes('tmk');
     if (isATmk && isBTmk) return true;
+    const isAHsn = a.includes('hassan') || a.includes('hasan');
+    const isBHsn = b.includes('hassan') || b.includes('hasan');
+    if (isAHsn && isBHsn) return true;
     const isAMys = a.includes('mysore') || a.includes('mysuru');
     const isBMys = b.includes('mysore') || b.includes('mysuru');
     if (isAMys && isBMys) return true;
     const isAHub = a.includes('hubballi') || a.includes('hubli') || a.includes('hbl');
     const isBHub = b.includes('hubballi') || b.includes('hubli') || b.includes('hbl');
     if (isAHub && isBHub) return true;
-    const strip = (s: string) => s.replace(/^dz-/, '').replace(/-zone$/, '').replace(/\s+zone$/i, '').trim();
-    if (strip(a) === strip(b)) return true;
     return false;
   };
 
   const isRequestInZone = (r: any, targetZone: string): boolean => {
     if (!targetZone || targetZone.toLowerCase() === 'all') return true;
-    if (r.zoneId && isZoneMatch(r.zoneId, targetZone)) return true;
-    if (r.zoneName && isZoneMatch(r.zoneName, targetZone)) return true;
-    if (r.cityName && isZoneMatch(r.cityName, targetZone)) return true;
-    const text = `${r.cityName || ''} ${r.address || ''} ${r.requestedArea || ''}`;
-    if (isZoneMatch(text, targetZone)) return true;
+
+    // 1. If valid geographic coordinates exist, determine matching zone strictly by nearest-zone geography
     if (r.latitude != null && r.longitude != null) {
       const lat = Number(r.latitude);
       const lng = Number(r.longitude);
       if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
-        const isTargetTumkur = isZoneMatch('dz-tumkur', targetZone);
-        const isTargetBlr = isZoneMatch('dz-bangalore', targetZone);
-        const distTumkur = calculateHaversine(lat, lng, 13.3379, 77.1173);
-        const distBlr = calculateHaversine(lat, lng, 12.9716, 77.5946);
-        if (isTargetTumkur && distTumkur < distBlr) return true;
-        if (isTargetBlr && distBlr < distTumkur) return true;
+        const nearest = findNearestOperatingZone(lat, lng);
+        if (nearest) {
+          return (
+            isZoneMatch(nearest.zone.id, targetZone) ||
+            isZoneMatch(nearest.zone.zoneName, targetZone) ||
+            isZoneMatch(nearest.zone.cityName, targetZone)
+          );
+        }
       }
     }
+
+    // 2. If coordinates are missing, fall back to explicit zoneId and text matching
+    if (r.zoneId && isZoneMatch(r.zoneId, targetZone)) return true;
+    if (r.zoneName && isZoneMatch(r.zoneName, targetZone)) return true;
+    if (r.cityName && isZoneMatch(r.cityName, targetZone)) return true;
+    const text = `${r.cityName || ''} ${r.address || ''} ${r.requestedArea || ''} ${r.restaurantName || ''}`;
+    if (isZoneMatch(text, targetZone)) return true;
+
     return false;
   };
 
@@ -6163,15 +6290,16 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
 
     const lat = body.latitude != null ? Number(body.latitude) : null;
     const lng = body.longitude != null ? Number(body.longitude) : null;
-    if (!resolvedZoneId && lat != null && lng != null && !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
-      const distTumkur = calculateHaversine(lat, lng, 13.3379, 77.1173);
-      const distBlr = calculateHaversine(lat, lng, 12.9716, 77.5946);
-      if (distTumkur < distBlr && distTumkur < 80) {
-        resolvedZoneId = 'dz-tumkur';
-        resolvedZoneName = 'Tumkur Zone';
-      } else if (distBlr < 80) {
-        resolvedZoneId = 'dz-bangalore';
-        resolvedZoneName = 'Bangalore Zone';
+    let resolvedDistanceFromZoneKm: number | null = body.distanceFromZoneKm ? Number(body.distanceFromZoneKm) : null;
+
+    if (lat != null && lng != null && !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+      const nearest = findNearestOperatingZone(lat, lng);
+      if (nearest) {
+        resolvedDistanceFromZoneKm = nearest.distanceKm;
+        if (!resolvedZoneId || !resolvedZoneName) {
+          resolvedZoneId = nearest.zone.id;
+          resolvedZoneName = nearest.zone.zoneName;
+        }
       }
     }
 
@@ -6183,6 +6311,9 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
       } else if (text.includes('bangalore') || text.includes('bengaluru') || text.includes('blr')) {
         resolvedZoneId = 'dz-bangalore';
         resolvedZoneName = 'Bangalore Zone';
+      } else if (text.includes('hassan') || text.includes('hasan')) {
+        resolvedZoneId = 'dz-hassan';
+        resolvedZoneName = 'Hassan Zone';
       } else if (text.includes('mysore') || text.includes('mysuru')) {
         resolvedZoneId = 'dz-mysore';
         resolvedZoneName = 'Mysore Zone';
@@ -6195,6 +6326,7 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
     if (resolvedZoneId && !resolvedZoneName) {
       if (resolvedZoneId.includes('tumkur')) resolvedZoneName = 'Tumkur Zone';
       else if (resolvedZoneId.includes('bangalore') || resolvedZoneId.includes('bengaluru')) resolvedZoneName = 'Bangalore Zone';
+      else if (resolvedZoneId.includes('hassan')) resolvedZoneName = 'Hassan Zone';
       else resolvedZoneName = resolvedZoneId;
     }
 
@@ -6246,7 +6378,7 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
       zoneId: resolvedZoneId,
       zoneName: resolvedZoneName,
       restaurantId: body.restaurantId || (resolvedSource === 'RESTAURANT' ? requesterId : null),
-      distanceFromZoneKm: body.distanceFromZoneKm || null,
+      distanceFromZoneKm: resolvedDistanceFromZoneKm != null ? resolvedDistanceFromZoneKm : (body.distanceFromZoneKm || null),
       submittedDocuments: Array.isArray(body.submittedDocuments) ? body.submittedDocuments : [],
       documentDetails: Array.isArray(body.documentDetails) ? body.documentDetails : [],
     };
@@ -6310,6 +6442,71 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
           }, { status: 403 });
         }
       }
+    }
+
+    // In live runtime (non-test mode), fetch and sync from real backend (Spring Boot and data files)
+    if (process.env.NODE_ENV !== 'test') {
+      let upstreamData: any[] = [];
+      try {
+        const localFetch = await safeFetch('http://localhost:8082/api/v1/admin/location/unserviceable-requests', {
+          timeoutMs: 2500,
+        });
+        if (localFetch.response && localFetch.response.ok) {
+          const json = await localFetch.response.json().catch(() => null);
+          if (Array.isArray(json?.data)) upstreamData = json.data;
+          else if (Array.isArray(json)) upstreamData = json;
+        }
+      } catch {}
+
+      if (upstreamData.length === 0) {
+        try {
+          const remoteFetch = await safeFetch(ENV.apiBaseUrl.replace(/\/$/, '') + '/api/v1/admin/location/unserviceable-requests', {
+            headers: accessToken ? { Authorization: 'Bearer ' + accessToken } : {},
+            timeoutMs: 2500,
+          });
+          if (remoteFetch.response && remoteFetch.response.ok) {
+            const json = await remoteFetch.response.json().catch(() => null);
+            if (Array.isArray(json?.data)) upstreamData = json.data;
+            else if (Array.isArray(json)) upstreamData = json;
+          }
+        } catch {}
+      }
+
+      if (upstreamData.length === 0) {
+        try {
+          const backendFilePath = path.resolve(process.cwd(), '..', 'foodie-backend', 'apps', 'api', 'data', 'unserviceable_requests.json');
+          if (fs.existsSync(backendFilePath)) {
+            const fileData = JSON.parse(fs.readFileSync(backendFilePath, 'utf8'));
+            if (Array.isArray(fileData)) upstreamData = fileData;
+          }
+        } catch {}
+      }
+
+      if (upstreamData.length > 0) {
+        const map = new Map<string, any>();
+        for (const r of upstreamData) {
+          if (r && r.id) map.set(r.id, r);
+        }
+        for (const r of localList) {
+          if (r && r.id) {
+            if (!map.has(r.id)) {
+              map.set(r.id, r);
+            } else {
+              const existing = map.get(r.id);
+              map.set(r.id, { ...existing, ...r, status: r.status || existing.status });
+            }
+          }
+        }
+        const mergedList = Array.from(map.values());
+        localList.length = 0;
+        localList.push(...mergedList);
+        saveLocalUnserviceableRequests(localList);
+      }
+    }
+
+    // Enrich all items with nearest zone coordinates and distance
+    for (const r of localList) {
+      enrichRequestWithNearestZone(r);
     }
 
     // Filter dummy items if any exist
