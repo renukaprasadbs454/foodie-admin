@@ -3168,7 +3168,11 @@ export function DeliveryPartnersPage() {
       {selectedPartnerForDetails && (
         <DeliveryPartnerFullDetailsDrawer
           open={Boolean(selectedPartnerForDetails)}
-          partner={selectedPartnerForDetails}
+          partner={
+            partners.find((p) => p.id === selectedPartnerForDetails.id) ||
+            allPartners.find((p) => p.id === selectedPartnerForDetails.id) ||
+            selectedPartnerForDetails
+          }
           onClose={() => setSelectedPartnerForDetails(null)}
           onPartnerUpdated={(updatedPartner) => {
             setSelectedPartnerForDetails(updatedPartner);

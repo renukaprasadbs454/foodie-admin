@@ -1099,14 +1099,14 @@ export function DeliveryPartnerFullDetailsDrawer({
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 13 }}>
                         <div>
                           <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>GPS LATITUDE</span>
-                          <code style={{ color: '#111827', marginTop: 3, display: 'block' }}>
-                            {partnerCoords.lat.toFixed(4)}
+                          <code style={{ color: '#111827', marginTop: 3, display: 'block', fontWeight: 700 }}>
+                            {partnerCoords.lat.toFixed(6)}
                           </code>
                         </div>
                         <div>
                           <span style={{ color: '#6B7280', display: 'block', fontSize: 11, fontWeight: 700 }}>GPS LONGITUDE</span>
-                          <code style={{ color: '#111827', marginTop: 3, display: 'block' }}>
-                            {partnerCoords.lng.toFixed(4)}
+                          <code style={{ color: '#111827', marginTop: 3, display: 'block', fontWeight: 700 }}>
+                            {partnerCoords.lng.toFixed(6)}
                           </code>
                         </div>
                         <div style={{ gridColumn: 'span 2' }}>

@@ -8,7 +8,8 @@ const GMAPS_API_KEY = 'AIzaSyBef3prJr9YvHFDYczEJ-mzZfSlLd2vHbE';
 // Guard against Google Maps billing error modal in Next.js development overlay
 if (typeof window !== 'undefined') {
   (window as any).gm_authFailure = () => {
-    // Suppress Google Maps native alert popups when billing is not enabled
+    // Suppress Google Maps native alert popups and notify components to use OpenStreetMap fallback
+    window.dispatchEvent(new CustomEvent('gmaps_auth_failure'));
   };
   const originalConsoleError = console.error;
   console.error = (...args: any[]) => {
@@ -19,6 +20,7 @@ if (typeof window !== 'undefined') {
         firstArg.includes('Google Maps JavaScript API error'))
     ) {
       console.warn('[Foodie Admin] Handled Google Maps billing notice:', firstArg);
+      window.dispatchEvent(new CustomEvent('gmaps_auth_failure'));
       return;
     }
     originalConsoleError.apply(console, args);
@@ -81,7 +83,7 @@ export function DeliveryPartnerLocationMap({
   height = 280,
   className,
 }: DeliveryPartnerLocationMapProps) {
-  const [mapMode, setMapMode] = useState<'streets' | 'satellite' | 'radar'>('streets');
+  const [mapMode, setMapMode] = useState<'streets' | 'osm' | 'satellite' | 'radar'>('streets');
   const [zoomFactor, setZoomFactor] = useState<number>(1);
   const [gmapsReady, setGmapsReady] = useState<boolean>(false);
   const [gmapsLoadError, setGmapsLoadError] = useState<boolean>(false);
@@ -99,6 +101,19 @@ export function DeliveryPartnerLocationMap({
       : vehicleType?.toUpperCase().includes('CAR')
       ? '🚗'
       : '🛵';
+
+  // Listen to Google Maps auth/billing failure to cleanly switch to OpenStreetMap
+  useEffect(() => {
+    const handleAuthFailure = () => {
+      setGmapsLoadError(true);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('gmaps_auth_failure', handleAuthFailure);
+      return () => {
+        window.removeEventListener('gmaps_auth_failure', handleAuthFailure);
+      };
+    }
+  }, []);
 
   // Load Google Maps script once mounted
   useEffect(() => {
@@ -123,7 +138,7 @@ export function DeliveryPartnerLocationMap({
 
   // Initialize Google Maps instance
   useEffect(() => {
-    if (!gmapsReady || !mapDivRef.current || mapMode === 'radar') return;
+    if (!gmapsReady || !mapDivRef.current || mapMode === 'radar' || mapMode === 'osm') return;
 
     try {
       const google = (window as any).google;
@@ -134,7 +149,7 @@ export function DeliveryPartnerLocationMap({
       if (!gmapRef.current) {
         const map = new google.maps.Map(mapDivRef.current, {
           center: pos,
-          zoom: 15,
+          zoom: 17,
           mapTypeId: mapMode === 'satellite' ? 'hybrid' : 'roadmap',
           disableDefaultUI: true,
           gestureHandling: 'greedy',
@@ -244,14 +259,14 @@ export function DeliveryPartnerLocationMap({
     setZoomFactor(1);
     if (gmapRef.current && (window as any).google?.maps) {
       gmapRef.current.panTo({ lat: Number(latitude), lng: Number(longitude) });
-      gmapRef.current.setZoom(15);
+      gmapRef.current.setZoom(17);
     }
   };
 
   const handleZoomIn = () => {
     setZoomFactor((prev) => Math.min(prev * 1.5, 4));
     if (gmapRef.current && (window as any).google?.maps) {
-      const currentZoom = gmapRef.current.getZoom() || 15;
+      const currentZoom = gmapRef.current.getZoom() || 17;
       gmapRef.current.setZoom(Math.min(currentZoom + 1, 20));
     }
   };
@@ -259,22 +274,22 @@ export function DeliveryPartnerLocationMap({
   const handleZoomOut = () => {
     setZoomFactor((prev) => Math.max(prev / 1.5, 0.5));
     if (gmapRef.current && (window as any).google?.maps) {
-      const currentZoom = gmapRef.current.getZoom() || 15;
+      const currentZoom = gmapRef.current.getZoom() || 17;
       gmapRef.current.setZoom(Math.max(currentZoom - 1, 3));
     }
   };
 
   const googleMapsExternalUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
-  // Bounding box for OpenStreetMap embed fallback
-  const deltaLng = 0.012 / zoomFactor;
-  const deltaLat = 0.008 / zoomFactor;
-  const minLng = (longitude - deltaLng).toFixed(5);
-  const minLat = (latitude - deltaLat).toFixed(5);
-  const maxLng = (longitude + deltaLng).toFixed(5);
-  const maxLat = (latitude + deltaLat).toFixed(5);
+  // High-precision bounding box for OpenStreetMap embed view (street level)
+  const deltaLng = 0.005 / zoomFactor;
+  const deltaLat = 0.0035 / zoomFactor;
+  const minLng = (longitude - deltaLng).toFixed(6);
+  const minLat = (latitude - deltaLat).toFixed(6);
+  const maxLng = (longitude + deltaLng).toFixed(6);
+  const maxLat = (latitude + deltaLat).toFixed(6);
 
-  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik&marker=${latitude.toFixed(5)}%2C${longitude.toFixed(5)}`;
+  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik&marker=${latitude.toFixed(6)}%2C${longitude.toFixed(6)}`;
 
   return (
     <div
@@ -331,12 +346,12 @@ export function DeliveryPartnerLocationMap({
         />
       )}
 
-      {/* Fallback Layer: Real Street Map via OpenStreetMap Interactive Embed (if Google Maps API fails) */}
-      {(mapMode === 'streets' || mapMode === 'satellite') && gmapsLoadError && (
+      {/* Fallback & Direct Layer: High-Precision Street Map via OpenStreetMap Interactive Embed */}
+      {(mapMode === 'osm' || ((mapMode === 'streets' || mapMode === 'satellite') && gmapsLoadError)) && (
         <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }}>
           <iframe
             key={`${latitude}-${longitude}-${zoomFactor}`}
-            title="Delivery Partner Location Map (OSM Fallback)"
+            title="Delivery Partner Location Map (OSM)"
             src={osmEmbedUrl}
             width="100%"
             height="100%"
@@ -652,7 +667,24 @@ export function DeliveryPartnerLocationMap({
               color: mapMode === 'streets' ? '#FFFFFF' : '#4B5563',
             }}
           >
-            Streets
+            Google
+          </button>
+          <button
+            type="button"
+            onClick={() => setMapMode('osm')}
+            title="OpenStreetMap Precise Street Map"
+            style={{
+              padding: '3px 8px',
+              borderRadius: 4,
+              border: 'none',
+              fontSize: 10,
+              fontWeight: 600,
+              cursor: 'pointer',
+              backgroundColor: mapMode === 'osm' ? '#059669' : 'transparent',
+              color: mapMode === 'osm' ? '#FFFFFF' : '#4B5563',
+            }}
+          >
+            OSM Street
           </button>
           <button
             type="button"
@@ -787,14 +819,14 @@ export function DeliveryPartnerLocationMap({
         </a>
       </div>
 
-      {/* BOTTOM LEFT: Coordinates Chip */}
+      {/* BOTTOM LEFT: High-Precision Coordinates Chip */}
       <div
         style={{
           position: 'absolute',
           bottom: 10,
           left: 10,
           zIndex: 4,
-          backgroundColor: 'rgba(17, 24, 39, 0.8)',
+          backgroundColor: 'rgba(17, 24, 39, 0.85)',
           color: '#FFFFFF',
           padding: '4px 8px',
           borderRadius: 6,
@@ -805,10 +837,10 @@ export function DeliveryPartnerLocationMap({
           pointerEvents: 'none',
         }}
       >
-        {latitude.toFixed(4)}, {longitude.toFixed(4)} • {zoneName}
+        {latitude.toFixed(6)}, {longitude.toFixed(6)} • {zoneName}
       </div>
 
-      {/* BOTTOM RIGHT: Google Maps Active Badge */}
+      {/* BOTTOM RIGHT: Active Provider Badge */}
       <div
         style={{
           position: 'absolute',
@@ -830,7 +862,11 @@ export function DeliveryPartnerLocationMap({
         }}
       >
         <span style={{ fontSize: 11 }}>🗺️</span>
-        <span>{isOnline ? '🟢 Google Maps Live GPS' : '⚪ Google Maps Last Known'}</span>
+        <span>
+          {mapMode === 'osm' || gmapsLoadError
+            ? (isOnline ? '🟢 OpenStreetMap Live GPS' : '⚪ OpenStreetMap Last Known')
+            : (isOnline ? '🟢 Google Maps Live GPS' : '⚪ Google Maps Last Known')}
+        </span>
       </div>
     </div>
   );
