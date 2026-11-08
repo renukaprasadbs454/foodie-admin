@@ -677,7 +677,7 @@ export function CouponsPage() {
       maxDiscountAmount: maxDisc,
       module: isAll ? 'All Locations Restaurants' : `${targetZoneName} Restaurants`,
       expiryDate: cleanExpiry,
-      status: 'ACTIVE',
+      status: 'DEACTIVATED',
       couponType: 'RESTAURANT',
       funderType: 'SHARED',
       zoneId: effectiveZoneId,
@@ -702,6 +702,8 @@ export function CouponsPage() {
         usageLimitPerUser: 1,
         zoneId: effectiveZoneId,
         zoneName: targetZoneName,
+        isActive: false,
+        status: 'DEACTIVATED',
       } as any).unwrap();
 
       try {

@@ -5,9 +5,11 @@ import {
   formatCouponValidityDate,
   isPromoCoupon,
   isRestaurantCoupon,
+  isCouponEnabledForRestaurant,
   filterCouponsForCustomerDirect,
   filterCouponsForRestaurantPanel,
 } from '../features/coupons/types';
+import { GET, POST, PATCH } from '../app/api/bff/[...path]/route';
 
 describe('Restaurant Coupons Management - Admin Panel', () => {
   it('exposes the renamed Restaurant Coupons section and navigation tabs', () => {
@@ -789,6 +791,236 @@ describe('Restaurant Coupons Management - Admin Panel', () => {
       expect(extracted).toHaveLength(2);
       expect(extracted[0].code).toBe('PROMO10');
       expect(extracted[1].code).toBe('REST20');
+    });
+  });
+
+  describe('Restaurant Coupon Activation and Customer Visibility', () => {
+    const zoneCoupon = {
+      couponId: 'c-zone-tmk-01',
+      code: 'TUMKURDEAL',
+      title: 'Tumkur 20% OFF Restaurant Deal',
+      couponType: 'RESTAURANT',
+      funderType: 'SHARED',
+      discountType: 'PERCENT',
+      value: 20,
+      adminDiscount: 10,
+      restaurantDiscount: 10,
+      minOrderAmount: 200,
+      maxDiscountAmount: 100,
+      zoneId: 'dz-tumkur',
+      zoneName: 'Tumkur Zone',
+      isActive: false,
+      status: 'DEACTIVATED',
+      enabledRestaurantIds: [] as string[],
+      restaurantStatuses: {} as Record<string, boolean>,
+    };
+
+    it('reaches all assigned restaurants with DISABLED status by default when created', () => {
+      // Restaurant 1 in Tumkur
+      const rest1Promos = filterCouponsForRestaurantPanel([zoneCoupon], 'rest-tumkur-101', 'dz-tumkur');
+      expect(rest1Promos).toHaveLength(1);
+      expect(rest1Promos[0].code).toBe('TUMKURDEAL');
+      expect(rest1Promos[0].isActive).toBe(false);
+      expect(rest1Promos[0].status).toBe('DEACTIVATED');
+
+      // Restaurant 2 in Tumkur
+      const rest2Promos = filterCouponsForRestaurantPanel([zoneCoupon], 'rest-tumkur-102', 'dz-tumkur');
+      expect(rest2Promos).toHaveLength(1);
+      expect(rest2Promos[0].code).toBe('TUMKURDEAL');
+      expect(rest2Promos[0].isActive).toBe(false);
+      expect(rest2Promos[0].status).toBe('DEACTIVATED');
+    });
+
+    it('is never automatically ENABLED without manual restaurant action', () => {
+      expect(isCouponEnabledForRestaurant(zoneCoupon, 'rest-tumkur-101')).toBe(false);
+      expect(isCouponEnabledForRestaurant(zoneCoupon, 'rest-tumkur-102')).toBe(false);
+    });
+
+    it('allows each restaurant to manually enable its own coupon independently', () => {
+      // Restaurant 1 manually enables its coupon
+      const updatedCoupon = {
+        ...zoneCoupon,
+        enabledRestaurantIds: ['rest-tumkur-101'],
+        restaurantStatuses: { 'rest-tumkur-101': true },
+        isActive: true,
+      };
+
+      // Restaurant 1 now sees it as ACTIVE
+      const rest1Promos = filterCouponsForRestaurantPanel([updatedCoupon], 'rest-tumkur-101', 'dz-tumkur');
+      expect(rest1Promos[0].isActive).toBe(true);
+      expect(rest1Promos[0].status).toBe('ACTIVE');
+
+      // Restaurant 2 in the same zone remains DISABLED
+      const rest2Promos = filterCouponsForRestaurantPanel([updatedCoupon], 'rest-tumkur-102', 'dz-tumkur');
+      expect(rest2Promos[0].isActive).toBe(false);
+      expect(rest2Promos[0].status).toBe('DEACTIVATED');
+    });
+
+    it('enabling one restaurant coupon does not affect other restaurants in the same zone', () => {
+      const rest1EnabledCoupon = {
+        ...zoneCoupon,
+        enabledRestaurantIds: ['rest-tumkur-101'],
+        restaurantStatuses: { 'rest-tumkur-101': true },
+        isActive: true,
+      };
+
+      expect(isCouponEnabledForRestaurant(rest1EnabledCoupon, 'rest-tumkur-101')).toBe(true);
+      expect(isCouponEnabledForRestaurant(rest1EnabledCoupon, 'rest-tumkur-102')).toBe(false);
+      expect(isCouponEnabledForRestaurant(rest1EnabledCoupon, 'rest-tumkur-103')).toBe(false);
+    });
+
+    it('appears to customers selecting that specific restaurant only after enablement', () => {
+      // Before Restaurant 1 enables it: customer selecting Restaurant 1 does NOT see it
+      const beforeCustomerView = filterCouponsForCustomerDirect([zoneCoupon], 'dz-tumkur', 'rest-tumkur-101');
+      expect(beforeCustomerView.map((c) => c.code)).not.toContain('TUMKURDEAL');
+
+      // After Restaurant 1 enables it: customer selecting Restaurant 1 DOES see it
+      const rest1EnabledCoupon = {
+        ...zoneCoupon,
+        enabledRestaurantIds: ['rest-tumkur-101'],
+        restaurantStatuses: { 'rest-tumkur-101': true },
+        isActive: true,
+      };
+      const afterCustomerViewRest1 = filterCouponsForCustomerDirect([rest1EnabledCoupon], 'dz-tumkur', 'rest-tumkur-101');
+      expect(afterCustomerViewRest1.map((c) => c.code)).toContain('TUMKURDEAL');
+
+      // Customer selecting Restaurant 2 (disabled) does NOT see it
+      const afterCustomerViewRest2 = filterCouponsForCustomerDirect([rest1EnabledCoupon], 'dz-tumkur', 'rest-tumkur-102');
+      expect(afterCustomerViewRest2.map((c) => c.code)).not.toContain('TUMKURDEAL');
+    });
+
+    it('preserves existing zone-wise assignment functionality across different zones', () => {
+      const rest1EnabledCoupon = {
+        ...zoneCoupon,
+        enabledRestaurantIds: ['rest-tumkur-101'],
+        restaurantStatuses: { 'rest-tumkur-101': true },
+        isActive: true,
+      };
+
+      // Tumkur zone customers selecting rest-tumkur-101 see the coupon
+      const tumkurCustomer = filterCouponsForCustomerDirect([rest1EnabledCoupon], 'dz-tumkur', 'rest-tumkur-101');
+      expect(tumkurCustomer.map((c) => c.code)).toContain('TUMKURDEAL');
+
+      // Bangalore zone customers cannot see Tumkur zone coupon
+      const bangaloreCustomer = filterCouponsForCustomerDirect([rest1EnabledCoupon], 'dz-bangalore', 'rest-tumkur-101');
+      expect(bangaloreCustomer.map((c) => c.code)).not.toContain('TUMKURDEAL');
+    });
+
+    it('validates complete Super Admin creation, restaurant activation, and checkout application via BFF', async () => {
+      const uniqueCode = `AUTO_${Date.now().toString().slice(-4)}`;
+
+      // 1. Super Admin creates a zone-wise coupon for Tumkur Zone
+      const createReq = new Request('http://localhost:3100/api/bff/admin/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: uniqueCode,
+          discountType: 'PERCENT',
+          value: 20,
+          adminDiscount: 10,
+          restaurantDiscount: 10,
+          minOrderAmount: 100,
+          maxDiscountAmount: 50,
+          zoneId: 'dz-tumkur',
+          zoneName: 'Tumkur Zone',
+          couponType: 'RESTAURANT',
+        }),
+      });
+      const createRes = await POST(createReq, { params: Promise.resolve({ path: ['admin', 'coupons'] }) });
+      expect(createRes.status).toBe(201);
+      const createdData = await createRes.json();
+      expect(createdData.data.code).toBe(uniqueCode);
+      expect(createdData.data.isActive).toBe(false);
+      expect(createdData.data.status).toBe('DEACTIVATED');
+
+      // 2. Coupon reaches Tumkur restaurants with DISABLED status by default
+      const rest1QueryReq = new Request('http://localhost:3100/api/bff/restaurant/coupons?restaurantId=rest-tumkur-101&zoneId=dz-tumkur');
+      const rest1QueryRes = await GET(rest1QueryReq, { params: Promise.resolve({ path: ['restaurant', 'coupons'] }) });
+      const rest1Coupons = await rest1QueryRes.json();
+      const targetInRest1 = rest1Coupons.data.find((c: any) => c.code === uniqueCode);
+      expect(targetInRest1).toBeDefined();
+      expect(targetInRest1.isActive).toBe(false);
+      expect(targetInRest1.status).toBe('DEACTIVATED');
+
+      // 3. Customer selecting Restaurant 1 cannot see disabled coupon
+      const custBeforeReq = new Request(`http://localhost:3100/api/bff/coupons/active?restaurantId=rest-tumkur-101&zoneId=dz-tumkur`);
+      const custBeforeRes = await GET(custBeforeReq, { params: Promise.resolve({ path: ['coupons', 'active'] }) });
+      const custBeforeData = await custBeforeRes.json();
+      expect(custBeforeData.data.some((c: any) => c.code === uniqueCode)).toBe(false);
+
+      // 4. Customer attempting to apply disabled coupon at checkout is rejected
+      const applyDisabledReq = new Request('http://localhost:3100/api/bff/coupons/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: uniqueCode,
+          restaurantId: 'rest-tumkur-101',
+          cartTotal: 250,
+          zoneId: 'dz-tumkur',
+        }),
+      });
+      const applyDisabledRes = await POST(applyDisabledReq, { params: Promise.resolve({ path: ['coupons', 'apply'] }) });
+      expect(applyDisabledRes.status).toBe(400);
+      const applyDisabledData = await applyDisabledRes.json();
+      expect(applyDisabledData.error.code).toBe('COUPON_DISABLED');
+
+      // 5. Restaurant 1 manually enables its coupon
+      const activateReq = new Request(`http://localhost:3100/api/bff/restaurant/coupons/${createdData.data.couponId}/activate?restaurantId=rest-tumkur-101`, {
+        method: 'PATCH',
+      });
+      const activateRes = await PATCH(activateReq, {
+        params: Promise.resolve({ path: ['restaurant', 'coupons', createdData.data.couponId, 'activate'] }),
+      });
+      expect(activateRes.status).toBe(200);
+
+      // 6. Restaurant 1 now sees it as ACTIVE; Restaurant 2 in same zone is STILL DISABLED
+      const rest1AfterReq = new Request('http://localhost:3100/api/bff/restaurant/coupons?restaurantId=rest-tumkur-101&zoneId=dz-tumkur');
+      const rest1AfterRes = await GET(rest1AfterReq, { params: Promise.resolve({ path: ['restaurant', 'coupons'] }) });
+      const rest1AfterData = await rest1AfterRes.json();
+      expect(rest1AfterData.data.find((c: any) => c.code === uniqueCode)?.isActive).toBe(true);
+
+      const rest2AfterReq = new Request('http://localhost:3100/api/bff/restaurant/coupons?restaurantId=rest-tumkur-102&zoneId=dz-tumkur');
+      const rest2AfterRes = await GET(rest2AfterReq, { params: Promise.resolve({ path: ['restaurant', 'coupons'] }) });
+      const rest2AfterData = await rest2AfterRes.json();
+      expect(rest2AfterData.data.find((c: any) => c.code === uniqueCode)?.isActive).toBe(false);
+
+      // 7. Customer selecting Restaurant 1 can now see and apply the coupon
+      const custAfterReq = new Request(`http://localhost:3100/api/bff/coupons/active?restaurantId=rest-tumkur-101&zoneId=dz-tumkur`);
+      const custAfterRes = await GET(custAfterReq, { params: Promise.resolve({ path: ['coupons', 'active'] }) });
+      const custAfterData = await custAfterRes.json();
+      expect(custAfterData.data.some((c: any) => c.code === uniqueCode)).toBe(true);
+
+      const applySuccessReq = new Request('http://localhost:3100/api/bff/coupons/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: uniqueCode,
+          restaurantId: 'rest-tumkur-101',
+          cartTotal: 250,
+          zoneId: 'dz-tumkur',
+        }),
+      });
+      const applySuccessRes = await POST(applySuccessReq, { params: Promise.resolve({ path: ['coupons', 'apply'] }) });
+      expect(applySuccessRes.status).toBe(200);
+      const applySuccessData = await applySuccessRes.json();
+      expect(applySuccessData.success).toBe(true);
+      expect(applySuccessData.data.discountAmount).toBe(50); // 20% of 250 = 50 (maxDiscount 50)
+
+      // 8. Customer selecting Restaurant 2 cannot apply it at checkout
+      const applyRest2Req = new Request('http://localhost:3100/api/bff/coupons/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: uniqueCode,
+          restaurantId: 'rest-tumkur-102',
+          cartTotal: 250,
+          zoneId: 'dz-tumkur',
+        }),
+      });
+      const applyRest2Res = await POST(applyRest2Req, { params: Promise.resolve({ path: ['coupons', 'apply'] }) });
+      expect(applyRest2Res.status).toBe(400);
+      const applyRest2Data = await applyRest2Res.json();
+      expect(applyRest2Data.error.code).toBe('COUPON_DISABLED');
     });
   });
 });

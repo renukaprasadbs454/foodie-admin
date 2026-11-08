@@ -2831,6 +2831,45 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
     return false;
   };
 
+  const isCouponEnabledForRestaurant = (coupon: any, restaurantId: string): boolean => {
+    if (!coupon || !restaurantId) return false;
+    const cleanRest = restaurantId.trim().toLowerCase();
+
+    // 1. Explicit per-restaurant status in restaurantStatuses map
+    if (coupon.restaurantStatuses && typeof coupon.restaurantStatuses === 'object') {
+      const val = coupon.restaurantStatuses[cleanRest] ?? coupon.restaurantStatuses[restaurantId];
+      if (typeof val === 'boolean') {
+        return val;
+      }
+    }
+
+    // 2. Explicitly enabled list
+    if (Array.isArray(coupon.enabledRestaurantIds)) {
+      const isExplicitlyEnabled = coupon.enabledRestaurantIds.some(
+        (id: string) => typeof id === 'string' && id.trim().toLowerCase() === cleanRest
+      );
+      if (isExplicitlyEnabled) return true;
+      return false;
+    }
+
+    // 3. Explicitly disabled list
+    if (Array.isArray(coupon.disabledRestaurantIds)) {
+      const isExplicitlyDisabled = coupon.disabledRestaurantIds.some(
+        (id: string) => typeof id === 'string' && id.trim().toLowerCase() === cleanRest
+      );
+      if (isExplicitlyDisabled) return false;
+    }
+
+    // 4. Specific single-restaurant coupon
+    if (coupon.restaurantId && coupon.restaurantId.trim().toLowerCase() === cleanRest) {
+      return coupon.isActive === true && coupon.status !== 'DEACTIVATED' && coupon.status !== 'DISABLED';
+    }
+
+    // 5. Zone-wise / global restaurant coupon:
+    // Reaches restaurants with DISABLED status by default and is never automatically enabled.
+    return false;
+  };
+
   // 1. GET admin/coupons OR coupons/active OR coupons/eligible OR restaurant promos
   if (
     (
@@ -2934,11 +2973,16 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
           }
           return false;
         })
-        .map(c => ({
-          ...c,
-          restaurantId: c.restaurantId || qRestaurantId,
-          expiryDate: extractCouponDateOnly(c.expiryDate) || c.expiryDate,
-        }));
+        .map(c => {
+          const isEnabled = isCouponEnabledForRestaurant(c, qRestaurantId);
+          return {
+            ...c,
+            restaurantId: c.restaurantId || qRestaurantId,
+            isActive: isEnabled,
+            status: isEnabled ? 'ACTIVE' : 'DEACTIVATED',
+            expiryDate: extractCouponDateOnly(c.expiryDate) || c.expiryDate,
+          };
+        });
       return NextResponse.json({
         success: true,
         data: restCoupons,
@@ -2997,9 +3041,20 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       }
 
       // 2. Restaurant Coupons Flow
-      // Restaurant scoping in customer cart context: if order is for restaurant A, do not show coupons for restaurant B
-      if (coupon.restaurantId && qRestaurantId && coupon.restaurantId !== qRestaurantId) {
-        return false;
+      // "Only after a restaurant enables it, the coupon should appear to customers selecting that specific restaurant.
+      // If disabled, it must not appear or be applicable at checkout."
+      if (qRestaurantId) {
+        if (coupon.restaurantId && coupon.restaurantId.toLowerCase() !== qRestaurantId.toLowerCase()) {
+          return false;
+        }
+        if (!isCouponEnabledForRestaurant(coupon, qRestaurantId)) {
+          return false;
+        }
+      } else {
+        if (coupon.isActive === false) return false;
+        if (Array.isArray(coupon.enabledRestaurantIds) && coupon.enabledRestaurantIds.length === 0) {
+          return false;
+        }
       }
 
       // If coupon is global (no zone or ALL)
@@ -3084,6 +3139,11 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       computedValue = (adminDiscount || 0) + (restaurantDiscount || 0);
     }
 
+    // When Super Admin creates a zone-wise coupon, it must reach all assigned restaurants with DISABLED status by default.
+    // Never make a coupon automatically ENABLED. Each restaurant must manually enable its own coupon.
+    const initialIsActive = isPromoCoupon ? (body.isActive !== false) : false;
+    const initialStatus = initialIsActive ? "ACTIVE" : "DEACTIVATED";
+
     const newCoupon = {
       couponId: "c-" + Date.now().toString().slice(-4),
       code: cleanCode || ("COUPON_" + Date.now().toString().slice(-4)),
@@ -3104,7 +3164,11 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       restaurantId: isPromoCoupon ? null : (body.restaurantId || null),
       restaurantName: isPromoCoupon ? null : (body.restaurantName || null),
       module: body.module || (isPromoCoupon ? "All Food Delivery" : (body.restaurantName || (body.restaurantId ? "Specific Restaurant" : (cleanZoneName ? `${cleanZoneName} Restaurants` : "All Food Delivery")))),
-      isActive: true,
+      isActive: initialIsActive,
+      status: initialStatus,
+      enabledRestaurantIds: [],
+      disabledRestaurantIds: [],
+      restaurantStatuses: {},
       zoneId: cleanZoneId,
       zoneName: cleanZoneName,
       isAllZones: isAll,
@@ -3180,19 +3244,88 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
     });
   }
 
-  // 3. ACTIVATE / DEACTIVATE: PATCH admin/coupons/:id/(activate|deactivate) OR restaurant/coupons/:id/(activate|deactivate)
-  const actMatch = targetPath.match(/^(?:admin|restaurant|restaurants)\/coupons\/([^\/]+)\/(activate|deactivate)$/);
+  // 3. ACTIVATE / DEACTIVATE: PATCH admin/coupons/:id/(activate|deactivate) OR restaurant/coupons/:id/(activate|deactivate) OR restaurants/:restId/coupons/:id/(activate|deactivate)
+  let actMatch = targetPath.match(/^(?:admin|restaurant|restaurants)\/coupons\/([^\/]+)\/(activate|deactivate)$/);
+  let pathRestaurantId = "";
+  let actCouponId = "";
+  let isActivateAction = false;
+
+  if (actMatch) {
+    actCouponId = actMatch[1];
+    isActivateAction = actMatch[2] === "activate";
+  } else {
+    const restActMatch = targetPath.match(/^restaurants\/([^\/]+)\/coupons\/([^\/]+)\/(activate|deactivate)$/);
+    if (restActMatch) {
+      actMatch = restActMatch;
+      pathRestaurantId = restActMatch[1];
+      actCouponId = restActMatch[2];
+      isActivateAction = restActMatch[3] === "activate";
+    }
+  }
+
   if (actMatch && (request.method === "PATCH" || request.method === "POST")) {
-    const couponId = actMatch[1];
-    const isActivate = actMatch[2] === "activate";
+    const couponId = actCouponId;
+    const isActivate = isActivateAction;
+    let body: any = {};
+    try { body = await request.json(); } catch {}
+
+    const cookieHeader = request.headers.get("cookie") || "";
+    const qRestId = incomingUrl.searchParams.get("restaurantId") || incomingUrl.searchParams.get("storeId") || "";
+    const headerRestId = request.headers.get("x-restaurant-id") || request.headers.get("x-store-id") || "";
+    const cookieRestId = cookieHeader.match(/foodie_restaurant_id=([^;]+)/)?.[1] || "";
+    const bodyRestId = body?.restaurantId || body?.storeId || "";
+
     const coupon = couponsStore.find((c) => c.couponId === couponId || c.id === couponId || c.code === couponId);
+    let targetRestaurantId = (pathRestaurantId || qRestId || headerRestId || cookieRestId || bodyRestId || "").trim();
+    if (!targetRestaurantId && (targetPath.includes("restaurant") || targetPath.includes("promos")) && coupon?.restaurantId) {
+      targetRestaurantId = coupon.restaurantId;
+    }
+
     if (coupon) {
-      coupon.isActive = isActivate;
+      if (targetRestaurantId) {
+        // Restaurant-specific activation / deactivation:
+        // "Each restaurant must manually enable its own coupon. Enabling one restaurant's coupon must not affect other restaurants in the same zone."
+        const cleanRest = targetRestaurantId.toLowerCase();
+        if (!coupon.enabledRestaurantIds) coupon.enabledRestaurantIds = [];
+        if (!coupon.disabledRestaurantIds) coupon.disabledRestaurantIds = [];
+        if (!coupon.restaurantStatuses) coupon.restaurantStatuses = {};
+
+        coupon.restaurantStatuses[cleanRest] = isActivate;
+
+        if (isActivate) {
+          if (!coupon.enabledRestaurantIds.includes(cleanRest)) {
+            coupon.enabledRestaurantIds.push(cleanRest);
+          }
+          coupon.disabledRestaurantIds = coupon.disabledRestaurantIds.filter((r: string) => r !== cleanRest);
+          coupon.isActive = true;
+        } else {
+          coupon.enabledRestaurantIds = coupon.enabledRestaurantIds.filter((r: string) => r !== cleanRest);
+          if (!coupon.disabledRestaurantIds.includes(cleanRest)) {
+            coupon.disabledRestaurantIds.push(cleanRest);
+          }
+          if (coupon.restaurantId && coupon.restaurantId.toLowerCase() === cleanRest) {
+            coupon.isActive = false;
+            coupon.status = "DEACTIVATED";
+          }
+        }
+      } else {
+        coupon.isActive = isActivate;
+        coupon.status = isActivate ? "ACTIVE" : "DEACTIVATED";
+        if (!isActivate) {
+          coupon.enabledRestaurantIds = [];
+          coupon.restaurantStatuses = {};
+        }
+      }
       savePersistentCouponsState(couponsStore);
     }
     return NextResponse.json({
       success: true,
-      data: { couponId, isActive: isActivate },
+      data: {
+        couponId,
+        restaurantId: targetRestaurantId || undefined,
+        isActive: isActivate,
+        status: isActivate ? "ACTIVE" : "DEACTIVATED",
+      },
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
     }, {
@@ -3206,23 +3339,85 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
   }
 
   // 3.1 STATUS TOGGLE: PATCH/POST restaurant/coupons/:id/status
-  const statusMatch = targetPath.match(/^(?:admin|restaurant|restaurants)\/coupons\/([^\/]+)\/status$/);
+  let statusMatch = targetPath.match(/^(?:admin|restaurant|restaurants)\/coupons\/([^\/]+)\/status$/);
+  let statusPathRestId = "";
+  let statusCouponId = "";
+
+  if (statusMatch) {
+    statusCouponId = statusMatch[1];
+  } else {
+    const restStatusMatch = targetPath.match(/^restaurants\/([^\/]+)\/coupons\/([^\/]+)\/status$/);
+    if (restStatusMatch) {
+      statusMatch = restStatusMatch;
+      statusPathRestId = restStatusMatch[1];
+      statusCouponId = restStatusMatch[2];
+    }
+  }
+
   if (statusMatch && (request.method === "PATCH" || request.method === "POST" || request.method === "PUT")) {
-    const couponId = statusMatch[1];
+    const couponId = statusCouponId;
     let body: any = {};
     try { body = await request.json(); } catch {}
     const isActivate = incomingUrl.searchParams.get("isActive") === "true" ||
       incomingUrl.searchParams.get("active") === "true" ||
       body.isActive === true ||
       body.active === true;
+
+    const cookieHeader = request.headers.get("cookie") || "";
+    const qRestId = incomingUrl.searchParams.get("restaurantId") || incomingUrl.searchParams.get("storeId") || "";
+    const headerRestId = request.headers.get("x-restaurant-id") || request.headers.get("x-store-id") || "";
+    const cookieRestId = cookieHeader.match(/foodie_restaurant_id=([^;]+)/)?.[1] || "";
+    const bodyRestId = body?.restaurantId || body?.storeId || "";
+
     const coupon = couponsStore.find((c) => c.couponId === couponId || c.id === couponId || c.code === couponId);
+    let targetRestaurantId = (statusPathRestId || qRestId || headerRestId || cookieRestId || bodyRestId || "").trim();
+    if (!targetRestaurantId && (targetPath.includes("restaurant") || targetPath.includes("promos")) && coupon?.restaurantId) {
+      targetRestaurantId = coupon.restaurantId;
+    }
+
     if (coupon) {
-      coupon.isActive = isActivate;
+      if (targetRestaurantId) {
+        const cleanRest = targetRestaurantId.toLowerCase();
+        if (!coupon.enabledRestaurantIds) coupon.enabledRestaurantIds = [];
+        if (!coupon.disabledRestaurantIds) coupon.disabledRestaurantIds = [];
+        if (!coupon.restaurantStatuses) coupon.restaurantStatuses = {};
+
+        coupon.restaurantStatuses[cleanRest] = isActivate;
+
+        if (isActivate) {
+          if (!coupon.enabledRestaurantIds.includes(cleanRest)) {
+            coupon.enabledRestaurantIds.push(cleanRest);
+          }
+          coupon.disabledRestaurantIds = coupon.disabledRestaurantIds.filter((r: string) => r !== cleanRest);
+          coupon.isActive = true;
+        } else {
+          coupon.enabledRestaurantIds = coupon.enabledRestaurantIds.filter((r: string) => r !== cleanRest);
+          if (!coupon.disabledRestaurantIds.includes(cleanRest)) {
+            coupon.disabledRestaurantIds.push(cleanRest);
+          }
+          if (coupon.restaurantId && coupon.restaurantId.toLowerCase() === cleanRest) {
+            coupon.isActive = false;
+            coupon.status = "DEACTIVATED";
+          }
+        }
+      } else {
+        coupon.isActive = isActivate;
+        coupon.status = isActivate ? "ACTIVE" : "DEACTIVATED";
+        if (!isActivate) {
+          coupon.enabledRestaurantIds = [];
+          coupon.restaurantStatuses = {};
+        }
+      }
       savePersistentCouponsState(couponsStore);
     }
     return NextResponse.json({
       success: true,
-      data: { couponId, isActive: isActivate },
+      data: {
+        couponId,
+        restaurantId: targetRestaurantId || undefined,
+        isActive: isActivate,
+        status: isActivate ? "ACTIVE" : "DEACTIVATED",
+      },
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID() },
     }, {
@@ -3287,20 +3482,78 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       });
     }
 
-    if (coupon.isActive === false) {
-      return NextResponse.json({
-        success: false,
-        data: null,
-        error: { code: "INACTIVE", message: `Coupon '${reqCode}' is no longer active.` },
-        meta: { timestamp: new Date().toISOString() },
-      }, {
-        status: 400,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
-          "Access-Control-Allow-Headers": "*",
-        },
-      });
+    const cType = (coupon.couponType || "").toUpperCase();
+    const fType = (coupon.funderType || "").toUpperCase();
+    const isPromo = cType === "PROMO_COUPON" || (cType === "GENERIC" && fType === "FOODIE" && !coupon.restaurantId && !coupon.module?.includes("Restaurant"));
+    const reqRestaurantId = (body.restaurantId || body.storeId || "").trim();
+
+    if (isPromo) {
+      if (coupon.isActive === false) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: { code: "INACTIVE", message: `Coupon '${reqCode}' is no longer active.` },
+          meta: { timestamp: new Date().toISOString() },
+        }, {
+          status: 400,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+          },
+        });
+      }
+    } else {
+      // Restaurant Coupon check:
+      // "Only after a restaurant enables it, the coupon should appear to customers selecting that specific restaurant.
+      // If disabled, it must not appear or be applicable at checkout."
+      if (!reqRestaurantId) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: { code: "COUPON_DISABLED", message: `Coupon '${reqCode}' is valid only at participating restaurants.` },
+          meta: { timestamp: new Date().toISOString() },
+        }, {
+          status: 400,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+          },
+        });
+      }
+
+      if (coupon.restaurantId && coupon.restaurantId.toLowerCase() !== reqRestaurantId.toLowerCase()) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: { code: "RESTAURANT_MISMATCH", message: `Coupon '${reqCode}' is valid only for ${coupon.restaurantName || 'the assigned restaurant'}.` },
+          meta: { timestamp: new Date().toISOString() },
+        }, {
+          status: 400,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+          },
+        });
+      }
+
+      if (!isCouponEnabledForRestaurant(coupon, reqRestaurantId)) {
+        return NextResponse.json({
+          success: false,
+          data: null,
+          error: { code: "COUPON_DISABLED", message: `Coupon '${reqCode}' is not active or has not been enabled for this restaurant.` },
+          meta: { timestamp: new Date().toISOString() },
+        }, {
+          status: 400,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+          },
+        });
+      }
     }
 
     // Expiry check - calendar date based, valid through end of calendar day (23:59:59.999)
@@ -3348,23 +3601,7 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       }
     }
 
-    // Restaurant eligibility check
-    const reqRestaurantId = (body.restaurantId || "").trim();
-    if (coupon.restaurantId && reqRestaurantId && coupon.restaurantId !== reqRestaurantId) {
-      return NextResponse.json({
-        success: false,
-        data: null,
-        error: { code: "RESTAURANT_MISMATCH", message: `Coupon '${reqCode}' is valid only for ${coupon.restaurantName || 'the assigned restaurant'}.` },
-        meta: { timestamp: new Date().toISOString() },
-      }, {
-        status: 400,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
-          "Access-Control-Allow-Headers": "*",
-        },
-      });
-    }
+
 
     const minAmount = Number(coupon.minOrderAmount || coupon.minPurchase || 0);
     if (cartTotal < minAmount) {

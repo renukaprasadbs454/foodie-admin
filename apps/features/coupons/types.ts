@@ -447,6 +447,50 @@ export function isRestaurantCoupon(coupon: any): boolean {
 }
 
 /**
+ * Checks whether a restaurant coupon has been manually enabled for a specific restaurant.
+ * Zone-wise coupons reach assigned restaurants with DISABLED status by default and are never automatically enabled.
+ */
+export function isCouponEnabledForRestaurant(coupon: any, restaurantId: string): boolean {
+  if (!coupon || !restaurantId) return false;
+
+  const cleanRest = restaurantId.trim().toLowerCase();
+
+  // 1. Explicit per-restaurant status in restaurantStatuses map
+  if (coupon.restaurantStatuses && typeof coupon.restaurantStatuses === 'object') {
+    const val = coupon.restaurantStatuses[cleanRest] ?? coupon.restaurantStatuses[restaurantId];
+    if (typeof val === 'boolean') {
+      return val;
+    }
+  }
+
+  // 2. Explicitly enabled list
+  if (Array.isArray(coupon.enabledRestaurantIds)) {
+    const isExplicitlyEnabled = coupon.enabledRestaurantIds.some(
+      (id: string) => typeof id === 'string' && id.trim().toLowerCase() === cleanRest
+    );
+    if (isExplicitlyEnabled) return true;
+    return false;
+  }
+
+  // 3. Explicitly disabled list
+  if (Array.isArray(coupon.disabledRestaurantIds)) {
+    const isExplicitlyDisabled = coupon.disabledRestaurantIds.some(
+      (id: string) => typeof id === 'string' && id.trim().toLowerCase() === cleanRest
+    );
+    if (isExplicitlyDisabled) return false;
+  }
+
+  // 4. Specific single-restaurant coupon
+  if (coupon.restaurantId && coupon.restaurantId.trim().toLowerCase() === cleanRest) {
+    return coupon.isActive === true && coupon.status !== 'DEACTIVATED' && coupon.status !== 'DISABLED';
+  }
+
+  // 5. Zone-wise / global restaurant coupon:
+  // Must reach restaurants with DISABLED status by default. Never make automatically enabled.
+  return false;
+}
+
+/**
  * Filters coupons for Customer App according to zone eligibility:
  * - Scenario A (Tumkur): Tumkur customers see Tumkur promo coupons + All Zones promo coupons.
  * - Scenario B (Bangalore): Bangalore customers see Bangalore promo coupons + All Zones promo coupons.
@@ -459,12 +503,15 @@ export function filterCouponsForCustomerDirect(
 ): any[] {
   if (!Array.isArray(coupons)) return [];
   const cleanCustomerZone = customerZone ? customerZone.trim() : '';
+  const cleanTargetRest = targetRestaurantId ? targetRestaurantId.trim().toLowerCase() : '';
 
   return coupons.filter((coupon) => {
-    if (!coupon || coupon.isActive === false) return false;
+    if (!coupon) return false;
 
     // 1. Promo Coupon Flow (Direct Customer App distribution)
     if (isPromoCoupon(coupon)) {
+      if (coupon.isActive === false) return false;
+
       const isGlobal =
         !coupon.zoneId ||
         coupon.zoneId === 'ALL' ||
@@ -487,11 +534,29 @@ export function filterCouponsForCustomerDirect(
 
     // 2. Restaurant Coupon Flow
     if (isRestaurantCoupon(coupon)) {
-      if (coupon.restaurantId && targetRestaurantId && coupon.restaurantId !== targetRestaurantId) {
-        return false;
+      if (cleanTargetRest) {
+        // Dedicated to a different restaurant
+        if (coupon.restaurantId && coupon.restaurantId.trim().toLowerCase() !== cleanTargetRest) {
+          return false;
+        }
+        // "Only after a restaurant enables it, the coupon should appear to customers selecting that specific restaurant.
+        // If disabled, it must not appear or be applicable at checkout."
+        if (!isCouponEnabledForRestaurant(coupon, cleanTargetRest)) {
+          return false;
+        }
+      } else {
+        // No specific restaurant selected
+        if (coupon.isActive === false) return false;
+        if (Array.isArray(coupon.enabledRestaurantIds) && coupon.enabledRestaurantIds.length === 0) {
+          return false;
+        }
       }
+
       if (cleanCustomerZone && coupon.zoneId && coupon.zoneId !== 'ALL' && !coupon.isAllZones) {
-        return isZoneMatching(coupon.zoneId, cleanCustomerZone);
+        return (
+          isZoneMatching(coupon.zoneId, cleanCustomerZone) ||
+          Boolean(coupon.zoneName && isZoneMatching(coupon.zoneName, cleanCustomerZone))
+        );
       }
       return true;
     }
@@ -513,43 +578,53 @@ export function filterCouponsForRestaurantPanel(
   const cleanRest = restaurantId.trim().toLowerCase();
   const cleanZone = restaurantZone ? restaurantZone.trim() : '';
 
-  return coupons.filter((coupon) => {
-    // 1. Promo Coupons MUST NEVER appear in Restaurant Panel
-    if (isPromoCoupon(coupon)) {
-      return false;
-    }
+  return coupons
+    .filter((coupon) => {
+      // 1. Promo Coupons MUST NEVER appear in Restaurant Panel
+      if (isPromoCoupon(coupon)) {
+        return false;
+      }
 
-    // 2. Must be a valid Restaurant Coupon
-    if (!isRestaurantCoupon(coupon)) {
-      return false;
-    }
+      // 2. Must be a valid Restaurant Coupon
+      if (!isRestaurantCoupon(coupon)) {
+        return false;
+      }
 
-    // 3. Direct restaurant match
-    if (coupon.restaurantId && coupon.restaurantId.trim().toLowerCase() === cleanRest) {
-      return true;
-    }
-
-    // 4. Assigned to a different restaurant
-    if (coupon.restaurantId && coupon.restaurantId.trim().toLowerCase() !== cleanRest) {
-      return false;
-    }
-
-    // 5. Zone-wise coupon
-    if (coupon.zoneId && cleanZone) {
-      if (
-        isZoneMatching(coupon.zoneId, cleanZone) ||
-        Boolean(coupon.zoneName && isZoneMatching(coupon.zoneName, cleanZone))
-      ) {
+      // 3. Direct restaurant match
+      if (coupon.restaurantId && coupon.restaurantId.trim().toLowerCase() === cleanRest) {
         return true;
       }
-    }
 
-    // 6. Global restaurant coupon (All Locations)
-    if (!coupon.zoneId || coupon.zoneId === 'ALL' || coupon.isAllZones === true) {
-      return true;
-    }
+      // 4. Assigned to a different restaurant
+      if (coupon.restaurantId && coupon.restaurantId.trim().toLowerCase() !== cleanRest) {
+        return false;
+      }
 
-    return false;
-  });
+      // 5. Zone-wise coupon
+      if (coupon.zoneId && cleanZone) {
+        if (
+          isZoneMatching(coupon.zoneId, cleanZone) ||
+          Boolean(coupon.zoneName && isZoneMatching(coupon.zoneName, cleanZone))
+        ) {
+          return true;
+        }
+      }
+
+      // 6. Global restaurant coupon (All Locations)
+      if (!coupon.zoneId || coupon.zoneId === 'ALL' || coupon.isAllZones === true) {
+        return true;
+      }
+
+      return false;
+    })
+    .map((coupon) => {
+      const isEnabled = isCouponEnabledForRestaurant(coupon, cleanRest);
+      return {
+        ...coupon,
+        restaurantId: coupon.restaurantId || restaurantId,
+        isActive: isEnabled,
+        status: isEnabled ? 'ACTIVE' : 'DEACTIVATED',
+      };
+    });
 }
 
