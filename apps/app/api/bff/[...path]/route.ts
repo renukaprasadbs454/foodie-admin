@@ -2793,8 +2793,18 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
   const token = (accessToken && !accessToken.startsWith("demo-")) ? accessToken : (devToken || "demo-admin-token");
   const incomingUrl = new URL(request.url);
 
+  const diskCoupons = loadPersistentCouponsState();
   if (!globalAny.MOCK_COUPONS || !Array.isArray(globalAny.MOCK_COUPONS) || globalAny.MOCK_COUPONS.length === 0) {
-    globalAny.MOCK_COUPONS = loadPersistentCouponsState();
+    globalAny.MOCK_COUPONS = diskCoupons;
+  } else {
+    const existingMap = new Map<string, any>(globalAny.MOCK_COUPONS.map((c: any) => [c.couponId || c.id || c.code, c]));
+    for (const dc of diskCoupons) {
+      const id = dc.couponId || dc.id || dc.code;
+      if (!existingMap.has(id)) {
+        globalAny.MOCK_COUPONS.push(dc);
+        existingMap.set(id, dc);
+      }
+    }
   }
   const couponsStore = globalAny.MOCK_COUPONS as any[];
 
@@ -2968,7 +2978,9 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
             }
           }
           // 4. Global coupon (no zone or ALL or All Locations)
-          if (!c.zoneId || c.zoneId === 'ALL' || c.isAllZones === true || c.zoneId === 'all-locations' || (c.zoneName && isTargetMatch(c.zoneName, 'ALL'))) {
+          const isGlobal = !c.zoneId || c.zoneId === 'ALL' || c.isAllZones === true || c.zoneId === 'all-locations' ||
+            Boolean(c.zoneName && (c.zoneName.toLowerCase() === 'all' || c.zoneName.toLowerCase().includes('all locations') || c.zoneName.toLowerCase().includes('all zones')));
+          if (isGlobal) {
             return true;
           }
           return false;
@@ -3013,8 +3025,19 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
     const isCustomerView = targetPath === "coupons/active" || targetPath === "coupons/eligible" || targetPath === "customer/coupons" || !targetPath.includes("admin");
 
     const filtered = couponsStore.filter((coupon) => {
-      // For Admin Panel (targetPath === "admin/coupons"), preserve and return all created coupons
-      // (both Promo Coupons and Restaurant Coupons, across all zones, and with actual status).
+      // Super Admin Global View (targetPath === "admin/coupons"):
+      // Display ALL restaurant coupons created by every authorized Super Admin across all zones,
+      // regardless of device session, header zone, or cookie zone.
+      if (targetPath === "admin/coupons") {
+        if (qZone && qZone.toUpperCase() !== "ALL") {
+          const isGlobal = !coupon.zoneId || coupon.zoneId === "ALL" || coupon.isAllZones === true || (coupon.zoneName && coupon.zoneName.toLowerCase().includes("all"));
+          if (isGlobal) return true;
+          return isTargetMatch(coupon.zoneId, qZone) || Boolean(coupon.zoneName && isTargetMatch(coupon.zoneName, qZone));
+        }
+        return true;
+      }
+
+      // For other admin endpoints, preserve and return coupons
       if (!isCustomerView) {
         if (rawCustomerZone && rawCustomerZone !== "ALL") {
           const isGlobal = !coupon.zoneId || coupon.zoneId === "ALL" || coupon.isAllZones === true || (coupon.zoneName && coupon.zoneName.toLowerCase().includes("all"));
@@ -3095,6 +3118,7 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
           : ((c.maxDiscount != null && c.maxDiscount !== '') ? Number(c.maxDiscount) : null);
         return {
           ...c,
+          createdBy: c.createdBy || "Super Admin",
           maxDiscountAmount: maxDiscVal,
           maxDiscount: maxDiscVal,
           expiryDate: extractCouponDateOnly(c.expiryDate) || c.expiryDate,
@@ -3193,6 +3217,7 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       zoneId: cleanZoneId,
       zoneName: cleanZoneName,
       isAllZones: isAll,
+      createdBy: body.createdBy || request.headers.get("x-user-email") || request.headers.get("x-admin-email") || "Super Admin",
     };
 
     const existingIdx = couponsStore.findIndex(

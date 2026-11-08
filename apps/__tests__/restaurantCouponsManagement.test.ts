@@ -1149,4 +1149,122 @@ describe('Restaurant Coupons Management - Admin Panel', () => {
       expect(applyData.data.finalTotal).toBe(260); // 300 - 40 = 260
     });
   });
+
+  describe('Global Super Admin Coupon Storage and Zone-Wise Distribution', () => {
+    it('stores coupons created across different Super Admin devices/sessions in shared storage and shows them in Global View', async () => {
+      const code1 = `DEV_A_${Date.now().toString().slice(-4)}`;
+      const code2 = `DEV_B_${Date.now().toString().slice(-4)}`;
+
+      // 1. Device A (Super Admin: admin_device_a@foodie.com, active zone: dz-tumkur) creates Tumkur coupon
+      const devACreateReq = new Request('http://localhost:3100/api/bff/admin/coupons', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Email': 'admin_device_a@foodie.com',
+          'Cookie': 'foodie_active_zone_id=dz-tumkur',
+        },
+        body: JSON.stringify({
+          code: code1,
+          discountType: 'PERCENT',
+          value: 20,
+          adminDiscount: 10,
+          restaurantDiscount: 10,
+          minOrderAmount: 200,
+          maxDiscountAmount: 50,
+          zoneId: 'dz-tumkur',
+          zoneName: 'Tumkur Zone',
+          couponType: 'RESTAURANT',
+          createdBy: 'admin_device_a@foodie.com',
+        }),
+      });
+      const devACreateRes = await POST(devACreateReq, { params: Promise.resolve({ path: ['admin', 'coupons'] }) });
+      expect(devACreateRes.status).toBe(201);
+      const devACreated = await devACreateRes.json();
+      expect(devACreated.data.code).toBe(code1);
+      expect(devACreated.data.createdBy).toBe('admin_device_a@foodie.com');
+
+      // 2. Device B (Super Admin: admin_device_b@foodie.com, active zone: dz-bangalore) creates Bangalore coupon
+      const devBCreateReq = new Request('http://localhost:3100/api/bff/admin/coupons', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Email': 'admin_device_b@foodie.com',
+          'Cookie': 'foodie_active_zone_id=dz-bangalore',
+        },
+        body: JSON.stringify({
+          code: code2,
+          discountType: 'PERCENT',
+          value: 25,
+          adminDiscount: 15,
+          restaurantDiscount: 10,
+          minOrderAmount: 300,
+          maxDiscountAmount: 60,
+          zoneId: 'dz-bangalore',
+          zoneName: 'Bangalore Zone',
+          couponType: 'RESTAURANT',
+          createdBy: 'admin_device_b@foodie.com',
+        }),
+      });
+      const devBCreateRes = await POST(devBCreateReq, { params: Promise.resolve({ path: ['admin', 'coupons'] }) });
+      expect(devBCreateRes.status).toBe(201);
+      const devBCreated = await devBCreateRes.json();
+      expect(devBCreated.data.code).toBe(code2);
+      expect(devBCreated.data.createdBy).toBe('admin_device_b@foodie.com');
+
+      // 3. Verify Global View from Device A (with Tumkur cookie and header) sees BOTH coupons
+      const globalReqA = new Request('http://localhost:3100/api/bff/admin/coupons', {
+        method: 'GET',
+        headers: {
+          'Cookie': 'foodie_active_zone_id=dz-tumkur',
+          'X-Active-Zone-Id': 'dz-tumkur',
+        },
+      });
+      const globalResA = await GET(globalReqA, { params: Promise.resolve({ path: ['admin', 'coupons'] }) });
+      const globalDataA = await globalResA.json();
+      expect(globalDataA.success).toBe(true);
+      const coupon1InA = globalDataA.data.find((c: any) => c.code === code1);
+      const coupon2InA = globalDataA.data.find((c: any) => c.code === code2);
+      expect(coupon1InA).toBeDefined();
+      expect(coupon2InA).toBeDefined();
+      expect(coupon1InA.createdBy).toBe('admin_device_a@foodie.com');
+      expect(coupon2InA.createdBy).toBe('admin_device_b@foodie.com');
+
+      // 4. Verify Global View from Device B (with Bangalore cookie and header) also sees BOTH coupons
+      const globalReqB = new Request('http://localhost:3100/api/bff/admin/coupons', {
+        method: 'GET',
+        headers: {
+          'Cookie': 'foodie_active_zone_id=dz-bangalore',
+          'X-Active-Zone-Id': 'dz-bangalore',
+        },
+      });
+      const globalResB = await GET(globalReqB, { params: Promise.resolve({ path: ['admin', 'coupons'] }) });
+      const globalDataB = await globalResB.json();
+      expect(globalDataB.success).toBe(true);
+      const coupon1InB = globalDataB.data.find((c: any) => c.code === code1);
+      const coupon2InB = globalDataB.data.find((c: any) => c.code === code2);
+      expect(coupon1InB).toBeDefined();
+      expect(coupon2InB).toBeDefined();
+
+      // 5. Zone assignment and restaurant isolation:
+      // Tumkur restaurant receives ONLY coupon 1 (Tumkur), with DISABLED status by default
+      const restTmkReq = new Request('http://localhost:3100/api/bff/restaurant/coupons?restaurantId=rest-tumkur-101&zoneId=dz-tumkur');
+      const restTmkRes = await GET(restTmkReq, { params: Promise.resolve({ path: ['restaurant', 'coupons'] }) });
+      const restTmkData = await restTmkRes.json();
+      const restTmkHasCoupon1 = restTmkData.data.find((c: any) => c.code === code1);
+      const restTmkHasCoupon2 = restTmkData.data.find((c: any) => c.code === code2);
+      expect(restTmkHasCoupon1).toBeDefined();
+      expect(restTmkHasCoupon1.isActive).toBe(false); // DISABLED by default
+      expect(restTmkHasCoupon2).toBeUndefined(); // Bangalore coupon not received
+
+      // Bangalore restaurant receives ONLY coupon 2 (Bangalore), with DISABLED status by default
+      const restBlrReq = new Request('http://localhost:3100/api/bff/restaurant/coupons?restaurantId=b7c2a110-92d4-4f81-9b11-a83d712e5001&zoneId=dz-bangalore');
+      const restBlrRes = await GET(restBlrReq, { params: Promise.resolve({ path: ['restaurant', 'coupons'] }) });
+      const restBlrData = await restBlrRes.json();
+      const restBlrHasCoupon1 = restBlrData.data.find((c: any) => c.code === code1);
+      const restBlrHasCoupon2 = restBlrData.data.find((c: any) => c.code === code2);
+      expect(restBlrHasCoupon2).toBeDefined();
+      expect(restBlrHasCoupon2.isActive).toBe(false); // DISABLED by default
+      expect(restBlrHasCoupon1).toBeUndefined(); // Tumkur coupon not received
+    });
+  });
 });

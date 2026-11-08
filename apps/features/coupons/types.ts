@@ -26,6 +26,7 @@ export interface CreateCouponBody {
   approvalStatus?: string;
   title?: string;
   module?: string;
+  createdBy?: string;
 }
 
 export interface Coupon {
@@ -48,6 +49,7 @@ export interface Coupon {
   zoneId?: string | null;
   zoneName?: string | null;
   isAllZones?: boolean;
+  createdBy?: string;
   isActive: boolean;
   title?: string;
   module?: string;

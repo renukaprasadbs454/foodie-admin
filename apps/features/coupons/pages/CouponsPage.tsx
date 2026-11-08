@@ -42,6 +42,7 @@ export interface CouponRecord {
   funderType?: string;
   adminDiscount?: number;
   restaurantDiscount?: number;
+  createdBy?: string;
 }
 
 export interface FirstOrderOfferRecord {
@@ -206,7 +207,11 @@ export function CouponsPage() {
   const activeModule = useAppSelector(selectActiveModule);
 
   const [activeTab, setActiveTab] = useState<CouponTab>('PROMO_COUPONS');
-  const { data: serverCoupons, isLoading: isCouponsLoading, refetch: refetchCoupons } = useGetCouponsQuery();
+  const { data: serverCoupons, isLoading: isCouponsLoading, refetch: refetchCoupons } = useGetCouponsQuery(undefined, {
+    pollingInterval: 10000,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
   const { data: adminRestaurantsData } = useGetAdminRestaurantsQuery({ size: 100 });
   const { data: operatingZones = [] } = useGetAvailableZonesQuery();
   const { data: dbLocationZones = [] } = useGetZonesQuery();
@@ -277,8 +282,10 @@ export function CouponsPage() {
     return FALLBACK_RESTAURANTS;
   }, [adminRestaurantsData]);
 
-  const userStoredRole = typeof window !== 'undefined' ? localStorage.getItem('foodie_admin_role') : null;
-  const isSuperAdmin = Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
+  const userStoredRole = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_admin_role') || sessionStorage.getItem('foodie_admin_role'))
+    : null;
+  const isSuperAdmin = !userStoredRole || userStoredRole.toUpperCase() === 'SUPER_ADMIN' || userStoredRole.toUpperCase() === 'ADMIN';
   const userAssignedZone = typeof window !== 'undefined'
     ? (localStorage.getItem('foodie_user_assigned_zone') || sessionStorage.getItem('foodie_user_assigned_zone') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
     : null;
@@ -312,7 +319,7 @@ export function CouponsPage() {
   }, []);
 
   useEffect(() => {
-    if (serverCoupons && Array.isArray(serverCoupons) && serverCoupons.length > 0) {
+    if (serverCoupons && Array.isArray(serverCoupons)) {
       const formatted: CouponRecord[] = serverCoupons.map((c: any) => ({
         id: c.couponId || c.id,
         code: c.code,
@@ -336,22 +343,29 @@ export function CouponsPage() {
         restaurantName: c.restaurantName || undefined,
         couponType: c.couponType || (c.restaurantId ? 'RESTAURANT' : 'PROMO_COUPON'),
         funderType: c.funderType || (c.restaurantId ? 'MERCHANT' : 'FOODIE'),
+        createdBy: c.createdBy || 'Super Admin',
       }));
       setLocalCoupons(formatted);
+      try {
+        localStorage.setItem('@foodie:admin_coupons_cache', JSON.stringify(formatted));
+      } catch {}
     }
   }, [serverCoupons]);
 
   const coupons: CouponRecord[] = React.useMemo(() => {
-    const rawList = (isSuperAdmin && (!activeZoneId || activeZoneId === 'ALL'))
+    // Super Admin Global View (All Zones):
+    // In Super Admin portal and specifically for Restaurant Campaigns,
+    // display ALL restaurant coupons created by every authorized Super Admin across all zones.
+    // Do not filter out coupons based on the active header/cookie zone of the device.
+    const isGlobalView = isSuperAdmin || activeTab === 'RESTAURANT_COUPONS' || !activeZoneId || activeZoneId === 'ALL';
+    const rawList = isGlobalView
       ? localCoupons
-      : (!activeZoneId
-          ? localCoupons
-          : localCoupons.filter((c: any) => {
-              if (!c.zoneId) return true;
-              const z = c.zoneId.trim().toLowerCase();
-              const cleanZone = decodeURIComponent(activeZoneId).trim().toLowerCase();
-              return z === cleanZone || cleanZone.includes(z) || z.includes(cleanZone);
-            }));
+      : localCoupons.filter((c: any) => {
+          if (!c.zoneId || c.zoneId === 'ALL') return true;
+          const z = c.zoneId.trim().toLowerCase();
+          const cleanZone = decodeURIComponent(activeZoneId).trim().toLowerCase();
+          return z === cleanZone || cleanZone.includes(z) || z.includes(cleanZone);
+        });
 
     // Deduplicate coupons by id and by code+zoneId+restaurantId to ensure no coupon appears twice
     const seen = new Set<string>();
@@ -366,7 +380,7 @@ export function CouponsPage() {
       }
     }
     return uniqueList;
-  }, [localCoupons, isSuperAdmin, activeZoneId]);
+  }, [localCoupons, isSuperAdmin, activeZoneId, activeTab]);
 
   const [firstOrderOffers, setFirstOrderOffers] = useState<FirstOrderOfferRecord[]>(MOCK_FIRST_ORDER_OFFERS);
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>(MOCK_CAMPAIGNS);
@@ -671,6 +685,9 @@ export function CouponsPage() {
     const discountText = restDiscountType === 'PERCENT'
       ? `${cleanVal}% (Admin: ${adminDisc}% + Restaurant: ${restDisc}%)`
       : `₹${cleanVal} (Admin: ₹${adminDisc} + Restaurant: ₹${restDisc})`;
+    const adminEmail = (typeof window !== 'undefined'
+      ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email'))
+      : null) || 'admin@foodie.local';
 
     const newCouponRecord: CouponRecord = {
       id: `c-rest-${Date.now().toString().slice(-4)}`,
@@ -690,11 +707,12 @@ export function CouponsPage() {
       funderType: 'SHARED',
       zoneId: effectiveZoneId,
       zoneName: targetZoneName,
+      createdBy: adminEmail,
     };
 
     setIsSubmittingRestCoupon(true);
     try {
-      await createCouponApi({
+      const res = await createCouponApi({
         code: cleanCode,
         title: `${cleanCode} • ${targetZoneName}`,
         discountType: restDiscountType === 'FIXED' ? 'FLAT' : 'PERCENT',
@@ -713,6 +731,7 @@ export function CouponsPage() {
         zoneName: targetZoneName,
         isActive: false,
         status: 'DEACTIVATED',
+        createdBy: adminEmail,
       } as any).unwrap();
 
       try {
@@ -724,59 +743,17 @@ export function CouponsPage() {
         }).unwrap();
       } catch {}
 
-      setLocalCoupons((prev) => {
-        const exists = prev.some(
-          (c) => c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
-        );
-        let updated: CouponRecord[];
-        if (exists) {
-          updated = prev.map((c) =>
-            c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
-              ? newCouponRecord
-              : c
-          );
-        } else {
-          updated = [newCouponRecord, ...prev];
-        }
-        try {
-          localStorage.setItem('@foodie:admin_coupons_cache', JSON.stringify(updated));
-        } catch {}
-        return updated;
-      });
-      try {
-        refetchCoupons();
-      } catch {}
-      setToastMsg(`Restaurant coupon ${cleanCode} created for ${targetZoneName}!`);
-      setRestCode('');
-      setRestAdminDiscount('');
-      setRestRestaurantDiscount('');
-      setRestMaxDiscount('');
-      setRestMinOrder('0');
-      setRestZoneId('');
-    } catch {
-      try {
-        await sendBroadcastNotification({
-          title: 'New Restaurant Coupon Available!',
-          body: `Admin has created a new coupon for your zone. Coupon Code: ${cleanCode}. Discount: ${discountText}. Please visit Promos to Enable or Disable this coupon.`,
-          targetAudience: 'RESTAURANTS',
-          zoneId: effectiveZoneId,
-        }).unwrap();
-      } catch {}
+      const createdItem: CouponRecord = {
+        ...newCouponRecord,
+        id: (res as any)?.couponId || (res as any)?.id || newCouponRecord.id,
+        createdBy: adminEmail,
+      };
 
       setLocalCoupons((prev) => {
-        const exists = prev.some(
-          (c) => c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
+        const filtered = prev.filter(
+          (c) => !(c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase())
         );
-        let updated: CouponRecord[];
-        if (exists) {
-          updated = prev.map((c) =>
-            c.code.toUpperCase() === cleanCode && (c.zoneId || 'ALL').toLowerCase() === (effectiveZoneId || 'ALL').toLowerCase()
-              ? newCouponRecord
-              : c
-          );
-        } else {
-          updated = [newCouponRecord, ...prev];
-        }
+        const updated = [createdItem, ...filtered];
         try {
           localStorage.setItem('@foodie:admin_coupons_cache', JSON.stringify(updated));
         } catch {}
@@ -792,6 +769,8 @@ export function CouponsPage() {
       setRestMaxDiscount('');
       setRestMinOrder('0');
       setRestZoneId('');
+    } catch (err: any) {
+      alert(`Failed to save coupon to shared server database: ${err?.data?.message || err?.message || 'Please check your connection and try again.'}`);
     } finally {
       setIsSubmittingRestCoupon(false);
       setTimeout(() => setToastMsg(null), 3500);
@@ -826,19 +805,13 @@ export function CouponsPage() {
   const filteredRestaurantCoupons = restaurantCoupons.filter((c) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    const handleTabChange = (tab: CouponTab) => {
-    setActiveTab(tab);
-    try {
-      refetchCoupons();
-    } catch {}
-  };
-
-  return (
+    return (
       c.code.toLowerCase().includes(q) ||
       c.title.toLowerCase().includes(q) ||
       (c.restaurantName && c.restaurantName.toLowerCase().includes(q)) ||
       (c.zoneName && c.zoneName.toLowerCase().includes(q)) ||
       (c.zoneId && c.zoneId.toLowerCase().includes(q)) ||
+      (c.createdBy && c.createdBy.toLowerCase().includes(q)) ||
       c.module.toLowerCase().includes(q)
     );
   });
@@ -1738,7 +1711,7 @@ export function CouponsPage() {
                   borderRadius: 12,
                 }}
               >
-                Zone Scoped
+                Global View (All Zones)
               </span>
             </div>
 
@@ -1773,6 +1746,9 @@ export function CouponsPage() {
                           {coupon.restaurantName && coupon.restaurantName !== coupon.zoneName && (
                             <div style={{ fontSize: 11, color: '#6B7280' }}>{coupon.restaurantName}</div>
                           )}
+                          <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                            Created by: {coupon.createdBy || 'Super Admin'}
+                          </div>
                         </td>
                         <td style={{ padding: '16px 20px' }}>
                           <span
