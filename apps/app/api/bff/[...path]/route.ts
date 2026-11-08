@@ -2975,8 +2975,17 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
         })
         .map(c => {
           const isEnabled = isCouponEnabledForRestaurant(c, qRestaurantId);
+          const maxDiscVal = (c.maxDiscountAmount != null && c.maxDiscountAmount !== '')
+            ? Number(c.maxDiscountAmount)
+            : ((c.maxDiscount != null && c.maxDiscount !== '') ? Number(c.maxDiscount) : null);
+          const adminDiscVal = (c.adminDiscount != null && c.adminDiscount !== '') ? Number(c.adminDiscount) : null;
+          const restDiscVal = (c.restaurantDiscount != null && c.restaurantDiscount !== '') ? Number(c.restaurantDiscount) : null;
           return {
             ...c,
+            adminDiscount: adminDiscVal,
+            restaurantDiscount: restDiscVal,
+            maxDiscountAmount: maxDiscVal,
+            maxDiscount: maxDiscVal,
             restaurantId: c.restaurantId || qRestaurantId,
             isActive: isEnabled,
             status: isEnabled ? 'ACTIVE' : 'DEACTIVATED',
@@ -3080,10 +3089,17 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
         seenCoupons.add(key);
         return true;
       })
-      .map(c => ({
-        ...c,
-        expiryDate: extractCouponDateOnly(c.expiryDate) || c.expiryDate,
-      }));
+      .map(c => {
+        const maxDiscVal = (c.maxDiscountAmount != null && c.maxDiscountAmount !== '')
+          ? Number(c.maxDiscountAmount)
+          : ((c.maxDiscount != null && c.maxDiscount !== '') ? Number(c.maxDiscount) : null);
+        return {
+          ...c,
+          maxDiscountAmount: maxDiscVal,
+          maxDiscount: maxDiscVal,
+          expiryDate: extractCouponDateOnly(c.expiryDate) || c.expiryDate,
+        };
+      });
 
     return NextResponse.json({
       success: true,
@@ -3157,7 +3173,12 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       adminDiscount: adminDiscount,
       restaurantDiscount: restaurantDiscount,
       minOrderAmount: Number(body.minOrderAmount) || 0,
-      maxDiscountAmount: body.maxDiscountAmount ? Number(body.maxDiscountAmount) : null,
+      maxDiscountAmount: (body.maxDiscountAmount != null && body.maxDiscountAmount !== '')
+        ? Number(body.maxDiscountAmount)
+        : ((body.maxDiscount != null && body.maxDiscount !== '') ? Number(body.maxDiscount) : null),
+      maxDiscount: (body.maxDiscountAmount != null && body.maxDiscountAmount !== '')
+        ? Number(body.maxDiscountAmount)
+        : ((body.maxDiscount != null && body.maxDiscount !== '') ? Number(body.maxDiscount) : null),
       expiryDate: cleanExpiry,
       usageLimitTotal: body.usageLimitTotal ? Number(body.usageLimitTotal) : null,
       usageLimitPerUser: Number(body.usageLimitPerUser) || 1,
@@ -3628,10 +3649,12 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
       discountAmount = Math.min(val, cartTotal);
     } else {
       discountAmount = Math.round((cartTotal * val) / 100);
-      const maxDisc = coupon.maxDiscountAmount ? Number(coupon.maxDiscountAmount) : (coupon.maxDiscount ? Number(coupon.maxDiscount) : null);
-      if (maxDisc != null && discountAmount > maxDisc) {
-        discountAmount = maxDisc;
-      }
+    }
+    const maxDisc = (coupon.maxDiscountAmount != null && coupon.maxDiscountAmount !== '')
+      ? Number(coupon.maxDiscountAmount)
+      : ((coupon.maxDiscount != null && coupon.maxDiscount !== '') ? Number(coupon.maxDiscount) : null);
+    if (maxDisc != null && maxDisc > 0 && discountAmount > maxDisc) {
+      discountAmount = maxDisc;
     }
     const finalTotal = Math.max(0, cartTotal - discountAmount);
 

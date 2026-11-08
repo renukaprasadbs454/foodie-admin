@@ -8,6 +8,7 @@ import {
   isCouponEnabledForRestaurant,
   filterCouponsForCustomerDirect,
   filterCouponsForRestaurantPanel,
+  calculateCouponDiscount,
 } from '../features/coupons/types';
 import { GET, POST, PATCH } from '../app/api/bff/[...path]/route';
 
@@ -1021,6 +1022,131 @@ describe('Restaurant Coupons Management - Admin Panel', () => {
       expect(applyRest2Res.status).toBe(400);
       const applyRest2Data = await applyRest2Res.json();
       expect(applyRest2Data.error.code).toBe('COUPON_DISABLED');
+    });
+  });
+
+  describe('Manual Maximum Discount Amount Field & Checkout Cap Enforcement', () => {
+    it('1. Keeps Minimum Order Amount and stores manual Maximum Discount Amount without auto-calculation', () => {
+      const manualCoupon = validateCreateCoupon({
+        code: 'MAXCAP40',
+        discountType: 'PERCENT',
+        value: '50', // 50% discount
+        minOrderAmount: '200',
+        maxDiscountAmount: '40', // manually entered: ₹40, NOT 50 * 2 = 100!
+        expiryDate: '2099-12-31',
+        usageLimitPerUser: '1',
+        restaurantId: 'b7c2a110-92d4-4f81-9b11-a83d712e5001',
+      });
+
+      expect(manualCoupon.ok).toBe(true);
+      if (manualCoupon.ok) {
+        expect(manualCoupon.body.minOrderAmount).toBe(200);
+        expect(manualCoupon.body.maxDiscountAmount).toBe(40);
+        // Verify it was NOT auto-generated as value * 2 (100)
+        expect(manualCoupon.body.maxDiscountAmount).not.toBe(100);
+      }
+    });
+
+    it('2. Helper calculateCouponDiscount applies the exact maximum discount cap', () => {
+      const coupon50 = {
+        code: 'SAVE50MAX40',
+        discountType: 'PERCENT',
+        value: 50,
+        minOrderAmount: 100,
+        maxDiscountAmount: 40,
+      };
+
+      // Cart total 300: 50% is 150, but capped at 40
+      expect(calculateCouponDiscount(coupon50, 300)).toBe(40);
+
+      // Cart total 50: minOrderAmount 100 not met
+      expect(calculateCouponDiscount(coupon50, 50)).toBe(0);
+
+      const coupon20 = {
+        code: 'SAVE20MAX50',
+        discountType: 'PERCENT',
+        value: 20,
+        minOrderAmount: 100,
+        maxDiscountAmount: 50,
+      };
+
+      // Cart total 500: 20% is 100, but capped at 50
+      expect(calculateCouponDiscount(coupon20, 500)).toBe(50);
+
+      // Cart total 200: 20% is 40 (below cap of 50, so full 40 is granted)
+      expect(calculateCouponDiscount(coupon20, 200)).toBe(40);
+    });
+
+    it('3. BFF preserves manual maxDiscountAmount, distributes to Restaurant & Customer, and caps at checkout', async () => {
+      const code = `MCAP_${Date.now().toString().slice(-4)}`;
+
+      // 1. Super Admin creates coupon with manual maxDiscountAmount of ₹40
+      const createReq = new Request('http://localhost:3100/api/bff/admin/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          discountType: 'PERCENT',
+          value: 50, // 50% discount
+          adminDiscount: 25,
+          restaurantDiscount: 25,
+          minOrderAmount: 150,
+          maxDiscountAmount: 40, // Manually entered ₹40
+          zoneId: 'dz-tumkur',
+          zoneName: 'Tumkur Zone',
+          couponType: 'RESTAURANT',
+        }),
+      });
+      const createRes = await POST(createReq, { params: Promise.resolve({ path: ['admin', 'coupons'] }) });
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.maxDiscountAmount).toBe(40);
+      expect(created.data.maxDiscount).toBe(40);
+
+      // 2. Passed correctly to Restaurant Panel
+      const restReq = new Request('http://localhost:3100/api/bff/restaurant/coupons?restaurantId=rest-tumkur-101&zoneId=dz-tumkur');
+      const restRes = await GET(restReq, { params: Promise.resolve({ path: ['restaurant', 'coupons'] }) });
+      const restData = await restRes.json();
+      const restCoupon = restData.data.find((c: any) => c.code === code);
+      expect(restCoupon).toBeDefined();
+      expect(restCoupon.maxDiscountAmount).toBe(40);
+      expect(restCoupon.maxDiscount).toBe(40);
+
+      // 3. Restaurant enables coupon
+      const actReq = new Request(`http://localhost:3100/api/bff/restaurant/coupons/${created.data.couponId}/activate?restaurantId=rest-tumkur-101`, {
+        method: 'PATCH',
+      });
+      const actRes = await PATCH(actReq, {
+        params: Promise.resolve({ path: ['restaurant', 'coupons', created.data.couponId, 'activate'] }),
+      });
+      expect(actRes.status).toBe(200);
+
+      // 4. Customer App receives exact maxDiscountAmount
+      const custReq = new Request('http://localhost:3100/api/bff/coupons/active?restaurantId=rest-tumkur-101&zoneId=dz-tumkur');
+      const custRes = await GET(custReq, { params: Promise.resolve({ path: ['coupons', 'active'] }) });
+      const custData = await custRes.json();
+      const custCoupon = custData.data.find((c: any) => c.code === code);
+      expect(custCoupon).toBeDefined();
+      expect(custCoupon.maxDiscountAmount).toBe(40);
+      expect(custCoupon.maxDiscount).toBe(40);
+
+      // 5. Checkout application strictly caps discount at ₹40
+      const applyReq = new Request('http://localhost:3100/api/bff/coupons/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          restaurantId: 'rest-tumkur-101',
+          cartTotal: 300, // 50% of 300 would be 150!
+          zoneId: 'dz-tumkur',
+        }),
+      });
+      const applyRes = await POST(applyReq, { params: Promise.resolve({ path: ['coupons', 'apply'] }) });
+      expect(applyRes.status).toBe(200);
+      const applyData = await applyRes.json();
+      expect(applyData.success).toBe(true);
+      expect(applyData.data.discountAmount).toBe(40); // Strictly capped to 40
+      expect(applyData.data.finalTotal).toBe(260); // 300 - 40 = 260
     });
   });
 });

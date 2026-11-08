@@ -619,12 +619,53 @@ export function filterCouponsForRestaurantPanel(
     })
     .map((coupon) => {
       const isEnabled = isCouponEnabledForRestaurant(coupon, cleanRest);
+      const maxDiscVal = coupon.maxDiscountAmount != null && coupon.maxDiscountAmount !== ''
+        ? Number(coupon.maxDiscountAmount)
+        : (coupon.maxDiscount != null && coupon.maxDiscount !== '' ? Number(coupon.maxDiscount) : undefined);
+      const adminDiscVal = coupon.adminDiscount != null && coupon.adminDiscount !== ''
+        ? Number(coupon.adminDiscount)
+        : undefined;
+      const restDiscVal = coupon.restaurantDiscount != null && coupon.restaurantDiscount !== ''
+        ? Number(coupon.restaurantDiscount)
+        : undefined;
       return {
         ...coupon,
+        adminDiscount: adminDiscVal,
+        restaurantDiscount: restDiscVal,
+        maxDiscountAmount: maxDiscVal,
+        maxDiscount: maxDiscVal,
         restaurantId: coupon.restaurantId || restaurantId,
         isActive: isEnabled,
         status: isEnabled ? 'ACTIVE' : 'DEACTIVATED',
       };
     });
 }
+
+/**
+ * Calculates coupon discount with maximum discount cap enforcement.
+ */
+export function calculateCouponDiscount(coupon: any, cartTotal: number): number {
+  if (!coupon || !cartTotal || cartTotal <= 0) return 0;
+  const minAmt = Number(coupon.minOrderAmount ?? coupon.minPurchase ?? 0);
+  if (cartTotal < minAmt) return 0;
+
+  const discType = String(coupon.discountType || (coupon.benefitMode === 'FLAT' ? 'FLAT' : 'PERCENT')).toUpperCase();
+  const val = Number(coupon.value ?? coupon.discountValue ?? 0);
+  let discount = 0;
+  if (discType === 'FLAT' || discType === 'FIXED') {
+    discount = Math.min(val, cartTotal);
+  } else {
+    discount = Math.round((cartTotal * val) / 100);
+  }
+
+  const maxDisc = coupon.maxDiscountAmount != null && coupon.maxDiscountAmount !== ''
+    ? Number(coupon.maxDiscountAmount)
+    : (coupon.maxDiscount != null && coupon.maxDiscount !== '' ? Number(coupon.maxDiscount) : null);
+
+  if (maxDisc != null && maxDisc > 0 && discount > maxDisc) {
+    discount = maxDisc;
+  }
+  return discount;
+}
+
 

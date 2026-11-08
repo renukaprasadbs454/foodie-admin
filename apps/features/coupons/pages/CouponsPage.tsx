@@ -323,6 +323,9 @@ export function CouponsPage() {
         restaurantDiscount: c.restaurantDiscount != null ? Number(c.restaurantDiscount) : undefined,
         minPurchase: Number(c.minOrderAmount ?? c.minPurchase) || 0,
         maxDiscount: Number(c.maxDiscountAmount ?? c.maxDiscount) || 0,
+        maxDiscountAmount: (c.maxDiscountAmount != null && c.maxDiscountAmount !== '')
+          ? Number(c.maxDiscountAmount)
+          : ((c.maxDiscount != null && c.maxDiscount !== '') ? Number(c.maxDiscount) : undefined),
         module: c.restaurantName || (c.restaurantId ? 'Specific Restaurant' : (c.module || 'All Food Delivery')),
         approvalStatus: c.approvalStatus,
         expiryDate: c.expiryDate ? extractDateOnly(c.expiryDate) : '2099-12-31',
@@ -647,9 +650,14 @@ export function CouponsPage() {
       return;
     }
 
-    const maxDisc = restDiscountType === 'PERCENT'
-      ? (restMaxDiscount ? Number(restMaxDiscount) : cleanVal * 2)
+    const maxDisc = restMaxDiscount && Number(restMaxDiscount) > 0
+      ? Number(restMaxDiscount)
       : undefined;
+
+    if (restDiscountType === 'PERCENT' && (!maxDisc || maxDisc <= 0)) {
+      alert('Please enter a valid Maximum Discount Amount (₹) for percentage coupons.');
+      return;
+    }
 
     const isAll = restZoneId === 'ALL' || restZoneId.toLowerCase() === 'all';
     const selectedZone = allLocationZones.find(
@@ -698,6 +706,7 @@ export function CouponsPage() {
         restaurantDiscount: restDisc,
         minOrderAmount: minAmt,
         maxDiscountAmount: maxDisc,
+        maxDiscount: maxDisc,
         expiryDate: cleanExpiry,
         usageLimitPerUser: 1,
         zoneId: effectiveZoneId,
@@ -1587,6 +1596,31 @@ export function CouponsPage() {
               />
             </div>
 
+            {/* Field: Maximum Discount Amount (₹) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>
+                Maximum Discount Amount (₹)
+              </label>
+              <input
+                type="number"
+                min="0"
+                placeholder="e.g. 50"
+                value={restMaxDiscount}
+                onChange={(e) => setRestMaxDiscount(e.target.value)}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: 10,
+                  border: '1px solid #CBD5E1',
+                  fontSize: 14,
+                  outline: 'none',
+                  color: '#0F172A',
+                  backgroundColor: '#FFFFFF',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
             {/* Field 6: Zone Selection – Select Target Zone */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <label style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>
@@ -1762,7 +1796,12 @@ export function CouponsPage() {
                         </td>
                         <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>
                           <div>Min: ₹{coupon.minPurchase}</div>
-                          {coupon.maxDiscount > 0 && <div>Max: ₹{coupon.maxDiscount}</div>}
+                          <div>
+                            Max:{' '}
+                            {(coupon.maxDiscountAmount != null && Number(coupon.maxDiscountAmount) > 0)
+                              ? `₹${coupon.maxDiscountAmount}`
+                              : (coupon.maxDiscount > 0 ? `₹${coupon.maxDiscount}` : '—')}
+                          </div>
                         </td>
                         <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>
                           {formatCouponValidityDate(coupon.expiryDate)}
