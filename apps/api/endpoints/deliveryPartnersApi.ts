@@ -152,6 +152,35 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
         { type: 'Admin', id: 'DELIVERY' },
       ],
     }),
+    updateDeliveryPartnerMaxCashLimit: builder.mutation<
+      DeliveryPartnerProfile,
+      { partnerId: string; maxCashLimit: number }
+    >({
+      query: ({ partnerId, maxCashLimit }) => ({
+        url: `/api/bff/admin/delivery-partners/${partnerId}/max-cash-limit`,
+        method: 'PATCH',
+        body: { maxCashLimit },
+      }),
+      invalidatesTags: (_result, _error, { partnerId }) => [
+        { type: 'Delivery', id: partnerId },
+        { type: 'Admin', id: 'DELIVERY_LIST' },
+        { type: 'Admin', id: 'DELIVERY' },
+      ],
+    }),
+    updateGlobalDeliveryPartnerMaxCashLimit: builder.mutation<
+      { updatedCount: number; maxCashLimit: number },
+      { maxCashLimit: number }
+    >({
+      query: (body) => ({
+        url: '/api/bff/admin/delivery-partners/max-cash-limit/global',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [
+        { type: 'Admin', id: 'DELIVERY_LIST' },
+        { type: 'Admin', id: 'DELIVERY' },
+      ],
+    }),
     getDeliveryPricing: builder.query<DeliveryPricingConfig, void>({
       query: () => '/api/bff/admin/delivery-pricing',
       providesTags: [{ type: 'Admin', id: 'DELIVERY_PRICING' }],
@@ -210,6 +239,8 @@ export const {
   useApproveDeliveryPartnerKycMutation,
   useRejectDeliveryPartnerKycMutation,
   useSuspendDeliveryPartnerMutation,
+  useUpdateDeliveryPartnerMaxCashLimitMutation,
+  useUpdateGlobalDeliveryPartnerMaxCashLimitMutation,
   useGetDeliveryPricingQuery,
   useUpdateDeliveryPricingMutation,
   useGetAdminShiftsQuery,

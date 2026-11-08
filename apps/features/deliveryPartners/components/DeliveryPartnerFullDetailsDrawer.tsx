@@ -5,6 +5,7 @@ import {
   useApproveDeliveryPartnerKycMutation,
   useRejectDeliveryPartnerKycMutation,
   useSuspendDeliveryPartnerMutation,
+  useUpdateDeliveryPartnerMaxCashLimitMutation,
   useGetAdminShiftsQuery,
   type DeliveryShift,
 } from '@/api/endpoints/deliveryPartnersApi';
@@ -106,6 +107,9 @@ export function DeliveryPartnerFullDetailsDrawer({
   const [rejectKyc, { isLoading: isRejectingKyc }] = useRejectDeliveryPartnerKycMutation();
   const [approvePayout, { isLoading: isApprovingPayout }] = useApproveSinglePayoutMutation();
   const [rejectPayout, { isLoading: isRejectingPayout }] = useRejectPayoutMutation();
+  const [updateMaxCashLimit, { isLoading: isUpdatingCashLimit }] = useUpdateDeliveryPartnerMaxCashLimitMutation();
+  const [isEditingLimit, setIsEditingLimit] = useState(false);
+  const [customLimitInput, setCustomLimitInput] = useState('');
 
   // Queries for related data
   const { data: allOrders = [], isLoading: isLoadingOrders } = useGetAdminOrdersQuery(undefined, {
@@ -340,6 +344,28 @@ export function DeliveryPartnerFullDetailsDrawer({
       refetchPayouts();
     } catch (err: any) {
       showToast('error', err?.data?.error?.message || 'Failed to reject payout.');
+    }
+  };
+
+  const handleSaveCustomLimit = async () => {
+    if (!currentPartner) return;
+    const num = parseFloat(customLimitInput);
+    if (isNaN(num) || num < 0) {
+      showToast('error', 'Please enter a valid positive limit amount.');
+      return;
+    }
+    try {
+      await updateMaxCashLimit({ partnerId: currentPartner.id, maxCashLimit: num }).unwrap();
+      const updated: AdminDeliveryPartner = {
+        ...currentPartner,
+        maxCashInHandLimit: num,
+      };
+      setCurrentPartner(updated);
+      onPartnerUpdated?.(updated);
+      setIsEditingLimit(false);
+      showToast('success', `Max COD limit updated to ₹${num.toLocaleString('en-IN')}`);
+    } catch (err: any) {
+      showToast('error', err?.data?.message || err?.data?.error?.message || 'Failed to update COD limit.');
     }
   };
 
@@ -1294,8 +1320,29 @@ export function DeliveryPartnerFullDetailsDrawer({
                     >
                       ₹{cashInHand.toLocaleString('en-IN')}
                     </div>
-                    <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-                      Allowed Float Threshold: <strong style={{ color: '#111827' }}>₹{maxLimit.toLocaleString('en-IN')}</strong>
+                    <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span>Allowed Float Threshold: <strong style={{ color: '#111827' }}>₹{maxLimit.toLocaleString('en-IN')}</strong></span>
+                      {!isEditingLimit && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomLimitInput(String(maxLimit));
+                            setIsEditingLimit(true);
+                          }}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            border: '1px solid #D1D5DB',
+                            backgroundColor: '#F3F4F6',
+                            color: '#374151',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ⚙️ Edit Limit
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1312,6 +1359,102 @@ export function DeliveryPartnerFullDetailsDrawer({
                     {isCashCritical ? '● LIMIT EXCEEDED (RESTRICTED)' : isCashWarning ? '● HIGH FLOAT' : '● SAFE BALANCE'}
                   </span>
                 </div>
+
+                {/* Inline Edit Form */}
+                {isEditingLimit && (
+                  <div
+                    style={{
+                      marginTop: 16,
+                      padding: 16,
+                      backgroundColor: '#F9FAFB',
+                      borderRadius: 12,
+                      border: '1px solid #E5E7EB',
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
+                      Update Max COD Cash Limit for {currentPartner.fullName}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <span style={{ position: 'absolute', left: 10, color: '#6B7280', fontWeight: 700, fontSize: 14 }}>₹</span>
+                        <input
+                          type="number"
+                          value={customLimitInput}
+                          onChange={(e) => setCustomLimitInput(e.target.value)}
+                          placeholder="Enter limit"
+                          style={{
+                            paddingLeft: 26,
+                            paddingRight: 12,
+                            paddingTop: 8,
+                            paddingBottom: 8,
+                            borderRadius: 8,
+                            border: '1px solid #D1D5DB',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            width: 140,
+                          }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSaveCustomLimit}
+                        disabled={isUpdatingCashLimit}
+                        style={{
+                          padding: '8px 16px',
+                          borderRadius: 8,
+                          backgroundColor: '#4F46E5',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          fontWeight: 600,
+                          fontSize: 13,
+                          cursor: isUpdatingCashLimit ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {isUpdatingCashLimit ? 'Saving...' : 'Save Limit'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingLimit(false)}
+                        disabled={isUpdatingCashLimit}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: 8,
+                          backgroundColor: '#FFFFFF',
+                          color: '#4B5563',
+                          border: '1px solid #D1D5DB',
+                          fontWeight: 600,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {/* Presets */}
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>Quick Presets:</span>
+                      {[1000, 2000, 5000, 10000, 25000, 50000].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setCustomLimitInput(String(preset))}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            border: '1px solid #E5E7EB',
+                            backgroundColor: customLimitInput === String(preset) ? '#EEF2FF' : '#FFFFFF',
+                            color: customLimitInput === String(preset) ? '#4F46E5' : '#374151',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ₹{preset.toLocaleString('en-IN')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Progress bar towards limit */}
                 <div style={{ marginTop: 24 }}>
@@ -1352,7 +1495,7 @@ export function DeliveryPartnerFullDetailsDrawer({
                     lineHeight: '1.5',
                   }}
                 >
-                  💡 <strong>Cash Policy:</strong> When delivery partners collect Cash on Delivery (COD), their cash-in-hand balance increases. If it exceeds ₹2,000, new cash orders are automatically blocked until deposited at an authorized hub or settled via digital payout deduction.
+                  💡 <strong>Cash Policy:</strong> When delivery partners collect Cash on Delivery (COD), their cash-in-hand balance increases. If it reaches or exceeds the configured limit (₹{maxLimit.toLocaleString('en-IN')}), new order assignments are automatically blocked until deposited at an authorized hub or settled via digital payout deduction.
                 </div>
               </div>
 

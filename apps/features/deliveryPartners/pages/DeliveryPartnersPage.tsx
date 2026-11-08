@@ -11,6 +11,8 @@ import {
   useApproveDeliveryPartnerKycMutation,
   useRejectDeliveryPartnerKycMutation,
   useSuspendDeliveryPartnerMutation,
+  useUpdateDeliveryPartnerMaxCashLimitMutation,
+  useUpdateGlobalDeliveryPartnerMaxCashLimitMutation,
   useGetAdminShiftsQuery,
   useCreateDeliveryShiftMutation,
   useUpdateDeliveryShiftMutation,
@@ -127,6 +129,12 @@ export function DeliveryPartnersPage() {
   const [endTime, setEndTime] = useState('');
   const [shiftFormError, setShiftFormError] = useState<string | null>(null);
 
+  // Max COD Limit Modal State
+  const [editingPartnerLimit, setEditingPartnerLimit] = useState<AdminDeliveryPartner | null>(null);
+  const [partnerLimitInput, setPartnerLimitInput] = useState<string>('2000');
+  const [isGlobalLimitModalOpen, setIsGlobalLimitModalOpen] = useState(false);
+  const [globalLimitInput, setGlobalLimitInput] = useState<string>('2000');
+
   // Debounce search input
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -170,6 +178,41 @@ export function DeliveryPartnersPage() {
   const [approveKyc, { isLoading: isApproving }] = useApproveDeliveryPartnerKycMutation();
   const [rejectKyc, { isLoading: isRejecting }] = useRejectDeliveryPartnerKycMutation();
   const [suspendPartner, { isLoading: isSuspending }] = useSuspendDeliveryPartnerMutation();
+  const [updatePartnerMaxCashLimit, { isLoading: isUpdatingPartnerLimit }] = useUpdateDeliveryPartnerMaxCashLimitMutation();
+  const [updateGlobalMaxCashLimit, { isLoading: isUpdatingGlobalLimit }] = useUpdateGlobalDeliveryPartnerMaxCashLimitMutation();
+
+  const handleSavePartnerLimit = async () => {
+    if (!editingPartnerLimit) return;
+    const num = parseFloat(partnerLimitInput);
+    if (isNaN(num) || num < 0) {
+      setToastMsg({ type: 'error', message: 'Please enter a valid positive limit amount.' });
+      return;
+    }
+    try {
+      await updatePartnerMaxCashLimit({ partnerId: editingPartnerLimit.id, maxCashLimit: num }).unwrap();
+      setToastMsg({ type: 'success', message: `Max COD limit updated to ₹${num.toLocaleString('en-IN')} for ${editingPartnerLimit.fullName}` });
+      setEditingPartnerLimit(null);
+      refetch();
+    } catch (err: any) {
+      setToastMsg({ type: 'error', message: err?.data?.message || err?.data?.error?.message || 'Failed to update partner COD limit' });
+    }
+  };
+
+  const handleSaveGlobalLimit = async () => {
+    const num = parseFloat(globalLimitInput);
+    if (isNaN(num) || num < 0) {
+      setToastMsg({ type: 'error', message: 'Please enter a valid positive global limit amount.' });
+      return;
+    }
+    try {
+      const res = await updateGlobalMaxCashLimit({ maxCashLimit: num }).unwrap();
+      setToastMsg({ type: 'success', message: `Global COD limit updated to ₹${num.toLocaleString('en-IN')} (${res?.updatedCount ?? 'all'} partners updated)` });
+      setIsGlobalLimitModalOpen(false);
+      refetch();
+    } catch (err: any) {
+      setToastMsg({ type: 'error', message: err?.data?.message || err?.data?.error?.message || 'Failed to update global COD limit' });
+    }
+  };
 
   // Session & Zone Territory Management (Permission Context + localStorage persistence)
   const { profile } = usePermissions();
@@ -602,6 +645,38 @@ export function DeliveryPartnersPage() {
 
           <button
             type="button"
+            id="set-global-cod-limit-button"
+            onClick={() => {
+              setGlobalLimitInput('2000');
+              setIsGlobalLimitModalOpen(true);
+            }}
+            style={{
+              padding: '10px 18px',
+              backgroundColor: '#4F46E5',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 10,
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(79, 70, 229, 0.25)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'background-color 0.15s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#4338CA')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#4F46E5')}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Global COD Limit
+          </button>
+
+          <button
+            type="button"
             id="create-shift-button"
             onClick={() => {
               setShiftFormError(null);
@@ -798,7 +873,7 @@ export function DeliveryPartnersPage() {
               <th style={{ padding: '14px 20px' }}>Vehicle & Zone</th>
               <th style={{ padding: '14px 20px' }}>Documents & KYC</th>
               <th style={{ padding: '14px 20px' }}>Live Availability</th>
-              <th style={{ padding: '14px 20px' }}>Cash in Hand</th>
+              <th style={{ padding: '14px 20px' }}>Cash in Hand / Max COD Limit</th>
               <th style={{ padding: '14px 20px' }}>KYC Status</th>
               <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
             </tr>
@@ -1007,8 +1082,59 @@ export function DeliveryPartnersPage() {
                         {p.isOnline ? 'ONLINE' : 'OFFLINE'}
                       </span>
                     </td>
-                    <td style={{ padding: '16px 20px', fontWeight: 700, color: '#111827' }}>
-                      ₹{p.cashInHand ?? 0}
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontWeight: 800, color: (p.cashInHand ?? 0) >= (p.maxCashInHandLimit ?? 2000) ? '#DC2626' : '#111827', fontSize: 13 }}>
+                            ₹{p.cashInHand ?? 0}
+                          </span>
+                          <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 500 }}>
+                            / ₹{p.maxCashInHandLimit ?? 2000}
+                          </span>
+                        </div>
+                        {(p.cashInHand ?? 0) >= (p.maxCashInHandLimit ?? 2000) && (
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              fontSize: 10,
+                              fontWeight: 800,
+                              color: '#B91C1C',
+                              backgroundColor: '#FEE2E2',
+                              border: '1px solid #FECACA',
+                              borderRadius: 4,
+                              padding: '1px 6px',
+                              alignSelf: 'flex-start',
+                            }}
+                          >
+                            LIMIT EXCEEDED
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingPartnerLimit(p);
+                            setPartnerLimitInput(String(p.maxCashInHandLimit ?? 2000));
+                          }}
+                          style={{
+                            alignSelf: 'flex-start',
+                            background: '#F3F4F6',
+                            border: '1px solid #D1D5DB',
+                            borderRadius: 6,
+                            padding: '3px 8px',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#374151',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            marginTop: 2,
+                          }}
+                          title="Set max COD cash limit for this delivery partner"
+                        >
+                          ⚙️ Set Limit
+                        </button>
+                      </div>
                     </td>
                     <td style={{ padding: '16px 20px' }}>
                       <span
@@ -2675,6 +2801,340 @@ export function DeliveryPartnersPage() {
                 }}
               >
                 {isDeletingShift ? 'Deleting Shift...' : 'Delete Shift'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Set Partner Max COD Cash Limit Modal */}
+      {editingPartnerLimit && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(17, 24, 39, 0.55)',
+            backdropFilter: 'blur(3px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => setEditingPartnerLimit(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              width: 480,
+              maxWidth: '94%',
+              padding: 24,
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.16)',
+              border: '1px solid #E5E7EB',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#111827' }}>
+                  Set Max COD Cash Limit
+                </h3>
+                <span style={{ fontSize: 12, color: '#6B7280' }}>
+                  Partner: <strong>{editingPartnerLimit.fullName}</strong> ({editingPartnerLimit.phoneNumber || 'No phone'})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingPartnerLimit(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 20,
+                  color: '#9CA3AF',
+                  cursor: 'pointer',
+                  padding: 4,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Current Status Box */}
+            <div
+              style={{
+                backgroundColor: '#F9FAFB',
+                borderRadius: 12,
+                padding: '12px 16px',
+                border: '1px solid #E5E7EB',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 12,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>CASH IN HAND</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', marginTop: 2 }}>
+                  ₹{(editingPartnerLimit.cashInHand ?? 0).toLocaleString('en-IN')}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>CURRENT LIMIT</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#4F46E5', marginTop: 2 }}>
+                  ₹{(editingPartnerLimit.maxCashInHandLimit ?? 2000).toLocaleString('en-IN')}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                New Maximum Allowed Cash in Hand (₹)
+              </label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ position: 'absolute', left: 12, fontSize: 16, fontWeight: 700, color: '#6B7280' }}>₹</span>
+                <input
+                  type="number"
+                  value={partnerLimitInput}
+                  onChange={(e) => setPartnerLimitInput(e.target.value)}
+                  placeholder="e.g. 2000"
+                  style={{
+                    width: '100%',
+                    paddingLeft: 30,
+                    paddingRight: 14,
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    borderRadius: 10,
+                    border: '1.5px solid #D1D5DB',
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: '#111827',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Quick Presets */}
+            <div>
+              <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 700, marginBottom: 6 }}>QUICK PRESETS</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[1000, 2000, 5000, 10000, 25000, 50000].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setPartnerLimitInput(String(preset))}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 8,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: partnerLimitInput === String(preset) ? '#EEF2FF' : '#F9FAFB',
+                      color: partnerLimitInput === String(preset) ? '#4F46E5' : '#374151',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ₹{preset.toLocaleString('en-IN')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.5, backgroundColor: '#EFF6FF', padding: '10px 14px', borderRadius: 10, border: '1px solid #DBEAFE' }}>
+              💡 <strong>Order Assignment Rule:</strong> When cash in hand reaches or exceeds this limit, the delivery partner is shown a warning on Home and cannot receive new orders until they deposit cash. Increasing this limit will immediately unblock and assign waiting orders.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={() => setEditingPartnerLimit(null)}
+                disabled={isUpdatingPartnerLimit}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 10,
+                  border: '1px solid #D1D5DB',
+                  backgroundColor: '#FFFFFF',
+                  color: '#4B5563',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePartnerLimit}
+                disabled={isUpdatingPartnerLimit}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: 10,
+                  border: 'none',
+                  backgroundColor: isUpdatingPartnerLimit ? '#9CA3AF' : '#4F46E5',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: isUpdatingPartnerLimit ? 'wait' : 'pointer',
+                }}
+              >
+                {isUpdatingPartnerLimit ? 'Updating...' : 'Save Limit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Set Global Max COD Cash Limit Modal */}
+      {isGlobalLimitModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(17, 24, 39, 0.55)',
+            backdropFilter: 'blur(3px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => setIsGlobalLimitModalOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              width: 500,
+              maxWidth: '94%',
+              padding: 24,
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.16)',
+              border: '1px solid #E5E7EB',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#111827' }}>
+                  ⚙️ Set Global Max COD Limit
+                </h3>
+                <span style={{ fontSize: 12, color: '#6B7280' }}>
+                  Applies to all registered delivery partners fleet-wide
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsGlobalLimitModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 20,
+                  color: '#9CA3AF',
+                  cursor: 'pointer',
+                  padding: 4,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+                Global Cash-in-Hand Limit (₹)
+              </label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ position: 'absolute', left: 12, fontSize: 16, fontWeight: 700, color: '#6B7280' }}>₹</span>
+                <input
+                  type="number"
+                  value={globalLimitInput}
+                  onChange={(e) => setGlobalLimitInput(e.target.value)}
+                  placeholder="e.g. 2000"
+                  style={{
+                    width: '100%',
+                    paddingLeft: 30,
+                    paddingRight: 14,
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    borderRadius: 10,
+                    border: '1.5px solid #D1D5DB',
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: '#111827',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Quick Presets */}
+            <div>
+              <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 700, marginBottom: 6 }}>FLEET PRESETS</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[1000, 2000, 5000, 10000, 25000, 50000].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setGlobalLimitInput(String(preset))}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 8,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: globalLimitInput === String(preset) ? '#EEF2FF' : '#F9FAFB',
+                      color: globalLimitInput === String(preset) ? '#4F46E5' : '#374151',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ₹{preset.toLocaleString('en-IN')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ fontSize: 12, color: '#4B5563', lineHeight: 1.5, backgroundColor: '#F9FAFB', padding: '12px 16px', borderRadius: 10, border: '1px solid #E5E7EB' }}>
+              💡 <strong>Fleet-wide Action:</strong> Setting this will update the maximum allowed COD balance for all delivery partners. Any pending orders waiting for unblocked partners will be assigned immediately.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={() => setIsGlobalLimitModalOpen(false)}
+                disabled={isUpdatingGlobalLimit}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 10,
+                  border: '1px solid #D1D5DB',
+                  backgroundColor: '#FFFFFF',
+                  color: '#4B5563',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveGlobalLimit}
+                disabled={isUpdatingGlobalLimit}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: 10,
+                  border: 'none',
+                  backgroundColor: isUpdatingGlobalLimit ? '#9CA3AF' : '#4F46E5',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: isUpdatingGlobalLimit ? 'wait' : 'pointer',
+                }}
+              >
+                {isUpdatingGlobalLimit ? 'Updating Fleet...' : 'Apply to All Partners'}
               </button>
             </div>
           </div>

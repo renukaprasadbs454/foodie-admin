@@ -9490,6 +9490,11 @@ function toBackendZoneId(zid?: string | null): string | null {
     if (targetPath.includes('admin/shifts')) {
       purgeBffCache('admin/shifts');
     }
+    if (targetPath.includes('admin/delivery-partners') || targetPath.includes('delivery')) {
+      purgeBffCache('admin/delivery-partners');
+      purgeBffCache('delivery');
+      purgeBffCache('delivery-partners');
+    }
   }
 
   try {
