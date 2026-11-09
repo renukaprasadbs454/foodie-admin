@@ -360,7 +360,23 @@ export function DeliveryPricingSettingsCard() {
       if (activeIncentivesSource.length > 0) {
         const mergedIncentives = DEFAULT_INCENTIVES.map((defItem) => {
           const match = activeIncentivesSource.find((i: IncentiveItem) => i.id === defItem.id);
-          return match ? { ...defItem, ...match } : defItem;
+          if (match) {
+            const rawMilestones = match.milestones ?? defItem.milestones;
+            const normalizedMilestones = rawMilestones
+              ? rawMilestones.map((m: any) => ({
+                  trips: Number(m.trips ?? m.orders ?? 0),
+                  orders: Number(m.orders ?? m.trips ?? 0),
+                  reward: Number(m.reward ?? m.rewardAmount ?? 0),
+                  rewardAmount: Number(m.rewardAmount ?? m.reward ?? 0),
+                }))
+              : undefined;
+            return {
+              ...defItem,
+              ...match,
+              milestones: normalizedMilestones,
+            };
+          }
+          return defItem;
         });
         const customIncentives = activeIncentivesSource.filter(
           (i: IncentiveItem) => !DEFAULT_INCENTIVES.some((d) => d.id === i.id)
@@ -449,12 +465,30 @@ export function DeliveryPricingSettingsCard() {
             })),
           };
 
+          const updatedZoneConfigs = { ...(pricingConfig?.zoneConfigs || {}) };
+          Object.keys(updatedZoneConfigs).forEach((zKey) => {
+            if (updatedZoneConfigs[zKey]) {
+              const zIncentives = Array.isArray(updatedZoneConfigs[zKey].incentives) ? updatedZoneConfigs[zKey].incentives : [];
+              const mergedZIncentives = updatedUniversalConfig.incentives.map((uItem) => {
+                const existingZ = zIncentives.find((zi: any) => zi.id === uItem.id);
+                if (existingZ && existingZ.creatorRole === 'ZONE_ADMIN') {
+                  return existingZ;
+                }
+                return { ...uItem, zoneId: zKey, scope: 'ZONE' as const };
+              });
+              updatedZoneConfigs[zKey] = {
+                ...updatedZoneConfigs[zKey],
+                incentives: mergedZIncentives,
+              };
+            }
+          });
+
           await updatePricing({
             minPricePerDelivery: minP,
             moneyPerKm: mKm,
             pricingBasis: 'UNIVERSAL',
             universalConfig: updatedUniversalConfig,
-            zoneConfigs: pricingConfig?.zoneConfigs || {},
+            zoneConfigs: updatedZoneConfigs,
             zones: pricingConfig?.zones,
           }).unwrap();
         } else {
@@ -522,12 +556,30 @@ export function DeliveryPricingSettingsCard() {
           })),
         };
 
+        const updatedZoneConfigs = { ...(pricingConfig?.zoneConfigs || {}) };
+        Object.keys(updatedZoneConfigs).forEach((zKey) => {
+          if (updatedZoneConfigs[zKey]) {
+            const zIncentives = Array.isArray(updatedZoneConfigs[zKey].incentives) ? updatedZoneConfigs[zKey].incentives : [];
+            const mergedZIncentives = updatedUniversalConfig.incentives.map((uItem) => {
+              const existingZ = zIncentives.find((zi: any) => zi.id === uItem.id);
+              if (existingZ && existingZ.creatorRole === 'ZONE_ADMIN') {
+                return existingZ;
+              }
+              return { ...uItem, zoneId: zKey, scope: 'ZONE' as const };
+            });
+            updatedZoneConfigs[zKey] = {
+              ...updatedZoneConfigs[zKey],
+              incentives: mergedZIncentives,
+            };
+          }
+        });
+
         await updatePricing({
           minPricePerDelivery: minP,
           moneyPerKm: mKm,
           pricingBasis: 'UNIVERSAL',
           universalConfig: updatedUniversalConfig,
-          zoneConfigs: pricingConfig?.zoneConfigs || {},
+          zoneConfigs: updatedZoneConfigs,
           zones: pricingConfig?.zones,
         }).unwrap();
 
@@ -1293,8 +1345,41 @@ export function DeliveryPricingSettingsCard() {
                     {/* Milestone Tiers for Daily Target Bonus */}
                     {item.id === 'dailyTargetBonus' && (
                       <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #E5E7EB' }}>
-                        <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#4B5563', marginBottom: '8px' }}>
-                          Daily Milestone Ladder:
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#4B5563' }}>
+                            Daily Milestone Ladder (Orders & Rewards):
+                          </span>
+                          <button
+                            type="button"
+                            disabled={!item.active}
+                            onClick={() => {
+                              const current = item.milestones || [
+                                { trips: 6, reward: 50 },
+                                { trips: 9, reward: 75 },
+                                { trips: 13, reward: 120 },
+                                { trips: 18, reward: 190 },
+                              ];
+                              const last = current[current.length - 1] || { trips: 18, reward: 190 };
+                              const newTrips = (last.trips || 18) + 4;
+                              const newReward = (last.reward || 190) + 50;
+                              handleIncentiveChange(item.id, 'milestones', [
+                                ...current,
+                                { trips: newTrips, orders: newTrips, reward: newReward, rewardAmount: newReward },
+                              ]);
+                            }}
+                            style={{
+                              background: '#EFF6FF',
+                              border: '1px solid #BFDBFE',
+                              color: '#1D4ED8',
+                              borderRadius: '4px',
+                              fontSize: '0.625rem',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            + Add Tier
+                          </button>
                         </div>
                         <div
                           className="daily-milestone-ladder-grid"
@@ -1344,7 +1429,15 @@ export function DeliveryPricingSettingsCard() {
                                     { trips: 13, reward: 120 },
                                     { trips: 18, reward: 190 },
                                   ]).map((mItem, idx) =>
-                                    idx === mIdx ? { ...mItem, trips: val, orders: val } : mItem
+                                    idx === mIdx
+                                      ? {
+                                          ...mItem,
+                                          trips: val,
+                                          orders: val,
+                                          reward: mItem.reward ?? (mItem as any).rewardAmount ?? 0,
+                                          rewardAmount: mItem.reward ?? (mItem as any).rewardAmount ?? 0,
+                                        }
+                                      : mItem
                                   );
                                   handleIncentiveChange(item.id, 'milestones', currentMilestones);
                                 }}
@@ -1384,7 +1477,7 @@ export function DeliveryPricingSettingsCard() {
                               <input
                                 type="number"
                                 min="0"
-                                value={m.reward}
+                                value={m.reward ?? (m as any).rewardAmount ?? 0}
                                 disabled={!item.active}
                                 onChange={(e) => {
                                   const val = Math.max(0, Number(e.target.value) || 0);
@@ -1394,7 +1487,15 @@ export function DeliveryPricingSettingsCard() {
                                     { trips: 13, reward: 120 },
                                     { trips: 18, reward: 190 },
                                   ]).map((mItem, idx) =>
-                                    idx === mIdx ? { ...mItem, reward: val } : mItem
+                                    idx === mIdx
+                                      ? {
+                                          ...mItem,
+                                          reward: val,
+                                          rewardAmount: val,
+                                          trips: mItem.trips ?? (mItem as any).orders ?? 1,
+                                          orders: mItem.trips ?? (mItem as any).orders ?? 1,
+                                        }
+                                      : mItem
                                   );
                                   handleIncentiveChange(item.id, 'milestones', currentMilestones);
                                 }}
@@ -1414,6 +1515,36 @@ export function DeliveryPricingSettingsCard() {
                                   boxSizing: 'border-box',
                                 }}
                               />
+
+                              {/* Remove tier button when more than 1 tier exists */}
+                              {((item.milestones?.length || 4) > 1) && (
+                                <button
+                                  type="button"
+                                  title="Remove tier"
+                                  disabled={!item.active}
+                                  onClick={() => {
+                                    const currentMilestones = (item.milestones || [
+                                      { trips: 6, reward: 50 },
+                                      { trips: 9, reward: 75 },
+                                      { trips: 13, reward: 120 },
+                                      { trips: 18, reward: 190 },
+                                    ]).filter((_, idx) => idx !== mIdx);
+                                    handleIncentiveChange(item.id, 'milestones', currentMilestones);
+                                  }}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: '#9CA3AF',
+                                    padding: '0 2px',
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              )}
                             </div>
                           ))}
                         </div>
