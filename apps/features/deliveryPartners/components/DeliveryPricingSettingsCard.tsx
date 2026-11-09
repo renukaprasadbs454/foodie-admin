@@ -370,10 +370,31 @@ export function DeliveryPricingSettingsCard() {
                   rewardAmount: Number(m.rewardAmount ?? m.reward ?? 0),
                 }))
               : undefined;
+
+            const rawConditions = match.conditions ?? defItem.conditions;
+            const normalizedConditions = rawConditions
+              ? rawConditions.map((c: any) => {
+                  const isLogin = c.type === 'LOGIN_SLOT' || c.id === 'loginSlot' || Boolean(c.timeSlot || c.duration);
+                  const isRej = c.type === 'ORDER_REJECTION' || c.id === 'orderRejection' || c.maxRejections != null;
+                  return {
+                    ...c,
+                    id: c.id || (isLogin ? 'loginSlot' : isRej ? 'orderRejection' : 'custom'),
+                    type: isLogin ? 'LOGIN_SLOT' : isRej ? 'ORDER_REJECTION' : (c.type || 'CUSTOM'),
+                    title: c.title || (isLogin ? 'Mandatory Login: Complete below slot' : isRej ? 'Other condition' : ''),
+                    timeSlot: c.timeSlot || c.value || (isLogin ? '8 PM – 12 AM' : undefined),
+                    duration: c.duration || c.subtext || (isLogin ? '4h 30m' : undefined),
+                    maxRejections: c.maxRejections != null ? Number(c.maxRejections) : (isRej ? 1 : undefined),
+                    value: c.value || c.timeSlot || (isRej ? 'Do not reject' : ''),
+                    subtext: c.subtext || c.duration || (isRej ? 'more than 1 order' : ''),
+                  };
+                })
+              : undefined;
+
             return {
               ...defItem,
               ...match,
               milestones: normalizedMilestones,
+              conditions: normalizedConditions,
             };
           }
           return defItem;
@@ -751,12 +772,30 @@ export function DeliveryPricingSettingsCard() {
           })),
         };
 
+        const updatedZoneConfigs = { ...(pricingConfig?.zoneConfigs || {}) };
+        Object.keys(updatedZoneConfigs).forEach((zKey) => {
+          if (updatedZoneConfigs[zKey]) {
+            const zIncentives = Array.isArray(updatedZoneConfigs[zKey].incentives) ? updatedZoneConfigs[zKey].incentives : [];
+            const mergedZIncentives = updatedUniversalConfig.incentives.map((uItem) => {
+              const existingZ = zIncentives.find((zi: any) => zi.id === uItem.id);
+              if (existingZ && existingZ.creatorRole === 'ZONE_ADMIN') {
+                return existingZ;
+              }
+              return { ...uItem, zoneId: zKey, scope: 'ZONE' as const };
+            });
+            updatedZoneConfigs[zKey] = {
+              ...updatedZoneConfigs[zKey],
+              incentives: mergedZIncentives,
+            };
+          }
+        });
+
         const res = await updatePricing({
           minPricePerDelivery: parsedMinPrice,
           moneyPerKm: parsedMoneyPerKm,
           pricingBasis: 'UNIVERSAL',
           universalConfig: updatedUniversalConfig,
-          zoneConfigs: pricingConfig?.zoneConfigs || {},
+          zoneConfigs: updatedZoneConfigs,
           zones: pricingConfig?.zones,
         }).unwrap();
 
@@ -1558,152 +1597,172 @@ export function DeliveryPricingSettingsCard() {
                           Offer Conditions:
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          {/* Login slot condition - Shift Dropdown Selection */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.6875rem' }}>
-                            <span style={{ color: '#4B5563', fontWeight: 600, minWidth: '65px' }}>Login Slot:</span>
-                            {(() => {
-                              const currentCondition = item.conditions?.find(c => c.type === 'LOGIN_SLOT');
-                              const currentSlotValue = currentCondition?.timeSlot || currentCondition?.value || '8 PM – 12 AM';
+                          {(() => {
+                            const loginCond: IncentiveCondition = item.conditions?.find(c => c.type === 'LOGIN_SLOT' || c.id === 'loginSlot') || {
+                              id: 'loginSlot',
+                              type: 'LOGIN_SLOT' as const,
+                              title: 'Mandatory Login: Complete below slot',
+                              timeSlot: '8 PM – 12 AM',
+                              value: '8 PM – 12 AM',
+                              duration: '4h 30m',
+                              subtext: '4h 30m',
+                              minDurationMinutes: 240,
+                            };
 
-                              // Find matching shift from available shifts
-                              const matchedShift = availableShifts.find(s =>
-                                areShiftsMatching(formatShiftLabel(s), currentSlotValue) ||
-                                areShiftsMatching(`${s.startTime} - ${s.endTime}`, currentSlotValue)
+                            const rejCond: IncentiveCondition = item.conditions?.find(c => c.type === 'ORDER_REJECTION' || c.id === 'orderRejection') || {
+                              id: 'orderRejection',
+                              type: 'ORDER_REJECTION' as const,
+                              title: 'Other condition',
+                              value: 'Do not reject',
+                              subtext: 'more than 1 order',
+                              maxRejections: 1,
+                            };
+
+                            const currentSlotValue = loginCond.timeSlot || loginCond.value || '8 PM – 12 AM';
+
+                            // Find matching shift from available shifts
+                            const matchedShift = availableShifts.find(s =>
+                              areShiftsMatching(formatShiftLabel(s), currentSlotValue) ||
+                              areShiftsMatching(`${s.startTime} - ${s.endTime}`, currentSlotValue)
+                            );
+
+                            const selectValue = matchedShift ? formatShiftLabel(matchedShift) : currentSlotValue;
+                            const hasMatchInList = availableShifts.some(s =>
+                              areShiftsMatching(formatShiftLabel(s), selectValue)
+                            );
+
+                            const updateConditions = (newLogin: IncentiveCondition, newRej: IncentiveCondition) => {
+                              const others = (item.conditions || []).filter(
+                                c => c.type !== 'LOGIN_SLOT' && c.id !== 'loginSlot' && c.type !== 'ORDER_REJECTION' && c.id !== 'orderRejection'
                               );
+                              handleIncentiveChange(item.id, 'conditions', [newLogin, newRej, ...others]);
+                            };
 
-                              const selectValue = matchedShift ? formatShiftLabel(matchedShift) : currentSlotValue;
-                              const hasMatchInList = availableShifts.some(s =>
-                                areShiftsMatching(formatShiftLabel(s), selectValue)
-                              );
+                            return (
+                              <>
+                                {/* Login slot condition - Shift Dropdown Selection */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.6875rem' }}>
+                                  <span style={{ color: '#4B5563', fontWeight: 600, minWidth: '65px' }}>Login Slot:</span>
+                                  <select
+                                    id="daily-target-login-slot-dropdown"
+                                    disabled={!item.active}
+                                    value={selectValue}
+                                    onChange={(e) => {
+                                      const selectedVal = e.target.value;
+                                      const chosenShift = availableShifts.find(s =>
+                                        formatShiftLabel(s) === selectedVal || areShiftsMatching(formatShiftLabel(s), selectedVal)
+                                      );
+                                      const chosenSlotLabel = chosenShift ? formatShiftLabel(chosenShift) : selectedVal;
+                                      const chosenDuration = chosenShift?.durationHours || loginCond.duration || '4h 30m';
 
-                              return (
-                                <select
-                                  id="daily-target-login-slot-dropdown"
-                                  disabled={!item.active}
-                                  value={selectValue}
-                                  onChange={(e) => {
-                                    const selectedVal = e.target.value;
-                                    const chosenShift = availableShifts.find(s =>
-                                      formatShiftLabel(s) === selectedVal || areShiftsMatching(formatShiftLabel(s), selectedVal)
-                                    );
-                                    const chosenSlotLabel = chosenShift ? formatShiftLabel(chosenShift) : selectedVal;
-                                    const chosenDuration = chosenShift?.durationHours || '4h 30m';
-
-                                    const existing = item.conditions || [
-                                      { id: 'loginSlot', type: 'LOGIN_SLOT', title: 'Mandatory Login: Complete below slot', timeSlot: '8 PM – 12 AM', duration: '4h 30m', minDurationMinutes: 240 },
-                                      { id: 'orderRejection', type: 'ORDER_REJECTION', title: 'Do not reject', subtext: 'more than 1 order', maxRejections: 1 },
-                                    ];
-
-                                    const updated = existing.map(c =>
-                                      c.type === 'LOGIN_SLOT'
-                                        ? {
-                                            ...c,
-                                            timeSlot: chosenSlotLabel,
-                                            value: chosenSlotLabel,
-                                            duration: chosenDuration,
-                                            subtext: chosenDuration,
-                                          }
-                                        : c
-                                    );
-                                    handleIncentiveChange(item.id, 'conditions', updated);
-                                  }}
-                                  style={{
-                                    flex: 1,
-                                    maxWidth: '160px',
-                                    height: '28px',
-                                    padding: '2px 8px',
-                                    borderRadius: '6px',
-                                    border: '1px solid #D1D5DB',
-                                    fontSize: '0.6875rem',
-                                    fontWeight: 700,
-                                    backgroundColor: item.active ? '#FFFFFF' : '#F3F4F6',
-                                    color: '#111827',
-                                    outline: 'none',
-                                    cursor: item.active ? 'pointer' : 'not-allowed',
-                                  }}
-                                >
-                                  {availableShifts.map((s) => {
-                                    const label = formatShiftLabel(s);
-                                    return (
-                                      <option key={s.shiftId || `${s.shiftName}-${s.startTime}`} value={label}>
-                                        {label}{s.shiftName ? ` (${s.shiftName})` : ''}
+                                      const updatedLogin: IncentiveCondition = {
+                                        ...loginCond,
+                                        timeSlot: chosenSlotLabel,
+                                        value: chosenSlotLabel,
+                                        duration: chosenDuration,
+                                        subtext: chosenDuration,
+                                      };
+                                      updateConditions(updatedLogin, rejCond);
+                                    }}
+                                    style={{
+                                      flex: 1,
+                                      maxWidth: '160px',
+                                      height: '28px',
+                                      padding: '2px 8px',
+                                      borderRadius: '6px',
+                                      border: '1px solid #D1D5DB',
+                                      fontSize: '0.6875rem',
+                                      fontWeight: 700,
+                                      backgroundColor: item.active ? '#FFFFFF' : '#F3F4F6',
+                                      color: '#111827',
+                                      outline: 'none',
+                                      cursor: item.active ? 'pointer' : 'not-allowed',
+                                    }}
+                                  >
+                                    {availableShifts.map((s) => {
+                                      const label = formatShiftLabel(s);
+                                      return (
+                                        <option key={s.shiftId || `${s.shiftName}-${s.startTime}`} value={label}>
+                                          {label}{s.shiftName ? ` (${s.shiftName})` : ''}
+                                        </option>
+                                      );
+                                    })}
+                                    {!hasMatchInList && currentSlotValue && (
+                                      <option value={currentSlotValue}>
+                                        {currentSlotValue}
                                       </option>
-                                    );
-                                  })}
-                                  {!hasMatchInList && currentSlotValue && (
-                                    <option value={currentSlotValue}>
-                                      {currentSlotValue}
-                                    </option>
-                                  )}
-                                </select>
-                              );
-                            })()}
-                          </div>
+                                    )}
+                                  </select>
+                                </div>
 
-                          {/* Login duration condition */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.6875rem' }}>
-                            <span style={{ color: '#4B5563', fontWeight: 600 }}>Duration:</span>
-                            <input
-                              type="text"
-                              disabled={!item.active}
-                              value={item.conditions?.find(c => c.type === 'LOGIN_SLOT')?.duration || '4h 30m'}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                const existing = item.conditions || [
-                                  { id: 'loginSlot', type: 'LOGIN_SLOT', title: 'Mandatory Login: Complete below slot', timeSlot: '7pm - 12am', duration: '4h 30m', minDurationMinutes: 270 },
-                                  { id: 'orderRejection', type: 'ORDER_REJECTION', title: 'Do not reject', subtext: 'more than 1 order', maxRejections: 1 },
-                                ];
-                                const updated = existing.map(c => c.type === 'LOGIN_SLOT' ? { ...c, duration: val, subtext: val } : c);
-                                handleIncentiveChange(item.id, 'conditions', updated);
-                              }}
-                              style={{
-                                width: '100px',
-                                padding: '3px 6px',
-                                borderRadius: '4px',
-                                border: '1px solid #D1D5DB',
-                                fontSize: '0.6875rem',
-                                fontWeight: 700,
-                                backgroundColor: item.active ? '#F9FAFB' : '#F3F4F6',
-                                color: '#111827',
-                                outline: 'none',
-                              }}
-                            />
-                          </div>
+                                {/* Login duration condition */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.6875rem' }}>
+                                  <span style={{ color: '#4B5563', fontWeight: 600 }}>Duration:</span>
+                                  <input
+                                    type="text"
+                                    disabled={!item.active}
+                                    value={loginCond.duration || loginCond.subtext || '4h 30m'}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      const updatedLogin: IncentiveCondition = {
+                                        ...loginCond,
+                                        duration: val,
+                                        subtext: val,
+                                      };
+                                      updateConditions(updatedLogin, rejCond);
+                                    }}
+                                    style={{
+                                      width: '100px',
+                                      padding: '3px 6px',
+                                      borderRadius: '4px',
+                                      border: '1px solid #D1D5DB',
+                                      fontSize: '0.6875rem',
+                                      fontWeight: 700,
+                                      backgroundColor: item.active ? '#F9FAFB' : '#F3F4F6',
+                                      color: '#111827',
+                                      outline: 'none',
+                                    }}
+                                  />
+                                </div>
 
-                          {/* Order rejection limit */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.6875rem' }}>
-                            <span style={{ color: '#4B5563', fontWeight: 600 }}>Max Rejections:</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <input
-                                type="number"
-                                min="0"
-                                disabled={!item.active}
-                                value={item.conditions?.find(c => c.type === 'ORDER_REJECTION')?.maxRejections ?? 1}
-                                onChange={(e) => {
-                                  const val = Math.max(0, parseInt(e.target.value) || 0);
-                                  const existing = item.conditions || [
-                                    { id: 'loginSlot', type: 'LOGIN_SLOT', title: 'Mandatory Login: Complete below slot', timeSlot: '7pm - 12am', duration: '4h 30m', minDurationMinutes: 270 },
-                                    { id: 'orderRejection', type: 'ORDER_REJECTION', title: 'Do not reject', subtext: 'more than 1 order', maxRejections: 1 },
-                                  ];
-                                  const updated = existing.map(c => c.type === 'ORDER_REJECTION' ? { ...c, maxRejections: val, subtext: `more than ${val} order${val > 1 ? 's' : ''}` } : c);
-                                  handleIncentiveChange(item.id, 'conditions', updated);
-                                }}
-                                style={{
-                                  width: '45px',
-                                  padding: '3px 6px',
-                                  borderRadius: '4px',
-                                  border: '1px solid #D1D5DB',
-                                  fontSize: '0.6875rem',
-                                  fontWeight: 700,
-                                  backgroundColor: item.active ? '#F9FAFB' : '#F3F4F6',
-                                  color: '#111827',
-                                  outline: 'none',
-                                  textAlign: 'center',
-                                }}
-                              />
-                              <span style={{ color: '#6B7280', fontSize: '0.625rem' }}>orders</span>
-                            </div>
-                          </div>
+                                {/* Order rejection limit */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '0.6875rem' }}>
+                                  <span style={{ color: '#4B5563', fontWeight: 600 }}>Max Rejections:</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      disabled={!item.active}
+                                      value={rejCond.maxRejections ?? 1}
+                                      onChange={(e) => {
+                                        const val = Math.max(0, parseInt(e.target.value) || 0);
+                                        const updatedRej: IncentiveCondition = {
+                                          ...rejCond,
+                                          maxRejections: val,
+                                          value: 'Do not reject',
+                                          subtext: `more than ${val} order${val === 1 ? '' : 's'}`,
+                                        };
+                                        updateConditions(loginCond, updatedRej);
+                                      }}
+                                      style={{
+                                        width: '45px',
+                                        padding: '3px 6px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #D1D5DB',
+                                        fontSize: '0.6875rem',
+                                        fontWeight: 700,
+                                        backgroundColor: item.active ? '#F9FAFB' : '#F3F4F6',
+                                        color: '#111827',
+                                        outline: 'none',
+                                        textAlign: 'center',
+                                      }}
+                                    />
+                                    <span style={{ color: '#6B7280', fontSize: '0.625rem' }}>orders</span>
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     )}
