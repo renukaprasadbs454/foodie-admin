@@ -18,6 +18,7 @@ import type {
   CancelledOrderRefundRequest,
   TransactionDateFilter,
   PaymentDateFilter,
+  CodCashDepositRecord,
 } from '../types';
 import {
   calculatePaymentSplit,
@@ -42,6 +43,7 @@ import {
   useApproveCancelledOrderRefundMutation,
   useRejectCancelledOrderRefundMutation,
   useSimulateCustomerCancellationMutation,
+  useGetCodDepositsQuery,
 } from '../../../api/endpoints/paymentsApi';
 import { useGetAdminRestaurantsQuery } from '../../../api/endpoints/restaurantsApi';
 import { useGetAdminDeliveryPartnersQuery } from '../../../api/endpoints/deliveryPartnersApi';
@@ -49,6 +51,7 @@ import { useGetAdminDeliveryPartnersQuery } from '../../../api/endpoints/deliver
 type TabKey =
   | 'OVERVIEW'
   | 'TRANSACTIONS'
+  | 'COD_COLLECTIONS'
   | 'SETTLEMENTS'
   | 'RESTAURANT_SETTLEMENTS'
   | 'LEDGER'
@@ -303,6 +306,8 @@ export function PaymentsPage() {
   const { data: partnersData } = useGetAdminDeliveryPartnersQuery();
   const { data: cancelledRefunds = [], isLoading: cancelledRefundsLoading, refetch: refetchCancelledRefunds } =
     useGetCancelledOrderRefundsQuery();
+  const { data: serverCodDeposits = [], isLoading: codDepositsLoading, refetch: refetchCodDeposits } =
+    useGetCodDepositsQuery();
 
   // RTK Mutations
   const [updateRules, { isLoading: isSavingRules }] = useUpdateCommissionRulesMutation();
@@ -316,6 +321,11 @@ export function PaymentsPage() {
   // Local State
   const [commissionConfig, setCommissionConfig] = useState<CommissionConfig>(DEFAULT_COMMISSION_CONFIG);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // COD Cash Collections Date Filter State
+  const [codDateFilter, setCodDateFilter] = useState<PaymentDateFilter>('ALL');
+  const [codCustomStartDate, setCodCustomStartDate] = useState<string>('');
+  const [codCustomEndDate, setCodCustomEndDate] = useState<string>('');
 
   // Executive Overview Date Filter State (Exclusively for Executive Overview tab)
   const [overviewDateFilter, setOverviewDateFilter] = useState<PaymentDateFilter>('THIS_MONTH');
@@ -840,8 +850,32 @@ export function PaymentsPage() {
   const realRestaurants = restaurantsData?.items || [];
   const realPartners = partnersData?.items || [];
 
+  // Filtered COD Collections by Date Range
+  const filteredCodDeposits = useMemo(() => {
+    return filterRecordsByDateRange(
+      serverCodDeposits,
+      codDateFilter,
+      (d) => d.approvedAt || d.createdAt,
+      codCustomStartDate,
+      codCustomEndDate
+    );
+  }, [serverCodDeposits, codDateFilter, codCustomStartDate, codCustomEndDate]);
+
   // Live Financial Metrics Calculated from Real Database Data (filtered by Executive Overview date range)
-  const totalAdminEscrowPaid = overviewFilteredSettlements.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
+  // Total Admin Escrow Pool: ONLINE payments + settled/approved partner COD deposits (never add undeposited COD)
+  const onlineEscrowPaid = overviewFilteredSettlements
+    .filter((s) => {
+      const m = (s.paymentMethod || '').toUpperCase();
+      return !m.includes('COD') && !m.includes('CASH');
+    })
+    .reduce((acc, s) => acc + (s.totalPaid || 0), 0);
+
+  const depositedCodAmount = (serverCodDeposits || [])
+    .filter((d) => d.status === 'APPROVED' || d.status === 'SETTLED')
+    .reduce((acc, d) => acc + (Number(d.amount) || 0), 0);
+
+  const totalAdminEscrowPaid = onlineEscrowPaid + depositedCodAmount;
+  const totalPendingCodCash = realPartners.reduce((acc, p) => acc + (Number(p.cashInHand) || 0), 0);
   const totalAdminNetRevenue = overviewFilteredSettlements.reduce((acc, s) => acc + (s.adminTotalRevenue || 0), 0);
   const totalDistributedToRestaurants = overviewFilteredSettlements.reduce((acc, s) => acc + (s.restaurantNetShare || 0), 0);
   const totalDistributedToDrivers = overviewFilteredSettlements.reduce((acc, s) => acc + (s.deliveryPartnerNetShare || 0), 0);
@@ -919,6 +953,7 @@ export function PaymentsPage() {
       {[
         { key: 'OVERVIEW', label: 'Executive Overview' },
         { key: 'TRANSACTIONS', label: `Transactions (${serverTransactions.length})` },
+        { key: 'COD_COLLECTIONS', label: `COD Cash Collection (${serverCodDeposits.length})` },
         { key: 'SETTLEMENTS', label: `Master Order Settlements (${serverSettlements.length})` },
         { key: 'RESTAURANT_SETTLEMENTS', label: `Restaurant Order Settlements (${restaurantSettlements.length})` },
         { key: 'LEDGER', label: `Audit Ledger (${serverLedger.length})` },
@@ -1191,21 +1226,49 @@ export function PaymentsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             <div
               style={{
-                background: 'linear-gradient(135deg, #2196F3 0%, #64D8FF 100%)',
+                background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
                 padding: '24px',
                 borderRadius: 20,
                 color: '#FFFFFF',
                 boxShadow: '0 4px 14px rgba(33, 150, 243, 0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
               }}
             >
-              <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.9, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Total Admin Escrow Pool
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.9, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total Admin Escrow Pool
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>
+                  ₹{totalAdminEscrowPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.9, marginTop: 4 }}>
+                  Online Direct: ₹{onlineEscrowPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })} · Settled COD: ₹{depositedCodAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8 }}>
-                ₹{totalAdminEscrowPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.9, marginTop: 6 }}>
-                100% Customer Bill Direct Collections
+
+              <div
+                style={{
+                  marginTop: 14,
+                  paddingTop: 10,
+                  borderTop: '1px solid rgba(255, 255, 255, 0.25)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.85, textTransform: 'uppercase' }}>
+                    Pending Delivery Partner COD
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 800, marginTop: 2, color: '#FEF08A' }}>
+                    ₹{totalPendingCodCash.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+                <div style={{ fontSize: 10, opacity: 0.85, maxWidth: '140px', textAlign: 'right' }}>
+                  Transfers into Admin Escrow upon Cashfree deposit
+                </div>
               </div>
             </div>
 
@@ -1652,17 +1715,27 @@ export function PaymentsPage() {
                         ₹{(tx.amount || 0).toFixed(2)}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#374151' }}>
-                        {tx.paymentMethod ? tx.paymentMethod.replace(/RAZORPAY/gi, 'CASHFREE') : 'CASHFREE_UPI'}
+                        {tx.paymentMethod === 'COD' || tx.gatewayName === 'COD'
+                          ? 'Cash on Delivery (COD)'
+                          : tx.paymentMethod === 'COD_DEPOSIT'
+                          ? 'Partner COD Deposit'
+                          : tx.paymentMethod
+                          ? tx.paymentMethod.replace(/RAZORPAY/gi, 'CASHFREE')
+                          : 'CASHFREE_UPI'}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: 12, color: '#6B7280' }}>
-                        Cashfree ({tx.gatewayTransactionId ? tx.gatewayTransactionId.slice(0, 10) : 'N/A'})
+                        {tx.paymentMethod === 'COD' || tx.gatewayName === 'COD'
+                          ? 'COD (Cash in Hand)'
+                          : tx.paymentMethod === 'COD_DEPOSIT'
+                          ? `Cashfree (${tx.gatewayTransactionId ? tx.gatewayTransactionId.slice(0, 14) : 'DEP'})`
+                          : `Cashfree (${tx.gatewayTransactionId ? tx.gatewayTransactionId.slice(0, 12) : 'N/A'})`}
                       </td>
                       <td style={{ padding: '14px 16px' }}>
                         <span
                           style={{
-                            backgroundColor: '#DCFCE7',
-                            color: '#15803D',
-                            border: '1px solid #BBF7D0',
+                            backgroundColor: tx.paymentMethod === 'COD' ? '#FEF3C7' : '#DCFCE7',
+                            color: tx.paymentMethod === 'COD' ? '#B45309' : '#15803D',
+                            border: tx.paymentMethod === 'COD' ? '1px solid #FDE68A' : '1px solid #BBF7D0',
                             fontSize: 11,
                             fontWeight: 700,
                             padding: '3px 8px',
@@ -1677,6 +1750,274 @@ export function PaymentsPage() {
                       </td>
                     </tr>
                   ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2B: COD CASH COLLECTION */}
+      {activeTab === 'COD_COLLECTIONS' && (
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 20,
+            border: '1px solid #E5E7EB',
+            overflow: 'hidden',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <Text as="h2" variant="heading3" color="#111827" style={{ margin: 0, fontWeight: 700 }}>
+                COD Cash Collection & Gateway Deposits
+              </Text>
+              <Text as="p" variant="caption" color="#6B7280" style={{ margin: '2px 0 0' }}>
+                Verified cash deposits made by delivery partners via Cashfree gateway to clear collected COD funds into the Admin Escrow pool.
+              </Text>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => refetchCodDeposits?.()}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  backgroundColor: '#F3F4F6',
+                  color: '#374151',
+                  border: '1px solid #E5E7EB',
+                  cursor: 'pointer',
+                }}
+              >
+                ↻ Refresh
+              </button>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: 20 }}>
+                {codDateFilter === 'ALL'
+                  ? `${serverCodDeposits.length} Deposits Recorded`
+                  : `${filteredCodDeposits.length} of ${serverCodDeposits.length} Filtered`}
+              </span>
+            </div>
+          </div>
+
+          {/* Date Filter Bar */}
+          <div
+            style={{
+              padding: '12px 20px',
+              backgroundColor: '#F9FAFB',
+              borderBottom: '1px solid #E5E7EB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6B7280' }}>Date Range:</span>
+              {[
+                { key: 'ALL' as const, label: 'All Deposits' },
+                { key: 'TODAY' as const, label: 'Today' },
+                { key: 'THIS_WEEK' as const, label: 'This Week' },
+                { key: 'THIS_MONTH' as const, label: 'This Month' },
+                { key: 'THIS_YEAR' as const, label: 'This Year' },
+                { key: 'CUSTOM' as const, label: 'Custom Date Range' },
+              ].map((opt) => {
+                const isActive = codDateFilter === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setCodDateFilter(opt.key)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: isActive ? '1px solid #059669' : '1px solid #E5E7EB',
+                      backgroundColor: isActive ? '#ECFDF5' : '#FFFFFF',
+                      color: isActive ? '#059669' : '#6B7280',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {codDateFilter === 'CUSTOM' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label htmlFor="cod-start-date" style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                    From:
+                  </label>
+                  <input
+                    id="cod-start-date"
+                    type="date"
+                    value={codCustomStartDate}
+                    onChange={(e) => setCodCustomStartDate(e.target.value)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 12,
+                      color: '#111827',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label htmlFor="cod-end-date" style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                    To:
+                  </label>
+                  <input
+                    id="cod-end-date"
+                    type="date"
+                    value={codCustomEndDate}
+                    onChange={(e) => setCodCustomEndDate(e.target.value)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 12,
+                      color: '#111827',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                {(codCustomStartDate || codCustomEndDate) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCodCustomStartDate('');
+                      setCodCustomEndDate('');
+                    }}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#6B7280',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <th style={{ padding: '12px 16px' }}>Deposit ID</th>
+                  <th style={{ padding: '12px 16px' }}>Delivery Partner</th>
+                  <th style={{ padding: '12px 16px' }}>Amount</th>
+                  <th style={{ padding: '12px 16px' }}>Gateway / Channel</th>
+                  <th style={{ padding: '12px 16px' }}>Reference Number</th>
+                  <th style={{ padding: '12px 16px' }}>Status</th>
+                  <th style={{ padding: '12px 16px' }}>Submitted At</th>
+                  <th style={{ padding: '12px 16px' }}>Settled / Approved At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {codDepositsLoading ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#6B7280' }}>Loading COD cash deposit records...</td>
+                  </tr>
+                ) : serverCodDeposits.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#6B7280' }}>No COD cash deposits recorded yet.</td>
+                  </tr>
+                ) : filteredCodDeposits.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '36px 24px', textAlign: 'center', color: '#6B7280' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+                        No deposits found for the selected date range.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCodDateFilter('ALL');
+                          setCodCustomStartDate('');
+                          setCodCustomEndDate('');
+                        }}
+                        style={{
+                          marginTop: 10,
+                          padding: '6px 16px',
+                          borderRadius: 20,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          backgroundColor: '#ECFDF5',
+                          color: '#059669',
+                          border: '1px solid #A7F3D0',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset to All Deposits
+                      </button>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCodDeposits.map((dep: CodCashDepositRecord) => {
+                    const isApproved = dep.status === 'APPROVED' || dep.status === 'SETTLED';
+                    const isRejected = dep.status === 'REJECTED';
+                    return (
+                      <tr key={dep.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                        <td style={{ padding: '14px 16px', fontWeight: 700, color: '#111827', fontFamily: 'monospace' }}>
+                          {dep.id ? String(dep.id).slice(0, 10) : 'N/A'}
+                        </td>
+                        <td style={{ padding: '14px 16px', fontWeight: 600, color: '#111827' }}>
+                          <div>{dep.partnerName || 'Delivery Partner'}</div>
+                          {dep.partnerId && (
+                            <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace' }}>
+                              ID: {String(dep.partnerId).slice(0, 8)}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '14px 16px', fontWeight: 800, color: '#047857' }}>
+                          ₹{Number(dep.amount || 0).toFixed(2)}
+                        </td>
+                        <td style={{ padding: '14px 16px', fontSize: 12, color: '#374151' }}>
+                          Cashfree (Auto Gateway)
+                        </td>
+                        <td style={{ padding: '14px 16px', fontSize: 12, color: '#6B7280', fontFamily: 'monospace' }}>
+                          {dep.referenceNumber || dep.paymentSessionId?.slice(0, 14) || 'N/A'}
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span
+                            style={{
+                              backgroundColor: isApproved ? '#DCFCE7' : isRejected ? '#FEE2E2' : '#FEF3C7',
+                              color: isApproved ? '#15803D' : isRejected ? '#B91C1C' : '#B45309',
+                              border: isApproved ? '1px solid #BBF7D0' : isRejected ? '1px solid #FECACA' : '1px solid #FDE68A',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: 20,
+                            }}
+                          >
+                            {dep.status || 'PENDING'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px', fontSize: 12, color: '#6B7280' }}>
+                          {dep.createdAt ? String(dep.createdAt).replace('T', ' ').slice(0, 16) : 'N/A'}
+                        </td>
+                        <td style={{ padding: '14px 16px', fontSize: 12, color: '#6B7280' }}>
+                          {dep.approvedAt ? String(dep.approvedAt).replace('T', ' ').slice(0, 16) : isApproved ? 'Auto Verified' : 'Pending'}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

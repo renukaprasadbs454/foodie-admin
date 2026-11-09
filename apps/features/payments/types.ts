@@ -546,4 +546,19 @@ export function filterRecordsByDateRange<T>(
   });
 }
 
+export interface CodCashDepositRecord {
+  id: string;
+  depositId?: string;
+  partnerId: string;
+  partnerName?: string;
+  amount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+  referenceNumber?: string;
+  rejectionReason?: string;
+  createdAt: string;
+  approvedAt?: string;
+  paymentSessionId?: string;
+}
+
+
 

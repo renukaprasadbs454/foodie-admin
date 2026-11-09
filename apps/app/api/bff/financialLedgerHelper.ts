@@ -50,16 +50,19 @@ export interface BackendPayoutItem {
 /**
  * Transforms upstream settlements from PostgreSQL into canonical PaymentTransactionRecord[]
  */
-export function transformSettlementsToTransactions(settlements: BackendSettlementItem[]): any[] {
+export function transformSettlementsToTransactions(settlements: BackendSettlementItem[], codDeposits?: any[]): any[] {
   if (!Array.isArray(settlements) || settlements.length === 0) {
     return [];
   }
 
-  return settlements.map((s) => {
+  const txList = settlements.map((s) => {
     const rawId = s.paymentUuid || s.id || `tx-${s.orderId}`;
     const cleanId = rawId.replace(/[^a-zA-Z0-9]/g, '');
-    const gatewayId = `pay_${cleanId.slice(0, 16).padEnd(16, '0')}`;
-    const isCashfree = (s.paymentMethod || '').toUpperCase().includes('CASHFREE');
+    const methodUpper = (s.paymentMethod || '').toUpperCase();
+    const isCod = methodUpper.includes('COD') || (methodUpper.includes('CASH') && !methodUpper.includes('CASHFREE'));
+    const gatewayId = isCod
+      ? (s.orderNumber ? `COD-${s.orderNumber}` : `COD-${cleanId.slice(0, 8)}`)
+      : `pay_${cleanId.slice(0, 16).padEnd(16, '0')}`;
 
     return {
       id: rawId,
@@ -67,14 +70,36 @@ export function transformSettlementsToTransactions(settlements: BackendSettlemen
       userId: s.customerName || 'Customer',
       amount: Number(s.totalPaid || 0),
       currency: 'INR',
-      paymentMethod: 'CASHFREE_UPI',
+      paymentMethod: isCod ? 'COD' : 'CASHFREE_UPI',
       status: s.settlementStatus === 'FUNDS_DISTRIBUTED' ? 'COMPLETED' : (s.settlementStatus || 'CAPTURED'),
       gatewayTransactionId: gatewayId,
-      gatewayName: 'CASHFREE',
+      gatewayName: isCod ? 'COD' : 'CASHFREE',
       createdAt: s.settledAt || new Date().toISOString(),
       updatedAt: s.settledAt || new Date().toISOString(),
     };
   });
+
+  if (Array.isArray(codDeposits) && codDeposits.length > 0) {
+    for (const d of codDeposits) {
+      if (d && (d.status === 'APPROVED' || d.status === 'SETTLED' || d.status === 'SUCCESS')) {
+        txList.push({
+          id: d.id || `cod-dep-${d.referenceNumber || Math.random()}`,
+          orderId: `DEPOSIT-${d.referenceNumber || (d.id ? String(d.id).slice(0, 8) : 'REF')}`,
+          userId: d.partnerName || `Partner ${d.partnerId ? String(d.partnerId).slice(0, 8) : ''}`,
+          amount: Number(d.amount || 0),
+          currency: 'INR',
+          paymentMethod: 'COD_DEPOSIT',
+          status: 'COMPLETED',
+          gatewayTransactionId: d.referenceNumber || `cf_dep_${String(d.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}`,
+          gatewayName: 'CASHFREE',
+          createdAt: d.approvedAt || d.createdAt || new Date().toISOString(),
+          updatedAt: d.approvedAt || d.updatedAt || new Date().toISOString(),
+        });
+      }
+    }
+  }
+
+  return txList;
 }
 
 /**

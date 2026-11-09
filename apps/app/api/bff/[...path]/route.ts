@@ -9545,6 +9545,7 @@ function toBackendZoneId(zid?: string | null): string | null {
     if (targetPath === 'admin/payments/transactions') {
       const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
       const settlementsUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/settlements`;
+      const codDepositsUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/cod-deposits`;
       const settlementsHeaders: Record<string, string> = {
         Accept: 'application/json',
         Authorization: `Bearer ${upstreamToken}`,
@@ -9552,11 +9553,18 @@ function toBackendZoneId(zid?: string | null): string | null {
       if (incomingActiveZone) {
         settlementsHeaders['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
       }
-      const { response: stlRes } = await safeFetch(settlementsUrl, {
-        method: 'GET',
-        headers: settlementsHeaders,
-        timeoutMs: 8000,
-      });
+      const [{ response: stlRes }, { response: codRes }] = await Promise.all([
+        safeFetch(settlementsUrl, {
+          method: 'GET',
+          headers: settlementsHeaders,
+          timeoutMs: 8000,
+        }),
+        safeFetch(codDepositsUrl, {
+          method: 'GET',
+          headers: settlementsHeaders,
+          timeoutMs: 8000,
+        }),
+      ]);
 
       let rawSettlements: any[] = [];
       if (stlRes && stlRes.ok) {
@@ -9568,7 +9576,17 @@ function toBackendZoneId(zid?: string | null): string | null {
         }
       }
 
-      const transactions = transformSettlementsToTransactions(rawSettlements);
+      let rawCodDeposits: any[] = [];
+      if (codRes && codRes.ok) {
+        try {
+          const json = await codRes.json();
+          rawCodDeposits = json.data || [];
+        } catch {
+          rawCodDeposits = [];
+        }
+      }
+
+      const transactions = transformSettlementsToTransactions(rawSettlements, rawCodDeposits);
       const bodyBuf = Buffer.from(
         JSON.stringify({
           success: true,
@@ -9594,6 +9612,54 @@ function toBackendZoneId(zid?: string | null): string | null {
         headers: {
           'Content-Type': 'application/json',
           'X-Cache': 'MISS',
+        },
+      });
+    }
+
+    if (targetPath === 'admin/payments/cod-deposits') {
+      const upstreamToken = accessToken.startsWith('demo-') ? 'demo-admin-token' : accessToken;
+      const codUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/payments/cod-deposits`;
+      const codFallbackUrl = `${ENV.apiBaseUrl.replace(/\/$/, '')}/api/v1/admin/delivery/cash-deposits/all`;
+      const headers: Record<string, string> = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${upstreamToken}`,
+      };
+      if (incomingActiveZone) {
+        headers['X-Active-Zone-Id'] = decodeURIComponent(incomingActiveZone);
+      }
+      let codItems: any[] = [];
+      try {
+        const { response: codRes } = await safeFetch(codUrl, {
+          method: 'GET',
+          headers,
+          timeoutMs: 6000,
+        });
+        if (codRes && codRes.ok) {
+          const json = await codRes.json();
+          codItems = json.data || [];
+        } else {
+          const { response: fallbackRes } = await safeFetch(codFallbackUrl, {
+            method: 'GET',
+            headers,
+            timeoutMs: 6000,
+          });
+          if (fallbackRes && fallbackRes.ok) {
+            const json = await fallbackRes.json();
+            codItems = json.data || [];
+          }
+        }
+      } catch {
+        codItems = [];
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: codItems,
+        error: null,
+        meta: {
+          timestamp: new Date().toISOString(),
+          requestId: crypto.randomUUID(),
+          pagination: null,
         },
       });
     }

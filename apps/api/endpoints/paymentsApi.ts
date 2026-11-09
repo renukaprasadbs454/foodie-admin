@@ -10,6 +10,7 @@ import type {
   RefundPaymentBody,
   RestaurantSettlementRecord,
   CancelledOrderRefundRequest,
+  CodCashDepositRecord,
 } from '../../features/payments/types';
 export type { PayoutRecord };
 
@@ -220,6 +221,13 @@ export const paymentsApi = baseApi.injectEndpoints({
       transformResponse: (res: any) => (res && 'data' in res ? res.data : res),
       invalidatesTags: [{ type: 'Payment', id: 'CANCELLED_REFUNDS' as any }],
     }),
+
+    getCodDeposits: builder.query<CodCashDepositRecord[], void>({
+      query: () => '/api/bff/admin/payments/cod-deposits',
+      transformResponse: (res: any) => (res && 'data' in res ? res.data : res) || [],
+      providesTags: [{ type: 'Payment', id: 'COD_DEPOSITS' as any }],
+      keepUnusedDataFor: 60,
+    }),
   }),
 });
 
@@ -241,5 +249,6 @@ export const {
   useApproveCancelledOrderRefundMutation,
   useRejectCancelledOrderRefundMutation,
   useSimulateCustomerCancellationMutation,
+  useGetCodDepositsQuery,
 } = paymentsApi;
 
