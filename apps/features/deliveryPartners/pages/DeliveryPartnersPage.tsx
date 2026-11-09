@@ -225,17 +225,17 @@ export function DeliveryPartnersPage() {
     profile?.assignedZoneId ||
     (typeof window !== 'undefined'
       ? (localStorage.getItem('foodie_user_assigned_zone') ||
-         sessionStorage.getItem('foodie_user_assigned_zone') ||
-         (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
+        sessionStorage.getItem('foodie_user_assigned_zone') ||
+        (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zone=([^;]+)/)?.[1] : null))
       : null);
   const activeZoneId =
     !isSuperAdmin && userAssignedZone
       ? userAssignedZone
       : (typeof window !== 'undefined'
-          ? (localStorage.getItem('foodie_active_zone_id') ||
-             sessionStorage.getItem('foodie_active_zone_id') ||
-             (typeof document !== 'undefined' ? document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1] : null))
-          : null);
+        ? (localStorage.getItem('foodie_active_zone_id') ||
+          sessionStorage.getItem('foodie_active_zone_id') ||
+          (typeof document !== 'undefined' ? document.cookie.match(/foodie_active_zone_id=([^;]+)/)?.[1] : null))
+        : null);
 
   const { data: dbZones = [] } = useGetZonesQuery();
   const availableZones = React.useMemo(() => {
@@ -325,10 +325,10 @@ export function DeliveryPartnersPage() {
       const sName = (s.zoneName || '').trim().toLowerCase();
       const nameMatch = Boolean(
         sName &&
-          activeNameClean &&
-          (sName === activeNameClean ||
-            sName.includes(activeNameClean) ||
-            activeNameClean.includes(sName))
+        activeNameClean &&
+        (sName === activeNameClean ||
+          sName.includes(activeNameClean) ||
+          activeNameClean.includes(sName))
       );
       return idMatch || nameMatch;
     });
@@ -362,7 +362,7 @@ export function DeliveryPartnersPage() {
       const updated = Array.from(set);
       try {
         localStorage.setItem('foodie_suspended_partners', JSON.stringify(updated));
-      } catch {}
+      } catch { }
       return updated;
     });
   };
@@ -430,9 +430,9 @@ export function DeliveryPartnersPage() {
     setShiftStatus(shift.status || 'ACTIVE');
     setModalShiftZoneId(
       shift.zoneId ||
-        (!isSuperAdmin && activeZoneId
-          ? activeZoneId
-          : selectedShiftZone !== 'ALL'
+      (!isSuperAdmin && activeZoneId
+        ? activeZoneId
+        : selectedShiftZone !== 'ALL'
           ? selectedShiftZone
           : availableZones[0]?.id || 'dz-bangalore')
     );
@@ -471,8 +471,8 @@ export function DeliveryPartnersPage() {
     const finalZoneName = !isSuperAdmin && activeZoneName
       ? activeZoneName
       : (matchedZone
-          ? matchedZone.name
-          : (finalZoneId.startsWith('dz-') ? `${finalZoneId.substring(3).charAt(0).toUpperCase() + finalZoneId.substring(4)} Zone` : finalZoneId));
+        ? matchedZone.name
+        : (finalZoneId.startsWith('dz-') ? `${finalZoneId.substring(3).charAt(0).toUpperCase() + finalZoneId.substring(4)} Zone` : finalZoneId));
 
     try {
       if (editingShift && editingShift.shiftId) {
@@ -716,7 +716,7 @@ export function DeliveryPartnersPage() {
       </div>
 
       {/* 1. Delivery Partner List (First Section) */}
-{/* Dynamic Overview KPI Cards */}
+      {/* Dynamic Overview KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
         <div
           style={{
@@ -1322,8 +1322,8 @@ export function DeliveryPartnersPage() {
                   !isSuperAdmin && activeZoneId
                     ? activeZoneId
                     : selectedShiftZone !== 'ALL'
-                    ? selectedShiftZone
-                    : availableZones[0]?.id || 'dz-bangalore'
+                      ? selectedShiftZone
+                      : availableZones[0]?.id || 'dz-bangalore'
                 );
                 setIsShiftModalOpen(true);
               }}
@@ -1349,40 +1349,40 @@ export function DeliveryPartnersPage() {
               <span>Create Shift</span>
             </button>
             <button
-            type="button"
-            id="add-another-shift-button"
-            onClick={() => {
-              setShiftFormError(null);
-              setEditingShift(null);
-              setShiftName('');
-              setStartTime('');
-              setEndTime('');
-              setShiftStatus('ACTIVE');
-              setModalShiftZoneId(
-                !isSuperAdmin && activeZoneId
-                  ? activeZoneId
-                  : selectedShiftZone !== 'ALL'
-                  ? selectedShiftZone
-                  : availableZones[0]?.id || 'dz-bangalore'
-              );
-              setIsShiftModalOpen(true);
-            }}
-            style={{
-              padding: '6px 14px',
-              backgroundColor: '#FFF7ED',
-              color: '#EA580C',
-              border: '1px solid #FFEDD5',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <span>+ Add Another Shift</span>
-          </button>
+              type="button"
+              id="add-another-shift-button"
+              onClick={() => {
+                setShiftFormError(null);
+                setEditingShift(null);
+                setShiftName('');
+                setStartTime('');
+                setEndTime('');
+                setShiftStatus('ACTIVE');
+                setModalShiftZoneId(
+                  !isSuperAdmin && activeZoneId
+                    ? activeZoneId
+                    : selectedShiftZone !== 'ALL'
+                      ? selectedShiftZone
+                      : availableZones[0]?.id || 'dz-bangalore'
+                );
+                setIsShiftModalOpen(true);
+              }}
+              style={{
+                padding: '6px 14px',
+                backgroundColor: '#FFF7ED',
+                color: '#EA580C',
+                border: '1px solid #FFEDD5',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span>+ Add Another Shift</span>
+            </button>
           </div>
         </div>
 
@@ -1675,7 +1675,7 @@ export function DeliveryPartnersPage() {
       {/* 3. Delivery Partner Payout Structure & Incentives & 4. Formula & Interactive Payout Simulator */}
       <DeliveryPricingSettingsCard />
 
-{/* Document Preview Modal */}
+      {/* Document Preview Modal */}
       {selectedDocPreview && (() => {
         const partner = selectedDocPreview.partner;
         const docs = partner.documents || (partner as any).docs || [];
@@ -3163,7 +3163,7 @@ export function DeliveryPartnersPage() {
           {toastMsg.message}
         </div>
       )}
-    
+
       {/* Delivery Partner Full Details Drawer */}
       {selectedPartnerForDetails && (
         <DeliveryPartnerFullDetailsDrawer

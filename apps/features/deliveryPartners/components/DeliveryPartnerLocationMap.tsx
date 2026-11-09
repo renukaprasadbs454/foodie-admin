@@ -281,6 +281,12 @@ export function DeliveryPartnerLocationMap({
 
   const googleMapsExternalUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
+  const zoomLevel = Math.max(12, Math.min(20, Math.round(17 + Math.log2(zoomFactor))));
+
+  // High-precision Google Maps Embed URLs (Direct Street & Satellite views centered at exact GPS coords)
+  const googleMapsEmbedUrl = `https://maps.google.com/maps?q=${latitude.toFixed(6)},${longitude.toFixed(6)}&hl=en&z=${zoomLevel}&output=embed`;
+  const googleMapsSatelliteEmbedUrl = `https://maps.google.com/maps?q=${latitude.toFixed(6)},${longitude.toFixed(6)}&t=k&hl=en&z=${zoomLevel}&output=embed`;
+
   // High-precision bounding box for OpenStreetMap embed view (street level)
   const deltaLng = 0.005 / zoomFactor;
   const deltaLat = 0.0035 / zoomFactor;
@@ -332,8 +338,8 @@ export function DeliveryPartnerLocationMap({
         }
       `}</style>
 
-      {/* Layer 1: Real-Time Google Maps JavaScript API (Primary) */}
-      {(mapMode === 'streets' || mapMode === 'satellite') && !gmapsLoadError && (
+      {/* Layer 1: Real-Time Google Maps JavaScript API (when available and authenticated) */}
+      {(mapMode === 'streets' || mapMode === 'satellite') && gmapsReady && !gmapsLoadError && (
         <div
           ref={mapDivRef}
           style={{
@@ -346,11 +352,33 @@ export function DeliveryPartnerLocationMap({
         />
       )}
 
-      {/* Fallback & Direct Layer: High-Precision Street Map via OpenStreetMap Interactive Embed */}
-      {(mapMode === 'osm' || ((mapMode === 'streets' || mapMode === 'satellite') && gmapsLoadError)) && (
+      {/* Layer 2: High-Precision Google Maps Embed (Exact GPS Pinpoint & Street Details) */}
+      {((mapMode === 'streets' || mapMode === 'satellite') && (!gmapsReady || gmapsLoadError)) && (
         <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }}>
           <iframe
-            key={`${latitude}-${longitude}-${zoomFactor}`}
+            key={`gmaps-${mapMode}-${latitude.toFixed(6)}-${longitude.toFixed(6)}-${zoomLevel}`}
+            title="Delivery Partner Location Map (Google Maps)"
+            src={mapMode === 'satellite' ? googleMapsSatelliteEmbedUrl : googleMapsEmbedUrl}
+            width="100%"
+            height="100%"
+            style={{
+              border: 0,
+              width: '100%',
+              height: '100%',
+              opacity: isIframeLoaded ? 1 : 0.9,
+              transition: 'opacity 0.2s ease-in',
+            }}
+            onLoad={() => setIsIframeLoaded(true)}
+            loading="lazy"
+          />
+        </div>
+      )}
+
+      {/* Layer 3: OpenStreetMap View (Optional direct switch) */}
+      {mapMode === 'osm' && (
+        <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }}>
+          <iframe
+            key={`osm-${latitude.toFixed(6)}-${longitude.toFixed(6)}-${zoomFactor}`}
             title="Delivery Partner Location Map (OSM)"
             src={osmEmbedUrl}
             width="100%"
@@ -641,7 +669,7 @@ export function DeliveryPartnerLocationMap({
           gap: 6,
         }}
       >
-        {/* Map Mode Switcher (Google Maps Streets, Satellite, Radar) */}
+        {/* Map Mode Switcher (Google Maps Streets, Satellite, Radar, OSM) */}
         <div
           style={{
             display: 'flex',
@@ -667,24 +695,7 @@ export function DeliveryPartnerLocationMap({
               color: mapMode === 'streets' ? '#FFFFFF' : '#4B5563',
             }}
           >
-            Google
-          </button>
-          <button
-            type="button"
-            onClick={() => setMapMode('osm')}
-            title="OpenStreetMap Precise Street Map"
-            style={{
-              padding: '3px 8px',
-              borderRadius: 4,
-              border: 'none',
-              fontSize: 10,
-              fontWeight: 600,
-              cursor: 'pointer',
-              backgroundColor: mapMode === 'osm' ? '#059669' : 'transparent',
-              color: mapMode === 'osm' ? '#FFFFFF' : '#4B5563',
-            }}
-          >
-            OSM Street
+            Google Maps
           </button>
           <button
             type="button"
@@ -719,6 +730,23 @@ export function DeliveryPartnerLocationMap({
             }}
           >
             Radar
+          </button>
+          <button
+            type="button"
+            onClick={() => setMapMode('osm')}
+            title="OpenStreetMap Street View"
+            style={{
+              padding: '3px 8px',
+              borderRadius: 4,
+              border: 'none',
+              fontSize: 10,
+              fontWeight: 600,
+              cursor: 'pointer',
+              backgroundColor: mapMode === 'osm' ? '#059669' : 'transparent',
+              color: mapMode === 'osm' ? '#FFFFFF' : '#4B5563',
+            }}
+          >
+            OSM
           </button>
         </div>
 
@@ -863,8 +891,10 @@ export function DeliveryPartnerLocationMap({
       >
         <span style={{ fontSize: 11 }}>🗺️</span>
         <span>
-          {mapMode === 'osm' || gmapsLoadError
+          {mapMode === 'osm'
             ? (isOnline ? '🟢 OpenStreetMap Live GPS' : '⚪ OpenStreetMap Last Known')
+            : mapMode === 'satellite'
+            ? (isOnline ? '🟢 Google Satellite Live GPS' : '⚪ Google Satellite Last Known')
             : (isOnline ? '🟢 Google Maps Live GPS' : '⚪ Google Maps Last Known')}
         </span>
       </div>
