@@ -540,17 +540,18 @@ export function CustomerManagementStudio() {
       ? customerData.openTicketsCount
       : ticketsList.filter((t: SupportTicket) => t?.status === 'OPEN').length;
 
-  const handleToggleAccountStatus = async (id: string, newStatus: AccountStatus) => {
+  const handleToggleAccountStatus = async (id: string, newStatus: AccountStatus, targetCust?: CustomerProfile) => {
     try {
       setBlockReasonError(null);
       const effectiveReason = blockReason.trim() || (newStatus === 'SUSPENDED' ? 'Account suspended by administrator for security policy review' : '');
+      const custObj = targetCust || selectedCustomerForBlock || allEnrichedCustomers.find((c) => c.id === id);
       await updateCustomerStatus({
         id,
         accountStatus: newStatus === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED',
         reason: effectiveReason,
       }).unwrap();
 
-      setToastMsg(`Customer account ${selectedCustomerForBlock?.name || id} updated to ${newStatus}`);
+      setToastMsg(`Customer account ${custObj?.name || id} updated to ${newStatus}`);
       setTimeout(() => setToastMsg(null), 3500);
       setSelectedCustomerForBlock(null);
       setBlockReason('');
@@ -1073,7 +1074,13 @@ export function CustomerManagementStudio() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setSelectedCustomerForBlock(cust)}
+                              onClick={() => {
+                                if (cust.accountStatus === 'ACTIVE') {
+                                  setSelectedCustomerForBlock(cust);
+                                } else {
+                                  void handleToggleAccountStatus(cust.id, 'ACTIVE', cust);
+                                }
+                              }}
                               style={{
                                 padding: '5px 10px',
                                 borderRadius: 8,

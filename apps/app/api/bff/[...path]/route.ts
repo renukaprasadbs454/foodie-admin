@@ -6607,6 +6607,21 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
     if (found) {
       found.status = 'APPROVED';
       found.updatedAt = new Date().toISOString();
+      for (const r of localList) {
+        if (r && r.id !== found.id) {
+          const samePhone = found.contactPhone && r.contactPhone &&
+            found.contactPhone.replace(/\D/g, '').slice(-10) === r.contactPhone.replace(/\D/g, '').slice(-10);
+          const sameEmail = found.contactEmail && r.contactEmail &&
+            found.contactEmail.trim().toLowerCase() === r.contactEmail.trim().toLowerCase();
+          const dist = (found.latitude && found.longitude && r.latitude && r.longitude)
+            ? calculateHaversine(Number(found.latitude), Number(found.longitude), Number(r.latitude), Number(r.longitude))
+            : 999;
+          if (samePhone || sameEmail || dist <= 10.0) {
+            r.status = 'APPROVED';
+            r.updatedAt = new Date().toISOString();
+          }
+        }
+      }
       saveLocalUnserviceableRequests(localList);
     }
 
@@ -6664,6 +6679,21 @@ async function handleUnserviceableRequests(request: Request, targetPath: string,
     if (found) {
       found.status = newStatus;
       found.updatedAt = new Date().toISOString();
+      for (const r of localList) {
+        if (r && r.id !== found.id) {
+          const samePhone = found.contactPhone && r.contactPhone &&
+            found.contactPhone.replace(/\D/g, '').slice(-10) === r.contactPhone.replace(/\D/g, '').slice(-10);
+          const sameEmail = found.contactEmail && r.contactEmail &&
+            found.contactEmail.trim().toLowerCase() === r.contactEmail.trim().toLowerCase();
+          const dist = (found.latitude && found.longitude && r.latitude && r.longitude)
+            ? calculateHaversine(Number(found.latitude), Number(found.longitude), Number(r.latitude), Number(r.longitude))
+            : 999;
+          if (samePhone || sameEmail || dist <= 10.0) {
+            r.status = newStatus;
+            r.updatedAt = new Date().toISOString();
+          }
+        }
+      }
       saveLocalUnserviceableRequests(localList);
     }
 
@@ -6833,6 +6863,7 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
   // 1. PATCH Status (Suspend or Reactivate with Mandatory Reason)
   const statusMatch = targetPath.match(/^admin\/customers\/([^/]+)\/status$/);
   if (statusMatch && request.method === 'PATCH') {
+    const rawId = decodeURIComponent(statusMatch[1]);
     const id = statusMatch[1];
     let body: any = {};
     try {
@@ -6840,17 +6871,30 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
     } catch {}
 
     const accountStatus = body.accountStatus || 'ACTIVE';
+    const isSuspended = accountStatus === 'SUSPENDED';
     let reason = typeof body.reason === 'string' ? body.reason.trim() : '';
-    if (accountStatus === 'SUSPENDED' && (!reason || reason.length < 3)) {
+    if (isSuspended && (!reason || reason.length < 3)) {
       reason = 'Account suspended by administrator for security policy review';
     }
 
-    controls[id] = controls[id] || {};
-    controls[id].isSuspended = accountStatus === 'SUSPENDED';
-    controls[id].suspensionReason = accountStatus === 'SUSPENDED' ? reason : '';
-    controls[id].updatedAt = new Date().toISOString();
+    const now = new Date().toISOString();
+    const keysToUpdate = new Set<string>();
+    keysToUpdate.add(id);
+    keysToUpdate.add(rawId);
 
-    // Query customer list to extract unique phone to alias ONLY for this customer's exact phone (never by name or generic email)
+    // Extract digits if id contains phone
+    const idDigits = rawId.replace(/\D/g, '');
+    if (idDigits.length >= 10) {
+      const last10 = idDigits.slice(-10);
+      keysToUpdate.add(idDigits);
+      keysToUpdate.add(last10);
+      keysToUpdate.add('+91' + last10);
+      keysToUpdate.add('ord-cust-' + idDigits);
+      keysToUpdate.add('ord-cust-+91' + last10);
+      keysToUpdate.add('ord-cust-%2B91' + last10);
+    }
+
+    // Query customer list to extract unique phone and email to alias
     try {
       const endpointsToTry = [
         'http://localhost:8082/api/v1/admin/customers',
@@ -6865,18 +6909,42 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
           if (cRes.response && cRes.response.ok) {
             const cj = await cRes.response.json();
             const list = cj?.data?.customers || cj?.data || [];
-            const found = list.find((c: any) => c.id === id);
-            if (found && found.phone) {
-              const cleanPhone = found.phone.trim();
-              const digitsOnly = cleanPhone.replace(/\D/g, '');
-              controls[cleanPhone] = { ...controls[id] };
-              controls[digitsOnly] = { ...controls[id] };
+            const found = list.find((c: any) => c.id === id || c.id === rawId || (idDigits && (c.phone || '').replace(/\D/g, '').endsWith(idDigits.slice(-10))));
+            if (found) {
+              if (found.id) keysToUpdate.add(found.id);
+              if (found.phone) {
+                const cleanPhone = found.phone.trim();
+                const digitsOnly = cleanPhone.replace(/\D/g, '');
+                keysToUpdate.add(cleanPhone);
+                keysToUpdate.add(digitsOnly);
+                if (digitsOnly.length >= 10) {
+                  const last10 = digitsOnly.slice(-10);
+                  keysToUpdate.add(last10);
+                  keysToUpdate.add('+91' + last10);
+                  keysToUpdate.add('ord-cust-' + digitsOnly);
+                  keysToUpdate.add('ord-cust-+91' + last10);
+                  keysToUpdate.add('ord-cust-%2B91' + last10);
+                }
+              }
+              if (found.email) {
+                keysToUpdate.add(found.email.trim().toLowerCase());
+              }
+              if (found.name) {
+                keysToUpdate.add(found.name.trim().toLowerCase());
+              }
               break;
             }
           }
         } catch {}
       }
     } catch {}
+
+    for (const k of keysToUpdate) {
+      controls[k] = controls[k] || {};
+      controls[k].isSuspended = isSuspended;
+      controls[k].suspensionReason = isSuspended ? reason : '';
+      controls[k].updatedAt = now;
+    }
 
     saveCustomerControls(controls);
 
@@ -6896,10 +6964,10 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
         id,
         accountStatus,
         reason,
-        updatedAt: new Date().toISOString(),
+        updatedAt: now,
       },
       error: null,
-      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+      meta: { timestamp: now, requestId: crypto.randomUUID(), pagination: null },
     }, { status: 200 });
   }
 
@@ -6934,6 +7002,7 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
       controls[`ord-cust-%2B91${last10}`] = { ...controls[id] };
     }
 
+    let foundCustomer: any = null;
     // Alias COD across email, phone, name from customers and orders
     try {
       const endpointsToTry = [
@@ -6951,10 +7020,11 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
             const list = cj?.data?.customers || cj?.data || [];
             const found = list.find((c: any) => {
               if (c.id === id || c.id === rawId || c.email === id || c.email === rawId || c.phone === id || c.phone === rawId) return true;
-              if (digitsOnly && c.phone && c.phone.replace(/\D/g, '').endsWith(digitsOnly.slice(-10))) return true;
+              if (digitsOnly && !rawId.includes('-') && c.phone && c.phone.replace(/\D/g, '').endsWith(digitsOnly.slice(-10))) return true;
               return false;
             });
             if (found) {
+              foundCustomer = found;
               if (found.id) controls[found.id] = { ...(controls[found.id] || {}), ...controls[id], isCodDisabled };
               if (found.email) {
                 controls[found.email.toLowerCase().trim()] = { ...(controls[found.email.toLowerCase().trim()] || {}), ...controls[id], isCodDisabled };
@@ -6985,14 +7055,32 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
     saveCustomerControls(controls);
 
     // Sync to local Spring Boot
-    try {
-      await safeFetch('http://localhost:8082/api/v1/admin/customers/' + encodeURIComponent(id) + '/cod', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + devToken },
-        body: JSON.stringify({ isCodDisabled }),
-        timeoutMs: 2500,
-      });
-    } catch {}
+    const syncKeys = new Set<string>([id, rawId]);
+    if (foundCustomer?.id) syncKeys.add(foundCustomer.id);
+    if (foundCustomer?.phone) {
+      const fp = String(foundCustomer.phone).trim();
+      const fpDigits = fp.replace(/\D/g, '');
+      syncKeys.add(fp);
+      if (fpDigits.length >= 10) {
+        syncKeys.add(fpDigits.slice(-10));
+        syncKeys.add('+91' + fpDigits.slice(-10));
+      }
+    }
+    if (foundCustomer?.email) syncKeys.add(String(foundCustomer.email).trim().toLowerCase());
+    if (digitsOnly && digitsOnly.length >= 10 && !rawId.includes('-')) {
+      syncKeys.add(digitsOnly.slice(-10));
+      syncKeys.add('+91' + digitsOnly.slice(-10));
+    }
+    for (const sk of syncKeys) {
+      try {
+        await safeFetch('http://localhost:8082/api/v1/admin/customers/' + encodeURIComponent(sk) + '/cod', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + devToken },
+          body: JSON.stringify({ isCodDisabled }),
+          timeoutMs: 2500,
+        });
+      } catch {}
+    }
 
     return NextResponse.json({
       success: true,
@@ -7428,18 +7516,30 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
           c.city = 'Bangalore';
         }
 
-        // Apply controls
-        const controlKeys = [c.id, c.phone, cDigits, last10, `+91${last10}`, c.email?.toLowerCase().trim()].filter(Boolean);
+        // Apply controls - prioritize by latest updatedAt
+        const controlKeys = [c.id, c.phone, cDigits, last10, `+91${last10}`, c.email?.toLowerCase().trim(), c.name?.toLowerCase().trim()].filter(Boolean);
+        let latestSuspendedControl: any = null;
+        let latestCodControl: any = null;
         for (const ck of controlKeys) {
-          if (controls[ck]) {
-            if (controls[ck].isSuspended != null) {
-              c.accountStatus = controls[ck].isSuspended ? 'SUSPENDED' : 'ACTIVE';
-              c.suspensionReason = controls[ck].suspensionReason;
-            }
-            if (controls[ck].isCodDisabled != null) {
-              c.isCodDisabled = controls[ck].isCodDisabled;
+          const ctrl = controls[ck];
+          if (!ctrl) continue;
+          if (ctrl.isSuspended != null) {
+            if (!latestSuspendedControl || (ctrl.updatedAt && (!latestSuspendedControl.updatedAt || ctrl.updatedAt >= latestSuspendedControl.updatedAt))) {
+              latestSuspendedControl = ctrl;
             }
           }
+          if (ctrl.isCodDisabled != null) {
+            if (!latestCodControl || (ctrl.updatedAt && (!latestCodControl.updatedAt || ctrl.updatedAt >= latestCodControl.updatedAt))) {
+              latestCodControl = ctrl;
+            }
+          }
+        }
+        if (latestSuspendedControl) {
+          c.accountStatus = latestSuspendedControl.isSuspended ? 'SUSPENDED' : 'ACTIVE';
+          c.suspensionReason = latestSuspendedControl.suspensionReason;
+        }
+        if (latestCodControl) {
+          c.isCodDisabled = latestCodControl.isCodDisabled;
         }
       }
 
@@ -7458,18 +7558,30 @@ async function handleAdminCustomers(request: Request, targetPath: string, access
         const totalSpend = validOrds.reduce((sum: number, o: any) => sum + (Number(o.totalAmount || o.amount) || 0), 0);
 
         const customId = `ord-cust-+91${phone10}`;
-        const ctrlKeys = [customId, `+91${phone10}`, phone10, `ord-cust-${phone10}`];
+        const ctrlKeys = [customId, `+91${phone10}`, phone10, `ord-cust-${phone10}`, firstOrd.customerEmail?.toLowerCase().trim(), firstOrd.customerName?.toLowerCase().trim()].filter(Boolean);
         let isCodDisabled = false;
         let isSuspended = false;
         let suspensionReason: string | undefined = undefined;
+        let latestDiscoveredSuspendedCtrl: any = null;
+        let latestDiscoveredCodCtrl: any = null;
         for (const ck of ctrlKeys) {
-          if (controls[ck]) {
-            if (controls[ck].isCodDisabled != null) isCodDisabled = controls[ck].isCodDisabled;
-            if (controls[ck].isSuspended != null) {
-              isSuspended = controls[ck].isSuspended;
-              suspensionReason = controls[ck].suspensionReason;
+          const ctrl = controls[ck];
+          if (!ctrl) continue;
+          if (ctrl.isCodDisabled != null) {
+            if (!latestDiscoveredCodCtrl || (ctrl.updatedAt && (!latestDiscoveredCodCtrl.updatedAt || ctrl.updatedAt >= latestDiscoveredCodCtrl.updatedAt))) {
+              latestDiscoveredCodCtrl = ctrl;
             }
           }
+          if (ctrl.isSuspended != null) {
+            if (!latestDiscoveredSuspendedCtrl || (ctrl.updatedAt && (!latestDiscoveredSuspendedCtrl.updatedAt || ctrl.updatedAt >= latestDiscoveredSuspendedCtrl.updatedAt))) {
+              latestDiscoveredSuspendedCtrl = ctrl;
+            }
+          }
+        }
+        if (latestDiscoveredCodCtrl) isCodDisabled = Boolean(latestDiscoveredCodCtrl.isCodDisabled);
+        if (latestDiscoveredSuspendedCtrl) {
+          isSuspended = Boolean(latestDiscoveredSuspendedCtrl.isSuspended);
+          suspensionReason = latestDiscoveredSuspendedCtrl.suspensionReason;
         }
 
         custs.push({
