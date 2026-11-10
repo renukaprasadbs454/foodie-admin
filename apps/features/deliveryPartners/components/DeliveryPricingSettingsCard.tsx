@@ -346,7 +346,7 @@ export function DeliveryPricingSettingsCard() {
         }
       }
 
-      const activeIncentivesSource = (effectiveZoneConfig && Array.isArray(effectiveZoneConfig.incentives) && effectiveZoneConfig.incentives.length > 0)
+      const rawActiveSource = (effectiveZoneConfig && Array.isArray(effectiveZoneConfig.incentives) && effectiveZoneConfig.incentives.length > 0)
         ? effectiveZoneConfig.incentives
         : (pricingConfig.universalConfig && Array.isArray(pricingConfig.universalConfig.incentives) && pricingConfig.universalConfig.incentives.length > 0)
         ? pricingConfig.universalConfig.incentives
@@ -354,11 +354,30 @@ export function DeliveryPricingSettingsCard() {
         ? pricingConfig.incentives
         : [];
 
+      let cachedIncentives: IncentiveItem[] | null = null;
+      if (typeof window !== 'undefined') {
+        try {
+          const cached = localStorage.getItem('foodie_saved_incentives_v2');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              cachedIncentives = parsed;
+            }
+          }
+        } catch {}
+      }
+
+      const activeIncentivesSource = (rawActiveSource.length > 0) ? rawActiveSource : (cachedIncentives || []);
+
       if (activeIncentivesSource.length > 0) {
         const mergedIncentives = DEFAULT_INCENTIVES.map((defItem) => {
-          const match = activeIncentivesSource.find((i: IncentiveItem) => i.id === defItem.id);
+          const match = activeIncentivesSource.find((i: IncentiveItem) => i.id === defItem.id) ||
+                        cachedIncentives?.find((i: IncentiveItem) => i.id === defItem.id);
           if (match) {
-            const rawMilestones = match.milestones ?? defItem.milestones;
+            const cachedMatch = cachedIncentives?.find((i: IncentiveItem) => i.id === defItem.id);
+            const rawMilestones = (cachedMatch?.milestones && Array.isArray(cachedMatch.milestones))
+              ? cachedMatch.milestones
+              : (match.milestones ?? defItem.milestones);
             const normalizedMilestones = rawMilestones
               ? rawMilestones.map((m: any) => ({
                   trips: Number(m.trips ?? m.orders ?? 0),
@@ -368,7 +387,9 @@ export function DeliveryPricingSettingsCard() {
                 }))
               : undefined;
 
-            const rawConditions = match.conditions ?? defItem.conditions;
+            const rawConditions = (cachedMatch?.conditions && Array.isArray(cachedMatch.conditions))
+              ? cachedMatch.conditions
+              : (match.conditions ?? defItem.conditions);
             const normalizedConditions = rawConditions
               ? rawConditions.map((c: any) => {
                   const isLogin = c.type === 'LOGIN_SLOT' || c.id === 'loginSlot' || Boolean(c.timeSlot || c.duration);
@@ -387,10 +408,15 @@ export function DeliveryPricingSettingsCard() {
                 })
               : undefined;
 
+            const effectiveActive = (cachedMatch && typeof cachedMatch.active === 'boolean')
+              ? cachedMatch.active
+              : (typeof match.active === 'boolean' ? match.active : (match.active !== undefined ? Boolean(match.active) : defItem.active));
+
+            const baseItem = cachedMatch ? { ...match, ...cachedMatch } : match;
             return {
               ...defItem,
-              ...match,
-              active: typeof match.active === 'boolean' ? match.active : (match.active !== undefined ? Boolean(match.active) : defItem.active),
+              ...baseItem,
+              active: effectiveActive,
               milestones: normalizedMilestones,
               conditions: normalizedConditions,
             };
@@ -465,6 +491,13 @@ export function DeliveryPricingSettingsCard() {
       incentives: updateList(universalConfig.incentives),
     };
     setUniversalConfig(updatedUniversal);
+
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('foodie_saved_incentives_v2', JSON.stringify(updatedUniversal.incentives));
+        localStorage.setItem('foodie_saved_incentives_time', String(Date.now()));
+      }
+    } catch (_e) {}
 
     if (field === 'active') {
       try {
@@ -595,8 +628,10 @@ export function DeliveryPricingSettingsCard() {
         }).unwrap();
 
         try {
-          localStorage.removeItem('foodie_universal_pricing_config');
-          localStorage.removeItem('foodie_zone_pricing_configs');
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('foodie_saved_incentives_v2', JSON.stringify(updatedUniversalConfig.incentives));
+            localStorage.setItem('foodie_saved_incentives_time', String(Date.now()));
+          }
         } catch (_e) {}
 
         setIncentivesToastMsg({
@@ -633,8 +668,10 @@ export function DeliveryPricingSettingsCard() {
         }).unwrap();
 
         try {
-          localStorage.removeItem('foodie_universal_pricing_config');
-          localStorage.removeItem('foodie_zone_pricing_configs');
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('foodie_saved_incentives_v2', JSON.stringify(currentConfig.incentives));
+            localStorage.setItem('foodie_saved_incentives_time', String(Date.now()));
+          }
         } catch (_e) {}
 
         setIncentivesToastMsg({
