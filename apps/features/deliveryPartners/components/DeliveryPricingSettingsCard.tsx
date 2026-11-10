@@ -306,22 +306,17 @@ export function DeliveryPricingSettingsCard() {
   const [minPriceInput, setMinPriceInput] = useState<string>('');
   const [moneyPerKmInput, setMoneyPerKmInput] = useState<string>('');
 
-  // Initialize from LocalStorage and Backend API
+  // Initialize from Backend API (strictly database driven, no stale localStorage)
   useEffect(() => {
     try {
-      // Clean up legacy zone-based keys from local storage
+      // Clean up legacy zone-based and universal keys from local storage
       localStorage.removeItem('foodie_pricing_basis');
       localStorage.removeItem('foodie_selected_zone_id');
       localStorage.removeItem('foodie_zone_pricing_configs');
       localStorage.removeItem('foodie_custom_zones');
-
-      const savedUniversal = localStorage.getItem('foodie_universal_pricing_config');
-      if (savedUniversal) {
-        const parsed = JSON.parse(savedUniversal);
-        setUniversalConfig(parsed);
-      }
+      localStorage.removeItem('foodie_universal_pricing_config');
     } catch (_e) {
-      // Ignore parse errors
+      // Ignore storage errors
     }
 
     if (pricingConfig) {
@@ -351,10 +346,12 @@ export function DeliveryPricingSettingsCard() {
         }
       }
 
-      const activeIncentivesSource = (effectiveZoneConfig && Array.isArray(effectiveZoneConfig.incentives))
+      const activeIncentivesSource = (effectiveZoneConfig && Array.isArray(effectiveZoneConfig.incentives) && effectiveZoneConfig.incentives.length > 0)
         ? effectiveZoneConfig.incentives
-        : (pricingConfig.universalConfig && Array.isArray(pricingConfig.universalConfig.incentives))
+        : (pricingConfig.universalConfig && Array.isArray(pricingConfig.universalConfig.incentives) && pricingConfig.universalConfig.incentives.length > 0)
         ? pricingConfig.universalConfig.incentives
+        : (Array.isArray(pricingConfig.incentives) && pricingConfig.incentives.length > 0)
+        ? pricingConfig.incentives
         : [];
 
       if (activeIncentivesSource.length > 0) {
@@ -393,6 +390,7 @@ export function DeliveryPricingSettingsCard() {
             return {
               ...defItem,
               ...match,
+              active: typeof match.active === 'boolean' ? match.active : (match.active !== undefined ? Boolean(match.active) : defItem.active),
               milestones: normalizedMilestones,
               conditions: normalizedConditions,
             };
@@ -489,12 +487,7 @@ export function DeliveryPricingSettingsCard() {
           const updatedZoneConfigs = { ...(pricingConfig?.zoneConfigs || {}) };
           Object.keys(updatedZoneConfigs).forEach((zKey) => {
             if (updatedZoneConfigs[zKey]) {
-              const zIncentives = Array.isArray(updatedZoneConfigs[zKey].incentives) ? updatedZoneConfigs[zKey].incentives : [];
               const mergedZIncentives = updatedUniversalConfig.incentives.map((uItem) => {
-                const existingZ = zIncentives.find((zi: any) => zi.id === uItem.id);
-                if (existingZ && existingZ.creatorRole === 'ZONE_ADMIN') {
-                  return existingZ;
-                }
                 return { ...uItem, zoneId: zKey, scope: 'ZONE' as const };
               });
               updatedZoneConfigs[zKey] = {
@@ -509,6 +502,7 @@ export function DeliveryPricingSettingsCard() {
             moneyPerKm: mKm,
             pricingBasis: 'UNIVERSAL',
             universalConfig: updatedUniversalConfig,
+            incentives: updatedUniversalConfig.incentives,
             zoneConfigs: updatedZoneConfigs,
             zones: pricingConfig?.zones,
           }).unwrap();
@@ -580,12 +574,7 @@ export function DeliveryPricingSettingsCard() {
         const updatedZoneConfigs = { ...(pricingConfig?.zoneConfigs || {}) };
         Object.keys(updatedZoneConfigs).forEach((zKey) => {
           if (updatedZoneConfigs[zKey]) {
-            const zIncentives = Array.isArray(updatedZoneConfigs[zKey].incentives) ? updatedZoneConfigs[zKey].incentives : [];
             const mergedZIncentives = updatedUniversalConfig.incentives.map((uItem) => {
-              const existingZ = zIncentives.find((zi: any) => zi.id === uItem.id);
-              if (existingZ && existingZ.creatorRole === 'ZONE_ADMIN') {
-                return existingZ;
-              }
               return { ...uItem, zoneId: zKey, scope: 'ZONE' as const };
             });
             updatedZoneConfigs[zKey] = {
@@ -600,12 +589,14 @@ export function DeliveryPricingSettingsCard() {
           moneyPerKm: mKm,
           pricingBasis: 'UNIVERSAL',
           universalConfig: updatedUniversalConfig,
+          incentives: updatedUniversalConfig.incentives,
           zoneConfigs: updatedZoneConfigs,
           zones: pricingConfig?.zones,
         }).unwrap();
 
         try {
-          localStorage.setItem('foodie_universal_pricing_config', JSON.stringify(updatedUniversalConfig));
+          localStorage.removeItem('foodie_universal_pricing_config');
+          localStorage.removeItem('foodie_zone_pricing_configs');
         } catch (_e) {}
 
         setIncentivesToastMsg({
@@ -636,12 +627,14 @@ export function DeliveryPricingSettingsCard() {
           moneyPerKm: mKm,
           pricingBasis: 'ZONE',
           universalConfig: pricingConfig?.universalConfig,
+          incentives: zoneIncentives,
           zoneConfigs: updatedZoneConfigs,
           zones: pricingConfig?.zones,
         }).unwrap();
 
         try {
-          localStorage.setItem('foodie_zone_pricing_configs', JSON.stringify(updatedZoneConfigs));
+          localStorage.removeItem('foodie_universal_pricing_config');
+          localStorage.removeItem('foodie_zone_pricing_configs');
         } catch (_e) {}
 
         setIncentivesToastMsg({

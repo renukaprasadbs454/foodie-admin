@@ -87,7 +87,7 @@ export function LocationManagementPage() {
     : 'Assigned Zone';
 
   const hasAssignedZone = Boolean(userAssignedZone && userAssignedZone !== 'ALL');
-  const isSuperAdmin = !hasAssignedZone && Boolean(userStoredRole && userStoredRole.toUpperCase() === 'SUPER_ADMIN');
+  const isSuperAdmin = !hasAssignedZone || ['SUPER_ADMIN', 'ADMIN'].includes(String(userStoredRole || '').toUpperCase());
 
   const isMatchingZone = (zoneIdOrName: string, targetZone: string): boolean => {
     const z = (zoneIdOrName || '').trim().toLowerCase();

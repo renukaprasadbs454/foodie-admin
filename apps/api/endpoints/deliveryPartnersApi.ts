@@ -12,6 +12,7 @@ export interface DeliveryPricingConfig {
   universalConfig?: any;
   zoneConfigs?: Record<string, any>;
   zones?: any[];
+  incentives?: any[];
   configData?: string;
   updatedAt?: string;
   updatedBy?: string;
@@ -24,6 +25,7 @@ export interface UpdateDeliveryPricingRequest {
   universalConfig?: any;
   zoneConfigs?: Record<string, any>;
   zones?: any[];
+  incentives?: any[];
   configData?: string;
 }
 
