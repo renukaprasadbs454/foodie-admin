@@ -583,9 +583,24 @@ async function handleDeliveryPricing(request: Request) {
         if (upstream && upstream.ok) {
           const json = await upstream.json();
           if (json?.data) {
-            savePersistentPricingState(json.data);
-            globalAny.GLOBAL_DELIVERY_PRICING = json.data;
-            return NextResponse.json(json, { status: 200 });
+            if (json.data.configData && typeof json.data.configData === 'string') {
+              try {
+                const parsed = JSON.parse(json.data.configData);
+                if (!json.data.universalConfig && parsed.universalConfig) json.data.universalConfig = parsed.universalConfig;
+                if (!json.data.incentives && parsed.incentives) json.data.incentives = parsed.incentives;
+                if (!json.data.zoneConfigs && parsed.zoneConfigs) json.data.zoneConfigs = parsed.zoneConfigs;
+              } catch {}
+            }
+            const merged = {
+              ...upstreamPayload,
+              ...json.data,
+              universalConfig: upstreamPayload.universalConfig || json.data.universalConfig,
+              incentives: upstreamPayload.incentives || json.data.incentives || upstreamPayload.universalConfig?.incentives,
+              zoneConfigs: upstreamPayload.zoneConfigs || json.data.zoneConfigs,
+            };
+            savePersistentPricingState(merged);
+            globalAny.GLOBAL_DELIVERY_PRICING = merged;
+            return NextResponse.json({ ...json, data: merged }, { status: 200 });
           }
         }
       } catch {
@@ -596,6 +611,120 @@ async function handleDeliveryPricing(request: Request) {
     return NextResponse.json({
       success: true,
       data: upstreamPayload,
+      error: null,
+      meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+    }, { status: 200 });
+  }
+
+  return NextResponse.json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } }, { status: 405 });
+}
+
+async function handleDeliveryIncentives(request: Request, targetPath: string, accessToken: string | null) {
+  const method = request.method;
+  const persisted = loadPersistentPricingState();
+  const persistedIncentives = (persisted?.incentives || persisted?.universalConfig?.incentives || []) as any[];
+
+  if (method === 'GET') {
+    const backendUrl = ENV.apiBaseUrl.replace(/\/$/, '');
+    const incomingUrl = new URL(request.url);
+    const targetUrl = `${backendUrl}/api/v1/${targetPath}${incomingUrl.search}`;
+    const devToken = await getDevBackendToken();
+    const token = (accessToken && !accessToken.startsWith('demo-')) ? accessToken : (devToken || 'demo-admin-token');
+
+    let upstreamData: any = null;
+    try {
+      const { response: upstream } = await safeFetch(targetUrl, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        timeoutMs: 3000,
+      });
+      if (upstream && upstream.ok) {
+        const json = await upstream.json();
+        if (json?.data) {
+          upstreamData = json.data;
+        }
+      }
+    } catch {}
+
+    const buildOffersFromIncentives = (activeOnly = true) => {
+      return persistedIncentives
+        .filter((item) => (activeOnly ? item.active !== false : true))
+        .map((item) => {
+          const milestones = (item.milestones && Array.isArray(item.milestones) && item.milestones.length > 0)
+            ? item.milestones.map((m: any) => ({
+                trips: Number(m.trips ?? m.orders ?? 0),
+                orders: Number(m.orders ?? m.trips ?? 0),
+                rewardAmount: Number(m.reward ?? m.rewardAmount ?? 0),
+                reward: Number(m.reward ?? m.rewardAmount ?? 0),
+                status: 'Locked',
+                remaining: Number(m.trips ?? m.orders ?? 0),
+                isEarned: false,
+              })).filter((m: any) => m.trips > 0).sort((a: any, b: any) => a.trips - b.trips)
+            : undefined;
+
+          const maxMilestoneTrips = milestones ? Math.max(...milestones.map((m: any) => m.trips)) : 1;
+          const maxReward = milestones ? Math.max(...milestones.map((m: any) => m.rewardAmount)) : (item.value || 0);
+
+          const conditions = (item.conditions && Array.isArray(item.conditions))
+            ? item.conditions.map((c: any) => ({
+                id: c.id || 'cond-1',
+                type: c.type || (c.timeSlot ? 'LOGIN_SLOT' : 'ORDER_REJECTION'),
+                title: c.title || (c.type === 'LOGIN_SLOT' ? 'Mandatory Login: Complete below slot' : 'Other condition'),
+                value: c.value || c.timeSlot || 'Do not reject',
+                subtext: c.subtext || c.duration || 'more than 1 order',
+                status: 'PENDING',
+                progressPercentage: 0,
+              }))
+            : undefined;
+
+          return {
+            id: item.id,
+            title: item.title,
+            category: item.category || 'Target & Mileage',
+            description: item.description || '',
+            target: item.targetCount || maxMilestoneTrips,
+            currentProgress: 0,
+            rewardAmount: Number(maxReward),
+            unit: item.unit || '₹ / day',
+            status: 'Upcoming',
+            remaining: item.targetCount || maxMilestoneTrips,
+            validityPeriod: item.id === 'dailyTargetBonus' ? 'Today (Ends 11:59 PM)' : (item.unit || 'Active'),
+            isEarned: false,
+            active: item.active !== false,
+            creatorRole: item.creatorRole || 'SUPER_ADMIN',
+            scope: item.scope || 'GLOBAL',
+            milestones,
+            conditions,
+          };
+        });
+    };
+
+    if (targetPath.includes('progress')) {
+      const todayIso = new Date().toISOString().split('T')[0];
+      const offers = buildOffersFromIncentives(true);
+
+      const responsePayload = {
+        date: upstreamData?.date || todayIso,
+        tripsCompleted: upstreamData?.tripsCompleted ?? 0,
+        incentivesEarned: upstreamData?.incentivesEarned ?? 0,
+        offers: offers.length > 0 ? offers : (upstreamData?.offers || []),
+      };
+
+      return NextResponse.json({
+        success: true,
+        data: responsePayload,
+        error: null,
+        meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
+      }, { status: 200 });
+    }
+
+    const activeOffers = buildOffersFromIncentives(true);
+    return NextResponse.json({
+      success: true,
+      data: activeOffers.length > 0 ? activeOffers : (upstreamData || []),
       error: null,
       meta: { timestamp: new Date().toISOString(), requestId: crypto.randomUUID(), pagination: null },
     }, { status: 200 });
@@ -8940,6 +9069,10 @@ function toBackendZoneId(zid?: string | null): string | null {
 
   if (targetPath.includes('admin/delivery-pricing')) {
     return handleDeliveryPricing(request);
+  }
+
+  if (targetPath.startsWith('delivery/incentives')) {
+    return handleDeliveryIncentives(request, targetPath, accessToken);
   }
 
   if (targetPath.startsWith('admin/reviews')) {
