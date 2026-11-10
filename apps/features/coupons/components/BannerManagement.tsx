@@ -40,6 +40,39 @@ export function BannerManagement() {
     const [ctaTarget, setCtaTarget] = useState('');
     const [displayOrder, setDisplayOrder] = useState('0');
 
+    // Visual Media Mode: Inbuilt Template vs Custom Animation/Media Upload
+    const [visualMode, setVisualMode] = useState<'TEMPLATE' | 'CUSTOM_MEDIA'>('TEMPLATE');
+    const [customImageUrl, setCustomImageUrl] = useState<string>('');
+    const [customFileName, setCustomFileName] = useState<string>('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setCustomFileName(file.name);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const resultStr = reader.result as string;
+            setCustomImageUrl(resultStr);
+            setVisualMode('CUSTOM_MEDIA');
+        };
+        reader.onerror = () => {
+            alert('Failed to read media file');
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleClearCustomMedia = () => {
+        setCustomImageUrl('');
+        setCustomFileName('');
+        setVisualMode('TEMPLATE');
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
     // Zone Selection State
     const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>(['ALL']);
     const [zoneDropdownOpen, setZoneDropdownOpen] = useState(false);
@@ -138,7 +171,9 @@ export function BannerManagement() {
             return;
         }
 
-        const autoImageUrl = 'auto-generated';
+        const finalImageUrl = (visualMode === 'CUSTOM_MEDIA' && customImageUrl.trim())
+            ? customImageUrl.trim()
+            : 'auto-generated';
 
         let backgroundTarget = '';
         if (ctaType === 'OPEN_RESTAURANT') backgroundTarget = ctaTarget;
@@ -151,7 +186,7 @@ export function BannerManagement() {
         const bannerPayload: CreatePromotionBannerBody = {
             title: title.trim(),
             subtitle: subtitle.trim(),
-            imageUrl: autoImageUrl,
+            imageUrl: finalImageUrl,
             ctaText: ctaText.trim(),
             ctaType,
             ctaTarget: backgroundTarget,
@@ -183,6 +218,10 @@ export function BannerManagement() {
             setZoneError(null);
             setZoneDropdownOpen(false);
             setZoneSearchQuery('');
+            setVisualMode('TEMPLATE');
+            setCustomImageUrl('');
+            setCustomFileName('');
+            if (fileInputRef.current) fileInputRef.current.value = '';
             alert(editBannerId ? 'Banner updated successfully!' : 'Banner created successfully!');
         } catch (err) {
             console.error('Failed to save banner:', err);
@@ -213,6 +252,17 @@ export function BannerManagement() {
         setCtaTarget(banner.ctaTarget || '');
         setDisplayOrder(String(banner.displayOrder || 0));
 
+        if (banner.imageUrl && banner.imageUrl !== 'auto-generated') {
+            setVisualMode('CUSTOM_MEDIA');
+            setCustomImageUrl(banner.imageUrl);
+            setCustomFileName('Existing Uploaded Animation/Image');
+        } else {
+            setVisualMode('TEMPLATE');
+            setCustomImageUrl('');
+            setCustomFileName('');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+
         // Load existing zone selection safely
         if (banner.isAllZones || banner.targetZoneIds?.includes('ALL') || !banner.targetZoneIds || banner.targetZoneIds.length === 0) {
             setSelectedZoneIds(['ALL']);
@@ -225,7 +275,16 @@ export function BannerManagement() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const renderBannerPreview = (bTitle: string, bSubtitle: string, bCtaText: string, bCtaType: string, bCtaTarget: string, index: number = 0) => {
+    const renderBannerPreview = (
+        bTitle: string,
+        bSubtitle: string,
+        bCtaText: string,
+        bCtaType: string,
+        bCtaTarget: string,
+        index: number = 0,
+        bImageUrl?: string
+    ) => {
+        const isCustomMedia = Boolean(bImageUrl && bImageUrl !== 'auto-generated');
         const bgGradient = VIBRANT_GRADIENTS[index % VIBRANT_GRADIENTS.length];
 
         const displayTitle = bTitle || 'BUZZ STREAKS';
@@ -238,12 +297,43 @@ export function BannerManagement() {
                 height: 145,
                 borderRadius: 20,
                 overflow: 'hidden',
-                background: bgGradient,
+                background: isCustomMedia ? '#0F172A' : bgGradient,
                 position: 'relative',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
                 display: 'flex',
                 alignSelf: 'center',
             }}>
+                {/* When Custom Media (GIF, WebP, PNG, SVG, APNG) is uploaded: auto-fitted with objectFit cover */}
+                {isCustomMedia && (
+                    <img
+                        src={bImageUrl}
+                        alt="Banner Media Animation"
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            objectPosition: 'center',
+                            zIndex: 0,
+                        }}
+                    />
+                )}
+
+                {/* Protective contrast scrim/overlay: preserves 100% text readability without hiding the animation */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: isCustomMedia
+                        ? 'linear-gradient(90deg, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.55) 60%, rgba(15, 23, 42, 0.2) 100%)'
+                        : 'transparent',
+                    zIndex: 1,
+                }} />
+
                 <div style={{
                     flex: 1,
                     padding: 16,
@@ -251,6 +341,8 @@ export function BannerManagement() {
                     flexDirection: 'column',
                     justifyContent: 'center',
                     width: '75%',
+                    position: 'relative',
+                    zIndex: 2,
                 }}>
                     <h3 style={{
                         color: '#FFFFFF',
@@ -258,7 +350,7 @@ export function BannerManagement() {
                         fontSize: 22,
                         fontStyle: 'italic',
                         letterSpacing: '-0.5px',
-                        textShadow: '1px 1px 3px rgba(0,0,0,0.4)',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.7)',
                         margin: 0,
                         lineHeight: 1.2
                     }}>
@@ -266,12 +358,12 @@ export function BannerManagement() {
                     </h3>
 
                     <p style={{
-                        color: '#FEF3C7',
+                        color: isCustomMedia ? '#FDE68A' : '#FEF3C7',
                         fontSize: 13,
                         fontWeight: 600,
                         marginTop: 4,
                         marginBottom: 8,
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.4)',
+                        textShadow: '0 1px 3px rgba(0,0,0,0.7)',
                         lineHeight: 1.2
                     }}>
                         {displaySubtitle}
@@ -283,13 +375,14 @@ export function BannerManagement() {
                         padding: '6px 14px',
                         borderRadius: 20,
                         marginTop: displaySubtitle ? 0 : 12,
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
                     }}>
                         <span style={{
                             color: '#E11D48',
                             fontWeight: 800,
                             fontSize: 11,
-                            textTransform: 'uppercase'
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.4px',
                         }}>
                             {bCtaText || 'EXPLORE NOW'}
                         </span>
@@ -306,7 +399,8 @@ export function BannerManagement() {
                         padding: '6px 10px',
                         borderRadius: 16,
                         transform: 'rotate(-3deg)',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.35)',
+                        zIndex: 2,
                     }}>
                         <span style={{ color: '#FFFFFF', fontWeight: 900, fontSize: 13 }}>
                             USE {bCtaTarget || 'CODE'}
@@ -350,7 +444,109 @@ export function BannerManagement() {
                     {/* Preview placed at the top of the form */}
                     <div style={{ marginTop: 4, marginBottom: 4 }}>
                         <span style={{ fontSize: 11, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Live Preview</span>
-                        {renderBannerPreview(title, subtitle, ctaText, ctaType, ctaTarget, 0)}
+                        {renderBannerPreview(title, subtitle, ctaText, ctaType, ctaTarget, 0, visualMode === 'CUSTOM_MEDIA' ? customImageUrl : undefined)}
+                    </div>
+
+                    {/* Visual Media Mode Selector: Inbuilt Template vs Custom Animation / File */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, backgroundColor: '#F8FAFC', padding: 14, borderRadius: 14, border: '1px solid #E2E8F0' }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            Banner Visual Style & Media
+                        </label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                            <button
+                                type="button"
+                                onClick={() => setVisualMode('TEMPLATE')}
+                                style={{
+                                    padding: '8px 12px',
+                                    borderRadius: 10,
+                                    border: visualMode === 'TEMPLATE' ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                                    backgroundColor: visualMode === 'TEMPLATE' ? '#EFF6FF' : '#FFFFFF',
+                                    color: visualMode === 'TEMPLATE' ? '#1D4ED8' : '#64748B',
+                                    fontWeight: 700,
+                                    fontSize: 12,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 6,
+                                }}
+                            >
+                                <span>🎨</span> Inbuilt Template
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setVisualMode('CUSTOM_MEDIA')}
+                                style={{
+                                    padding: '8px 12px',
+                                    borderRadius: 10,
+                                    border: visualMode === 'CUSTOM_MEDIA' ? '2px solid #7C3AED' : '1px solid #CBD5E1',
+                                    backgroundColor: visualMode === 'CUSTOM_MEDIA' ? '#F5F3FF' : '#FFFFFF',
+                                    color: visualMode === 'CUSTOM_MEDIA' ? '#6D28D9' : '#64748B',
+                                    fontWeight: 700,
+                                    fontSize: 12,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 6,
+                                }}
+                            >
+                                <span>🎬</span> Custom Animation / File
+                            </button>
+                        </div>
+
+                        {visualMode === 'CUSTOM_MEDIA' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                                <div
+                                    style={{
+                                        border: '2px dashed #CBD5E1',
+                                        borderRadius: 12,
+                                        padding: '14px',
+                                        textAlign: 'center',
+                                        backgroundColor: '#FFFFFF',
+                                        cursor: 'pointer',
+                                    }}
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*,.gif,.webp,.apng,.svg"
+                                        onChange={handleFileUpload}
+                                        style={{ display: 'none' }}
+                                    />
+                                    <div style={{ fontSize: 24, marginBottom: 4 }}>📁</div>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', display: 'block' }}>
+                                        {customFileName ? customFileName : 'Click to Upload Custom Animation / Media File'}
+                                    </span>
+                                    <span style={{ fontSize: 11, color: '#64748B', display: 'block', marginTop: 2 }}>
+                                        Accepts any size (GIF, WebP, APNG, SVG, PNG, JPG) — auto-edited and fitted to banner template
+                                    </span>
+                                </div>
+
+                                {customImageUrl ? (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 12px', backgroundColor: '#EDE9FE', borderRadius: 8 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 600, color: '#6D28D9' }}>
+                                            ✓ Custom animation loaded & auto-fitted
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={handleClearCustomMedia}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#EF4444',
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            Reset to Template
+                                        </button>
+                                    </div>
+                                ) : null}
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -772,7 +968,7 @@ export function BannerManagement() {
                                         </div>
 
                                         {/* Show Preview of created banner in the list */}
-                                        {renderBannerPreview(banner.title, banner.subtitle || '', banner.ctaText || '', banner.ctaType || '', banner.ctaTarget || '', index)}
+                                        {renderBannerPreview(banner.title, banner.subtitle || '', banner.ctaText || '', banner.ctaType || '', banner.ctaTarget || '', index, banner.imageUrl)}
 
                                     </div>
                                 );
