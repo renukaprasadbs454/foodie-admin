@@ -185,6 +185,7 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
     }),
     getDeliveryPricing: builder.query<DeliveryPricingConfig, void>({
       query: () => '/api/bff/admin/delivery-pricing',
+      transformResponse: (response: any): DeliveryPricingConfig => response?.data || response,
       providesTags: [{ type: 'Admin', id: 'DELIVERY_PRICING' }],
     }),
     updateDeliveryPricing: builder.mutation<DeliveryPricingConfig, UpdateDeliveryPricingRequest>({
@@ -193,6 +194,7 @@ export const deliveryPartnersApi = baseApi.injectEndpoints({
         method: 'PUT',
         body,
       }),
+      transformResponse: (response: any): DeliveryPricingConfig => response?.data || response,
       invalidatesTags: [{ type: 'Admin', id: 'DELIVERY_PRICING' }],
     }),
     getAdminShifts: builder.query<DeliveryShift[], { zoneId?: string } | void>({

@@ -7,6 +7,7 @@ import {
   useUpdateDeliveryPricingMutation,
   useGetAdminShiftsQuery,
   type DeliveryShift,
+  type DeliveryPricingConfig,
 } from '@/api/endpoints/deliveryPartnersApi';
 import { useGetZonesQuery } from '@/api/endpoints/locationApi';
 import { usePermissions } from '@/context/PermissionContext';
@@ -238,6 +239,9 @@ export function DeliveryPricingSettingsCard() {
   }, [isZoneAdmin, lockedZoneId]);
 
   const { data: pricingConfig, isLoading } = useGetDeliveryPricingQuery();
+  const effectivePricingConfig: DeliveryPricingConfig | undefined = useMemo(() => {
+    return (pricingConfig as any)?.data || pricingConfig;
+  }, [pricingConfig]);
   const [updatePricing, { isLoading: isUpdating }] = useUpdateDeliveryPricingMutation();
   const { data: adminShifts = [] } = useGetAdminShiftsQuery();
   const { data: dbZones = [] } = useGetZonesQuery();
@@ -251,15 +255,15 @@ export function DeliveryPricingSettingsCard() {
         }
       });
     }
-    if (pricingConfig?.zoneConfigs) {
-      Object.keys(pricingConfig.zoneConfigs).forEach((k) => {
+    if (effectivePricingConfig?.zoneConfigs) {
+      Object.keys(effectivePricingConfig.zoneConfigs).forEach((k) => {
         if (!list.some((item) => item.id.toLowerCase() === k.toLowerCase())) {
           list.push({ id: k, name: k });
         }
       });
     }
     return list;
-  }, [dbZones, pricingConfig]);
+  }, [dbZones, effectivePricingConfig]);
 
   const selectedZoneDisplayName = useMemo(() => {
     if (selectedZone === 'ALL') return 'Platform Universal (All Zones)';
@@ -315,13 +319,15 @@ export function DeliveryPricingSettingsCard() {
       localStorage.removeItem('foodie_zone_pricing_configs');
       localStorage.removeItem('foodie_custom_zones');
       localStorage.removeItem('foodie_universal_pricing_config');
+      localStorage.removeItem('foodie_saved_incentives_v2');
+      localStorage.removeItem('foodie_saved_incentives_time');
     } catch (_e) {
       // Ignore storage errors
     }
 
-    if (pricingConfig) {
-      const bMin = pricingConfig.minPricePerDelivery ?? 201.5;
-      const bKm = pricingConfig.moneyPerKm ?? 25.5;
+    if (effectivePricingConfig) {
+      const bMin = effectivePricingConfig.minPricePerDelivery ?? 201.5;
+      const bKm = effectivePricingConfig.moneyPerKm ?? 25.5;
 
       setSavedMinPrice(bMin);
       setSavedMoneyPerKm(bKm);
@@ -331,27 +337,27 @@ export function DeliveryPricingSettingsCard() {
 
       // Zone-specific vs Universal incentives loading
       let effectiveZoneConfig = null;
-      if (selectedZone !== 'ALL' && pricingConfig.zoneConfigs) {
-        if (pricingConfig.zoneConfigs[selectedZone]) {
-          effectiveZoneConfig = pricingConfig.zoneConfigs[selectedZone];
+      if (selectedZone !== 'ALL' && effectivePricingConfig.zoneConfigs) {
+        if (effectivePricingConfig.zoneConfigs[selectedZone]) {
+          effectiveZoneConfig = effectivePricingConfig.zoneConfigs[selectedZone];
         } else {
-          const matchKey = Object.keys(pricingConfig.zoneConfigs).find(
+          const matchKey = Object.keys(effectivePricingConfig.zoneConfigs).find(
             (k) =>
               k.toLowerCase() === selectedZone.toLowerCase() ||
               k.toLowerCase().replace(/^(dz[-_]|zone[-_])/, '') === selectedZone.toLowerCase().replace(/^(dz[-_]|zone[-_])/, '')
           );
           if (matchKey) {
-            effectiveZoneConfig = pricingConfig.zoneConfigs[matchKey];
+            effectiveZoneConfig = effectivePricingConfig.zoneConfigs[matchKey];
           }
         }
       }
 
       const rawActiveSource = (effectiveZoneConfig && Array.isArray(effectiveZoneConfig.incentives) && effectiveZoneConfig.incentives.length > 0)
         ? effectiveZoneConfig.incentives
-        : (pricingConfig.universalConfig && Array.isArray(pricingConfig.universalConfig.incentives) && pricingConfig.universalConfig.incentives.length > 0)
-        ? pricingConfig.universalConfig.incentives
-        : (Array.isArray(pricingConfig.incentives) && pricingConfig.incentives.length > 0)
-        ? pricingConfig.incentives
+        : (effectivePricingConfig.universalConfig && Array.isArray(effectivePricingConfig.universalConfig.incentives) && effectivePricingConfig.universalConfig.incentives.length > 0)
+        ? effectivePricingConfig.universalConfig.incentives
+        : (Array.isArray(effectivePricingConfig.incentives) && effectivePricingConfig.incentives.length > 0)
+        ? effectivePricingConfig.incentives
         : [];
 
       let cachedIncentives: IncentiveItem[] | null = null;
@@ -367,17 +373,20 @@ export function DeliveryPricingSettingsCard() {
         } catch {}
       }
 
-      const activeIncentivesSource = (rawActiveSource.length > 0) ? rawActiveSource : (cachedIncentives || []);
+      if (rawActiveSource.length > 0) {
+        // Backend DB has live configuration - strictly authoritative!
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('foodie_saved_incentives_v2', JSON.stringify(rawActiveSource));
+          }
+        } catch {}
 
-      if (activeIncentivesSource.length > 0) {
         const mergedIncentives = DEFAULT_INCENTIVES.map((defItem) => {
-          const match = activeIncentivesSource.find((i: IncentiveItem) => i.id === defItem.id) ||
-                        cachedIncentives?.find((i: IncentiveItem) => i.id === defItem.id);
+          const match = rawActiveSource.find((i: IncentiveItem) => i.id === defItem.id);
           if (match) {
-            const cachedMatch = cachedIncentives?.find((i: IncentiveItem) => i.id === defItem.id);
-            const rawMilestones = (cachedMatch?.milestones && Array.isArray(cachedMatch.milestones))
-              ? cachedMatch.milestones
-              : (match.milestones ?? defItem.milestones);
+            const rawMilestones = (match.milestones && Array.isArray(match.milestones))
+              ? match.milestones
+              : defItem.milestones;
             const normalizedMilestones = rawMilestones
               ? rawMilestones.map((m: any) => ({
                   trips: Number(m.trips ?? m.orders ?? 0),
@@ -387,9 +396,9 @@ export function DeliveryPricingSettingsCard() {
                 }))
               : undefined;
 
-            const rawConditions = (cachedMatch?.conditions && Array.isArray(cachedMatch.conditions))
-              ? cachedMatch.conditions
-              : (match.conditions ?? defItem.conditions);
+            const rawConditions = (match.conditions && Array.isArray(match.conditions))
+              ? match.conditions
+              : defItem.conditions;
             const normalizedConditions = rawConditions
               ? rawConditions.map((c: any) => {
                   const isLogin = c.type === 'LOGIN_SLOT' || c.id === 'loginSlot' || Boolean(c.timeSlot || c.duration);
@@ -408,14 +417,13 @@ export function DeliveryPricingSettingsCard() {
                 })
               : undefined;
 
-            const effectiveActive = (cachedMatch && typeof cachedMatch.active === 'boolean')
-              ? cachedMatch.active
-              : (typeof match.active === 'boolean' ? match.active : (match.active !== undefined ? Boolean(match.active) : defItem.active));
+            const effectiveActive = typeof match.active === 'boolean'
+              ? match.active
+              : (match.active !== undefined ? Boolean(match.active) : defItem.active);
 
-            const baseItem = cachedMatch ? { ...match, ...cachedMatch } : match;
             return {
               ...defItem,
-              ...baseItem,
+              ...match,
               active: effectiveActive,
               milestones: normalizedMilestones,
               conditions: normalizedConditions,
@@ -423,13 +431,34 @@ export function DeliveryPricingSettingsCard() {
           }
           return defItem;
         });
-        const customIncentives = activeIncentivesSource.filter(
+        const customIncentives = rawActiveSource.filter(
           (i: IncentiveItem) => !DEFAULT_INCENTIVES.some((d) => d.id === i.id)
         );
 
         setUniversalConfig({
-          minPrice: (effectiveZoneConfig?.minPrice ?? pricingConfig.universalConfig?.minPrice) ?? bMin,
-          moneyPerKm: (effectiveZoneConfig?.moneyPerKm ?? pricingConfig.universalConfig?.moneyPerKm) ?? bKm,
+          minPrice: (effectiveZoneConfig?.minPrice ?? effectivePricingConfig.universalConfig?.minPrice) ?? bMin,
+          moneyPerKm: (effectiveZoneConfig?.moneyPerKm ?? effectivePricingConfig.universalConfig?.moneyPerKm) ?? bKm,
+          incentives: [...mergedIncentives, ...customIncentives],
+        });
+      } else if (cachedIncentives && cachedIncentives.length > 0) {
+        // Fallback to cache only if offline / server returned empty
+        const mergedIncentives = DEFAULT_INCENTIVES.map((defItem) => {
+          const match = cachedIncentives!.find((i: IncentiveItem) => i.id === defItem.id);
+          if (match) {
+            return {
+              ...defItem,
+              ...match,
+              active: typeof match.active === 'boolean' ? match.active : defItem.active,
+            };
+          }
+          return defItem;
+        });
+        const customIncentives = cachedIncentives.filter(
+          (i: IncentiveItem) => !DEFAULT_INCENTIVES.some((d) => d.id === i.id)
+        );
+        setUniversalConfig({
+          minPrice: (effectiveZoneConfig?.minPrice ?? effectivePricingConfig.universalConfig?.minPrice) ?? bMin,
+          moneyPerKm: (effectiveZoneConfig?.moneyPerKm ?? effectivePricingConfig.universalConfig?.moneyPerKm) ?? bKm,
           incentives: [...mergedIncentives, ...customIncentives],
         });
       } else {
@@ -441,7 +470,7 @@ export function DeliveryPricingSettingsCard() {
         }));
       }
     }
-  }, [pricingConfig, selectedZone]);
+  }, [effectivePricingConfig, selectedZone]);
 
   const parsedMinPrice = parseFloat(minPriceInput);
   const parsedMoneyPerKm = parseFloat(moneyPerKmInput);
@@ -517,7 +546,7 @@ export function DeliveryPricingSettingsCard() {
             })),
           };
 
-          const updatedZoneConfigs = { ...(pricingConfig?.zoneConfigs || {}) };
+          const updatedZoneConfigs = { ...(effectivePricingConfig?.zoneConfigs || {}) };
           Object.keys(updatedZoneConfigs).forEach((zKey) => {
             if (updatedZoneConfigs[zKey]) {
               const mergedZIncentives = updatedUniversalConfig.incentives.map((uItem) => {
@@ -537,10 +566,10 @@ export function DeliveryPricingSettingsCard() {
             universalConfig: updatedUniversalConfig,
             incentives: updatedUniversalConfig.incentives,
             zoneConfigs: updatedZoneConfigs,
-            zones: pricingConfig?.zones,
+            zones: effectivePricingConfig?.zones,
           }).unwrap();
         } else {
-          const existingZone = (pricingConfig?.zoneConfigs && pricingConfig.zoneConfigs[selectedZone]) || {};
+          const existingZone = (effectivePricingConfig?.zoneConfigs && effectivePricingConfig.zoneConfigs[selectedZone]) || {};
           const zoneIncentives = updatedUniversal.incentives.map((item) => ({
             ...item,
             zoneId: selectedZone,
@@ -548,7 +577,7 @@ export function DeliveryPricingSettingsCard() {
             scope: 'ZONE' as const,
           }));
           const updatedZoneConfigs = {
-            ...(pricingConfig?.zoneConfigs || {}),
+            ...(effectivePricingConfig?.zoneConfigs || {}),
             [selectedZone]: {
               ...existingZone,
               minPrice: minP,
@@ -561,9 +590,10 @@ export function DeliveryPricingSettingsCard() {
             minPricePerDelivery: minP,
             moneyPerKm: mKm,
             pricingBasis: 'ZONE',
-            universalConfig: pricingConfig?.universalConfig,
+            universalConfig: effectivePricingConfig?.universalConfig,
+            incentives: zoneIncentives,
             zoneConfigs: updatedZoneConfigs,
-            zones: pricingConfig?.zones,
+            zones: effectivePricingConfig?.zones,
           }).unwrap();
         }
 
@@ -604,7 +634,7 @@ export function DeliveryPricingSettingsCard() {
           })),
         };
 
-        const updatedZoneConfigs = { ...(pricingConfig?.zoneConfigs || {}) };
+        const updatedZoneConfigs = { ...(effectivePricingConfig?.zoneConfigs || {}) };
         Object.keys(updatedZoneConfigs).forEach((zKey) => {
           if (updatedZoneConfigs[zKey]) {
             const mergedZIncentives = updatedUniversalConfig.incentives.map((uItem) => {
@@ -624,7 +654,7 @@ export function DeliveryPricingSettingsCard() {
           universalConfig: updatedUniversalConfig,
           incentives: updatedUniversalConfig.incentives,
           zoneConfigs: updatedZoneConfigs,
-          zones: pricingConfig?.zones,
+          zones: effectivePricingConfig?.zones,
         }).unwrap();
 
         try {
@@ -646,9 +676,9 @@ export function DeliveryPricingSettingsCard() {
           scope: 'ZONE' as const,
         }));
 
-        const existingZone = (pricingConfig?.zoneConfigs && pricingConfig.zoneConfigs[selectedZone]) || {};
+        const existingZone = (effectivePricingConfig?.zoneConfigs && effectivePricingConfig.zoneConfigs[selectedZone]) || {};
         const updatedZoneConfigs = {
-          ...(pricingConfig?.zoneConfigs || {}),
+          ...(effectivePricingConfig?.zoneConfigs || {}),
           [selectedZone]: {
             ...existingZone,
             minPrice: minP,
@@ -661,10 +691,10 @@ export function DeliveryPricingSettingsCard() {
           minPricePerDelivery: minP,
           moneyPerKm: mKm,
           pricingBasis: 'ZONE',
-          universalConfig: pricingConfig?.universalConfig,
+          universalConfig: effectivePricingConfig?.universalConfig,
           incentives: zoneIncentives,
           zoneConfigs: updatedZoneConfigs,
-          zones: pricingConfig?.zones,
+          zones: effectivePricingConfig?.zones,
         }).unwrap();
 
         try {
@@ -746,7 +776,7 @@ export function DeliveryPricingSettingsCard() {
       setSavedItemsMap(allSavedMap);
 
       if (selectedZone !== 'ALL') {
-        const existingZone = (pricingConfig?.zoneConfigs && pricingConfig.zoneConfigs[selectedZone]) || {};
+        const existingZone = (effectivePricingConfig?.zoneConfigs && effectivePricingConfig.zoneConfigs[selectedZone]) || {};
         const zoneIncentives = currentConfig.incentives.map((i) => ({
           ...i,
           zoneId: selectedZone,
@@ -754,7 +784,7 @@ export function DeliveryPricingSettingsCard() {
           scope: 'ZONE' as const,
         }));
         const updatedZoneConfigs = {
-          ...(pricingConfig?.zoneConfigs || {}),
+          ...(effectivePricingConfig?.zoneConfigs || {}),
           [selectedZone]: {
             ...existingZone,
             minPrice: parsedMinPrice,
@@ -767,9 +797,10 @@ export function DeliveryPricingSettingsCard() {
           minPricePerDelivery: parsedMinPrice,
           moneyPerKm: parsedMoneyPerKm,
           pricingBasis: 'ZONE',
-          universalConfig: pricingConfig?.universalConfig,
+          universalConfig: effectivePricingConfig?.universalConfig,
+          incentives: zoneIncentives,
           zoneConfigs: updatedZoneConfigs,
-          zones: pricingConfig?.zones,
+          zones: effectivePricingConfig?.zones,
         }).unwrap();
 
         const updatedMin = res?.minPricePerDelivery ?? parsedMinPrice;
@@ -802,7 +833,7 @@ export function DeliveryPricingSettingsCard() {
           })),
         };
 
-        const updatedZoneConfigs = { ...(pricingConfig?.zoneConfigs || {}) };
+        const updatedZoneConfigs = { ...(effectivePricingConfig?.zoneConfigs || {}) };
         Object.keys(updatedZoneConfigs).forEach((zKey) => {
           if (updatedZoneConfigs[zKey]) {
             const zIncentives = Array.isArray(updatedZoneConfigs[zKey].incentives) ? updatedZoneConfigs[zKey].incentives : [];
@@ -825,8 +856,9 @@ export function DeliveryPricingSettingsCard() {
           moneyPerKm: parsedMoneyPerKm,
           pricingBasis: 'UNIVERSAL',
           universalConfig: updatedUniversalConfig,
+          incentives: updatedUniversalConfig.incentives,
           zoneConfigs: updatedZoneConfigs,
-          zones: pricingConfig?.zones,
+          zones: effectivePricingConfig?.zones,
         }).unwrap();
 
         const updatedMin = res?.minPricePerDelivery ?? parsedMinPrice;
