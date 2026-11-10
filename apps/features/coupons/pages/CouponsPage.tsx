@@ -43,6 +43,8 @@ export interface CouponRecord {
   adminDiscount?: number;
   restaurantDiscount?: number;
   createdBy?: string;
+  totalOrders?: number;
+  totalDiscountAmount?: number;
 }
 
 export interface FirstOrderOfferRecord {
@@ -344,6 +346,8 @@ export function CouponsPage() {
         couponType: c.couponType || (c.restaurantId ? 'RESTAURANT' : 'PROMO_COUPON'),
         funderType: c.funderType || (c.restaurantId ? 'MERCHANT' : 'FOODIE'),
         createdBy: c.createdBy || 'Super Admin',
+        totalOrders: Number(c.totalOrders ?? c.ordersCount ?? c.usageCount ?? 0),
+        totalDiscountAmount: Number(c.totalDiscountAmount ?? c.discountTotal ?? c.totalDiscount ?? 0),
       }));
       setLocalCoupons(formatted);
       try {
@@ -1721,8 +1725,9 @@ export function CouponsPage() {
                   <tr style={{ borderBottom: '1px solid #E5E7EB', color: '#6B7280', backgroundColor: '#F9FAFB', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     <th style={{ padding: '14px 20px' }}>COUPON CODE</th>
                     <th style={{ padding: '14px 20px' }}>ASSIGNED ZONE</th>
-                    <th style={{ padding: '14px 20px' }}>DISCOUNT</th>
+                    <th style={{ padding: '14px 20px' }}>DISCOUNT & SHARE</th>
                     <th style={{ padding: '14px 20px' }}>MIN / MAX</th>
+                    <th style={{ padding: '14px 20px' }}>ORDERS & SAVINGS</th>
                     <th style={{ padding: '14px 20px' }}>VALIDITY</th>
                     <th style={{ padding: '14px 20px' }}>STATUS</th>
                     <th style={{ padding: '14px 20px', textAlign: 'right' }}>ACTIONS</th>
@@ -1731,7 +1736,7 @@ export function CouponsPage() {
                 <tbody>
                   {filteredRestaurantCoupons.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#6B7280', fontWeight: 500 }}>
+                      <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: '#6B7280', fontWeight: 500 }}>
                         No restaurant coupons found. Use the Restaurant Campaigns form to create one.
                       </td>
                     </tr>
@@ -1778,6 +1783,19 @@ export function CouponsPage() {
                               ? `₹${coupon.maxDiscountAmount}`
                               : (coupon.maxDiscount > 0 ? `₹${coupon.maxDiscount}` : '—')}
                           </div>
+                        </td>
+                        <td style={{ padding: '16px 20px' }}>
+                          <div style={{ fontWeight: 700, color: '#111827', fontSize: 13 }}>
+                            {coupon.totalOrders ?? 0} Orders
+                          </div>
+                          <div style={{ fontSize: 11, color: '#059669', fontWeight: 600, marginTop: 2 }}>
+                            ₹{coupon.totalDiscountAmount ?? 0} Discounted
+                          </div>
+                          {(coupon.restaurantDiscount != null || coupon.adminDiscount != null) && (
+                            <div style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>
+                              Rest: {coupon.restaurantDiscount ?? 0}% • Admin: {coupon.adminDiscount ?? 0}%
+                            </div>
+                          )}
                         </td>
                         <td style={{ padding: '16px 20px', color: '#6B7280', fontSize: 12 }}>
                           {formatCouponValidityDate(coupon.expiryDate)}
