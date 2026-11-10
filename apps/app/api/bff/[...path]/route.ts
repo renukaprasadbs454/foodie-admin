@@ -3746,11 +3746,8 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
   }
 
   const isSuperAdmin = userRole === 'SUPER_ADMIN' ||
-    userRole === 'ADMIN' ||
     request.headers.get('x-user-role') === 'SUPER_ADMIN' ||
-    request.headers.get('x-user-role') === 'ADMIN' ||
-    (!userAssignedZoneId || userAssignedZoneId === 'ALL') ||
-    (token && (token.includes('super_admin') || token.includes('admin') || token.includes('USR-1001') || token.includes('demo-admin') || token.length > 25));
+    (!userAssignedZoneId && (token.includes('super_admin') || token.includes('USR-1001') || token.includes('demo-admin')));
 
   if (userRole === 'RESTAURANT_MANAGER' || request.headers.get('x-user-role') === 'RESTAURANT_MANAGER') {
     userRole = 'RESTAURANT_MANAGER';
@@ -4218,11 +4215,8 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
   }
 
   const isSuperAdmin = userRole === 'SUPER_ADMIN' ||
-    userRole === 'ADMIN' ||
     request.headers.get('x-user-role') === 'SUPER_ADMIN' ||
-    request.headers.get('x-user-role') === 'ADMIN' ||
-    (!userAssignedZoneId || userAssignedZoneId === 'ALL') ||
-    (token && (token.includes('super_admin') || token.includes('admin') || token.includes('USR-1001') || token.includes('demo-admin') || token.length > 25));
+    (!userAssignedZoneId && (token.includes('super_admin') || token.includes('USR-1001') || token.includes('demo-admin')));
 
   if (!globalAny.ADMIN_DYNAMIC_ZONES) {
     if (process.env.NODE_ENV === 'test') {
