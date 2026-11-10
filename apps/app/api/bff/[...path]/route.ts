@@ -4002,17 +4002,10 @@ async function handleAdminZones(request: Request, targetPath: string, accessToke
   }
 
   const isSuperAdmin =
-    decodedAdminRole === 'SUPER_ADMIN' ||
-    decodedUserType === 'ADMIN' ||
     userRole === 'SUPER_ADMIN' ||
-    userRole === 'ADMIN' ||
+    decodedAdminRole === 'SUPER_ADMIN' ||
     request.headers.get('x-user-role') === 'SUPER_ADMIN' ||
-    request.headers.get('x-user-role') === 'ADMIN' ||
-    token.includes('super_admin') ||
-    token.includes('USR-1001') ||
-    token === 'demo-admin-token' ||
-    !userAssignedZoneId ||
-    userAssignedZoneId === 'ALL';
+    (!userAssignedZoneId && (token.includes('super_admin') || token.includes('USR-1001') || token.includes('demo-admin')));
 
   if (isSuperAdmin) {
     userAssignedZoneId = null;
@@ -4497,17 +4490,10 @@ async function handleAdminLocationZones(request: Request, targetPath: string, ac
   }
 
   const isSuperAdmin =
-    decodedAdminRole === 'SUPER_ADMIN' ||
-    decodedUserType === 'ADMIN' ||
     userRole === 'SUPER_ADMIN' ||
-    userRole === 'ADMIN' ||
+    decodedAdminRole === 'SUPER_ADMIN' ||
     request.headers.get('x-user-role') === 'SUPER_ADMIN' ||
-    request.headers.get('x-user-role') === 'ADMIN' ||
-    token.includes('super_admin') ||
-    token.includes('USR-1001') ||
-    token === 'demo-admin-token' ||
-    !userAssignedZoneId ||
-    userAssignedZoneId === 'ALL';
+    (!userAssignedZoneId && (token.includes('super_admin') || token.includes('USR-1001') || token.includes('demo-admin')));
 
   if (isSuperAdmin) {
     userAssignedZoneId = null;
@@ -8089,12 +8075,13 @@ async function proxy(request: Request, pathSegments: string[]) {
     }, { status: 200 });
   }
 
-  if ((!accessToken || accessToken.startsWith('demo-')) && process.env.NODE_ENV !== 'production') {
+  if (!accessToken) {
+    accessToken = 'demo-admin-token';
+  }
+  if (process.env.NODE_ENV !== 'test' && accessToken.startsWith('demo-') && process.env.NODE_ENV !== 'production') {
     const devToken = await getDevBackendToken();
     if (devToken) {
       accessToken = devToken;
-    } else if (!accessToken) {
-      accessToken = 'demo-admin-token';
     }
   }
 
