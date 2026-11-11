@@ -3208,7 +3208,7 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
           }
 
           // Must be a valid restaurant coupon
-          const isRestCoupon = Boolean(c.restaurantId) || fType === 'MERCHANT' || fType === 'RESTAURANT' || cType === 'RESTAURANT' || cType === 'RESTAURANT_COUPON' || Boolean(c.module?.includes('Restaurant'));
+          const isRestCoupon = Boolean(c.restaurantId) || fType === 'MERCHANT' || fType === 'RESTAURANT' || fType === 'SHARED' || cType === 'RESTAURANT' || cType === 'RESTAURANT_COUPON' || Boolean(c.module?.includes('Restaurant'));
           if (!isRestCoupon) {
             return false;
           }
@@ -3223,10 +3223,10 @@ async function handleCoupons(request: Request, targetPath: string, accessToken: 
               return true;
             }
           }
-          // 4. Global coupon (no zone or ALL or All Locations)
+          // 4. Global coupon (no zone or ALL or All Locations) or fallback when restaurant zone is not detected
           const isGlobal = !c.zoneId || c.zoneId === 'ALL' || c.isAllZones === true || c.zoneId === 'all-locations' ||
             Boolean(c.zoneName && (c.zoneName.toLowerCase() === 'all' || c.zoneName.toLowerCase().includes('all locations') || c.zoneName.toLowerCase().includes('all zones')));
-          if (isGlobal) {
+          if (isGlobal || !targetRestZone) {
             return true;
           }
           return false;

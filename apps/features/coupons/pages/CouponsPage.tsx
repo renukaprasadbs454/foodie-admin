@@ -479,7 +479,7 @@ export function CouponsPage() {
       status: 'ACTIVE',
       couponType: 'PROMO_COUPON',
       funderType: 'FOODIE',
-      zoneId: effectiveZoneId,
+      zoneId: effectiveZoneId || 'ALL',
       zoneName: effectiveZoneName,
     };
 
@@ -496,7 +496,7 @@ export function CouponsPage() {
         maxDiscountAmount: discountType === 'PERCENT' ? cleanVal * 2 : undefined,
         expiryDate: '2099-12-31',
         usageLimitPerUser: 1,
-        zoneId: effectiveZoneId,
+        zoneId: effectiveZoneId || 'ALL',
         zoneName: effectiveZoneName,
         module: module || 'All Food Delivery',
       } as any).unwrap();
@@ -706,7 +706,7 @@ export function CouponsPage() {
       maxDiscountAmount: maxDisc,
       module: isAll ? 'All Locations Restaurants' : `${targetZoneName} Restaurants`,
       expiryDate: cleanExpiry,
-      status: 'DEACTIVATED',
+      status: 'ACTIVE',
       couponType: 'RESTAURANT',
       funderType: 'SHARED',
       zoneId: effectiveZoneId,
@@ -731,10 +731,10 @@ export function CouponsPage() {
         maxDiscount: maxDisc,
         expiryDate: cleanExpiry,
         usageLimitPerUser: 1,
-        zoneId: effectiveZoneId,
+        zoneId: effectiveZoneId || 'ALL',
         zoneName: targetZoneName,
-        isActive: false,
-        status: 'DEACTIVATED',
+        isActive: true,
+        status: 'ACTIVE',
         createdBy: adminEmail,
       } as any).unwrap();
 
