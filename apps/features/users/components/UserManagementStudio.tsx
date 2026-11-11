@@ -446,6 +446,8 @@ export function UserManagementStudio() {
       ? 'All Zones'
       : (assignedZoneObj?.zoneName || (newAssignedZoneId === 'dz-bangalore' ? 'Bangalore Zone' : (newAssignedZoneId === 'dz-tumkur' ? 'Tumkur Zone' : newAssignedZoneId)));
 
+    const assignedZoneIds = newAssignedZoneId === 'ALL' ? [] : [newAssignedZoneId];
+
     try {
       await createAdminUser({
         fullName: newFullName,
@@ -456,6 +458,7 @@ export function UserManagementStudio() {
         password: newPassword,
         assignedZoneId: newAssignedZoneId === 'ALL' ? undefined : newAssignedZoneId,
         assignedZoneName,
+        assignedZoneIds,
       }).unwrap();
 
       saveAdminPassword(newEmail, newPassword);
@@ -992,7 +995,24 @@ export function UserManagementStudio() {
                       </td>
 
                       <td style={{ padding: '14px 16px', position: 'relative' }}>
-                        {user.role === 'RESTAURANT_MANAGER' || (user.role as string) === 'ROLE_RESTAURANT_MANAGER' ? (
+                        {user.role === 'SUPER_ADMIN' ? (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              backgroundColor: '#F3F4F6',
+                              color: '#4B5563',
+                              border: '1px solid #E5E7EB',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                            }}
+                          >
+                            🌐 All Zones (Global Access)
+                          </span>
+                        ) : (
                           <RmZoneMultiSelectDropdown
                             user={user}
                             availableZones={availableZones}
@@ -1006,23 +1026,6 @@ export function UserManagementStudio() {
                               }
                             }}
                           />
-                        ) : (
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              padding: '4px 8px',
-                              borderRadius: 6,
-                              backgroundColor: user.assignedZoneId ? '#EFF6FF' : '#F3F4F6',
-                              color: user.assignedZoneId ? '#1D4ED8' : '#4B5563',
-                              border: user.assignedZoneId ? '1px solid #BFDBFE' : '1px solid #E5E7EB',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4,
-                            }}
-                          >
-                            {user.assignedZoneId ? '📍 ' + (user.assignedZoneName || user.assignedZoneId) : '🌐 All Zones'}
-                          </span>
                         )}
                       </td>
 
@@ -1702,8 +1705,10 @@ export function UserManagementStudio() {
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E7EB', fontSize: 13, fontWeight: 600, color: '#111827', backgroundColor: '#FFFFFF', boxSizing: 'border-box' }}
                 >
                   <option value="OPS">Operations (OPS)</option>
-                  <option value="FINANCE">Finance (FINANCE)</option>
-                  <option value="SUPPORT">Support (SUPPORT)</option>
+                  <option value="FINANCE">Finance Admin (FINANCE)</option>
+                  <option value="RESTAURANT_MANAGER">Restaurant Manager (RESTAURANT)</option>
+                  <option value="AUDITOR">Compliance Auditor (AUDITOR)</option>
+                  <option value="SUPPORT">Support Agent (SUPPORT)</option>
                   <option value="SUPER_ADMIN">Super Admin (SUPER_ADMIN)</option>
                 </select>
               </div>

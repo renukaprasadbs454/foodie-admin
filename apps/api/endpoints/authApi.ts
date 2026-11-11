@@ -25,6 +25,7 @@ export type AdminLoginIdentity = {
   email?: string;
   assignedZoneId?: string | null;
   assignedZoneName?: string | null;
+  assignedZoneIds?: string[];
 };
 
 export type AdminUserProfile = {
@@ -37,6 +38,7 @@ export type AdminUserProfile = {
   permissions?: string[];
   assignedZoneId?: string | null;
   assignedZoneName?: string | null;
+  assignedZoneIds?: string[];
 };
 
 export const authApi = baseApi.injectEndpoints({

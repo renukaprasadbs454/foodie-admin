@@ -53,7 +53,7 @@ export function AdminLoginForm({
   const DEFAULT_ROLE_OPTIONS: AdminRoleOption[] = [
     { key: 'SUPER_ADMIN', role: 'SUPER_ADMIN', label: 'Super Admin', defaultEmail: 'admin@foodie.local' },
     { key: 'ZONE_ADMIN_dz-bangalore', role: 'OPS', label: 'Bangalore Zone Admin', zoneId: 'dz-bangalore', zoneName: 'Bangalore Zone', defaultEmail: 'ops@foodie.local' },
-    { key: 'ZONE_ADMIN_dz-tumkur', role: 'OPS', label: 'Tumkur Zone Admin', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone', defaultEmail: 'finance@foodie.local' },
+    { key: 'ZONE_ADMIN_dz-tumkur', role: 'OPS', label: 'Tumkur Zone Admin', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone', defaultEmail: 'tmk.admin@foodie.local' },
     { key: 'AUDITOR', role: 'AUDITOR', label: 'Compliance Auditor', defaultEmail: 'auditor@foodie.local' },
     { key: 'FINANCE_ADMIN', role: 'FINANCE_ADMIN', label: 'Finance Admin', defaultEmail: 'finance@foodie.local' },
     { key: 'OPERATIONS_ADMIN', role: 'OPERATIONS_ADMIN', label: 'Operations Admin', defaultEmail: 'ops@foodie.local' },
@@ -74,7 +74,7 @@ export function AdminLoginForm({
     ? baseRoles
     : [
         ...baseRoles.slice(0, 2),
-        { key: 'ZONE_ADMIN_dz-tumkur', role: 'OPS', label: 'Tumkur Zone Admin', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone', defaultEmail: 'finance@foodie.local' },
+        { key: 'ZONE_ADMIN_dz-tumkur', role: 'OPS', label: 'Tumkur Zone Admin', zoneId: 'dz-tumkur', zoneName: 'Tumkur Zone', defaultEmail: 'tmk.admin@foodie.local' },
         ...baseRoles.slice(2),
       ];
 
@@ -127,7 +127,7 @@ export function AdminLoginForm({
       if (zLower.includes('bangalore') || zLower.includes('bengaluru')) {
         targetEmail = 'ops@foodie.local';
       } else if (zLower.includes('tumkur') || zLower.includes('tumakuru')) {
-        targetEmail = 'finance@foodie.local';
+        targetEmail = 'tmk.admin@foodie.local';
       }
     }
     if (targetEmail) {
@@ -193,7 +193,18 @@ export function AdminLoginForm({
       lowerEmail === 'superadmin@foodie.local' ||
       lowerEmail.includes('superadmin');
 
-    const expectedZoneId = isSuper ? undefined : (currentRoleInfo.zoneId || undefined);
+    const isGlobalRole = isSuper ||
+      selectedRoleKey === 'FINANCE_ADMIN' ||
+      currentRoleInfo.role === 'FINANCE_ADMIN' ||
+      selectedRoleKey === 'AUDITOR' ||
+      currentRoleInfo.role === 'AUDITOR' ||
+      selectedRoleKey === 'RESTAURANT_MANAGER' ||
+      currentRoleInfo.role === 'RESTAURANT_MANAGER' ||
+      lowerEmail === 'finance@foodie.local' ||
+      lowerEmail === 'auditor@foodie.local' ||
+      lowerEmail === 'manager@foodie.local';
+
+    const expectedZoneId = isGlobalRole ? undefined : (currentRoleInfo.zoneId || undefined);
 
     try {
       const identity = await login({
@@ -212,7 +223,7 @@ export function AdminLoginForm({
 
       if (!isSuperResult && !finalZoneId && (lowerEmail === 'ops@foodie.local' || lowerEmail === 'blr.admin@foodie.local')) {
         finalZoneId = 'dz-bangalore';
-      } else if (!isSuperResult && !finalZoneId && (lowerEmail === 'finance@foodie.local' || lowerEmail === 'tmk.admin@foodie.local')) {
+      } else if (!isSuperResult && !finalZoneId && lowerEmail === 'tmk.admin@foodie.local') {
         finalZoneId = 'dz-tumkur';
       }
 
@@ -228,11 +239,27 @@ export function AdminLoginForm({
         currentRoleInfo.role === 'RESTAURANT_MANAGER' ||
         Boolean(identity.role && (identity.role as string).toUpperCase().includes('RESTAURANT'));
 
+      const isFinanceAttempt =
+        lowerEmail === 'finance@foodie.local' ||
+        selectedRoleKey === 'FINANCE_ADMIN' ||
+        currentRoleInfo.role === 'FINANCE_ADMIN' ||
+        Boolean(identity.role && (identity.role as string).toUpperCase().includes('FINANCE'));
+
+      const isAuditorAttempt =
+        lowerEmail === 'auditor@foodie.local' ||
+        selectedRoleKey === 'AUDITOR' ||
+        currentRoleInfo.role === 'AUDITOR' ||
+        Boolean(identity.role && (identity.role as string).toUpperCase().includes('AUDITOR'));
+
       let backendRole: AdminRole = isSuperResult
         ? 'SUPER_ADMIN'
         : (isRestaurantAttempt
           ? 'RESTAURANT_MANAGER'
-          : ((identity.role || (finalZoneId ? 'OPS' : (currentRoleInfo.role || 'SUPER_ADMIN'))) as AdminRole));
+          : (isFinanceAttempt
+            ? 'FINANCE_ADMIN'
+            : (isAuditorAttempt
+              ? 'AUDITOR'
+              : ((identity.role || (finalZoneId ? 'OPS' : (currentRoleInfo.role || 'SUPER_ADMIN'))) as AdminRole))));
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('foodie_admin_role', backendRole);
@@ -244,14 +271,13 @@ export function AdminLoginForm({
         localStorage.setItem('foodie_admin_email', userEmail);
         sessionStorage.setItem('foodie_admin_email', userEmail);
 
-        const rmAssignedZones = (identity as any)?.assignedZoneIds || [];
-        if (Array.isArray(rmAssignedZones) && rmAssignedZones.length > 0) {
-          localStorage.setItem('foodie_user_assigned_zones', JSON.stringify(rmAssignedZones));
-          sessionStorage.setItem('foodie_user_assigned_zones', JSON.stringify(rmAssignedZones));
-          document.cookie = `foodie_user_assigned_zones=${encodeURIComponent(JSON.stringify(rmAssignedZones))}; path=/; max-age=86400; SameSite=Lax`;
-          if (!finalZoneId && backendRole === 'RESTAURANT_MANAGER') {
-            finalZoneId = rmAssignedZones[0];
-          }
+        const assignedZones = (identity as any)?.assignedZoneIds || [];
+        localStorage.setItem('foodie_user_assigned_zones', JSON.stringify(assignedZones));
+        sessionStorage.setItem('foodie_user_assigned_zones', JSON.stringify(assignedZones));
+        document.cookie = `foodie_user_assigned_zones=${encodeURIComponent(JSON.stringify(assignedZones))}; path=/; max-age=86400; SameSite=Lax`;
+
+        if (Array.isArray(assignedZones) && assignedZones.length > 0 && !finalZoneId) {
+          finalZoneId = assignedZones[0];
         }
 
         if (finalZoneId) {
@@ -292,24 +318,20 @@ export function AdminLoginForm({
               ? 'Super Admin'
               : (backendRole === 'RESTAURANT_MANAGER'
               ? 'Restaurant Manager'
+              : (backendRole === 'FINANCE_ADMIN'
+              ? 'Finance Admin'
               : (finalZoneId
               ? `${finalZoneName} Admin`
               : (backendRole === 'AUDITOR'
               ? 'Compliance Auditor'
-              : currentRoleInfo.label || 'Admin Operator')))),
+              : currentRoleInfo.label || 'Admin Operator'))))),
           email: userEmail,
         }),
       );
 
       trackAnalyticsEvent('admin_auth_succeeded', { role: backendRole });
-      if (backendRole === 'RESTAURANT_MANAGER') {
-        window.location.href = '/restaurants';
-      } else if (finalZoneId) {
-        window.location.href = '/dashboard';
-      } else {
-        const redirectPath = getHomeRouteForRole(backendRole);
-        window.location.href = redirectPath;
-      }
+      const redirectPath = getHomeRouteForRole(backendRole);
+      window.location.href = redirectPath;
     } catch (err: unknown) {
       trackAnalyticsEvent('admin_auth_failed');
       const errPayload = err as {

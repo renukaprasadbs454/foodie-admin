@@ -140,7 +140,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         ? 'RESTAURANT_MANAGER'
         : (isAuditorPath || storedRole === 'AUDITOR' || meProfile.role === 'AUDITOR')
         ? 'AUDITOR'
-        : (!hasAssignedZone && (isFinancePath || storedRole === 'FINANCE_ADMIN' || (storedRole && storedRole.toUpperCase().includes('FINANCE')) || meProfile.role === 'FINANCE_ADMIN'))
+        : (isFinancePath || storedRole === 'FINANCE_ADMIN' || (storedRole && storedRole.toUpperCase().includes('FINANCE')) || meProfile.role === 'FINANCE_ADMIN' || (meProfile.role && meProfile.role.toUpperCase().includes('FINANCE')))
         ? 'FINANCE_ADMIN'
         : (hasAssignedZone ? 'OPS' : (meProfile.role || storedRole || role || 'SUPER_ADMIN'));
       const storedEmail = typeof window !== 'undefined' ? (localStorage.getItem('foodie_admin_email') || sessionStorage.getItem('foodie_admin_email')) : null;
@@ -271,7 +271,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     storedRole === 'AUDITOR'
   );
 
-  const isFinanceContext = !isSuperAdmin && !isRestaurantManager && !hasAssignedZone && (
+  const isFinanceContext = !isSuperAdmin && !isRestaurantManager && (
     Boolean(pathname && (
       pathname.startsWith('/finance-admin') ||
       pathname.startsWith('/delivery-payouts') ||
@@ -301,6 +301,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (activeRole && activeRole.toUpperCase().includes('RESTAURANT') && (pathname === '/' || pathname === '/dashboard')) {
       router.replace('/restaurants');
+    } else if (activeRole && activeRole.toUpperCase().includes('FINANCE') && (pathname === '/' || pathname === '/dashboard')) {
+      router.replace('/finance-admin/dashboard');
     } else if (activeRole && activeRole.toUpperCase() === 'SUPPORT_AGENT' && (pathname === '/' || pathname === '/dashboard')) {
       router.replace('/support');
     }
@@ -618,6 +620,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           <AdminHeaderBar
             role={activeRole}
             userId={activeUserId}
+            assignedZoneIds={(meProfile as any)?.assignedZoneIds}
             onLogout={() => void onLogout()}
             loggingOut={loggingOut}
             isCompact={isCompact}

@@ -242,9 +242,10 @@ export async function POST(request: Request) {
         envelope.data.role
       ) {
         const userRole = envelope.data.role;
+        const isMultiZoneRoleUser = userRole === 'SUPER_ADMIN' || userRole === 'FINANCE_ADMIN' || userRole === 'AUDITOR' || userRole === 'RESTAURANT_MANAGER' || (userRole && userRole.toUpperCase().includes('FINANCE'));
 
-        // Cross-zone validation if expectedZoneId provided
-        if (body.expectedZoneId && userRole !== 'SUPER_ADMIN') {
+        // Cross-zone validation if expectedZoneId provided (only enforced for strict single-zone OPS admins)
+        if (body.expectedZoneId && !isMultiZoneRoleUser) {
           const expected = body.expectedZoneId.trim().toLowerCase();
           const actual = (envelope.data.assignedZoneId || '').trim().toLowerCase();
           const isEquivalent =
@@ -397,7 +398,9 @@ export async function POST(request: Request) {
     if (isValid) {
       const isSuper = matchedUser.role === 'SUPER_ADMIN' || isSuperAdminAttempt;
       const userRole = isSuper ? 'SUPER_ADMIN' : (demo?.role || matchedUser.role);
-      if (body.expectedZoneId && userRole !== 'SUPER_ADMIN') {
+      const isMultiZoneRoleUser = userRole === 'SUPER_ADMIN' || userRole === 'FINANCE_ADMIN' || userRole === 'AUDITOR' || userRole === 'RESTAURANT_MANAGER' || (userRole && userRole.toUpperCase().includes('FINANCE'));
+
+      if (body.expectedZoneId && !isMultiZoneRoleUser) {
         const expected = body.expectedZoneId.trim().toLowerCase();
         const actual = (matchedUser.assignedZoneId || '').trim().toLowerCase();
         const isEquivalent =

@@ -11,6 +11,7 @@ export interface CreateAdminUserBody {
   password?: string;
   assignedZoneId?: string;
   assignedZoneName?: string;
+  assignedZoneIds?: string[];
 }
 
 export const usersApi = baseApi.injectEndpoints({

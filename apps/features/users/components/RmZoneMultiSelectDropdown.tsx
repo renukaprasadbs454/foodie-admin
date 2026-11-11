@@ -103,7 +103,7 @@ export function RmZoneMultiSelectDropdown({
           transition: 'all 0.15s ease',
           outline: 'none',
         }}
-        title="Multi-select Operating Zones for Restaurant Manager"
+        title="Select Operating Zones for User"
       >
         <span>{assignedList.length > 0 ? '📍' : '🌐'}</span>
         <span>

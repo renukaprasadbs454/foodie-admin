@@ -10,6 +10,7 @@ import { isMultiZoneRole } from '@/lib/routeGuards';
 interface AdminHeaderBarProps {
   role?: string | null;
   userId?: string | null;
+  assignedZoneIds?: string[];
   onLogout?: () => void;
   loggingOut?: boolean;
   isCompact?: boolean;
@@ -21,6 +22,7 @@ type PolicyTab = 'ABOUT' | 'PRIVACY' | 'TERMS' | 'CONTACT' | null;
 export function AdminHeaderBar({
   role,
   userId,
+  assignedZoneIds,
   onLogout,
   loggingOut = false,
   isCompact = false,
@@ -95,9 +97,40 @@ export function AdminHeaderBar({
     refetchOnMountOrArgChange: true,
   });
 
-  const displayedZones = isRestaurantManager
+  // Read assigned zones for the current user
+  const storedAssignedZonesRaw = typeof window !== 'undefined'
+    ? (localStorage.getItem('foodie_user_assigned_zones') || sessionStorage.getItem('foodie_user_assigned_zones') || (typeof document !== 'undefined' ? document.cookie.match(/foodie_user_assigned_zones=([^;]+)/)?.[1] : null))
+    : null;
+
+  let userAssignedZoneList: string[] = [];
+  if (storedAssignedZonesRaw) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(storedAssignedZonesRaw));
+      if (Array.isArray(parsed)) userAssignedZoneList = parsed;
+    } catch {}
+  }
+  if (Array.isArray(assignedZoneIds) && assignedZoneIds.length > 0) {
+    userAssignedZoneList = assignedZoneIds;
+  }
+  if (userAssignedZoneList.length === 0 && assignedZone && assignedZone !== 'ALL') {
+    userAssignedZoneList = [assignedZone];
+  }
+
+  // User has restricted zone access if not Super Admin, assignedZone is not ALL, and has specific zone assignments
+  const hasSpecificZoneAccess = !isSuperAdmin && assignedZone !== 'ALL' && userAssignedZoneList.length > 0 && !userAssignedZoneList.includes('ALL');
+
+  const baseZoneCandidates = isRestaurantManager
     ? availableZones.filter((zone) => zone.status === 'ACTIVE')
     : availableZones;
+
+  const displayedZones = hasSpecificZoneAccess
+    ? baseZoneCandidates.filter((zone) =>
+        userAssignedZoneList.some((zid) =>
+          zid.toLowerCase() === zone.id.toLowerCase() ||
+          (zone.zoneName && zone.zoneName.toLowerCase() === zid.toLowerCase())
+        )
+      )
+    : baseZoneCandidates;
 
   const [selectOperatingZoneMutation] = useSelectOperatingZoneMutation();
 
@@ -114,22 +147,25 @@ export function AdminHeaderBar({
   }, [availableZones, currentZoneId, currentZoneName]);
 
   React.useEffect(() => {
-    // Restaurant Manager zone assignment check
-    if (isRestaurantManager && availableZones.length > 0) {
-      const activeZones = availableZones.filter((z) => z.status === 'ACTIVE');
-      const isCurrentActive = activeZones.some(
+    // If user has specific zone access and current selected zone is not in authorized zones, auto-select first authorized zone
+    if (hasSpecificZoneAccess && displayedZones.length > 0) {
+      const isAllowed = displayedZones.some(
+        (z) => z.id.toLowerCase() === currentZoneId.toLowerCase() ||
+               (z.zoneName && z.zoneName.toLowerCase() === currentZoneName.toLowerCase())
+      );
+      if (!isAllowed) {
+        handleSelectZone(displayedZones[0]);
+      }
+    } else if (isRestaurantManager && displayedZones.length > 0) {
+      const isCurrentActive = displayedZones.some(
         (z) => z.id.toLowerCase() === currentZoneId.toLowerCase() ||
                (z.zoneName && z.zoneName.toLowerCase() === currentZoneName.toLowerCase())
       );
       if (!isCurrentActive) {
-        if (activeZones.length > 0) {
-          handleSelectZone(activeZones[0]);
-        } else {
-          setCurrentZoneName('No Zones Assigned');
-        }
+        handleSelectZone(displayedZones[0]);
       }
     }
-  }, [isRestaurantManager, availableZones, currentZoneId, currentZoneName]);
+  }, [hasSpecificZoneAccess, isRestaurantManager, displayedZones, currentZoneId, currentZoneName]);
 
   React.useEffect(() => {
     function handleClickOutsideZone(event: MouseEvent) {
@@ -163,12 +199,8 @@ export function AdminHeaderBar({
         sessionStorage.setItem('foodie_active_zone_id', zone.id);
         sessionStorage.setItem('foodie_active_zone_name', zone.zoneName);
 
-        localStorage.setItem('foodie_user_assigned_zone', zone.id);
-        sessionStorage.setItem('foodie_user_assigned_zone', zone.id);
-
         document.cookie = `foodie_active_zone_id=${encodeURIComponent(zone.id)}; path=/; max-age=86400; SameSite=Lax`;
         document.cookie = `foodie_active_zone_name=${encodeURIComponent(zone.zoneName)}; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `foodie_user_assigned_zone=${encodeURIComponent(zone.id)}; path=/; max-age=86400; SameSite=Lax`;
 
         window.dispatchEvent(
           new CustomEvent('foodie:zone-change', {
