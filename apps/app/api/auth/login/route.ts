@@ -242,18 +242,23 @@ export async function POST(request: Request) {
         envelope.data.role
       ) {
         const userRole = envelope.data.role;
-        const isMultiZoneRoleUser = userRole === 'SUPER_ADMIN' || userRole === 'FINANCE_ADMIN' || userRole === 'AUDITOR' || userRole === 'RESTAURANT_MANAGER' || (userRole && userRole.toUpperCase().includes('FINANCE'));
 
-        // Cross-zone validation if expectedZoneId provided (only enforced for strict single-zone OPS admins)
-        if (body.expectedZoneId && !isMultiZoneRoleUser) {
+        // Cross-zone validation if expectedZoneId provided
+        if (body.expectedZoneId && userRole !== 'SUPER_ADMIN') {
           const expected = body.expectedZoneId.trim().toLowerCase();
           const actual = (envelope.data.assignedZoneId || '').trim().toLowerCase();
+          const userZoneIds: string[] = Array.isArray((envelope.data as any)?.assignedZoneIds)
+            ? (envelope.data as any).assignedZoneIds.map((z: string) => String(z).toLowerCase())
+            : [];
+
+          const isAllZones = !actual || actual === 'null' || actual === 'all' || userZoneIds.includes('all');
           const isEquivalent =
             actual === expected ||
             ((actual.includes('bangalore') || actual.includes('bengaluru')) && (expected.includes('bangalore') || expected.includes('bengaluru'))) ||
-            ((actual.includes('tumkur') || actual.includes('tumakuru')) && (expected.includes('tumkur') || expected.includes('tumakuru')));
+            ((actual.includes('tumkur') || actual.includes('tumakuru')) && (expected.includes('tumkur') || expected.includes('tumakuru'))) ||
+            userZoneIds.includes(expected);
 
-          if (actual && !isEquivalent) {
+          if (!isAllZones && !isEquivalent) {
             return NextResponse.json({
               success: false,
               data: null,
@@ -309,15 +314,19 @@ export async function POST(request: Request) {
           maxAge: 86400,
         });
 
-        if (userRole === 'RESTAURANT_MANAGER') {
-          const rmZones = Array.isArray((envelope.data as any)?.assignedZoneIds) ? (envelope.data as any).assignedZoneIds : (effectiveZoneId ? [effectiveZoneId] : []);
-          response.cookies.set('foodie_user_assigned_zones', JSON.stringify(rmZones), {
-            path: '/',
-            sameSite: 'lax',
-            maxAge: 86400,
-          });
-          if (rmZones.length > 0) {
-            response.cookies.set('foodie_active_zone_id', rmZones[0], { path: '/', sameSite: 'lax', maxAge: 86400 });
+        if (userRole !== 'SUPER_ADMIN') {
+          const userZones = Array.isArray((envelope.data as any)?.assignedZoneIds)
+            ? (envelope.data as any).assignedZoneIds
+            : (effectiveZoneId ? [effectiveZoneId] : []);
+          if (userZones.length > 0) {
+            response.cookies.set('foodie_user_assigned_zones', JSON.stringify(userZones), {
+              path: '/',
+              sameSite: 'lax',
+              maxAge: 86400,
+            });
+            if (userRole === 'RESTAURANT_MANAGER') {
+              response.cookies.set('foodie_active_zone_id', userZones[0], { path: '/', sameSite: 'lax', maxAge: 86400 });
+            }
           }
         }
 
@@ -398,17 +407,22 @@ export async function POST(request: Request) {
     if (isValid) {
       const isSuper = matchedUser.role === 'SUPER_ADMIN' || isSuperAdminAttempt;
       const userRole = isSuper ? 'SUPER_ADMIN' : (demo?.role || matchedUser.role);
-      const isMultiZoneRoleUser = userRole === 'SUPER_ADMIN' || userRole === 'FINANCE_ADMIN' || userRole === 'AUDITOR' || userRole === 'RESTAURANT_MANAGER' || (userRole && userRole.toUpperCase().includes('FINANCE'));
 
-      if (body.expectedZoneId && !isMultiZoneRoleUser) {
+      if (body.expectedZoneId && userRole !== 'SUPER_ADMIN') {
         const expected = body.expectedZoneId.trim().toLowerCase();
         const actual = (matchedUser.assignedZoneId || '').trim().toLowerCase();
+        const userZoneIds: string[] = Array.isArray(matchedUser.assignedZoneIds)
+          ? matchedUser.assignedZoneIds.map((z: string) => String(z).toLowerCase())
+          : [];
+
+        const isAllZones = !actual || actual === 'null' || actual === 'all' || userZoneIds.includes('all');
         const isEquivalent =
           actual === expected ||
           ((actual.includes('bangalore') || actual.includes('bengaluru')) && (expected.includes('bangalore') || expected.includes('bengaluru'))) ||
-          ((actual.includes('tumkur') || actual.includes('tumakuru')) && (expected.includes('tumkur') || expected.includes('tumakuru')));
+          ((actual.includes('tumkur') || actual.includes('tumakuru')) && (expected.includes('tumkur') || expected.includes('tumakuru'))) ||
+          userZoneIds.includes(expected);
 
-        if (actual && !isEquivalent) {
+        if (!isAllZones && !isEquivalent) {
           return NextResponse.json({
             success: false,
             data: null,
@@ -476,19 +490,25 @@ export async function POST(request: Request) {
         maxAge: 86400,
       });
 
-      if (userRole === 'RESTAURANT_MANAGER') {
-        const rmZones = Array.isArray(matchedUser.assignedZoneIds) ? matchedUser.assignedZoneIds : (effectiveZoneId ? [effectiveZoneId] : []);
-        response.cookies.set('foodie_user_assigned_zones', JSON.stringify(rmZones), {
-          path: '/',
-          sameSite: 'lax',
-          maxAge: 86400,
-        });
-        if (rmZones.length > 0) {
-          const firstZone = rmZones[0];
-          response.cookies.set('foodie_active_zone_id', firstZone, { path: '/', sameSite: 'lax', maxAge: 86400 });
-        } else {
-          response.cookies.delete('foodie_active_zone_id');
-          response.cookies.delete('foodie_user_assigned_zone');
+      if (userRole !== 'SUPER_ADMIN') {
+        const userZones = Array.isArray(matchedUser.assignedZoneIds)
+          ? matchedUser.assignedZoneIds
+          : (effectiveZoneId ? [effectiveZoneId] : []);
+        if (userZones.length > 0) {
+          response.cookies.set('foodie_user_assigned_zones', JSON.stringify(userZones), {
+            path: '/',
+            sameSite: 'lax',
+            maxAge: 86400,
+          });
+        }
+        if (userRole === 'RESTAURANT_MANAGER') {
+          if (userZones.length > 0) {
+            const firstZone = userZones[0];
+            response.cookies.set('foodie_active_zone_id', firstZone, { path: '/', sameSite: 'lax', maxAge: 86400 });
+          } else {
+            response.cookies.delete('foodie_active_zone_id');
+            response.cookies.delete('foodie_user_assigned_zone');
+          }
         }
       }
 
